@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#10090c">
+  <meta name="description" content="Shadow Garden — separate adult EPUB library.">
+  <title>Shadow Garden — Adult Library</title>
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/site.css">
+  <script src="/assets/js/library.js" defer></script>
+</head>
+<body class="adult-library" data-library-scope="nsfw">
+  <div id="adultGate" class="adult-gate hidden" role="dialog" aria-modal="true" aria-labelledby="adultGateTitle">
+    <div class="adult-gate-card">
+      <div class="adult-gate-mark">✦</div>
+      <p class="kicker">RESTRICTED WING</p>
+      <h1 id="adultGateTitle">The Night Garden</h1>
+      <p>This section contains adult or sexually explicit books. Continue only if you are of legal age to view this material in your jurisdiction.</p>
+      <div class="adult-gate-actions">
+        <button id="adultEnter" class="adult-enter" type="button">Enter Adult Library</button>
+        <a href="/">Return to Main Library</a>
+      </div>
+      <small>Your acknowledgement is stored only in this browser. No account is created.</small>
+    </div>
+  </div>
+
+  <header class="site-header">
+    <a class="brand" href="/">
+      <span class="brand-mark">✦</span>
+      <span><strong>Shadow Garden</strong><small>EPUB LIBRARY</small></span>
+    </a>
+    <nav>
+      <a href="/">Library</a>
+      <a class="adult-nav-link active" href="/nsfw.html">Adult Library <span>18+</span></a>
+      <button id="pinnedNav" class="nav-button" type="button">Pinned</button>
+    </nav>
+    <div class="header-stat"><span id="headerVolumes">0</span> adult volumes</div>
+  </header>
+
+  <main class="library-shell">
+    <section class="library-intro adult-intro">
+      <div>
+        <p class="kicker">THE RESTRICTED WING</p>
+        <h1>Adult Library</h1>
+        <p class="intro-copy">A separate shelf for NSFW and adult EPUBs, kept out of the main archive.</p>
+      </div>
+      <div id="continuePanel" class="continue-panel hidden"></div>
+    </section>
+
+    <section class="catalog-layout">
+      <aside class="filters" aria-label="Adult library filters">
+        <div class="filter-head">
+          <strong>Filter adult archive</strong>
+          <button id="clearFilters" type="button">Reset</button>
+        </div>
+
+        <label class="search-field">
+          <span>⌕</span>
+          <input id="searchInput" type="search" placeholder="Series, author, tag…">
+        </label>
+
+        <div class="filter-group">
+          <label for="genreSelect">Genre</label>
+          <select id="genreSelect"><option value="">Any genre</option></select>
+        </div>
+
+        <div class="filter-group">
+          <label for="yearSelect">Year</label>
+          <select id="yearSelect"><option value="">Any year</option></select>
+        </div>
+
+        <div class="filter-group">
+          <label for="sortSelect">Sort</label>
+          <select id="sortSelect">
+            <option value="recent">Recently added</option>
+            <option value="title">Title</option>
+            <option value="year">Year released</option>
+            <option value="volumes">Volumes</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <span class="filter-label">Quick genres</span>
+          <div id="genreChips" class="genre-chips"></div>
+        </div>
+      </aside>
+
+      <div class="catalog-main">
+        <div class="catalog-bar">
+          <p id="resultCount">Loading restricted archive…</p>
+          <div class="view-switch" aria-label="View style">
+            <button class="active" data-view="grid" type="button">Grid</button>
+            <button data-view="compact" type="button">Compact</button>
+          </div>
+        </div>
+
+        <div id="catalogGrid" class="catalog-grid"></div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <span>✦</span>
+          <h2>No books in the Night Garden.</h2>
+          <p id="emptyMessage">Add EPUBs under <code>library/NSFW/</code>.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Shadow Garden · Adult Library</span>
+    <span><button id="adultReset" class="footer-button" type="button">Require content warning again</button></span>
+  </footer>
+</body>
+</html>

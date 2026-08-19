@@ -1,100 +1,141 @@
-# Shadow Garden v0.3
+# Shadow Garden v0.4
 
-A static EPUB library and browser reader designed for Cloudflare Pages.
+A static EPUB library and browser reader for Cloudflare Pages, with Backblaze B2 as the book-storage backend.
 
-## What changed in v0.3
+## Architecture
 
-- LNORI-inspired archive browsing structure.
-- Search across series, author, description, tags and volume titles.
-- Genre, year and sort filters.
-- Grid and compact views.
-- Series pages with volume shelves.
-- Built-in EPUB.js reader.
-- Table of contents.
-- Reader bookmarks.
-- Local reading progress.
-- Continue Reading panel.
-- Reader themes, typefaces, font size, line height, text width and page/scroll flow.
-- Local "Pin to Garden" favorites.
-- Automatic EPUB metadata and cover extraction at build time.
-- No account system and no database.
-- Separate Adult / NSFW Library with a local content warning.
-- NSFW books never appear in the main catalog or its Continue Reading panel.
-- Automatic NSFW classification from the `library/NSFW/` folder.
-- Separate generated catalogs: the main page never loads the Adult Library metadata file.
+```text
+GitHub
+  site code + public B2 config only
+        |
+        v
+Cloudflare Pages
+  Shadow Garden frontend
+        |
+        v
+Backblaze B2
+  EPUBs + extracted covers + catalog JSON
+```
+
+No Backblaze secret key is stored in GitHub or Cloudflare. Upload credentials stay only in `.env.b2` on your PC.
 
 ## Cloudflare Pages settings
-
-After uploading this version to GitHub, change the Pages build configuration to:
 
 ```text
 Framework preset: None
 Build command: npm run build
 Build output directory: dist
+Production branch: main
 ```
 
-Keep the production branch as `main`.
+## One-time Backblaze B2 setup
 
-## Adding EPUBs
-
-Put ordinary EPUBs directly under the `library` folder, grouped by series:
+1. Create or enable a Backblaze B2 account.
+2. Create a bucket and make it **Public**.
+3. Copy the bucket's S3 endpoint, for example:
 
 ```text
-library/
-└─ My Series/
-   ├─ Volume 01.epub
-   ├─ Volume 02.epub
-   └─ Volume 03.epub
+https://s3.us-west-004.backblazeb2.com
 ```
 
-Put adult/NSFW series under `library/NSFW/`:
+4. Create a scoped **Read and Write** Application Key for only this bucket.
+5. Copy `library/b2.example.json` to `library/b2.json` and replace:
+   - `bucket`
+   - `endpoint`
+   - `region`
+   - `publicBaseUrl`
+6. Copy `.env.b2.example` to `.env.b2` and fill in:
 
 ```text
-library/
-└─ NSFW/
-   └─ Adult Series/
-      ├─ Volume 01.epub
-      └─ Volume 02.epub
+B2_KEY_ID=...
+B2_APPLICATION_KEY=...
 ```
 
-The build automatically sets `nsfw: true` for any EPUB found under an `NSFW` folder and excludes it from the normal library.
+`.env.b2` is gitignored and must never be committed.
 
-Commit and push.
-
-Cloudflare will run the build script. The script:
-
-1. Opens every EPUB.
-2. Reads the OPF metadata.
-3. Detects series/author/title/date/language/tags.
-4. Extracts the cover.
-5. Groups volumes into series.
-6. Copies the EPUBs into the published `/books/` tree.
-7. Generates `/data/catalog.json` for the main library and `/data/adult-catalog.json` for the Adult Library.
-8. Deploys the finished site.
-
-You do not edit either generated catalog manually.
-
-> The Adult Library warning is a client-side content gate, not authentication or true access control. Because this is a public static site, anyone who already knows a direct EPUB URL can still request that file.
-
-## Correcting metadata
-
-Copy:
+7. Install dependencies and configure the bucket for Shadow Garden:
 
 ```text
-library/series-overrides.example.json
+npm install
+npm run b2:setup
 ```
 
-to:
+`b2:setup` sets the bucket to `public-read` and configures CORS for the origins listed in `library/b2.json`. If your scoped key cannot alter bucket settings, set the bucket Public in the Backblaze console and configure CORS there instead.
+
+8. Commit `library/b2.json` to GitHub. It contains public endpoint information only, not credentials.
+
+After Cloudflare rebuilds, `/data/source.json` tells Shadow Garden to load its catalogs directly from B2.
+
+## Uploading books
+
+Normal book:
+
+```text
+npm run b2:upload -- "D:\Books\My Series - Volume 01.epub"
+```
+
+Adult / NSFW book:
+
+```text
+npm run b2:upload -- --adult "D:\Books\Adult Series - Volume 01.epub"
+```
+
+If the EPUB does not contain useful series metadata, force the series name:
+
+```text
+npm run b2:upload -- --series="My Series" "D:\Books\Volume 01.epub"
+```
+
+You can upload multiple EPUBs in one command:
+
+```text
+npm run b2:upload -- "D:\Books\Volume 01.epub" "D:\Books\Volume 02.epub"
+```
+
+The uploader automatically:
+
+1. Opens the EPUB.
+2. Reads title, author, language, date, publisher, description, subjects and series metadata.
+3. Detects the volume number where possible.
+4. Extracts the cover image.
+5. Uploads the EPUB to B2.
+6. Uploads the extracted cover to B2.
+7. Creates or updates the series entry.
+8. Rewrites the appropriate B2 catalog (`catalog.json` or `adult-catalog.json`).
+
+Because the browser reads the B2 catalog directly, adding a book does **not** require another GitHub commit or Cloudflare deployment.
+
+## Storage layout in B2
+
+```text
+shadow-garden/
+├─ books/
+│  ├─ series-name/
+│  │  └─ volume-01.epub
+│  └─ adult-series-name/
+├─ covers/
+└─ data/
+   ├─ catalog.json
+   └─ adult-catalog.json
+```
+
+## Metadata corrections
+
+Optional series-level corrections still use:
 
 ```text
 library/series-overrides.json
 ```
 
-Then add only the fields you want to override. You can also use `"nsfw": true` or `"nsfw": false` to explicitly classify a series.
+Copy `library/series-overrides.example.json` as a starting point. Overrides are applied when a book is uploaded.
 
-## Local test
+## Reader behavior
 
-Install Node.js, then from the project folder run:
+The existing browser reader works with the absolute B2 EPUB URLs stored in the catalog. B2 CORS must allow the Shadow Garden site origin so EPUB.js can fetch the remote EPUB package.
+
+Reading progress, bookmarks, pinned series, the Adult Library acknowledgement and reader settings remain in browser `localStorage`.
+
+## Local preview
 
 ```text
 npm install
@@ -102,9 +143,4 @@ npm run build
 npm run preview
 ```
 
-Open the local URL shown in the console.
-
-## Reader persistence
-
-Reading progress, bookmarks, pinned series, the Adult Library acknowledgement, and reader preferences use browser `localStorage`.
-There is no user account and no remote reading-history database.
+Until `library/b2.json` exists and is enabled, the build automatically falls back to the original local `/data/catalog.json` mode.

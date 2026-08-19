@@ -1,12 +1,42 @@
 .site-header{grid-template-columns:1fr auto!important}
-.brand-mark{cursor:pointer;user-select:none;transition:transform .18s ease,border-color .18s ease,background .18s ease}.brand-mark:hover,.brand-mark:focus-visible{outline:none;border-color:rgba(180,210,190,.38);background:#121b15}.brand-mark.menu-open{transform:rotate(45deg);color:var(--leaf2)}
-.site-header nav{position:absolute!important;top:100%;left:0;width:min(360px,calc(100vw - 24px));height:calc(100dvh - 72px);padding:22px 18px;display:flex!important;flex-direction:column;align-items:stretch!important;gap:7px!important;border-right:1px solid var(--line2);border-top:1px solid var(--line);background:rgba(9,13,10,.97);backdrop-filter:blur(22px);box-shadow:24px 0 70px rgba(0,0,0,.44);transform:translateX(-104%);opacity:0;visibility:hidden;pointer-events:none;transition:transform .22s ease,opacity .18s ease,visibility .22s;z-index:60}
+.brand-mark{cursor:pointer;user-select:none;transition:transform .18s ease,border-color .18s ease,background .18s ease}.brand-mark:hover,.brand-mark:focus-visible{outline:none;border-color:rgba(190,173,229,.40);background:#171020}.brand-mark.menu-open{transform:rotate(45deg);color:var(--leaf2)}
+.site-header nav{position:absolute!important;top:100%;left:0;width:min(360px,calc(100vw - 24px));height:calc(100dvh - 72px);padding:22px 18px;display:flex!important;flex-direction:column;align-items:stretch!important;gap:7px!important;border-right:1px solid var(--line2);border-top:1px solid var(--line);background:rgba(11,8,16,.98);backdrop-filter:blur(22px);box-shadow:24px 0 70px rgba(0,0,0,.44);transform:translateX(-104%);opacity:0;visibility:hidden;pointer-events:none;transition:transform .22s ease,opacity .18s ease,visibility .22s;z-index:60}
 .site-header nav.nav-open{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto}
 .site-header nav:before{content:"SHADOW GARDEN";display:block;margin:3px 10px 13px;color:var(--dim);font-size:.62rem;font-weight:750;letter-spacing:.22em}
 .site-header nav a,.site-header nav .nav-button{width:100%;min-height:44px;padding:11px 12px!important;display:flex;align-items:center;justify-content:space-between;text-align:left;border:1px solid transparent!important;border-radius:10px!important}
-.site-header nav a:hover,.site-header nav .nav-button:hover,.site-header nav .active{border-color:var(--line)!important;background:rgba(255,255,255,.045)!important}
-.site-nav-backdrop{position:fixed;inset:72px 0 0;z-index:35;background:rgba(2,4,3,.56);backdrop-filter:blur(3px);opacity:1;transition:opacity .18s ease}.site-nav-backdrop[hidden]{display:none}.site-nav-open{overflow:hidden}
+.site-header nav a:hover,.site-header nav .nav-button:hover,.site-header nav .active{border-color:var(--line)!important;background:rgba(162,135,211,.07)!important}
+.site-nav-backdrop{position:fixed;inset:72px 0 0;z-index:35;background:rgba(4,2,7,.60);backdrop-filter:blur(3px);opacity:1;transition:opacity .18s ease}.site-nav-backdrop[hidden]{display:none}.site-nav-open{overflow:hidden}
+
+/* Shadow-violet primary theme */
+:root{--bg:#09080d;--bg2:#0d0b12;--panel:#13101a;--panel2:#181420;--line:rgba(196,184,225,.12);--line2:rgba(196,184,225,.22);--text:#f0edf5;--muted:#aaa2b5;--dim:#7b7385;--leaf:#9a86d3;--leaf2:#c3b4ee}
+body:not(.adult-library){background:radial-gradient(circle at 85% 4%,rgba(109,79,158,.11),transparent 30rem),radial-gradient(circle at 8% 44%,rgba(83,58,116,.06),transparent 26rem),linear-gradient(180deg,#09080d,#0d0a12 50%,#08070b)}
+body:not(.adult-library) .site-header{background:rgba(10,8,14,.88)}
+body:not(.adult-library) .brand-mark{background:#130f1b}
+body:not(.adult-library) .continue-mark{background:linear-gradient(145deg,#211932,#100d17)}
+body:not(.adult-library) .search-field,body:not(.adult-library) .filter-group select{background:#0e0b13}
+body:not(.adult-library) .genre-chips button:hover,body:not(.adult-library) .genre-chips button.active{border-color:rgba(154,134,211,.38);background:rgba(154,134,211,.08)}
+body:not(.adult-library) .cover{background:radial-gradient(circle at 72% 22%,rgba(132,104,183,.17),transparent 23%),linear-gradient(150deg,#1a1523,#0f0c14 70%,#17111d)}
+body:not(.adult-library) .cover-fallback:before{color:rgba(190,172,231,.27)}
+body:not(.adult-library) .volume-pill{background:rgba(6,4,10,.80);color:#e0d9eb}
+body:not(.adult-library) .series-hero:has(.series-backdrop) .series-backdrop:after{background:linear-gradient(180deg,rgba(9,7,13,.45),#09080d 88%)}
+body:not(.adult-library) .series-cover{background:#15111c}
+body:not(.adult-library) .series-cover-fallback{background:linear-gradient(145deg,#1c1627,#0f0c14)}
+body:not(.adult-library) .primary-button{border-color:#b9a8e3;color:#0d0914;background:linear-gradient(#cbbdf0,#9a86d3)}
+body:not(.adult-library) .tag{color:#a99bc2;background:rgba(132,104,183,.06)}
+body:not(.adult-library) .volume-cover{background:#14101a}
+body:not(.adult-library) .volume-actions a.read{border-color:rgba(154,134,211,.28)}
+
+/* Adult section remains rose / wine */
+.adult-library{--leaf:#b7798b;--leaf2:#d6a0ad;--gold:#c09a76;--line:rgba(209,163,176,.13);--line2:rgba(209,163,176,.22);--panel:#171014;--panel2:#1d1318}
+.adult-library .brand-mark:hover,.adult-library .brand-mark:focus-visible{border-color:rgba(205,139,159,.36);background:#1a0e13}
 .adult-library .site-header nav{background:rgba(16,8,12,.98);border-right-color:rgba(196,120,145,.18)}
+.adult-library .site-header nav a:hover,.adult-library .site-header nav .nav-button:hover,.adult-library .site-header nav .active{background:rgba(190,119,139,.07)!important}
+.adult-library .site-nav-backdrop{background:rgba(8,2,5,.62)}
+.adult-library .primary-button{border-color:#c28b9a;color:#17080d;background:linear-gradient(#d6a0ad,#b7798b)}
+.adult-library .genre-chips button:hover,.adult-library .genre-chips button.active{border-color:rgba(190,119,139,.34);background:rgba(190,119,139,.08)}
+.adult-library .tag{color:#c39aa6;background:rgba(190,119,139,.055)}
+.adult-library .volume-actions a.read{border-color:rgba(190,119,139,.28)}
+
 @media(max-width:980px){.site-header nav{display:flex!important}}
 @media(max-width:720px){.site-header nav{height:calc(100dvh - 62px);width:min(330px,calc(100vw - 18px));padding:18px 14px}.site-nav-backdrop{inset:62px 0 0}.brand-mark{width:38px;height:38px}}
 @media(prefers-reduced-motion:reduce){.site-header nav,.brand-mark,.site-nav-backdrop{transition:none}}

@@ -46,7 +46,7 @@ function apply(){
   $("#catalogGrid").classList.toggle("compact",state.view==="compact");
   $("#resultCount").textContent=`${state.filtered.length} series · ${state.filtered.reduce((n,s)=>n+arr(s.volumes).length,0)} volumes`;
   $("#emptyState").classList.toggle("hidden",state.filtered.length>0);
-  $("#emptyMessage").textContent=state.items.length?"No series match these filters.":(scope==="nsfw"?"Add EPUBs under library/NSFW/<Series Name>/ and rebuild.":"Upload EPUB files into the /library folder, then let Cloudflare rebuild the site.");
+  $("#emptyMessage").textContent=state.items.length?"No series match these filters.":"Upload EPUBs with the Shadow Garden B2 uploader.";
   document.querySelectorAll("#genreChips button").forEach(b=>b.classList.toggle("active",b.dataset.genre===state.genre));
   document.querySelectorAll(".view-switch button").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));
 }
@@ -83,13 +83,12 @@ function setupAdultGate(){
 async function init(){
   setupAdultGate();
   try{
-    const catalogUrl=scope==="nsfw"?"/data/adult-catalog.json":"/data/catalog.json";
-    const r=await fetch(catalogUrl,{cache:"no-store"});if(!r.ok)throw new Error(r.status);
-    state.catalog=await r.json();
+    if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");
+    state.catalog=await window.ShadowGardenData.loadCatalog(scope==="nsfw");
     state.items=arr(state.catalog.series);
     $("#headerVolumes").textContent=state.items.reduce((n,s)=>n+arr(s.volumes).length,0);
     populate();renderContinue();apply();
-  }catch(e){console.error(e);$("#resultCount").textContent="Could not load catalog";$("#emptyState").classList.remove("hidden")}
+  }catch(e){console.error(e);$("#resultCount").textContent="Could not load catalog";$("#emptyState").classList.remove("hidden");$("#emptyMessage").textContent="The library catalog could not be reached."}
 }
 $("#searchInput")?.addEventListener("input",e=>{state.query=e.target.value;apply()});
 $("#genreSelect")?.addEventListener("change",e=>{state.genre=e.target.value;apply()});

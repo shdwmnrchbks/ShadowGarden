@@ -1,0 +1,22 @@
+{
+  "Example Series": {
+    "author": "Author Name",
+    "year": 2024,
+    "status": "Ongoing",
+    "description": "Optional custom series description.",
+    "tags": [
+      "Fantasy",
+      "Adventure"
+    ]
+  },
+  "Example Adult Series": {
+    "author": "Author Name",
+    "year": 2025,
+    "status": "Complete",
+    "description": "Optional adult-series metadata override.",
+    "tags": [
+      "Romance"
+    ],
+    "nsfw": true
+  }
+}

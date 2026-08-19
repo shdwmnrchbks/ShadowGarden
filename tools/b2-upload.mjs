@@ -36,7 +36,8 @@ function inferSeries(title){return String(title||'Untitled').replace(/\s*(?:[-â€
 function getSeries(md,title,parent=''){const c=metaByName(md,'calibre:series');if(c)return c;const x=metaByProperty(md,'belongs-to-collection');if(x&&txt(x))return txt(x);return parent||inferSeries(title)}
 function contentType(ext){return ({'.jpg':'image/jpeg','.jpeg':'image/jpeg','.png':'image/png','.webp':'image/webp','.avif':'image/avif','.gif':'image/gif'})[ext.toLowerCase()]||'application/octet-stream'}
 function encodeKey(key){return key.split('/').map(encodeURIComponent).join('/')}
-function publicUrl(config,key){return `${String(config.publicBaseUrl).replace(/\/$/,'')}/${encodeKey(key)}`}
+function deliveryBase(config){return config.proxyBaseUrl||config.publicBaseUrl||''}
+function deliveryUrl(config,key){return `${String(deliveryBase(config)).replace(/\/$/,'')}/${encodeKey(key)}`}
 
 async function parseEpub(file,forcedSeries=''){
   const data=await fs.readFile(file),zip=await JSZip.loadAsync(data);
@@ -61,8 +62,8 @@ async function putJson(s3,bucket,key,obj){await s3.send(new PutObjectCommand({Bu
 
 await loadEnv();
 const config=await loadJson(path.join(LIB,'b2.json'));
-if(!config?.enabled)throw new Error('Create library/b2.json from library/b2.example.json first.');
-if(!config.bucket||!config.endpoint||!config.publicBaseUrl)throw new Error('b2.json needs bucket, endpoint, and publicBaseUrl.');
+if(!config)throw new Error('Create library/b2.json from library/b2.example.json first.');
+if(!config.bucket||!config.endpoint||!deliveryBase(config))throw new Error('b2.json needs bucket, endpoint, and proxyBaseUrl.');
 const keyId=process.env.B2_KEY_ID,appKey=process.env.B2_APPLICATION_KEY;
 if(!keyId||!appKey)throw new Error('Set B2_KEY_ID and B2_APPLICATION_KEY in .env.b2 or your environment.');
 const argv=process.argv.slice(2),adult=argv.includes('--adult'),forcedSeries=(argv.find(x=>x.startsWith('--series='))||'').slice(9),files=argv.filter(x=>!x.startsWith('--'));
@@ -79,8 +80,8 @@ for(const input of files){
   const epubName=`${slug(path.basename(file,path.extname(file)))}.epub`,epubKey=`shadow-garden/books/${sid}/${epubName}`;
   await s3.send(new PutObjectCommand({Bucket:config.bucket,Key:epubKey,Body:v.data,ContentType:'application/epub+zip',ContentDisposition:`attachment; filename="${epubName}"`}));
   let cover='';
-  if(v.coverData){const hash=crypto.createHash('sha1').update(v.coverData).digest('hex').slice(0,8),coverName=`${sid}-${String(v.number===9999?'x':v.number).replace('.','-')}-${hash}${v.coverExt.toLowerCase()}`,coverKey=`shadow-garden/covers/${coverName}`;await s3.send(new PutObjectCommand({Bucket:config.bucket,Key:coverKey,Body:v.coverData,ContentType:contentType(v.coverExt),CacheControl:'public, max-age=31536000, immutable'}));cover=publicUrl(config,coverKey)}
-  const volume={title:v.title,number:v.number,file:publicUrl(config,epubKey),cover,author:v.author,language:v.language,date:v.date,size:v.size,added:new Date().toISOString().slice(0,10),publisher:v.publisher,description:v.description};
+  if(v.coverData){const hash=crypto.createHash('sha1').update(v.coverData).digest('hex').slice(0,8),coverName=`${sid}-${String(v.number===9999?'x':v.number).replace('.','-')}-${hash}${v.coverExt.toLowerCase()}`,coverKey=`shadow-garden/covers/${coverName}`;await s3.send(new PutObjectCommand({Bucket:config.bucket,Key:coverKey,Body:v.coverData,ContentType:contentType(v.coverExt),CacheControl:'public, max-age=31536000, immutable'}));cover=deliveryUrl(config,coverKey)}
+  const volume={title:v.title,number:v.number,file:deliveryUrl(config,epubKey),cover,author:v.author,language:v.language,date:v.date,size:v.size,added:new Date().toISOString().slice(0,10),publisher:v.publisher,description:v.description};
   let series=target.series.find(s=>s.id===sid);
   if(!series){series={id:sid,title:seriesOverride.title||v.series,author:seriesOverride.author||v.author||'',year:seriesOverride.year||parseInt(String(v.date).slice(0,4))||'',status:seriesOverride.status||'',description:seriesOverride.description||v.description||'',tags:[...new Set([...v.tags,...arr(seriesOverride.tags)])],cover:seriesOverride.cover||cover,nsfw:adult,volumes:[]};target.series.push(series)}
   const ix=series.volumes.findIndex(x=>(Number.isFinite(v.number)&&v.number!==9999&&x.number===v.number)||x.title===v.title);

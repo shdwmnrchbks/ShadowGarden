@@ -8,12 +8,13 @@ let source={mode:'local',catalogUrl:'/data/catalog.json',adultCatalogUrl:'/data/
 try{
   const cfg=JSON.parse(await fs.readFile(path.join(LIB,'b2.json'),'utf8'));
   if(cfg?.enabled){
-    if(!cfg.publicBaseUrl)throw new Error('library/b2.json is enabled but publicBaseUrl is missing.');
+    const base=cfg.proxyBaseUrl||cfg.publicBaseUrl;
+    if(!base)throw new Error('library/b2.json is enabled but proxyBaseUrl is missing.');
     source={
-      mode:'b2',
+      mode:cfg.private?'b2-private':'b2',
       provider:'backblaze-b2',
-      catalogUrl:join(cfg.publicBaseUrl,cfg.catalogKey||'shadow-garden/data/catalog.json'),
-      adultCatalogUrl:join(cfg.publicBaseUrl,cfg.adultCatalogKey||'shadow-garden/data/adult-catalog.json')
+      catalogUrl:join(base,cfg.catalogKey||'shadow-garden/data/catalog.json'),
+      adultCatalogUrl:join(base,cfg.adultCatalogKey||'shadow-garden/data/adult-catalog.json')
     };
   }
 }catch(e){

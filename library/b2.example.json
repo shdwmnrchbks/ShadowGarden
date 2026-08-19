@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "bucket": "shadow-garden-books",
+  "endpoint": "https://s3.us-west-004.backblazeb2.com",
+  "region": "us-west-004",
+  "publicBaseUrl": "https://shadow-garden-books.s3.us-west-004.backblazeb2.com",
+  "catalogKey": "shadow-garden/data/catalog.json",
+  "adultCatalogKey": "shadow-garden/data/adult-catalog.json",
+  "siteOrigins": [
+    "https://shadowgarden-bon.pages.dev"
+  ]
+}

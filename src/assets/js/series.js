@@ -12,8 +12,8 @@ async function init(){
       location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`);
       return;
     }
-    const catalogUrl=adult?"/data/adult-catalog.json":"/data/catalog.json";
-    const r=await fetch(catalogUrl,{cache:"no-store"}),cat=await r.json(),s=arr(cat.series).find(x=>x.id===id);
+    if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");
+    const cat=await window.ShadowGardenData.loadCatalog(adult),s=arr(cat.series).find(x=>x.id===id);
     if(!s)throw new Error("Series not found");
     document.body.classList.toggle("adult-library",Boolean(s.nsfw));
     const back=document.querySelector("#headerBack");

@@ -1,13 +1,16 @@
 {
   "name": "shadow-garden-library",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node tools/build.mjs",
-    "preview": "npx serve dist"
+    "build": "node tools/build.mjs && node tools/write-source.mjs",
+    "preview": "npx serve dist",
+    "b2:setup": "node tools/b2-setup.mjs",
+    "b2:upload": "node tools/b2-upload.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
     "epubjs": "^0.3.93",
     "fast-xml-parser": "^5.11.0",
     "jszip": "^3.10.1"

@@ -1,0 +1,15 @@
+{
+  "name": "shadow-garden-library",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "preview": "npx serve dist"
+  },
+  "dependencies": {
+    "epubjs": "^0.3.93",
+    "fast-xml-parser": "^5.11.0",
+    "jszip": "^3.10.1"
+  }
+}

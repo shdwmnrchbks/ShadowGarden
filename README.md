@@ -1,6 +1,6 @@
-# Shadow Garden v0.4.1
+# Shadow Garden v0.5
 
-A static EPUB library and browser reader for Cloudflare Pages, with a **private Backblaze B2 bucket** for book storage.
+A static EPUB library and browser reader for Cloudflare Pages, using a **private Backblaze B2 bucket** for book storage and a phone-friendly private upload console.
 
 ## Architecture
 
@@ -10,17 +10,20 @@ GitHub
         |
         v
 Cloudflare Pages
-  static site
+  static library + reader + /admin.html
         |
-        +--> /media/* Pages Function
-                    |
-                    | AWS SigV4 signed request
-                    v
-             private Backblaze B2
-             EPUBs + covers + catalogs
+        +--> /media/*       read-only Pages Function
+        |        |
+        |        v
+        |   private Backblaze B2
+        |
+        +--> /admin-api/*   token-protected Pages Functions
+                 |
+                 v
+            private B2 uploads + catalog updates
 ```
 
-The B2 bucket remains private. Visitors never receive Backblaze credentials and do not access the B2 origin directly.
+The B2 bucket remains private. Backblaze credentials are stored only as encrypted Cloudflare secrets.
 
 ## Current B2 configuration
 
@@ -31,7 +34,7 @@ Region:   us-east-005
 Proxy:    /media
 ```
 
-`library/b2.json` contains these non-secret values. It is currently committed with `"enabled": false` so the live site keeps using its local catalog until the Cloudflare secrets and first B2 catalog are ready.
+`library/b2.json` contains only these non-secret values. It stays `"enabled": false` until the first remote catalog has been created and the Cloudflare secrets are configured.
 
 ## Cloudflare Pages settings
 
@@ -42,52 +45,20 @@ Build output directory: dist
 Production branch: main
 ```
 
-Pages Functions are stored in the repository-root `functions/` directory. Only `/media/*` is routed through a Function; normal pages and assets remain static.
+Only `/media/*` and `/admin-api/*` invoke Pages Functions. The normal library, reader UI, CSS, JS and images remain static requests.
 
-## One-time Backblaze setup
+## Required Backblaze keys
 
-Keep the bucket **Private**.
+Keep `shadow-garden-books-01` **Private**.
 
-Create **two bucket-scoped Application Keys** for `shadow-garden-books-01`:
+Create two application keys scoped to this bucket and optionally to the `shadow-garden/` prefix:
 
-1. **Uploader key — Read and Write.** Keep this only on your PC. It is used to upload EPUBs, covers, and catalog JSON.
-2. **Delivery key — Read Only.** Store this only as Cloudflare encrypted secrets. It is used by `/media/*` to fetch private objects for readers.
+1. `sgdelivery` — **Read Only**.
+2. `sguploader` — **Read and Write**.
 
-You can optionally restrict both keys to the file-name prefix `shadow-garden/`.
+Do not commit either key to GitHub.
 
-### PC uploader credentials
-
-On your Windows PC, clone the repository, then copy:
-
-```text
-.env.b2.example
-```
-
-to:
-
-```text
-.env.b2
-```
-
-Fill it with the **Read and Write** uploader key:
-
-```text
-B2_KEY_ID=your_uploader_key_id
-B2_APPLICATION_KEY=your_uploader_application_key
-```
-
-`.env.b2` is gitignored and must never be committed.
-
-Install dependencies and verify the private bucket connection:
-
-```text
-npm install
-npm run b2:setup
-```
-
-`b2:setup` does **not** make the bucket public and does not add public browser CORS rules.
-
-## Cloudflare encrypted delivery secrets
+## Cloudflare secrets
 
 In Cloudflare:
 
@@ -98,54 +69,79 @@ Workers & Pages
 → Variables and Secrets
 ```
 
-Add the **Read Only** delivery key as Production secrets:
+Add these Production secrets:
 
 ```text
-B2_READ_KEY_ID
-B2_READ_APPLICATION_KEY
+B2_READ_KEY_ID              = sgdelivery keyID
+B2_READ_APPLICATION_KEY     = sgdelivery applicationKey
+B2_WRITE_KEY_ID             = sguploader keyID
+B2_WRITE_APPLICATION_KEY    = sguploader applicationKey
+SG_ADMIN_TOKEN              = a long private token/password you choose
 ```
 
-Set at least `B2_READ_APPLICATION_KEY` as encrypted; encrypting both is fine. Never put either value in GitHub source files.
+Encrypt all five values. `SG_ADMIN_TOKEN` is the password for the mobile Garden Keeper page and should not be reused anywhere else.
 
-## Uploading books
+Redeploy the Pages project after setting or changing secrets.
 
-The uploader works even while `library/b2.json` has `"enabled": false`, which lets you populate/test B2 before switching the live catalog.
+## Phone-only upload workflow
 
-Normal book:
+Open:
 
 ```text
-npm run b2:upload -- "D:\Books\My Series - Volume 01.epub"
+https://shadowgarden-bon.pages.dev/admin.html
 ```
 
-Adult / NSFW book:
+The admin page is intentionally not linked from the public library and is marked `noindex`. Security comes from `SG_ADMIN_TOKEN`; the hidden URL by itself is not treated as authentication.
+
+On the phone:
+
+1. Enter `SG_ADMIN_TOKEN` and unlock Garden Keeper.
+2. Choose an EPUB from phone storage.
+3. The browser opens the EPUB locally with JSZip and extracts metadata and its cover before uploading.
+4. Review/edit series, volume number, title, author, year, tags and description.
+5. Toggle **18+ / Adult Library** when appropriate.
+6. Tap **Upload EPUB to Shadow Garden**.
+
+The upload workflow then:
+
+1. Sends the EPUB through the authenticated Cloudflare upload API.
+2. Stores it in private B2 under `shadow-garden/books/`.
+3. Uploads the extracted cover under `shadow-garden/covers/`.
+4. Reads and updates the appropriate B2 catalog.
+5. Ensures both main and adult catalog files exist.
+6. Stores same-origin `/media/...` URLs rather than exposing B2 origin URLs.
+
+The mobile uploader enforces a 50 MB file limit. This is below Cloudflare Free's current request-body limit and comfortably above the project's normal EPUB sizes.
+
+The admin token is held only in `sessionStorage`, so it is discarded when that browser tab/session ends.
+
+## Activating B2 for readers
+
+Activate only after:
+
+1. all five Cloudflare secrets above exist;
+2. Garden Keeper successfully uploads at least one EPUB and creates the B2 catalog files.
+
+Then change in `library/b2.json`:
+
+```json
+"enabled": false
+```
+
+to:
+
+```json
+"enabled": true
+```
+
+After Cloudflare redeploys, Shadow Garden loads:
 
 ```text
-npm run b2:upload -- --adult "D:\Books\Adult Series - Volume 01.epub"
+/media/shadow-garden/data/catalog.json
+/media/shadow-garden/data/adult-catalog.json
 ```
 
-If the EPUB does not contain useful series metadata:
-
-```text
-npm run b2:upload -- --series="My Series" "D:\Books\Volume 01.epub"
-```
-
-Multiple EPUBs can be uploaded in one command:
-
-```text
-npm run b2:upload -- "D:\Books\Volume 01.epub" "D:\Books\Volume 02.epub"
-```
-
-The uploader automatically:
-
-1. Reads EPUB metadata.
-2. Detects series and volume information.
-3. Extracts the cover.
-4. Uploads the EPUB to the private B2 bucket.
-5. Uploads the extracted cover.
-6. Creates or updates the appropriate main/adult catalog in B2.
-7. Stores same-origin `/media/...` URLs in the catalog.
-
-After B2 is activated, adding a book does **not** require another GitHub commit or Cloudflare rebuild.
+Covers and EPUBs are served through the same read-only private-B2 proxy. Range requests are forwarded for EPUB.js/read/download compatibility.
 
 ## B2 storage layout
 
@@ -161,49 +157,27 @@ shadow-garden/
    └─ adult-catalog.json
 ```
 
-## Activating B2
+## Optional desktop CLI
 
-Only activate after both conditions are true:
-
-1. `B2_READ_KEY_ID` and `B2_READ_APPLICATION_KEY` exist in the Cloudflare Pages Production environment.
-2. At least one run of `npm run b2:upload` has created the B2 catalog files.
-
-Then change:
-
-```json
-"enabled": false
-```
-
-to:
-
-```json
-"enabled": true
-```
-
-in `library/b2.json` and deploy `main`.
-
-The build writes `/data/source.json`, and the browser will then load:
+The older local uploader remains available for anyone who later wants to use a desktop:
 
 ```text
-/media/shadow-garden/data/catalog.json
-/media/shadow-garden/data/adult-catalog.json
+npm run b2:setup
+npm run b2:upload -- "D:\Books\Volume 01.epub"
 ```
 
-The same proxy serves covers and EPUB files. Range requests are forwarded for reader/download compatibility.
+It is no longer required for normal administration.
 
-## Security note
+## Security notes
 
-A private B2 bucket protects the Backblaze origin and credentials; it does **not** turn Shadow Garden into an authenticated private website. Anyone who knows a valid public Shadow Garden `/media/...` URL can request it through the Pages Function. The existing 18+ gate is still a client-side acknowledgement rather than access control.
-
-## Metadata corrections
-
-Optional series-level corrections use:
-
-```text
-library/series-overrides.json
-```
-
-Copy `library/series-overrides.example.json` as a starting point. Overrides are applied when a book is uploaded.
+- The B2 bucket is private.
+- `sgdelivery` is read-only.
+- `sguploader` is used only by token-protected admin API routes.
+- No Backblaze key is sent to the browser.
+- `/admin.html` has `noindex` headers/meta and is not linked publicly.
+- The browser sends `SG_ADMIN_TOKEN` only over HTTPS as an Authorization header.
+- The main site remains public; private B2 storage protects the origin and credentials, not the public availability of valid `/media/...` URLs.
+- The existing 18+ gate remains a client-side acknowledgement, not user authentication.
 
 ## Reader persistence
 

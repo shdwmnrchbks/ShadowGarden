@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0910">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Garden Keeper — Shadow Garden</title>
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/site.css">
+  <link rel="stylesheet" href="/assets/css/nav.css">
+  <link rel="stylesheet" href="/assets/css/admin.css">
+  <script src="/assets/vendor/jszip.min.js" defer></script>
+  <script src="/assets/js/admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <header class="site-header admin-header">
+    <a class="brand" href="/">
+      <span class="brand-mark">✦</span>
+      <span><strong>Shadow Garden</strong><small>GARDEN KEEPER</small></span>
+    </a>
+    <a class="header-back" href="/">← Library</a>
+  </header>
+
+  <main class="admin-shell">
+    <section class="admin-intro">
+      <p class="kicker">PRIVATE STORAGE CONSOLE</p>
+      <h1>Garden Keeper</h1>
+      <p>Upload EPUBs from this phone directly into Shadow Garden's private Backblaze B2 bucket.</p>
+    </section>
+
+    <section class="admin-card" id="authCard">
+      <div class="admin-card-head">
+        <div><span>01</span><h2>Unlock uploader</h2></div>
+        <strong id="authState" class="state-pill">LOCKED</strong>
+      </div>
+      <label class="admin-field">
+        <span>Admin token</span>
+        <input id="adminToken" type="password" autocomplete="current-password" placeholder="Cloudflare SG_ADMIN_TOKEN">
+      </label>
+      <p class="field-note">Stored only for this browser tab. It is never written to the EPUB or catalog.</p>
+      <button id="unlockButton" class="admin-primary" type="button">Unlock Garden Keeper</button>
+    </section>
+
+    <section class="admin-card">
+      <div class="admin-card-head">
+        <div><span>02</span><h2>Select EPUB</h2></div>
+        <strong id="fileState" class="state-pill">WAITING</strong>
+      </div>
+      <label class="file-picker" for="epubFile">
+        <input id="epubFile" type="file" accept=".epub,application/epub+zip">
+        <span class="file-picker-mark">＋</span>
+        <strong id="filePickerTitle">Choose EPUB from phone</strong>
+        <small id="filePickerMeta">Up to 50 MB through the mobile uploader</small>
+      </label>
+    </section>
+
+    <section id="metadataCard" class="admin-card hidden">
+      <div class="admin-card-head">
+        <div><span>03</span><h2>Review metadata</h2></div>
+        <strong class="state-pill ready">EDITABLE</strong>
+      </div>
+
+      <div class="book-preview">
+        <div class="admin-cover"><img id="coverPreview" alt="Extracted EPUB cover" class="hidden"><span id="coverFallback">✦</span></div>
+        <div><strong id="previewTitle">Untitled</strong><span id="previewSeries">Unknown series</span></div>
+      </div>
+
+      <div class="admin-grid">
+        <label class="admin-field wide"><span>Series</span><input id="seriesInput" type="text" required></label>
+        <label class="admin-field"><span>Volume</span><input id="volumeInput" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
+        <label class="admin-field"><span>Year</span><input id="yearInput" type="number" min="0" max="9999" inputmode="numeric"></label>
+        <label class="admin-field wide"><span>Book title</span><input id="titleInput" type="text" required></label>
+        <label class="admin-field wide"><span>Author</span><input id="authorInput" type="text"></label>
+        <label class="admin-field wide"><span>Genres / tags</span><input id="tagsInput" type="text" placeholder="Fantasy, Adventure, Romance"></label>
+        <label class="admin-field wide"><span>Description</span><textarea id="descriptionInput" rows="5"></textarea></label>
+      </div>
+
+      <label class="adult-toggle">
+        <input id="adultInput" type="checkbox">
+        <span class="toggle-track"><i></i></span>
+        <span><strong>18+ / Adult Library</strong><small>Keep this title out of the main archive.</small></span>
+      </label>
+    </section>
+
+    <section id="uploadCard" class="admin-card hidden">
+      <div class="admin-card-head">
+        <div><span>04</span><h2>Send to the Garden</h2></div>
+        <strong id="uploadState" class="state-pill">READY</strong>
+      </div>
+      <div class="upload-status">
+        <span id="statusMark">✦</span>
+        <div><strong id="statusTitle">Ready to upload</strong><p id="statusDetail">The bucket remains private. Readers receive files through Cloudflare.</p></div>
+      </div>
+      <button id="uploadButton" class="admin-primary" type="button">Upload EPUB to Shadow Garden</button>
+      <a id="openSeries" class="admin-secondary hidden" href="#">Open uploaded series →</a>
+    </section>
+  </main>
+</body>
+</html>

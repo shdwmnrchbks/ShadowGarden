@@ -1,3 +1,5 @@
 node_modules/
 dist/
 .DS_Store
+.env.b2
+library/b2.json

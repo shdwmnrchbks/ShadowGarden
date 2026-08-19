@@ -20,7 +20,7 @@ Cloudflare Pages
              EPUBs + covers + catalogs
 ```
 
-The B2 bucket remains private. Visitors never receive the Backblaze application key and do not access the B2 origin directly.
+The B2 bucket remains private. Visitors never receive Backblaze credentials and do not access the B2 origin directly.
 
 ## Current B2 configuration
 
@@ -48,7 +48,14 @@ Pages Functions are stored in the repository-root `functions/` directory. Only `
 
 Keep the bucket **Private**.
 
-Create a bucket-scoped Backblaze Application Key with enough access to upload and read files in `shadow-garden-books-01`. Save the Key ID and Application Key when Backblaze shows them.
+Create **two bucket-scoped Application Keys** for `shadow-garden-books-01`:
+
+1. **Uploader key — Read and Write.** Keep this only on your PC. It is used to upload EPUBs, covers, and catalog JSON.
+2. **Delivery key — Read Only.** Store this only as Cloudflare encrypted secrets. It is used by `/media/*` to fetch private objects for readers.
+
+You can optionally restrict both keys to the file-name prefix `shadow-garden/`.
+
+### PC uploader credentials
 
 On your Windows PC, clone the repository, then copy:
 
@@ -62,11 +69,11 @@ to:
 .env.b2
 ```
 
-Fill in:
+Fill it with the **Read and Write** uploader key:
 
 ```text
-B2_KEY_ID=your_key_id
-B2_APPLICATION_KEY=your_application_key
+B2_KEY_ID=your_uploader_key_id
+B2_APPLICATION_KEY=your_uploader_application_key
 ```
 
 `.env.b2` is gitignored and must never be committed.
@@ -80,9 +87,7 @@ npm run b2:setup
 
 `b2:setup` does **not** make the bucket public and does not add public browser CORS rules.
 
-## Cloudflare encrypted secrets
-
-The Pages Function at `/media/*` needs the same Backblaze credentials in Cloudflare.
+## Cloudflare encrypted delivery secrets
 
 In Cloudflare:
 
@@ -93,16 +98,14 @@ Workers & Pages
 → Variables and Secrets
 ```
 
-Add these for Production:
+Add the **Read Only** delivery key as Production secrets:
 
 ```text
-B2_KEY_ID
-B2_APPLICATION_KEY
+B2_READ_KEY_ID
+B2_READ_APPLICATION_KEY
 ```
 
-Set `B2_APPLICATION_KEY` as an encrypted secret. `B2_KEY_ID` is not itself a password, but storing both in the Variables and Secrets area keeps the configuration together.
-
-Do not put either value in GitHub source files.
+Set at least `B2_READ_APPLICATION_KEY` as encrypted; encrypting both is fine. Never put either value in GitHub source files.
 
 ## Uploading books
 
@@ -162,7 +165,7 @@ shadow-garden/
 
 Only activate after both conditions are true:
 
-1. `B2_KEY_ID` and `B2_APPLICATION_KEY` exist in the Cloudflare Pages Production environment.
+1. `B2_READ_KEY_ID` and `B2_READ_APPLICATION_KEY` exist in the Cloudflare Pages Production environment.
 2. At least one run of `npm run b2:upload` has created the B2 catalog files.
 
 Then change:

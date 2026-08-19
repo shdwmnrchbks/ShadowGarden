@@ -87,6 +87,7 @@ async function unlock(){
 async function fileChanged(event){
   const file=event.target.files?.[0];if(!file)return;
   state.file=file;state.meta=null;state.coverBlob=null;
+  $("#uploadButton").disabled=false;$("#uploadButton").textContent="Upload EPUB to Shadow Garden";$("#openSeries").classList.add("hidden");setUploadState("READY");setStatus("Ready to upload","The bucket remains private. Readers receive files through Cloudflare.");
   $("#filePickerTitle").textContent=file.name;$("#filePickerMeta").textContent=`${(file.size/1024/1024).toFixed(1)} MB · Inspecting metadata…`;setFileState("READING");
   $("#metadataCard").classList.add("hidden");$("#uploadCard").classList.add("hidden");
   if(file.size>50*1024*1024){setFileState("TOO LARGE","error");$("#filePickerMeta").textContent="This uploader is limited to 50 MB per file.";return}

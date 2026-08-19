@@ -1,5 +1,5 @@
 const $=s=>document.querySelector(s);
-const params=new URLSearchParams(location.search),bookUrl=params.get("book"),seriesId=params.get("series");
+const params=new URLSearchParams(location.search),bookUrl=params.get("book"),seriesId=params.get("series"),isAdultReader=String(params.get("series")||"").startsWith("adult-");
 const progressKey=`sg-progress:${bookUrl}`,settingsKey="sg-reader-settings",bookmarksKey=`sg-bookmarks:${bookUrl}`;
 let book,rendition,currentCfi="",currentChapter="",locationsReady=false,toastTimer;
 const defaults={theme:"garden",font:"book",fontSize:100,lineHeight:1.6,width:760,flow:"paginated"};
@@ -26,9 +26,9 @@ function saveProgress(location){
 }
 function themeCSS(){
   const themes={
-    garden:{bg:"#101511",text:"#dfe8e1",link:"#9bc5a6"},
+    garden:isAdultReader?{bg:"#140d10",text:"#eadde1",link:"#d29aa9"}:{bg:"#120e19",text:"#e8e1f1",link:"#b9a8e3"},
     night:{bg:"#11171a",text:"#d9e0e4",link:"#99bdc8"},
-    black:{bg:"#000000",text:"#d7d7d7",link:"#9fc6aa"},
+    black:{bg:"#000000",text:"#d7d7d7",link:isAdultReader?"#d29aa9":"#b9a8e3"},
     paper:{bg:"#eee9dc",text:"#292a25",link:"#536e55"}
   },t=themes[settings.theme]||themes.garden;
   const fonts={book:'Georgia, "Times New Roman", serif',system:'Inter, system-ui, sans-serif',classic:'"Palatino Linotype", Palatino, serif'};
@@ -40,7 +40,7 @@ function themeCSS(){
   };
 }
 function applySettings(redisplay=false){
-  document.body.className=`reader-theme-${settings.theme}`;
+  document.body.className=`reader-theme-${settings.theme}${isAdultReader?" adult-reader":""}`;
   if(rendition){
     rendition.themes.default(themeCSS());
     rendition.flow(settings.flow);

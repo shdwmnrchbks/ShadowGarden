@@ -34,7 +34,7 @@ export async function onRequest(context) {
   if (method !== "GET" && method !== "HEAD") {
     return new Response("Method not allowed", { status: 405, headers: { "Allow": "GET, HEAD, OPTIONS" } });
   }
-  if (!env.B2_KEY_ID || !env.B2_APPLICATION_KEY) {
+  if (!env.B2_READ_KEY_ID || !env.B2_READ_APPLICATION_KEY) {
     return new Response("Shadow Garden storage is not configured yet.", { status: 503 });
   }
 
@@ -58,8 +58,8 @@ export async function onRequest(context) {
   }
 
   const aws = new AwsClient({
-    accessKeyId: env.B2_KEY_ID,
-    secretAccessKey: env.B2_APPLICATION_KEY,
+    accessKeyId: env.B2_READ_KEY_ID,
+    secretAccessKey: env.B2_READ_APPLICATION_KEY,
     service: "s3",
     region: B2_REGION,
     retries: 2

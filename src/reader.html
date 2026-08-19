@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="theme-color" content="#090d0b">
+  <title>Reader — Shadow Garden</title>
+  <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/assets/css/reader.css">
+  <script src="/assets/vendor/jszip.min.js"></script>
+  <script src="/assets/vendor/epub.min.js"></script>
+  <script src="/assets/js/reader.js" defer></script>
+</head>
+<body class="reader-theme-garden">
+  <div id="readerApp" class="reader-app">
+    <header class="reader-topbar">
+      <div class="reader-left">
+        <button id="tocToggle" class="reader-icon" type="button" aria-label="Table of contents">☰</button>
+        <a id="backLink" class="reader-brand" href="/">Shadow Garden</a>
+      </div>
+      <div class="reader-title">
+        <strong id="bookTitle">Opening EPUB…</strong>
+        <span id="chapterTitle"></span>
+      </div>
+      <div class="reader-actions">
+        <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location">◇</button>
+        <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings">Aa</button>
+        <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen">⛶</button>
+      </div>
+    </header>
+
+    <aside id="tocDrawer" class="reader-drawer drawer-left">
+      <div class="drawer-head">
+        <div class="drawer-tabs">
+          <button class="active" data-panel="toc" type="button">Contents</button>
+          <button data-panel="bookmarks" type="button">Bookmarks</button>
+        </div>
+        <button class="drawer-close" data-close="tocDrawer" type="button">×</button>
+      </div>
+      <div id="tocPanel" class="drawer-panel"></div>
+      <div id="bookmarksPanel" class="drawer-panel hidden"></div>
+    </aside>
+
+    <aside id="settingsDrawer" class="reader-drawer drawer-right">
+      <div class="drawer-head">
+        <strong>Reading settings</strong>
+        <button class="drawer-close" data-close="settingsDrawer" type="button">×</button>
+      </div>
+      <div class="settings-panel">
+        <label>
+          <span>Theme</span>
+          <select id="themeSelect">
+            <option value="garden">Garden</option>
+            <option value="night">Night</option>
+            <option value="black">Black</option>
+            <option value="paper">Paper</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Typeface</span>
+          <select id="fontSelect">
+            <option value="book">Book serif</option>
+            <option value="system">System sans</option>
+            <option value="classic">Classic serif</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Font size <output id="fontSizeValue">100%</output></span>
+          <input id="fontSizeRange" type="range" min="75" max="160" step="5" value="100">
+        </label>
+
+        <label>
+          <span>Line height <output id="lineHeightValue">1.6</output></span>
+          <input id="lineHeightRange" type="range" min="1.25" max="2.1" step="0.05" value="1.6">
+        </label>
+
+        <label>
+          <span>Text width <output id="widthValue">760px</output></span>
+          <input id="widthRange" type="range" min="560" max="1050" step="10" value="760">
+        </label>
+
+        <label>
+          <span>Reading flow</span>
+          <select id="flowSelect">
+            <option value="paginated">Pages</option>
+            <option value="scrolled-doc">Continuous scroll</option>
+          </select>
+        </label>
+
+        <button id="resetReader" class="reader-reset" type="button">Reset reader settings</button>
+      </div>
+    </aside>
+
+    <main class="viewer-shell">
+      <button id="prevPage" class="page-hit page-prev" type="button" aria-label="Previous page">‹</button>
+      <div id="viewer" class="viewer"></div>
+      <button id="nextPage" class="page-hit page-next" type="button" aria-label="Next page">›</button>
+      <div id="readerLoading" class="reader-loading"><span>✦</span><p>Opening the book…</p></div>
+    </main>
+
+    <footer class="reader-bottombar">
+      <button id="prevBottom" type="button">← Previous</button>
+      <div class="progress-wrap">
+        <input id="progressRange" type="range" min="0" max="1000" value="0" aria-label="Reading progress">
+        <span id="progressText">0%</span>
+      </div>
+      <button id="nextBottom" type="button">Next →</button>
+    </footer>
+
+    <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
+    <div id="toast" class="toast hidden"></div>
+  </div>
+</body>
+</html>

@@ -3,6 +3,8 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
+/books/*
+  Content-Type: application/epub+zip
+
 /*.epub
   Content-Type: application/epub+zip
-  Content-Disposition: attachment

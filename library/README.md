@@ -1,38 +1,39 @@
-# Drop EPUB files here
+# Shadow Garden library configuration
 
-## Main library
+As of v0.4, EPUB binaries should live in Backblaze B2 rather than in this GitHub repository.
 
-```text
-library/
-├─ Trash of the Count's Family/
-│  ├─ Volume 01.epub
-│  └─ Volume 02.epub
-└─ Another Series/
-   └─ Volume 01.epub
-```
-
-## Adult / NSFW library
-
-Anything anywhere under the folder named `NSFW` is automatically kept out of the main catalog:
+## Files kept here
 
 ```text
 library/
-└─ NSFW/
-   ├─ Adult Series A/
-   │  ├─ Volume 01.epub
-   │  └─ Volume 02.epub
-   └─ Adult Series B/
-      └─ Volume 01.epub
+├─ b2.example.json
+├─ b2.json                    # create this after your B2 bucket exists
+├─ series-overrides.example.json
+└─ series-overrides.json      # optional
 ```
 
-The build script reads EPUB metadata and cover images automatically.
+`b2.json` contains public bucket/endpoint information only. Do not put Backblaze credentials in it.
 
-Series grouping priority:
-1. EPUB `calibre:series` metadata.
-2. EPUB 3 `belongs-to-collection` metadata.
-3. The folder containing the EPUB.
-4. A title-based fallback.
+Credentials belong in the repository-root `.env.b2` file, which is gitignored.
 
-If EPUB metadata is incomplete, putting each series in its own folder is the safest option.
+## Upload normal books
 
-You can also force a series into or out of the Adult Library with `"nsfw": true` or `"nsfw": false` in `series-overrides.json`.
+```text
+npm run b2:upload -- "D:\Books\Series Name - Volume 01.epub"
+```
+
+## Upload adult / NSFW books
+
+```text
+npm run b2:upload -- --adult "D:\Books\Adult Series - Volume 01.epub"
+```
+
+## Force a series name
+
+```text
+npm run b2:upload -- --series="Series Name" "D:\Books\Volume 01.epub"
+```
+
+The uploader extracts EPUB metadata and the cover, uploads both to B2, and updates the remote catalog automatically.
+
+The old local-EPUB build path remains available as a fallback when `b2.json` is absent or disabled, but it is no longer the recommended storage method.

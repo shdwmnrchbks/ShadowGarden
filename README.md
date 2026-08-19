@@ -1,23 +1,37 @@
-# Shadow Garden v0.4
+# Shadow Garden v0.4.1
 
-A static EPUB library and browser reader for Cloudflare Pages, with Backblaze B2 as the book-storage backend.
+A static EPUB library and browser reader for Cloudflare Pages, with a **private Backblaze B2 bucket** for book storage.
 
 ## Architecture
 
 ```text
 GitHub
-  site code + public B2 config only
+  site code + non-secret B2 config
         |
         v
 Cloudflare Pages
-  Shadow Garden frontend
+  static site
         |
-        v
-Backblaze B2
-  EPUBs + extracted covers + catalog JSON
+        +--> /media/* Pages Function
+                    |
+                    | AWS SigV4 signed request
+                    v
+             private Backblaze B2
+             EPUBs + covers + catalogs
 ```
 
-No Backblaze secret key is stored in GitHub or Cloudflare. Upload credentials stay only in `.env.b2` on your PC.
+The B2 bucket remains private. Visitors never receive the Backblaze application key and do not access the B2 origin directly.
+
+## Current B2 configuration
+
+```text
+Bucket:   shadow-garden-books-01
+Endpoint: https://s3.us-east-005.backblazeb2.com
+Region:   us-east-005
+Proxy:    /media
+```
+
+`library/b2.json` contains these non-secret values. It is currently committed with `"enabled": false` so the live site keeps using its local catalog until the Cloudflare secrets and first B2 catalog are ready.
 
 ## Cloudflare Pages settings
 
@@ -28,45 +42,71 @@ Build output directory: dist
 Production branch: main
 ```
 
-## One-time Backblaze B2 setup
+Pages Functions are stored in the repository-root `functions/` directory. Only `/media/*` is routed through a Function; normal pages and assets remain static.
 
-1. Create or enable a Backblaze B2 account.
-2. Create a bucket and make it **Public**.
-3. Copy the bucket's S3 endpoint, for example:
+## One-time Backblaze setup
+
+Keep the bucket **Private**.
+
+Create a bucket-scoped Backblaze Application Key with enough access to upload and read files in `shadow-garden-books-01`. Save the Key ID and Application Key when Backblaze shows them.
+
+On your Windows PC, clone the repository, then copy:
 
 ```text
-https://s3.us-west-004.backblazeb2.com
+.env.b2.example
 ```
 
-4. Create a scoped **Read and Write** Application Key for only this bucket.
-5. Copy `library/b2.example.json` to `library/b2.json` and replace:
-   - `bucket`
-   - `endpoint`
-   - `region`
-   - `publicBaseUrl`
-6. Copy `.env.b2.example` to `.env.b2` and fill in:
+to:
 
 ```text
-B2_KEY_ID=...
-B2_APPLICATION_KEY=...
+.env.b2
+```
+
+Fill in:
+
+```text
+B2_KEY_ID=your_key_id
+B2_APPLICATION_KEY=your_application_key
 ```
 
 `.env.b2` is gitignored and must never be committed.
 
-7. Install dependencies and configure the bucket for Shadow Garden:
+Install dependencies and verify the private bucket connection:
 
 ```text
 npm install
 npm run b2:setup
 ```
 
-`b2:setup` sets the bucket to `public-read` and configures CORS for the origins listed in `library/b2.json`. If your scoped key cannot alter bucket settings, set the bucket Public in the Backblaze console and configure CORS there instead.
+`b2:setup` does **not** make the bucket public and does not add public browser CORS rules.
 
-8. Commit `library/b2.json` to GitHub. It contains public endpoint information only, not credentials.
+## Cloudflare encrypted secrets
 
-After Cloudflare rebuilds, `/data/source.json` tells Shadow Garden to load its catalogs directly from B2.
+The Pages Function at `/media/*` needs the same Backblaze credentials in Cloudflare.
+
+In Cloudflare:
+
+```text
+Workers & Pages
+→ shadowgarden-bon
+→ Settings
+→ Variables and Secrets
+```
+
+Add these for Production:
+
+```text
+B2_KEY_ID
+B2_APPLICATION_KEY
+```
+
+Set `B2_APPLICATION_KEY` as an encrypted secret. `B2_KEY_ID` is not itself a password, but storing both in the Variables and Secrets area keeps the configuration together.
+
+Do not put either value in GitHub source files.
 
 ## Uploading books
+
+The uploader works even while `library/b2.json` has `"enabled": false`, which lets you populate/test B2 before switching the live catalog.
 
 Normal book:
 
@@ -80,13 +120,13 @@ Adult / NSFW book:
 npm run b2:upload -- --adult "D:\Books\Adult Series - Volume 01.epub"
 ```
 
-If the EPUB does not contain useful series metadata, force the series name:
+If the EPUB does not contain useful series metadata:
 
 ```text
 npm run b2:upload -- --series="My Series" "D:\Books\Volume 01.epub"
 ```
 
-You can upload multiple EPUBs in one command:
+Multiple EPUBs can be uploaded in one command:
 
 ```text
 npm run b2:upload -- "D:\Books\Volume 01.epub" "D:\Books\Volume 02.epub"
@@ -94,18 +134,17 @@ npm run b2:upload -- "D:\Books\Volume 01.epub" "D:\Books\Volume 02.epub"
 
 The uploader automatically:
 
-1. Opens the EPUB.
-2. Reads title, author, language, date, publisher, description, subjects and series metadata.
-3. Detects the volume number where possible.
-4. Extracts the cover image.
-5. Uploads the EPUB to B2.
-6. Uploads the extracted cover to B2.
-7. Creates or updates the series entry.
-8. Rewrites the appropriate B2 catalog (`catalog.json` or `adult-catalog.json`).
+1. Reads EPUB metadata.
+2. Detects series and volume information.
+3. Extracts the cover.
+4. Uploads the EPUB to the private B2 bucket.
+5. Uploads the extracted cover.
+6. Creates or updates the appropriate main/adult catalog in B2.
+7. Stores same-origin `/media/...` URLs in the catalog.
 
-Because the browser reads the B2 catalog directly, adding a book does **not** require another GitHub commit or Cloudflare deployment.
+After B2 is activated, adding a book does **not** require another GitHub commit or Cloudflare rebuild.
 
-## Storage layout in B2
+## B2 storage layout
 
 ```text
 shadow-garden/
@@ -119,9 +158,43 @@ shadow-garden/
    └─ adult-catalog.json
 ```
 
+## Activating B2
+
+Only activate after both conditions are true:
+
+1. `B2_KEY_ID` and `B2_APPLICATION_KEY` exist in the Cloudflare Pages Production environment.
+2. At least one run of `npm run b2:upload` has created the B2 catalog files.
+
+Then change:
+
+```json
+"enabled": false
+```
+
+to:
+
+```json
+"enabled": true
+```
+
+in `library/b2.json` and deploy `main`.
+
+The build writes `/data/source.json`, and the browser will then load:
+
+```text
+/media/shadow-garden/data/catalog.json
+/media/shadow-garden/data/adult-catalog.json
+```
+
+The same proxy serves covers and EPUB files. Range requests are forwarded for reader/download compatibility.
+
+## Security note
+
+A private B2 bucket protects the Backblaze origin and credentials; it does **not** turn Shadow Garden into an authenticated private website. Anyone who knows a valid public Shadow Garden `/media/...` URL can request it through the Pages Function. The existing 18+ gate is still a client-side acknowledgement rather than access control.
+
 ## Metadata corrections
 
-Optional series-level corrections still use:
+Optional series-level corrections use:
 
 ```text
 library/series-overrides.json
@@ -129,18 +202,6 @@ library/series-overrides.json
 
 Copy `library/series-overrides.example.json` as a starting point. Overrides are applied when a book is uploaded.
 
-## Reader behavior
-
-The existing browser reader works with the absolute B2 EPUB URLs stored in the catalog. B2 CORS must allow the Shadow Garden site origin so EPUB.js can fetch the remote EPUB package.
+## Reader persistence
 
 Reading progress, bookmarks, pinned series, the Adult Library acknowledgement and reader settings remain in browser `localStorage`.
-
-## Local preview
-
-```text
-npm install
-npm run build
-npm run preview
-```
-
-Until `library/b2.json` exists and is enabled, the build automatically falls back to the original local `/data/catalog.json` mode.

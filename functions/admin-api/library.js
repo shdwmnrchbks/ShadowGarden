@@ -134,14 +134,22 @@ export async function onRequestPost({ request, env }) {
       const [volume] = series.volumes.splice(volumeIndex, 1);
       const fileKey = mediaKey(volume.file);
       const coverKey = mediaKey(volume.cover);
-      const coverStillUsed = coverKey && ([...arr(series.volumes)].some(v => mediaKey(v.cover) === coverKey) || mediaKey(series.cover) === coverKey);
+
       if (fileKey) await deleteObject(aws, fileKey);
-      if (coverKey && !coverStillUsed) await deleteObject(aws, coverKey);
+
       if (!series.volumes.length) {
         found.catalog.series.splice(found.index, 1);
+        series.cover = "";
       } else if (series.cover === volume.cover) {
         series.cover = series.volumes.find(v => v.cover)?.cover || "";
       }
+
+      const coverStillUsed = coverKey && (
+        arr(series.volumes).some(v => mediaKey(v.cover) === coverKey) ||
+        mediaKey(series.cover) === coverKey
+      );
+      if (coverKey && !coverStillUsed) await deleteObject(aws, coverKey);
+
       await saveCatalog(aws, found.key, found.catalog);
       return json(publicShape(data));
     }

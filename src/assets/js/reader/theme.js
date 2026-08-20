@@ -182,20 +182,27 @@ export function createThemeController({ getSettings, isAdult }) {
     };
     const theme = themes[settings.theme] || themes.garden;
     const paginated = settings.flow === "paginated";
+    const body = {
+      background: `${theme.bg} !important`,
+      color: `${theme.text} !important`,
+      "font-family": `${fonts[settings.font] || fonts.book} !important`,
+      "font-size": `${settings.fontSize}% !important`,
+      "line-height": `${settings.lineHeight} !important`,
+      margin: paginated ? "0 !important" : "0 auto !important",
+      padding: "2.5em 4vw !important",
+      "box-sizing": "border-box !important"
+    };
+    if (paginated) {
+      /* EPUB.js writes the exact page/column width inline. Never override that width in
+         paginated mode or the content columns drift beyond the mobile viewport. */
+      body["max-width"] = "none !important";
+    } else {
+      body["max-width"] = `${settings.width}px !important`;
+      body.width = "auto !important";
+    }
     return {
       html: { background: `${theme.bg} !important` },
-      body: {
-        background: `${theme.bg} !important`,
-        color: `${theme.text} !important`,
-        "font-family": `${fonts[settings.font] || fonts.book} !important`,
-        "font-size": `${settings.fontSize}% !important`,
-        "line-height": `${settings.lineHeight} !important`,
-        "max-width": paginated ? "none !important" : `${settings.width}px !important`,
-        width: "auto !important",
-        margin: paginated ? "0 !important" : "0 auto !important",
-        padding: "2.5em 4vw !important",
-        "box-sizing": "border-box !important"
-      },
+      body,
       p: { "line-height": `${settings.lineHeight} !important` },
       a: { color: `${theme.link} !important` },
       img: { "max-width": "100% !important", height: "auto !important" }

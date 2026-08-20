@@ -1,8 +1,5 @@
 import { adminAuthorized, deleteObject, headObject, json, validObjectKey, writeClient } from "../_lib/b2.js";
 import {
-  MAIN_KEY,
-  ADULT_KEY,
-  appendTrashItem,
   invalidateCatalogCache,
   listBackups,
   loadBackup,
@@ -114,7 +111,7 @@ function staticHealth(data, trash) {
     });
 
     if (series.cover && !series.coverThumb) {
-      const represented = optimizationCandidates.some(candidate => candidate.seriesId === seriesId && candidate.source === series.cover);
+      const represented = optimizationCandidates.some(candidate => candidate.scope === scope && candidate.seriesId === seriesId && candidate.source === series.cover);
       if (!represented) {
         missingThumbs++;
         optimizationCandidates.push({
@@ -255,22 +252,28 @@ export async function onRequestPost({ request, env }) {
         const detail = `/media/${coverKey}`;
         const thumb = `/media/${coverThumbKey}`;
         const series = found.series;
+        const hasVolumeIndex = update.volumeIndex !== null && update.volumeIndex !== undefined && Number.isInteger(Number(update.volumeIndex));
         let volume = null;
         if (update.volumeFile) volume = arr(series.volumes).find(entry => entry.file === update.volumeFile) || null;
-        if (!volume && Number.isInteger(Number(update.volumeIndex))) volume = arr(series.volumes)[Number(update.volumeIndex)] || null;
+        if (!volume && hasVolumeIndex) volume = arr(series.volumes)[Number(update.volumeIndex)] || null;
         if (volume) {
           const oldCover = volume.cover || "";
           const oldThumb = volume.coverThumb || "";
+          const seriesUsesCover = !series.cover || series.cover === oldCover;
+          const seriesUsesThumb = !series.coverThumb || series.coverThumb === oldThumb;
           volume.cover = detail;
           volume.coverThumb = thumb;
-          if (!series.cover || series.cover === oldCover) series.cover = detail;
-          if (!series.coverThumb || series.coverThumb === oldThumb || series.cover === detail) series.coverThumb = thumb;
-        } else if (update.volumeIndex === null || update.volumeIndex === undefined) {
+          if (seriesUsesCover) {
+            series.cover = detail;
+            if (seriesUsesThumb) series.coverThumb = thumb;
+          }
+        } else if (!hasVolumeIndex) {
           series.cover = detail;
           series.coverThumb = thumb;
         } else continue;
         applied++;
       }
+      if (!applied) return json({ ok: false, error: "Cover targets changed before the update could be applied" }, 409);
       await saveCatalogPair(aws, data.main, data.adult);
       await invalidateCatalogCache(request);
       return json({ ...(await payload(aws)), optimized: applied });
@@ -288,14 +291,13 @@ export async function onRequestPost({ request, env }) {
       const other = otherScope === "adult" ? data.adult : data.main;
       const seriesId = clean(item.seriesId, 180);
 
-      await snapshotCatalogs(aws, data.main, data.adult, `restore-trash-${item.type || "item"}`);
-
       if (item.type === "series") {
         const restored = clone(item.payload?.series);
         if (!restored?.id) return json({ ok: false, error: "Trash entry is incomplete" }, 409);
         if (arr(target.series).some(series => series.id === restored.id) || arr(other.series).some(series => series.id === restored.id)) {
           return json({ ok: false, error: "A series with this id already exists. Restore a catalog backup or resolve the conflict first." }, 409);
         }
+        await snapshotCatalogs(aws, data.main, data.adult, "restore-trash-series");
         target.series.push(restored);
       } else if (item.type === "volume") {
         const volume = clone(item.payload?.volume);
@@ -303,12 +305,15 @@ export async function onRequestPost({ request, env }) {
         if (!volume?.file || !seriesMeta?.id) return json({ ok: false, error: "Trash entry is incomplete" }, 409);
         if (arr(other.series).some(series => series.id === seriesMeta.id)) return json({ ok: false, error: "The series currently exists on the other shelf." }, 409);
         let series = arr(target.series).find(entry => entry.id === seriesMeta.id);
+        if (series) {
+          const conflict = arr(series.volumes).some(entry => entry.file === volume.file || (Number(entry.number) === Number(volume.number) && Number.isFinite(Number(volume.number))));
+          if (conflict) return json({ ok: false, error: "That volume already exists in the restored series." }, 409);
+        }
+        await snapshotCatalogs(aws, data.main, data.adult, "restore-trash-volume");
         if (!series) {
           series = { ...seriesMeta, volumes: [] };
           target.series.push(series);
         }
-        const conflict = arr(series.volumes).some(entry => entry.file === volume.file || (Number(entry.number) === Number(volume.number) && Number.isFinite(Number(volume.number))));
-        if (conflict) return json({ ok: false, error: "That volume already exists in the restored series." }, 409);
         series.volumes.push(volume);
         series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title || "").localeCompare(String(b.title || "")));
         if (!series.cover && volume.cover) series.cover = volume.cover;

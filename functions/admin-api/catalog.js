@@ -26,6 +26,15 @@ function externalUrl(value) {
   }
 }
 
+function safeHash(value) {
+  const hash = clean(value, 128).toLowerCase();
+  return /^[a-f0-9]{64}$/.test(hash) ? hash : "";
+}
+
+function sameText(a, b) {
+  return clean(a, 500).toLowerCase() === clean(b, 500).toLowerCase();
+}
+
 async function loadCatalog(aws, key) {
   const text = await getTextObject(aws, key);
   if (!text) return { generatedAt: new Date().toISOString(), series: [] };
@@ -56,6 +65,19 @@ async function invalidatePublicCatalogCache(request) {
   }
 }
 
+function duplicateIndex(series, { number, title, sha256, originalFilename, replaceTargetFile }) {
+  const volumes = arr(series?.volumes);
+  if (replaceTargetFile) {
+    return volumes.findIndex(volume => String(volume.file || "") === replaceTargetFile);
+  }
+  return volumes.findIndex(volume =>
+    (sha256 && volume.sha256 && String(volume.sha256).toLowerCase() === sha256) ||
+    (originalFilename && volume.originalFilename && sameText(volume.originalFilename, originalFilename)) ||
+    (number !== 9999 && Number(volume.number) === number) ||
+    sameText(volume.title, title)
+  );
+}
+
 export async function onRequestPost({ request, env }) {
   if (!(await adminAuthorized(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
 
@@ -78,6 +100,10 @@ export async function onRequestPost({ request, env }) {
   const tags = uniqueTags(input.tags);
   const size = Math.max(0, Number(input.size) || 0);
   const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
+  const sha256 = safeHash(input.sha256);
+  const originalFilename = clean(input.originalFilename, 500);
+  const replaceTargetFile = clean(input.replaceTargetFile, 1000);
+  const duplicatePolicy = ["reject", "replace", "separate"].includes(input.duplicatePolicy) ? input.duplicatePolicy : "replace";
   let number = Number(input.number);
   if (!Number.isFinite(number) || number <= 0) number = 9999;
 
@@ -92,6 +118,9 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: false, error: "Invalid cover thumbnail key" }, 400);
   }
   if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB folder URL must use http:// or https://" }, 400);
+  if (replaceTargetFile && !replaceTargetFile.startsWith("/media/shadow-garden/books/")) {
+    return json({ ok: false, error: "Invalid replacement target" }, 400);
+  }
 
   try {
     const aws = writeClient(env);
@@ -102,6 +131,26 @@ export async function onRequestPost({ request, env }) {
     const cover = coverKey ? `/media/${coverKey}` : "";
     const coverThumb = coverThumbKey ? `/media/${coverThumbKey}` : "";
     const year = Number(input.year) || Number.parseInt(date.slice(0, 4)) || "";
+
+    let existing = -1;
+    if (series) {
+      existing = duplicateIndex(series, { number, title, sha256, originalFilename, replaceTargetFile });
+    }
+
+    if (duplicatePolicy === "replace" && replaceTargetFile && existing < 0) {
+      return json({ ok: false, error: "Replacement target no longer exists", duplicate: true }, 409);
+    }
+    if (duplicatePolicy === "reject" && existing >= 0) {
+      const duplicate = series.volumes[existing];
+      return json({
+        ok: false,
+        error: "Duplicate volume detected",
+        duplicate: true,
+        seriesId: sid,
+        volumeIndex: existing,
+        volume: duplicate
+      }, 409);
+    }
 
     if (!series) {
       series = {
@@ -131,48 +180,58 @@ export async function onRequestPost({ request, env }) {
       if (audioAlignedUrl) series.audioAlignedUrl = audioAlignedUrl;
     }
 
+    const previous = existing >= 0 ? series.volumes[existing] : null;
+    const replacing = duplicatePolicy === "replace" && existing >= 0;
     const volume = {
       title,
       number,
       file: `/media/${epubKey}`,
-      cover,
-      coverThumb,
+      cover: cover || (replacing ? previous?.cover || "" : ""),
+      coverThumb: coverThumb || (replacing ? previous?.coverThumb || "" : ""),
       author,
       language,
       date,
       size,
-      added: new Date().toISOString().slice(0, 10),
+      added: replacing && previous?.added ? previous.added : new Date().toISOString().slice(0, 10),
       publisher,
-      description
+      description,
+      ...(sha256 ? { sha256 } : {}),
+      ...(originalFilename ? { originalFilename } : {})
     };
 
-    const existing = arr(series.volumes).findIndex(v =>
-      (number !== 9999 && Number(v.number) === number) || String(v.title || "") === title
-    );
-
-    if (existing >= 0) {
-      const previous = series.volumes[existing];
+    if (replacing) {
       const previousWasSeriesCover = Boolean(previous?.cover && series.cover === previous.cover);
       const previousWasSeriesThumb = Boolean(previous?.coverThumb && series.coverThumb === previous.coverThumb);
       if (!series.audioAlignedUrl && previous?.audioAlignedUrl) series.audioAlignedUrl = previous.audioAlignedUrl;
       series.volumes[existing] = volume;
-      if (previousWasSeriesCover && cover) series.cover = cover;
-      if ((previousWasSeriesThumb || previousWasSeriesCover) && coverThumb) series.coverThumb = coverThumb;
+      if (previousWasSeriesCover && volume.cover) series.cover = volume.cover;
+      if ((previousWasSeriesThumb || previousWasSeriesCover) && volume.coverThumb) series.coverThumb = volume.coverThumb;
     } else {
       series.volumes.push(volume);
     }
 
     series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title).localeCompare(String(b.title)));
-    if (!series.cover && cover) {
-      series.cover = cover;
-      series.coverThumb = coverThumb;
-    } else if (!series.coverThumb && series.cover === cover && coverThumb) {
-      series.coverThumb = coverThumb;
+    if (!series.cover && volume.cover) {
+      series.cover = volume.cover;
+      series.coverThumb = volume.coverThumb;
+    } else if (!series.coverThumb && series.cover === volume.cover && volume.coverThumb) {
+      series.coverThumb = volume.coverThumb;
     }
 
     await Promise.all([saveCatalog(aws, MAIN_KEY, main), saveCatalog(aws, ADULT_KEY, restricted)]);
     await invalidatePublicCatalogCache(request);
-    return json({ ok: true, seriesId: sid, series: series.title, volume: title, file: volume.file, cover: volume.cover, coverThumb: volume.coverThumb, audioAlignedUrl: series.audioAlignedUrl || "" });
+    return json({
+      ok: true,
+      seriesId: sid,
+      series: series.title,
+      volume: title,
+      file: volume.file,
+      cover: volume.cover,
+      coverThumb: volume.coverThumb,
+      audioAlignedUrl: series.audioAlignedUrl || "",
+      duplicatePolicy,
+      replaced: replacing
+    });
   } catch (error) {
     console.error("Catalog update failed", error);
     return json({ ok: false, error: "Catalog update failed", detail: String(error?.message || error) }, 502);

@@ -6,7 +6,6 @@
   if(typeof originalEpub!=="function")return;
 
   let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0,seekTimer=0,seekSerial=0;
-  let lastSeekValue=0,lastSeekAt=0;
   const progressByCfi=new Map();
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 
@@ -272,12 +271,29 @@
     return Array.isArray(book?.locations?._locations)?book.locations._locations.length:0;
   }
 
-  function spineTarget(book,percentage){
+  async function spineStartTarget(book,percentage){
     const items=linearSpine(book);
     if(!items.length)return"";
     const p=clamp01(percentage);
     const index=p>=1?items.length-1:Math.min(items.length-1,Math.floor(p*items.length));
-    return items[index]?.href||"";
+    const section=items[index];
+    if(!section)return"";
+    try{
+      if(!section.document)await section.load(book.load.bind(book));
+      const element=section.document?.body||section.document?.documentElement;
+      if(element&&typeof section.cfiFromElement==="function"){
+        const cfi=section.cfiFromElement(element);
+        if(cfi)return cfi;
+      }
+    }catch(error){console.warn("Continuous spine fallback CFI failed",error)}
+    return section.href||"";
+  }
+
+  function updateProgressUi(percentage){
+    const p=clamp01(percentage);
+    const range=document.getElementById("progressRange"),text=document.getElementById("progressText");
+    if(range)range.value=String(Math.round(p*1000));
+    if(text)text.textContent=`${Math.round(p*100)}%`;
   }
 
   async function continuousSeek(percentage){
@@ -288,44 +304,26 @@
     if(locationCount(book)>0){
       try{
         const candidate=book.locations.cfiFromPercentage(p);
-        if(candidate&&candidate!==-1&&candidate!=="-1")target=candidate;
+        if(typeof candidate==="string"&&candidate&&candidate!=="-1")target=candidate;
       }catch(error){console.warn("Continuous exact seek failed",error)}
     }
-    if(!target)target=spineTarget(book,p);
+    if(!target)target=await spineStartTarget(book,p);
     if(!target||serial!==seekSerial)return;
-    const range=document.getElementById("progressRange"),text=document.getElementById("progressText");
-    if(range)range.value=String(Math.round(p*1000));
-    if(text)text.textContent=`${Math.round(p*100)}%`;
+    updateProgressUi(p);
     try{await displaySettled(rendition,target)}catch(error){console.error("Continuous seek failed",error)}
   }
 
-  /* Continuous mode gets a dedicated settled seek path. Keep the user's requested
-     percentage separately so a relocation fired during the drag cannot rewrite the
-     range to 0 and make pointerup seek to the beginning of the book. */
-  for(const type of ["input","change","pointerup","touchend"]){
-    document.addEventListener(type,event=>{
-      const range=event.target?.closest?.("#progressRange");
-      if(!range||!document.body?.classList.contains("reader-flow-scrolled"))return;
-      event.stopImmediatePropagation();
-      const now=Date.now();
-      let value=clamp01(Number(range.value||0)/1000);
-      if(type==="input"){
-        lastSeekValue=value;
-        lastSeekAt=now;
-      }else if(now-lastSeekAt<1800){
-        value=lastSeekValue;
-      }else{
-        lastSeekValue=value;
-        lastSeekAt=now;
-      }
-      const text=document.getElementById("progressText");
-      range.value=String(Math.round(value*1000));
-      if(text)text.textContent=`${Math.round(value*100)}%`;
-      clearTimeout(seekTimer);
-      if(type==="input")seekTimer=setTimeout(()=>continuousSeek(value),140);
-      else continuousSeek(value);
-    },true);
-  }
+  /* Dedicated Continuous rail. Native range events are no longer used in Continuous
+     mode; this single custom event is the only seek entry point for that flow. */
+  document.addEventListener("sg-continuous-seek",event=>{
+    if(!document.body?.classList.contains("reader-flow-scrolled"))return;
+    const p=clamp01(event.detail?.percentage);
+    const immediate=event.detail?.immediate===true;
+    updateProgressUi(p);
+    clearTimeout(seekTimer);
+    if(immediate)continuousSeek(p);
+    else seekTimer=setTimeout(()=>continuousSeek(p),140);
+  });
 
   /* Mobile browser chrome continuously changes visualViewport height while scrolling.
      Only paginated mode needs those changes forwarded into EPUB.js page measurement;

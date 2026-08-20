@@ -10,9 +10,11 @@
   <link rel="stylesheet" href="/assets/css/site.css">
   <link rel="stylesheet" href="/assets/css/nav.css">
   <link rel="stylesheet" href="/assets/css/admin.css">
+  <link rel="stylesheet" href="/assets/css/admin-preflight.css">
   <script src="/assets/vendor/jszip.min.js" defer></script>
   <script src="/assets/js/admin.js" defer></script>
   <script src="/assets/js/admin-audio.js" defer></script>
+  <script src="/assets/js/admin-preflight.js" defer></script>
 </head>
 <body class="admin-page">
   <header class="site-header admin-header">
@@ -110,6 +112,23 @@
             <strong id="filePickerTitle">Choose EPUB from phone</strong>
             <small id="filePickerMeta">Up to 50 MB through the mobile uploader</small>
           </label>
+        </section>
+
+        <section id="preflightCard" class="admin-card preflight-card hidden" data-status="checking">
+          <div class="admin-card-head">
+            <div><span>CHECK</span><h2>EPUB preflight</h2></div>
+            <strong id="preflightState" class="state-pill">CHECKING</strong>
+          </div>
+          <div class="preflight-lead">
+            <span class="preflight-mark">◇</span>
+            <div><strong id="preflightTitle">Inspecting EPUB structure…</strong><p id="preflightSummary">Reader-focused checks run locally before anything is uploaded.</p></div>
+          </div>
+          <div id="preflightChecks" class="preflight-checks"></div>
+          <div id="preflightStats" class="preflight-stats"></div>
+          <details id="preflightDetails" class="preflight-details">
+            <summary id="preflightDetailsSummary">Validation details</summary>
+            <ul id="preflightIssues" class="preflight-issues"></ul>
+          </details>
         </section>
 
         <section id="metadataCard" class="admin-card hidden">

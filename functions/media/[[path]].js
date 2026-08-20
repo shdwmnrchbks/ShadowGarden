@@ -18,7 +18,7 @@ function encodeKey(key) {
 }
 
 function cachePolicy(key) {
-  if (key.endsWith(".json")) return "no-store";
+  if (key.endsWith(".json")) return "public, max-age=30, stale-while-revalidate=120";
   if (/\.(?:jpe?g|png|webp|avif|gif|svg)$/i.test(key)) return "public, max-age=31536000, immutable";
   if (key.endsWith(".epub")) return "public, max-age=600";
   return "private, no-store";
@@ -42,7 +42,7 @@ export async function onRequest(context) {
   if (!key) return new Response("Not found", { status: 404 });
 
   const incomingRange = request.headers.get("range");
-  const canCache = method === "GET" && !incomingRange && !key.endsWith(".json");
+  const canCache = method === "GET" && !incomingRange;
   const cache = caches.default;
   const cacheKey = new Request(request.url, { method: "GET" });
 

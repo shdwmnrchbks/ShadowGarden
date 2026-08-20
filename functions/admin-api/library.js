@@ -12,6 +12,17 @@ function tags(value) {
   return [...new Set(arr(value).map(v => clean(v, 80)).filter(Boolean))].slice(0, 40);
 }
 
+function externalUrl(value) {
+  const raw = clean(value, 2000);
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 function mediaKey(value) {
   const text = String(value || "");
   const prefix = "/media/";
@@ -118,11 +129,14 @@ export async function onRequestPost({ request, env }) {
       if (!Number.isInteger(volumeIndex) || volumeIndex < 0 || volumeIndex >= arr(series.volumes).length) return json({ ok: false, error: "Volume not found" }, 404);
       const volume = series.volumes[volumeIndex];
       const number = Number(input.number);
+      const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
+      if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB URL must use http:// or https://" }, 400);
       volume.title = clean(input.title, 300) || volume.title;
       volume.number = Number.isFinite(number) && number > 0 ? number : volume.number;
       volume.date = clean(input.date, 40);
       volume.publisher = clean(input.publisher, 240);
       volume.description = clean(input.description, 12000);
+      volume.audioAlignedUrl = audioAlignedUrl;
       series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title || "").localeCompare(String(b.title || "")));
       await saveCatalog(aws, found.key, found.catalog);
       return json(publicShape(data));

@@ -1,5 +1,5 @@
 {
-  "enabled": false,
+  "enabled": true,
   "private": true,
   "bucket": "shadow-garden-books-01",
   "endpoint": "https://s3.us-east-005.backblazeb2.com",

@@ -23,78 +23,170 @@
   </header>
 
   <main class="admin-shell">
-    <section class="admin-intro">
-      <p class="kicker">PRIVATE STORAGE CONSOLE</p>
-      <h1>Garden </h1>
-      <p>Plant new seeds beneath the shadows.</p>
+    <section id="lockedView" class="locked-view">
+      <section class="admin-card auth-card" id="authCard">
+        <div class="auth-mark">✦</div>
+        <p class="kicker">PRIVATE STORAGE CONSOLE</p>
+        <h1>Garden Keeper</h1>
+        <p class="auth-copy">Pick up your tools before entering the Garden.</p>
+        <div class="admin-card-head auth-head">
+          <div><span>01</span><h2>Unlock the Garden</h2></div>
+          <strong id="authState" class="state-pill">LOCKED</strong>
+        </div>
+        <label class="admin-field">
+          <span>Admin token</span>
+          <input id="adminToken" type="password" autocomplete="current-password" placeholder="Password">
+        </label>
+        <p class="field-note">Stored only for this browser tab. It is never written to an EPUB or catalog.</p>
+        <button id="unlockButton" class="admin-primary" type="button">Unlock the Garden</button>
+      </section>
     </section>
 
-    <section class="admin-card" id="authCard">
-      <div class="admin-card-head">
-        <div><span>01</span><h2>Pickup your tools</h2></div>
-        <strong id="authState" class="state-pill">LOCKED</strong>
-      </div>
-      <label class="admin-field">
-        <span>Admin token</span>
-        <input id="adminToken" type="password" autocomplete="current-password" placeholder="Password">
-      </label>
-      <p class="field-note">Stored only for this browser tab. It is never written to the EPUB or catalog.</p>
-      <button id="unlockButton" class="admin-primary" type="button">Unlock the Garden</button>
-    </section>
-
-    <section class="admin-card">
-      <div class="admin-card-head">
-        <div><span>02</span><h2>Select a new seed</h2></div>
-        <strong id="fileState" class="state-pill">WAITING</strong>
-      </div>
-      <label class="file-picker" for="epubFile">
-        <input id="epubFile" type="file" accept=".epub,application/epub+zip">
-        <span class="file-picker-mark">＋</span>
-        <strong id="filePickerTitle">Choose EPUB from phone</strong>
-        <small id="filePickerMeta">Up to 50 MB through the mobile uploader</small>
-      </label>
-    </section>
-
-    <section id="metadataCard" class="admin-card hidden">
-      <div class="admin-card-head">
-        <div><span>03</span><h2>Temper the new seed</h2></div>
-        <strong class="state-pill ready">EDITABLE</strong>
+    <section id="dashboardView" class="hidden">
+      <div class="dashboard-head">
+        <div>
+          <p class="kicker">GARDEN KEEPER</p>
+          <h1>What would you like to tend?</h1>
+          <p>Manage what is already growing or plant something new.</p>
+        </div>
+        <button id="lockButton" class="admin-ghost" type="button">Lock</button>
       </div>
 
-      <div class="book-preview">
-        <div class="admin-cover"><img id="coverPreview" alt="Extracted EPUB cover" class="hidden"><span id="coverFallback">✦</span></div>
-        <div><strong id="previewTitle">Untitled</strong><span id="previewSeries">Unknown series</span></div>
-      </div>
+      <section id="dashboardChoices" class="admin-choice-grid">
+        <button class="admin-choice" type="button" data-admin-view="manage">
+          <span class="choice-mark">◇</span>
+          <span class="choice-copy"><strong>Manage Library</strong><small>Edit metadata, inspect volumes, move shelves, or remove books.</small></span>
+          <span class="choice-arrow">→</span>
+        </button>
+        <button class="admin-choice" type="button" data-admin-view="add">
+          <span class="choice-mark">＋</span>
+          <span class="choice-copy"><strong>Add New Books</strong><small>Inspect an EPUB on this phone and upload it to the private B2 library.</small></span>
+          <span class="choice-arrow">→</span>
+        </button>
+      </section>
 
-      <div class="admin-grid">
-        <label class="admin-field wide"><span>Series</span><input id="seriesInput" type="text" required></label>
-        <label class="admin-field"><span>Volume</span><input id="volumeInput" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
-        <label class="admin-field"><span>Year</span><input id="yearInput" type="number" min="0" max="9999" inputmode="numeric"></label>
-        <label class="admin-field wide"><span>Book title</span><input id="titleInput" type="text" required></label>
-        <label class="admin-field wide"><span>Author</span><input id="authorInput" type="text"></label>
-        <label class="admin-field wide"><span>Genres / tags</span><input id="tagsInput" type="text" placeholder="Fantasy, Adventure, Romance"></label>
-        <label class="admin-field wide"><span>Description</span><textarea id="descriptionInput" rows="5"></textarea></label>
-      </div>
+      <section id="manageView" class="admin-workspace hidden">
+        <div class="workspace-head">
+          <button class="workspace-back" type="button" data-back-dashboard>← Dashboard</button>
+          <div><p class="kicker">LIBRARY MANAGEMENT</p><h2>Tend the existing Garden</h2></div>
+        </div>
 
-      <label class="adult-toggle">
-        <input id="adultInput" type="checkbox">
-        <span class="toggle-track"><i></i></span>
-        <span><strong>18+ / Adult Library</strong><small>Keep this title out of the main archive.</small></span>
-      </label>
-    </section>
+        <div class="manage-summary">
+          <div><strong id="manageSeriesCount">0</strong><span>Series</span></div>
+          <div><strong id="manageVolumeCount">0</strong><span>Volumes</span></div>
+          <div><strong id="manageAdultCount">0</strong><span>18+ Series</span></div>
+        </div>
 
-    <section id="uploadCard" class="admin-card hidden">
-      <div class="admin-card-head">
-        <div><span>04</span><h2>Let it take root beneath the shadows</h2></div>
-        <strong id="uploadState" class="state-pill">READY</strong>
-      </div>
-      <div class="upload-status">
-        <span id="statusMark">✦</span>
-        <div><strong id="statusTitle">Ready to upload</strong><p id="statusDetail">The bucket remains private. Readers receive files through Cloudflare.</p></div>
-      </div>
-      <button id="uploadButton" class="admin-primary" type="button">Upload</button>
-      <a id="openSeries" class="admin-secondary hidden" href="#">Open uploaded series →</a>
+        <section class="admin-card manage-toolbar">
+          <label class="admin-field manage-search"><span>Search library</span><input id="manageSearch" type="search" placeholder="Series, author, volume…"></label>
+          <div class="manage-tabs" role="tablist" aria-label="Library section">
+            <button class="active" type="button" data-manage-scope="all">All</button>
+            <button type="button" data-manage-scope="main">Main</button>
+            <button type="button" data-manage-scope="adult">18+</button>
+          </div>
+          <button id="refreshLibrary" class="admin-secondary compact-button" type="button">Refresh library</button>
+        </section>
+
+        <div id="manageLoading" class="admin-card manage-message">Loading the Garden…</div>
+        <div id="manageEmpty" class="admin-card manage-message hidden">No series match this view.</div>
+        <div id="seriesManagerList" class="manager-list"></div>
+      </section>
+
+      <section id="addView" class="admin-workspace hidden">
+        <div class="workspace-head">
+          <button class="workspace-back" type="button" data-back-dashboard>← Dashboard</button>
+          <div><p class="kicker">NEW GROWTH</p><h2>Plant a new seed</h2></div>
+        </div>
+
+        <section class="admin-card">
+          <div class="admin-card-head">
+            <div><span>01</span><h2>Select a new seed</h2></div>
+            <strong id="fileState" class="state-pill">WAITING</strong>
+          </div>
+          <label class="file-picker" for="epubFile">
+            <input id="epubFile" type="file" accept=".epub,application/epub+zip">
+            <span class="file-picker-mark">＋</span>
+            <strong id="filePickerTitle">Choose EPUB from phone</strong>
+            <small id="filePickerMeta">Up to 50 MB through the mobile uploader</small>
+          </label>
+        </section>
+
+        <section id="metadataCard" class="admin-card hidden">
+          <div class="admin-card-head">
+            <div><span>02</span><h2>Temper the new seed</h2></div>
+            <strong class="state-pill ready">EDITABLE</strong>
+          </div>
+
+          <div class="book-preview">
+            <div class="admin-cover"><img id="coverPreview" alt="Extracted EPUB cover" class="hidden"><span id="coverFallback">✦</span></div>
+            <div><strong id="previewTitle">Untitled</strong><span id="previewSeries">Unknown series</span></div>
+          </div>
+
+          <div class="admin-grid">
+            <label class="admin-field wide"><span>Series</span><input id="seriesInput" type="text" required></label>
+            <label class="admin-field"><span>Volume</span><input id="volumeInput" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
+            <label class="admin-field"><span>Year</span><input id="yearInput" type="number" min="0" max="9999" inputmode="numeric"></label>
+            <label class="admin-field wide"><span>Book title</span><input id="titleInput" type="text" required></label>
+            <label class="admin-field wide"><span>Author</span><input id="authorInput" type="text"></label>
+            <label class="admin-field wide"><span>Genres / tags</span><input id="tagsInput" type="text" placeholder="Fantasy, Adventure, Romance"></label>
+            <label class="admin-field wide"><span>Description</span><textarea id="descriptionInput" rows="5"></textarea></label>
+          </div>
+
+          <label class="adult-toggle">
+            <input id="adultInput" type="checkbox">
+            <span class="toggle-track"><i></i></span>
+            <span><strong>18+ / Adult Library</strong><small>Keep this title out of the main archive.</small></span>
+          </label>
+        </section>
+
+        <section id="uploadCard" class="admin-card hidden">
+          <div class="admin-card-head">
+            <div><span>03</span><h2>Let it take root beneath the shadows</h2></div>
+            <strong id="uploadState" class="state-pill">READY</strong>
+          </div>
+          <div class="upload-status">
+            <span id="statusMark">✦</span>
+            <div><strong id="statusTitle">Ready to upload</strong><p id="statusDetail">The bucket remains private. Readers receive files through Cloudflare.</p></div>
+          </div>
+          <button id="uploadButton" class="admin-primary" type="button">Upload</button>
+          <a id="openSeries" class="admin-secondary hidden" href="#">Open uploaded series →</a>
+        </section>
+      </section>
     </section>
   </main>
+
+  <dialog id="seriesEditor" class="admin-dialog">
+    <form method="dialog" class="dialog-shell" id="seriesEditorForm">
+      <div class="dialog-head">
+        <div><p class="kicker">SERIES EDITOR</p><h2 id="seriesEditorHeading">Edit series</h2></div>
+        <button class="dialog-close" value="cancel" aria-label="Close editor">×</button>
+      </div>
+
+      <div class="dialog-scroll">
+        <div class="manager-editor-cover"><img id="managerCover" alt="Series cover"><span id="managerCoverFallback">✦</span></div>
+        <div class="admin-grid">
+          <label class="admin-field wide"><span>Series title</span><input id="manageTitle" type="text" required></label>
+          <label class="admin-field wide"><span>Author</span><input id="manageAuthor" type="text"></label>
+          <label class="admin-field"><span>Year</span><input id="manageYear" type="number" min="0" max="9999"></label>
+          <label class="admin-field"><span>Status</span><input id="manageStatus" type="text" placeholder="Ongoing, Complete…"></label>
+          <label class="admin-field wide"><span>Genres / tags</span><input id="manageTags" type="text"></label>
+          <label class="admin-field wide"><span>Description</span><textarea id="manageDescription" rows="5"></textarea></label>
+        </div>
+        <label class="adult-toggle">
+          <input id="manageAdult" type="checkbox">
+          <span class="toggle-track"><i></i></span>
+          <span><strong>18+ / Adult Library</strong><small>Move this entire series between the Main and Adult catalogs.</small></span>
+        </label>
+
+        <div class="dialog-section-head"><h3>Volumes</h3><span id="manageVolumeLabel"></span></div>
+        <div id="manageVolumes" class="manage-volumes"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <button id="deleteSeries" class="danger-button" type="button">Delete series</button>
+        <button id="saveSeries" class="admin-primary inline-button" type="button">Save series</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

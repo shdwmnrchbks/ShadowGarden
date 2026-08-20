@@ -2,7 +2,7 @@ window.ShadowGardenData=(()=>{
   let sourcePromise;
   async function getSource(){
     if(!sourcePromise){
-      sourcePromise=fetch('/data/source.json',{cache:'no-store'})
+      sourcePromise=fetch('/data/source.json',{cache:'default'})
         .then(r=>r.ok?r.json():{mode:'local'})
         .catch(()=>({mode:'local'}));
     }
@@ -18,7 +18,7 @@ window.ShadowGardenData=(()=>{
   }
   async function loadCatalog(adult=false){
     const url=await catalogUrl(adult);
-    const r=await fetch(url,{cache:'no-store',mode:'cors'});
+    const r=await fetch(url,{cache:'default',mode:'cors'});
     if(!r.ok)throw new Error(`Catalog request failed: ${r.status}`);
     return r.json();
   }

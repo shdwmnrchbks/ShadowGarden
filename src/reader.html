@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/assets/css/reader.css">
   <link rel="stylesheet" href="/assets/css/reader-continuous-rail.css">
   <link rel="stylesheet" href="/assets/css/reader-polish.css">
+  <link rel="stylesheet" href="/assets/css/reader-a11y.css">
   <script src="/assets/vendor/jszip.min.js"></script>
   <script src="/assets/vendor/epub.min.js"></script>
   <script src="/assets/js/data-source.js"></script>
@@ -16,13 +17,15 @@
   <script src="/assets/js/reader-epub-adapter.js"></script>
   <script src="/assets/js/reader-gesture-hook.js"></script>
   <script src="/assets/js/reader-polish.js" defer></script>
+  <script src="/assets/js/reader-a11y.js" defer></script>
   <script type="module" src="/assets/js/reader.js"></script>
 </head>
 <body class="reader-theme-garden reader-flow-paginated">
+  <a class="reader-skip-link" href="#viewerShell">Skip to book content</a>
   <div id="readerApp" class="reader-app">
-    <header class="reader-topbar">
+    <header class="reader-topbar" aria-label="Reader controls">
       <div class="reader-left">
-        <button id="tocToggle" class="reader-icon" type="button" aria-label="Table of contents">☰</button>
+        <button id="tocToggle" class="reader-icon" type="button" aria-label="Table of contents" aria-controls="tocDrawer" aria-expanded="false">☰</button>
         <a id="backLink" class="reader-brand" href="/">Shadow Garden</a>
       </div>
       <div class="reader-title">
@@ -32,106 +35,57 @@
       <div class="reader-actions">
         <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location" aria-pressed="false">◇</button>
         <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">↩</a>
-        <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings">Aa</button>
+        <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings" aria-controls="settingsDrawer" aria-expanded="false">Aa</button>
         <button id="focusModeButton" class="reader-icon" type="button" title="Distraction-free mode" aria-label="Enter distraction-free mode" aria-pressed="false">◐</button>
-        <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen">⛶</button>
+        <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen" aria-pressed="false">⛶</button>
       </div>
     </header>
 
-    <aside id="tocDrawer" class="reader-drawer drawer-left">
+    <aside id="tocDrawer" class="reader-drawer drawer-left" aria-label="Contents and bookmarks" aria-hidden="true">
       <div class="drawer-head">
         <div class="drawer-tabs">
           <button class="active" data-panel="toc" type="button">Contents</button>
           <button data-panel="bookmarks" type="button">Bookmarks</button>
         </div>
-        <button class="drawer-close" data-close="tocDrawer" type="button">×</button>
+        <button class="drawer-close" data-close="tocDrawer" type="button" aria-label="Close contents drawer">×</button>
       </div>
       <div id="tocPanel" class="drawer-panel"></div>
       <div id="bookmarksPanel" class="drawer-panel hidden"></div>
     </aside>
 
-    <aside id="settingsDrawer" class="reader-drawer drawer-right">
+    <aside id="settingsDrawer" class="reader-drawer drawer-right" aria-label="Reading settings" aria-hidden="true">
       <div class="drawer-head">
         <strong>Reading settings</strong>
-        <button class="drawer-close" data-close="settingsDrawer" type="button">×</button>
+        <button class="drawer-close" data-close="settingsDrawer" type="button" aria-label="Close reading settings">×</button>
       </div>
       <div class="settings-panel">
-        <label>
-          <span>Theme</span>
-          <select id="themeSelect">
-            <option value="garden">Shadow Garden</option>
-            <option value="night">Night</option>
-            <option value="black">Black</option>
-            <option value="paper">Paper</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Typeface</span>
-          <select id="fontSelect">
-            <option value="book">Book serif</option>
-            <option value="system">System sans</option>
-            <option value="classic">Classic serif</option>
-          </select>
-        </label>
-
-        <label>
-          <span>Font size <output id="fontSizeValue">100%</output></span>
-          <input id="fontSizeRange" type="range" min="75" max="160" step="5" value="100">
-        </label>
-
-        <label>
-          <span>Line height <output id="lineHeightValue">1.6</output></span>
-          <input id="lineHeightRange" type="range" min="1.25" max="2.1" step="0.05" value="1.6">
-        </label>
-
-        <label>
-          <span>Text width <output id="widthValue">760px</output></span>
-          <input id="widthRange" type="range" min="560" max="1050" step="10" value="760">
-        </label>
-
-        <label>
-          <span>Reading flow</span>
-          <select id="flowSelect">
-            <option value="paginated">Pages</option>
-            <option value="scrolled-doc">Continuous scroll</option>
-          </select>
-        </label>
-
-        <label class="reader-toggle-setting">
-          <span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span>
-          <input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns">
-        </label>
-
-        <label class="reader-toggle-setting">
-          <span><b>Tap zones & focus</b><small>Tap left/right to turn pages; tap the center to hide or show reader controls.</small></span>
-          <input id="tapZonesToggle" type="checkbox" checked aria-label="Tap zones and focus mode">
-        </label>
-
+        <label><span>Theme</span><select id="themeSelect"><option value="garden">Shadow Garden</option><option value="night">Night</option><option value="black">Black</option><option value="paper">Paper</option></select></label>
+        <label><span>Typeface</span><select id="fontSelect"><option value="book">Book serif</option><option value="system">System sans</option><option value="classic">Classic serif</option></select></label>
+        <label><span>Font size <output id="fontSizeValue">100%</output></span><input id="fontSizeRange" type="range" min="75" max="160" step="5" value="100"></label>
+        <label><span>Line height <output id="lineHeightValue">1.6</output></span><input id="lineHeightRange" type="range" min="1.25" max="2.1" step="0.05" value="1.6"></label>
+        <label><span>Text width <output id="widthValue">760px</output></span><input id="widthRange" type="range" min="560" max="1050" step="10" value="760"></label>
+        <label><span>Reading flow</span><select id="flowSelect"><option value="paginated">Pages</option><option value="scrolled-doc">Continuous scroll</option></select></label>
+        <label class="reader-toggle-setting"><span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span><input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns"></label>
+        <label class="reader-toggle-setting"><span><b>Tap zones & focus</b><small>Tap left/right to turn pages; tap the center to hide or show reader controls.</small></span><input id="tapZonesToggle" type="checkbox" checked aria-label="Tap zones and focus mode"></label>
         <button id="resetReader" class="reader-reset" type="button">Reset reader settings</button>
       </div>
     </aside>
 
-    <main class="viewer-shell">
+    <main id="viewerShell" class="viewer-shell" tabindex="-1" aria-label="EPUB reading area">
       <button id="prevPage" class="page-hit page-prev" type="button" aria-label="Previous page">‹</button>
       <div id="viewer" class="viewer"></div>
       <button id="nextPage" class="page-hit page-next" type="button" aria-label="Next page">›</button>
-      <div id="readerLoading" class="reader-loading"><span>✦</span><p>Opening the book…</p></div>
+      <div id="readerLoading" class="reader-loading" role="status" aria-live="polite"><span aria-hidden="true">✦</span><p>Opening the book…</p></div>
     </main>
 
-    <footer class="reader-bottombar">
+    <footer class="reader-bottombar" aria-label="Reading navigation">
       <button id="prevBottom" type="button">← Previous</button>
-      <div class="progress-wrap">
-        <input id="progressRange" type="range" min="0" max="1000" value="0" aria-label="Reading progress">
-        <span id="progressText">0%</span>
-      </div>
+      <div class="progress-wrap"><input id="progressRange" type="range" min="0" max="1000" value="0" aria-label="Reading progress"><span id="progressText">0%</span></div>
       <button id="nextBottom" type="button">Next →</button>
     </footer>
 
-    <div id="continuousSeek" class="continuous-seek" role="slider" tabindex="0" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-      <div id="continuousSeekTrack" class="continuous-seek-track" aria-hidden="true">
-        <span id="continuousSeekThumb" class="continuous-seek-thumb"></span>
-      </div>
+    <div id="continuousSeek" class="continuous-seek" role="slider" tabindex="0" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%">
+      <div id="continuousSeekTrack" class="continuous-seek-track" aria-hidden="true"><span id="continuousSeekThumb" class="continuous-seek-thumb"></span></div>
       <span id="continuousSeekText" class="continuous-seek-text">0%</span>
     </div>
 
@@ -142,15 +96,12 @@
         <p class="volume-complete-kicker">VOLUME COMPLETE</p>
         <h2 id="volumeCompleteHeading"><span id="volumeCompleteTitle">Volume complete</span></h2>
         <p id="volumeCompleteDetail" class="volume-complete-detail">The next path through the Garden is ready.</p>
-        <div class="volume-complete-actions">
-          <a id="nextVolumeLink" class="volume-complete-next" href="#">Read next volume →</a>
-          <a id="completeReturnLink" class="volume-complete-return" href="/">Return to series</a>
-        </div>
+        <div class="volume-complete-actions"><a id="nextVolumeLink" class="volume-complete-next" href="#">Read next volume →</a><a id="completeReturnLink" class="volume-complete-return" href="/">Return to series</a></div>
       </div>
     </dialog>
 
     <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
-    <div id="toast" class="toast hidden"></div>
+    <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 </body>
 </html>

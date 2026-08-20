@@ -157,10 +157,16 @@
     try{return Boolean(doc.getSelection?.()?.toString().trim())}catch{return false}
   }
 
+  let turnQueued=false;
   function pageTurn(direction){
-    if(!document.body.classList.contains("reader-flow-paginated"))return;
-    const button=direction<0?$("#prevBottom"):$("#nextBottom");
-    button?.click();
+    if(turnQueued||!document.body.classList.contains("reader-flow-paginated"))return;
+    turnQueued=true;
+    requestAnimationFrame(()=>{
+      turnQueued=false;
+      if(!document.body.classList.contains("reader-flow-paginated"))return;
+      const button=direction<0?$("#prevBottom"):$("#nextBottom");
+      button?.click();
+    });
   }
 
   function installGestures(doc){

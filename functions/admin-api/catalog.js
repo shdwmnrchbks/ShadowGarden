@@ -91,7 +91,7 @@ export async function onRequestPost({ request, env }) {
   if (coverThumbKey && !validObjectKey(coverThumbKey, ["shadow-garden/covers/"])) {
     return json({ ok: false, error: "Invalid cover thumbnail key" }, 400);
   }
-  if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB URL must use http:// or https://" }, 400);
+  if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB folder URL must use http:// or https://" }, 400);
 
   try {
     const aws = writeClient(env);
@@ -114,6 +114,7 @@ export async function onRequestPost({ request, env }) {
         tags,
         cover,
         coverThumb,
+        audioAlignedUrl,
         nsfw: adult,
         volumes: []
       };
@@ -125,6 +126,9 @@ export async function onRequestPost({ request, env }) {
       series.status = status || series.status;
       series.description = description || series.description;
       series.tags = [...new Set([...arr(series.tags), ...tags])];
+      const legacyAudioUrl = arr(series.volumes).find(volume => volume.audioAlignedUrl)?.audioAlignedUrl || "";
+      if (!series.audioAlignedUrl && legacyAudioUrl) series.audioAlignedUrl = legacyAudioUrl;
+      if (audioAlignedUrl) series.audioAlignedUrl = audioAlignedUrl;
     }
 
     const volume = {
@@ -139,8 +143,7 @@ export async function onRequestPost({ request, env }) {
       size,
       added: new Date().toISOString().slice(0, 10),
       publisher,
-      description,
-      audioAlignedUrl
+      description
     };
 
     const existing = arr(series.volumes).findIndex(v =>
@@ -151,6 +154,7 @@ export async function onRequestPost({ request, env }) {
       const previous = series.volumes[existing];
       const previousWasSeriesCover = Boolean(previous?.cover && series.cover === previous.cover);
       const previousWasSeriesThumb = Boolean(previous?.coverThumb && series.coverThumb === previous.coverThumb);
+      if (!series.audioAlignedUrl && previous?.audioAlignedUrl) series.audioAlignedUrl = previous.audioAlignedUrl;
       series.volumes[existing] = volume;
       if (previousWasSeriesCover && cover) series.cover = cover;
       if ((previousWasSeriesThumb || previousWasSeriesCover) && coverThumb) series.coverThumb = coverThumb;
@@ -168,7 +172,7 @@ export async function onRequestPost({ request, env }) {
 
     await Promise.all([saveCatalog(aws, MAIN_KEY, main), saveCatalog(aws, ADULT_KEY, restricted)]);
     await invalidatePublicCatalogCache(request);
-    return json({ ok: true, seriesId: sid, series: series.title, volume: title, file: volume.file, cover: volume.cover, coverThumb: volume.coverThumb });
+    return json({ ok: true, seriesId: sid, series: series.title, volume: title, file: volume.file, cover: volume.cover, coverThumb: volume.coverThumb, audioAlignedUrl: series.audioAlignedUrl || "" });
   } catch (error) {
     console.error("Catalog update failed", error);
     return json({ ok: false, error: "Catalog update failed", detail: String(error?.message || error) }, 502);

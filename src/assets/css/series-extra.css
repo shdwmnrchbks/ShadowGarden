@@ -1,8 +1,9 @@
 .volume-actions{flex-wrap:wrap;align-items:center}
 .volume-actions a{white-space:nowrap}
 .volume-actions a.download{color:var(--text);border-color:var(--line2);background:rgba(255,255,255,.02)}
-.volume-actions a.audio-download{color:var(--gold);border-color:rgba(185,157,107,.32);background:rgba(185,157,107,.055)}
 .volume-actions a:hover{border-color:var(--line2);filter:brightness(1.12)}
+.series-actions .audio-series-link{color:var(--gold);border-color:rgba(185,157,107,.32);background:rgba(185,157,107,.055)}
+.series-actions .audio-series-link:hover{border-color:rgba(185,157,107,.5);filter:brightness(1.12)}
 .volume-cover-link{display:block;color:inherit;text-decoration:none;border-radius:8px;outline:none}
 .volume-cover-link .volume-cover{transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;cursor:pointer}
 .volume-cover-link:hover .volume-cover,.volume-cover-link:focus-visible .volume-cover{transform:translateY(-2px);border-color:var(--line2);box-shadow:0 14px 30px rgba(0,0,0,.24)}

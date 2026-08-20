@@ -1,55 +1,29 @@
-/* Optional external audio-aligned EPUB link support and cover optimization for Garden Keeper. */
+/* Series-level audio-aligned EPUB folder links and cover optimization for Garden Keeper. */
 (()=>{
   const descriptionLabel=$("#descriptionInput")?.closest("label");
   if(descriptionLabel&&!$("#audioAlignedInput")){
     const label=document.createElement("label");
     label.className="admin-field wide";
-    label.innerHTML='<span>Audio-aligned EPUB URL (optional)</span><input id="audioAlignedInput" type="url" inputmode="url" placeholder="https://example.com/book-audio.epub">';
+    label.innerHTML='<span>Audio-aligned EPUB folder URL (series, optional)</span><input id="audioAlignedInput" type="url" inputmode="url" placeholder="https://example.com/series-audio-epubs/">';
     descriptionLabel.before(label);
   }
+
+  const manageDescriptionLabel=$("#manageDescription")?.closest("label");
+  if(manageDescriptionLabel&&!$("#manageAudioAlignedUrl")){
+    const label=document.createElement("label");
+    label.className="admin-field wide";
+    label.innerHTML='<span>Audio-aligned EPUB folder URL (optional)</span><input id="manageAudioAlignedUrl" type="url" inputmode="url" placeholder="https://example.com/series-audio-epubs/"><small class="field-note">One external folder link for the entire series. The public series page shows a single Audio EPUBs button when this is set.</small>';
+    manageDescriptionLabel.before(label);
+  }
+
   $("#epubFile")?.addEventListener("change",()=>{if($("#audioAlignedInput"))$("#audioAlignedInput").value=""});
 })();
 
-renderManagedVolumes=function(series){
-  $("#manageVolumeLabel").textContent=`${arr(series.volumes).length} ${arr(series.volumes).length===1?"volume":"volumes"}`;
-  $("#manageVolumes").innerHTML=arr(series.volumes).map((v,index)=>`<article class="manage-volume" data-volume-index="${index}">
-    <div class="manage-volume-summary">
-      <div class="volume-number">${esc(v.number??index+1)}</div>
-      <div class="volume-summary-copy"><strong>${esc(v.title||`Volume ${index+1}`)}</strong><span>${[v.date||"",fmtSize(v.size),v.audioAlignedUrl?"Audio EPUB linked":""].filter(Boolean).join(" · ")||"No extra metadata"}</span></div>
-      <button class="volume-toggle" type="button" data-volume-toggle aria-label="Edit volume">Edit</button>
-    </div>
-    <div class="manage-volume-editor hidden">
-      <div class="admin-grid">
-        <label class="admin-field wide"><span>Volume title</span><input data-v-title type="text" value="${esc(v.title||"")}"></label>
-        <label class="admin-field"><span>Volume number</span><input data-v-number type="number" min="0.01" step="0.01" value="${esc(v.number??index+1)}"></label>
-        <label class="admin-field"><span>Date</span><input data-v-date type="text" value="${esc(v.date||"")}" placeholder="YYYY-MM-DD"></label>
-        <label class="admin-field wide"><span>Publisher</span><input data-v-publisher type="text" value="${esc(v.publisher||"")}"></label>
-        <label class="admin-field wide"><span>Audio-aligned EPUB URL (optional)</span><input data-v-audio type="url" inputmode="url" placeholder="https://example.com/book-audio.epub" value="${esc(v.audioAlignedUrl||"")}"></label>
-        <label class="admin-field wide"><span>Description</span><textarea data-v-description rows="4">${esc(v.description||"")}</textarea></label>
-      </div>
-      <div class="volume-actions"><button class="danger-button small-danger" type="button" data-volume-delete>Remove volume</button><button class="admin-primary inline-button" type="button" data-volume-save>Save volume</button></div>
-    </div>
-  </article>`).join("");
-};
+function seriesAudioUrl(series){
+  return series?.audioAlignedUrl||arr(series?.volumes).find(v=>v.audioAlignedUrl)?.audioAlignedUrl||"";
+}
 
-saveVolume=async function(card){
-  const index=Number(card.dataset.volumeIndex),item=findManagedSeries(state.activeSeriesId);if(!item)return;
-  const button=card.querySelector("[data-volume-save]"),old=button.textContent;button.disabled=true;button.textContent="Saving…";
-  try{
-    const result=await api("/admin-api/library",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
-      action:"update-volume",id:state.activeSeriesId,volumeIndex:index,
-      title:card.querySelector("[data-v-title]").value,
-      number:card.querySelector("[data-v-number]").value,
-      date:card.querySelector("[data-v-date]").value,
-      publisher:card.querySelector("[data-v-publisher]").value,
-      audioAlignedUrl:card.querySelector("[data-v-audio]")?.value||"",
-      description:card.querySelector("[data-v-description]").value
-    })});
-    updateManagement(result);openSeriesEditor(state.activeSeriesId);
-  }catch(error){alert(error.message);button.textContent=old}finally{button.disabled=false}
-};
-
-/* Management cards only need thumbnail-sized art. Legacy catalog entries fall back to cover. */
+/* Management cards only need thumbnail-sized art. Legacy volume audio links are surfaced as series links. */
 renderManagerList=function(){
   if(!state.management)return;
   const query=state.manageQuery.trim().toLowerCase();
@@ -66,12 +40,54 @@ renderManagerList=function(){
       <div class="manager-card-cover">${cover?`<img src="${esc(cover)}" alt="${esc(series.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:`<span>✦</span>`}</div>
       <div class="manager-card-copy">
         <div class="manager-card-title"><div><strong>${esc(series.title||"Untitled")}</strong><span>${esc(series.author||"Unknown author")}</span></div><span class="manager-scope ${scope}">${scope==="adult"?"18+":"MAIN"}</span></div>
-        <div class="manager-card-meta"><span>${arr(series.volumes).length} ${arr(series.volumes).length===1?"volume":"volumes"}</span>${series.year?`<span>${esc(series.year)}</span>`:""}${arr(series.tags)[0]?`<span>${esc(arr(series.tags)[0])}</span>`:""}</div>
+        <div class="manager-card-meta"><span>${arr(series.volumes).length} ${arr(series.volumes).length===1?"volume":"volumes"}</span>${series.year?`<span>${esc(series.year)}</span>`:""}${arr(series.tags)[0]?`<span>${esc(arr(series.tags)[0])}</span>`:""}${seriesAudioUrl(series)?`<span>Audio folder linked</span>`:""}</div>
         <button class="admin-secondary manager-open" type="button" data-manager-open="${esc(series.id)}">Manage series</button>
       </div>
     </article>`;
   }).join("");
 };
+
+/* Populate the series-level audio URL whenever the editor opens. Legacy volume links are shown as a migration fallback. */
+(()=>{
+  const baseOpenSeriesEditor=openSeriesEditor;
+  openSeriesEditor=function(id){
+    baseOpenSeriesEditor(id);
+    const item=findManagedSeries(id);
+    if(item&&$("#manageAudioAlignedUrl"))$("#manageAudioAlignedUrl").value=seriesAudioUrl(item.series);
+  };
+})();
+
+async function saveSeriesWithAudio(){
+  if(!state.activeSeriesId)return;
+  const button=$("#saveSeries"),old=button.textContent;button.disabled=true;button.textContent="Saving…";
+  try{
+    const result=await api("/admin-api/library",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+      action:"update-series",
+      id:state.activeSeriesId,
+      title:$("#manageTitle").value,
+      author:$("#manageAuthor").value,
+      year:$("#manageYear").value,
+      status:$("#manageStatus").value,
+      tags:$("#manageTags").value.split(",").map(x=>x.trim()).filter(Boolean),
+      description:$("#manageDescription").value,
+      audioAlignedUrl:$("#manageAudioAlignedUrl")?.value.trim()||"",
+      adult:$("#manageAdult").checked
+    })});
+    state.activeSeriesId=result.changedId||state.activeSeriesId;
+    updateManagement(result);openSeriesEditor(state.activeSeriesId);
+    button.textContent="Saved ✓";setTimeout(()=>{if(button.isConnected)button.textContent=old},1200);
+  }catch(error){alert(error.message);button.textContent=old}
+  finally{button.disabled=false}
+}
+
+/* admin.js attached its save handler before this enhancement loaded. Replace the node once so the
+ * series-level audio field is included and legacy volume links can be migrated on save. */
+(()=>{
+  const oldButton=$("#saveSeries");if(!oldButton)return;
+  const button=oldButton.cloneNode(true);oldButton.replaceWith(button);
+  saveSeries=saveSeriesWithAudio;
+  button.addEventListener("click",saveSeriesWithAudio);
+})();
 
 async function imageSource(blob){
   if(typeof createImageBitmap==="function"){

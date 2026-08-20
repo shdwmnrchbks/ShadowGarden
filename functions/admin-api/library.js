@@ -114,12 +114,17 @@ export async function onRequestPost({ request, env }) {
     const series = found.catalog.series[found.index];
 
     if (action === "update-series") {
+      const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
+      if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB folder URL must use http:// or https://" }, 400);
+
       series.title = clean(input.title, 300) || series.title;
       series.author = clean(input.author, 240);
       series.year = Number(input.year) || "";
       series.status = clean(input.status, 80);
       series.description = clean(input.description, 12000);
       series.tags = tags(input.tags);
+      series.audioAlignedUrl = audioAlignedUrl;
+      for (const volume of arr(series.volumes)) delete volume.audioAlignedUrl;
 
       const requestedAdult = Boolean(input.adult);
       if (requestedAdult !== found.adult) {
@@ -140,14 +145,17 @@ export async function onRequestPost({ request, env }) {
       if (!Number.isInteger(volumeIndex) || volumeIndex < 0 || volumeIndex >= arr(series.volumes).length) return json({ ok: false, error: "Volume not found" }, 404);
       const volume = series.volumes[volumeIndex];
       const number = Number(input.number);
-      const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
-      if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB URL must use http:// or https://" }, 400);
+
+      if (!series.audioAlignedUrl) {
+        series.audioAlignedUrl = arr(series.volumes).find(v => v.audioAlignedUrl)?.audioAlignedUrl || "";
+      }
+      for (const item of arr(series.volumes)) delete item.audioAlignedUrl;
+
       volume.title = clean(input.title, 300) || volume.title;
       volume.number = Number.isFinite(number) && number > 0 ? number : volume.number;
       volume.date = clean(input.date, 40);
       volume.publisher = clean(input.publisher, 240);
       volume.description = clean(input.description, 12000);
-      volume.audioAlignedUrl = audioAlignedUrl;
       series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title || "").localeCompare(String(b.title || "")));
       await saveCatalog(aws, found.key, found.catalog);
       await invalidatePublicCatalogCache(request);

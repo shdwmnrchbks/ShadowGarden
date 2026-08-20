@@ -23,6 +23,7 @@ async function init(){
     const resumed=vols.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
     const startVol=resumed?.v||first;
     const startHref=startVol?`/reader.html?book=${encodeURIComponent(startVol.file)}&series=${encodeURIComponent(s.id)}`:"#";
+    const audioAlignedUrl=s.audioAlignedUrl||vols.find(v=>v.audioAlignedUrl)?.audioAlignedUrl||"";
     const cover=s.cover||first?.cover||s.coverThumb||first?.coverThumb||"";
     const heroThumb=s.coverThumb||first?.coverThumb||cover;
     $("#seriesRoot").innerHTML=`
@@ -36,6 +37,7 @@ async function init(){
             <p class="series-byline">${esc(s.author||"Unknown author")} ${s.year?`<span class="series-year">· ${s.year}</span>`:""}</p>
             <div class="series-actions">
               ${startVol?`<a class="primary-button" href="${startHref}">${resumed?"Continue Reading":"Start Reading"}</a>`:""}
+              ${audioAlignedUrl?`<a class="secondary-button audio-series-link" href="${esc(audioAlignedUrl)}" target="_blank" rel="noopener noreferrer">Audio EPUBs ↗</a>`:""}
               <button id="pinButton" class="secondary-button ${pinned?"pinned":""}" type="button">${pinned?"◆ Pinned":"◇ Pin to Garden"}</button>
             </div>
             <div class="tag-row">${arr(s.tags).map(t=>`<span class="tag">${esc(t)}</span>`).join("")}</div>
@@ -54,7 +56,6 @@ async function init(){
             <div class="volume-actions">
               <a class="read" href="/reader.html?book=${encodeURIComponent(v.file)}&series=${encodeURIComponent(s.id)}">${p?"Continue":"Read"}</a>
               <a class="download" href="${esc(v.file)}" download>Download EPUB</a>
-              ${v.audioAlignedUrl?`<a class="audio-download" href="${esc(v.audioAlignedUrl)}" target="_blank" rel="noopener noreferrer" download>Audio EPUB</a>`:""}
             </div>
           </article>`}).join("")}</div>
       </section>`;

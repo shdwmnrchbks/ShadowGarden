@@ -1,4 +1,5 @@
 import { adminAuthorized, getTextObject, json, putObject, validObjectKey, writeClient } from "../_lib/b2.js";
+import { snapshotCatalogs } from "../_lib/garden-maintenance.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";
 const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
@@ -151,6 +152,8 @@ export async function onRequestPost({ request, env }) {
         volume: duplicate
       }, 409);
     }
+
+    await snapshotCatalogs(aws, main, restricted, duplicatePolicy === "replace" && existing >= 0 ? "replace-volume" : "add-volume");
 
     if (!series) {
       series = {

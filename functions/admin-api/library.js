@@ -1,8 +1,10 @@
-import { adminAuthorized, deleteObject, getTextObject, json, putObject, validObjectKey, writeClient } from "../_lib/b2.js";
+import { adminAuthorized, getTextObject, json, putObject, validObjectKey, writeClient } from "../_lib/b2.js";
+import { appendTrashItem, snapshotCatalogs } from "../_lib/garden-maintenance.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";
 const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
 const arr = value => Array.isArray(value) ? value : [];
+const clone = value => JSON.parse(JSON.stringify(value));
 
 function clean(value, max = 4000) {
   return String(value ?? "").trim().slice(0, max);
@@ -116,6 +118,7 @@ export async function onRequestPost({ request, env }) {
     if (action === "update-series") {
       const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
       if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB folder URL must use http:// or https://" }, 400);
+      await snapshotCatalogs(aws, data.main, data.adult, "update-series");
 
       series.title = clean(input.title, 300) || series.title;
       series.author = clean(input.author, 240);
@@ -145,6 +148,7 @@ export async function onRequestPost({ request, env }) {
       if (!Number.isInteger(volumeIndex) || volumeIndex < 0 || volumeIndex >= arr(series.volumes).length) return json({ ok: false, error: "Volume not found" }, 404);
       const volume = series.volumes[volumeIndex];
       const number = Number(input.number);
+      await snapshotCatalogs(aws, data.main, data.adult, "update-volume");
 
       if (!series.audioAlignedUrl) {
         series.audioAlignedUrl = arr(series.volumes).find(v => v.audioAlignedUrl)?.audioAlignedUrl || "";
@@ -165,54 +169,47 @@ export async function onRequestPost({ request, env }) {
     if (action === "delete-volume") {
       const volumeIndex = Number(input.volumeIndex);
       if (!Number.isInteger(volumeIndex) || volumeIndex < 0 || volumeIndex >= arr(series.volumes).length) return json({ ok: false, error: "Volume not found" }, 404);
+      await snapshotCatalogs(aws, data.main, data.adult, "trash-volume");
+      const originalSeries = clone(series);
       const [volume] = series.volumes.splice(volumeIndex, 1);
-      const fileKey = mediaKey(volume.file);
-      const coverKey = mediaKey(volume.cover);
-      const coverThumbKey = mediaKey(volume.coverThumb);
-
-      if (fileKey) await deleteObject(aws, fileKey);
 
       if (!series.volumes.length) {
         found.catalog.series.splice(found.index, 1);
-        series.cover = "";
-        series.coverThumb = "";
       } else {
         if (series.cover === volume.cover) series.cover = series.volumes.find(v => v.cover)?.cover || "";
         if (series.coverThumb === volume.coverThumb) series.coverThumb = series.volumes.find(v => v.coverThumb)?.coverThumb || "";
       }
 
-      const coverStillUsed = coverKey && (
-        arr(series.volumes).some(v => mediaKey(v.cover) === coverKey) ||
-        mediaKey(series.cover) === coverKey
-      );
-      const thumbStillUsed = coverThumbKey && (
-        arr(series.volumes).some(v => mediaKey(v.coverThumb) === coverThumbKey) ||
-        mediaKey(series.coverThumb) === coverThumbKey
-      );
-      if (coverKey && !coverStillUsed) await deleteObject(aws, coverKey);
-      if (coverThumbKey && !thumbStillUsed && coverThumbKey !== coverKey) await deleteObject(aws, coverThumbKey);
+      const seriesMeta = { ...originalSeries, volumes: [] };
+      await appendTrashItem(aws, {
+        type: "volume",
+        scope: found.adult ? "adult" : "main",
+        seriesId: originalSeries.id,
+        title: volume.title || `Volume ${volume.number ?? volumeIndex + 1}`,
+        subtitle: originalSeries.title || "Untitled series",
+        payload: { series: seriesMeta, volume: clone(volume), volumeIndex }
+      });
 
       await saveCatalog(aws, found.key, found.catalog);
       await invalidatePublicCatalogCache(request);
-      return json(publicShape(data));
+      return json({ ...publicShape(data), trashed: true });
     }
 
     if (action === "delete-series") {
-      const keys = new Set();
-      for (const volume of arr(series.volumes)) {
-        const fileKey = mediaKey(volume.file), coverKey = mediaKey(volume.cover), coverThumbKey = mediaKey(volume.coverThumb);
-        if (fileKey) keys.add(fileKey);
-        if (coverKey) keys.add(coverKey);
-        if (coverThumbKey) keys.add(coverThumbKey);
-      }
-      const seriesCover = mediaKey(series.cover), seriesThumb = mediaKey(series.coverThumb);
-      if (seriesCover) keys.add(seriesCover);
-      if (seriesThumb) keys.add(seriesThumb);
-      for (const key of keys) await deleteObject(aws, key);
+      await snapshotCatalogs(aws, data.main, data.adult, "trash-series");
+      const removed = clone(series);
+      await appendTrashItem(aws, {
+        type: "series",
+        scope: found.adult ? "adult" : "main",
+        seriesId: removed.id,
+        title: removed.title || "Untitled series",
+        subtitle: `${arr(removed.volumes).length} ${arr(removed.volumes).length === 1 ? "volume" : "volumes"}`,
+        payload: { series: removed }
+      });
       found.catalog.series.splice(found.index, 1);
       await saveCatalog(aws, found.key, found.catalog);
       await invalidatePublicCatalogCache(request);
-      return json(publicShape(data));
+      return json({ ...publicShape(data), trashed: true });
     }
 
     return json({ ok: false, error: "Unknown management action" }, 400);

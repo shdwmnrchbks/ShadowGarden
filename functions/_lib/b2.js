@@ -73,3 +73,11 @@ export async function putObject(aws, key, body, headers = {}) {
   if (!response.ok) throw new Error(`B2 PUT ${key} failed (${response.status}): ${await response.text()}`);
   return response;
 }
+
+export async function deleteObject(aws, key) {
+  if (!validObjectKey(key)) throw new Error("Refusing to delete an object outside the Shadow Garden prefix.");
+  const response = await aws.fetch(objectUrl(key), { method: "DELETE" });
+  if (response.status === 404) return response;
+  if (!response.ok) throw new Error(`B2 DELETE ${key} failed (${response.status}): ${await response.text()}`);
+  return response;
+}

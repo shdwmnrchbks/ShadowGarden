@@ -6,6 +6,8 @@
   if(typeof originalEpub!=="function")return;
 
   let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0,seekTimer=0,seekSerial=0;
+  let lastSeekValue=0,lastSeekAt=0;
+  const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 
   function viewerElement(target=currentTarget){
     if(target instanceof Element)return target;
@@ -48,6 +50,93 @@
     style.textContent="html,body{box-sizing:border-box!important}html{max-width:none!important}body{max-width:none!important;margin-left:0!important;margin-right:0!important}";
   }
 
+  function sameHref(a,b){
+    const clean=value=>String(value||"").split("#")[0].replace(/^\.\//,"");
+    const left=clean(a),right=clean(b);
+    return Boolean(left&&right&&(left===right||left.endsWith(`/${right}`)||right.endsWith(`/${left}`)));
+  }
+
+  function linearSpine(book){
+    const raw=book?.spine?.spineItems||[];
+    const linear=raw.filter(item=>item?.href&&item.linear!=="no");
+    return linear.length?linear:raw.filter(item=>item?.href);
+  }
+
+  function spinePosition(book,start={}){
+    const items=linearSpine(book);
+    if(!items.length)return{index:-1,total:0};
+    const raw=book?.spine?.spineItems||[];
+    const rawIndex=Number(start.index);
+    if(Number.isInteger(rawIndex)&&rawIndex>=0){
+      const section=raw[rawIndex];
+      const mapped=section?items.findIndex(item=>item===section||sameHref(item.href,section.href)):-1;
+      if(mapped>=0)return{index:mapped,total:items.length};
+      if(rawIndex<items.length)return{index:rawIndex,total:items.length};
+    }
+    const href=start.href||"";
+    const byHref=items.findIndex(item=>sameHref(item.href,href));
+    if(byHref>=0)return{index:byHref,total:items.length};
+    if(start.cfi){
+      try{
+        const section=book?.spine?.get?.(start.cfi);
+        const byCfi=items.findIndex(item=>item===section||sameHref(item.href,section?.href));
+        if(byCfi>=0)return{index:byCfi,total:items.length};
+      }catch{}
+    }
+    return{index:-1,total:items.length};
+  }
+
+  function coarseProgress(book,start={}){
+    const {index,total}=spinePosition(book,start);
+    if(index<0||!total)return null;
+    const page=Math.max(1,Number(start?.displayed?.page)||1);
+    const pages=Math.max(1,Number(start?.displayed?.total)||1);
+    const inside=clamp01((page-1)/pages);
+    return clamp01((index+inside)/total);
+  }
+
+  function reliableProgress(book,start={}){
+    const direct=Number(start.percentage);
+    if(Number.isFinite(direct)&&direct>0)return clamp01(direct);
+    const location=Number(start.location);
+    if(Number.isFinite(location)&&location>0&&typeof book?.locations?.percentageFromLocation==="function"){
+      try{
+        const generated=Number(book.locations.percentageFromLocation(location));
+        if(Number.isFinite(generated)&&generated>0)return clamp01(generated);
+      }catch{}
+    }
+    const coarse=coarseProgress(book,start);
+    if(Number.isFinite(coarse))return coarse;
+    return Number.isFinite(direct)?clamp01(direct):null;
+  }
+
+  function normalizeLocationProgress(book,location){
+    if(!book||!location?.start)return;
+    const progress=reliableProgress(book,location.start);
+    if(Number.isFinite(progress))location.start.percentage=progress;
+    if(location?.end){
+      const endProgress=reliableProgress(book,location.end);
+      if(Number.isFinite(endProgress))location.end.percentage=endProgress;
+    }
+  }
+
+  function patchLocations(book){
+    const locations=book?.locations;
+    if(!locations||locations.__sgProgressPatched)return;
+    locations.__sgProgressPatched=true;
+    const rawPercentage=typeof locations.percentageFromCfi==="function"?locations.percentageFromCfi.bind(locations):null;
+    if(rawPercentage){
+      locations.percentageFromCfi=cfi=>{
+        let exact=NaN;
+        try{exact=Number(rawPercentage(cfi))}catch{}
+        if(Number.isFinite(exact)&&exact>0)return clamp01(exact);
+        const coarse=coarseProgress(book,{cfi});
+        if(Number.isFinite(coarse)&&coarse>0)return coarse;
+        return Number.isFinite(exact)?clamp01(exact):0;
+      };
+    }
+  }
+
   function patchRendition(rendition,target){
     if(!rendition||rendition.__sgAdapterPatched)return rendition;
     rendition.__sgAdapterPatched=true;
@@ -64,6 +153,11 @@
         return rawResize(width,height);
       };
     }
+
+    /* Register before reader.js does. The core will therefore receive a location whose
+       percentage has already been repaired from the reliable spine index when EPUB.js
+       reports a missing/zero generated-location percentage. */
+    try{rendition.on("relocated",location=>normalizeLocationProgress(currentBook,location))}catch{}
 
     try{
       rendition.on("rendered",(_,view)=>{
@@ -82,6 +176,7 @@
     if(!book||book.__sgAdapterPatched)return book;
     book.__sgAdapterPatched=true;
     currentBook=book;
+    patchLocations(book);
     const rawRenderTo=book.renderTo.bind(book);
     book.renderTo=(target,options={})=>{
       const next={...options};
@@ -168,11 +263,9 @@
   }
 
   function spineTarget(book,percentage){
-    const raw=book?.spine?.spineItems||[];
-    const linear=raw.filter(item=>item?.href&&item.linear!=="no");
-    const items=linear.length?linear:raw.filter(item=>item?.href);
+    const items=linearSpine(book);
     if(!items.length)return"";
-    const p=Math.min(1,Math.max(0,Number(percentage)||0));
+    const p=clamp01(percentage);
     const index=p>=1?items.length-1:Math.min(items.length-1,Math.floor(p*items.length));
     return items[index]?.href||"";
   }
@@ -180,25 +273,43 @@
   async function continuousSeek(percentage){
     const book=currentBook,rendition=currentRendition;
     if(!book||!rendition||!document.body?.classList.contains("reader-flow-scrolled"))return;
-    const serial=++seekSerial,p=Math.min(1,Math.max(0,Number(percentage)||0));
+    const serial=++seekSerial,p=clamp01(percentage);
     let target="";
     if(locationCount(book)>0){
-      try{target=book.locations.cfiFromPercentage(p)||""}catch(error){console.warn("Continuous exact seek failed",error)}
+      try{
+        const candidate=book.locations.cfiFromPercentage(p);
+        if(candidate&&candidate!==-1&&candidate!=="-1")target=candidate;
+      }catch(error){console.warn("Continuous exact seek failed",error)}
     }
     if(!target)target=spineTarget(book,p);
     if(!target||serial!==seekSerial)return;
+    const range=document.getElementById("progressRange"),text=document.getElementById("progressText");
+    if(range)range.value=String(Math.round(p*1000));
+    if(text)text.textContent=`${Math.round(p*100)}%`;
     try{await displaySettled(rendition,target)}catch(error){console.error("Continuous seek failed",error)}
   }
 
-  /* Continuous mode gets a dedicated settled seek path. The core still owns paginated
-     seeking. During dragging we debounce navigation; release/change commits immediately. */
+  /* Continuous mode gets a dedicated settled seek path. Keep the user's requested
+     percentage separately so a relocation fired during the drag cannot rewrite the
+     range to 0 and make pointerup seek to the beginning of the book. */
   for(const type of ["input","change","pointerup","touchend"]){
     document.addEventListener(type,event=>{
       const range=event.target?.closest?.("#progressRange");
       if(!range||!document.body?.classList.contains("reader-flow-scrolled"))return;
       event.stopImmediatePropagation();
-      const value=Math.min(1,Math.max(0,Number(range.value||0)/1000));
+      const now=Date.now();
+      let value=clamp01(Number(range.value||0)/1000);
+      if(type==="input"){
+        lastSeekValue=value;
+        lastSeekAt=now;
+      }else if(now-lastSeekAt<1800){
+        value=lastSeekValue;
+      }else{
+        lastSeekValue=value;
+        lastSeekAt=now;
+      }
       const text=document.getElementById("progressText");
+      range.value=String(Math.round(value*1000));
       if(text)text.textContent=`${Math.round(value*100)}%`;
       clearTimeout(seekTimer);
       if(type==="input")seekTimer=setTimeout(()=>continuousSeek(value),140);

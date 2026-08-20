@@ -18,6 +18,7 @@
       if(open)openDrawer=drawer;
     });
     if(openDrawer){
+      if(!returnTarget)returnTarget=triggerFor(openDrawer);
       if(!openDrawer.contains(document.activeElement))requestAnimationFrame(()=>focusable(openDrawer)?.focus({preventScroll:true}));
     }else if(returnTarget&&document.contains(returnTarget)){
       const target=returnTarget;returnTarget=null;

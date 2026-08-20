@@ -10,7 +10,7 @@ window.ShadowGardenData=(()=>{
   }
   async function catalogUrl(adult=false){
     const source=await getSource();
-    if(source.mode==='b2'){
+    if(source.mode==='b2'||source.mode==='b2-private'){
       const url=adult?source.adultCatalogUrl:source.catalogUrl;
       if(url)return url;
     }

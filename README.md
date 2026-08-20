@@ -1,8 +1,8 @@
 https://shadowgarden-bon.pages.dev/
 
-# Shadow Garden v0.5
+# Shadow Garden v0.6
 
-A static EPUB library and browser reader for Cloudflare Pages, using a **private Backblaze B2 bucket** for book storage and a phone-friendly private upload console.
+A static EPUB library and browser reader for Cloudflare Pages, using a **private Backblaze B2 bucket** for book storage and a phone-friendly private administration console.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Cloudflare Pages
         +--> /admin-api/*   token-protected Pages Functions
                  |
                  v
-            private B2 uploads + catalog updates
+       private B2 uploads + catalog management
 ```
 
 The B2 bucket remains private. Backblaze credentials are stored only as encrypted Cloudflare secrets.
@@ -81,11 +81,11 @@ B2_WRITE_APPLICATION_KEY    = sguploader applicationKey
 SG_ADMIN_TOKEN              = a long private token/password you choose
 ```
 
-Encrypt all five values. `SG_ADMIN_TOKEN` is the password for the mobile Garden Keeper page and should not be reused anywhere else.
+Encrypt all five values. `SG_ADMIN_TOKEN` is the password for Garden Keeper and should not be reused anywhere else.
 
 Redeploy the Pages project after setting or changing secrets.
 
-## Phone-only upload workflow
+## Garden Keeper
 
 Open:
 
@@ -95,14 +95,42 @@ https://shadowgarden-bon.pages.dev/admin.html
 
 The admin page is intentionally not linked from the public library and is marked `noindex`. Security comes from `SG_ADMIN_TOKEN`; the hidden URL by itself is not treated as authentication.
 
+Before authentication, the page displays only the **Unlock the Garden** card. After a correct token is entered, the admin dashboard presents two paths:
+
+1. **Manage Library**
+2. **Add New Books**
+
+The admin token is stored only in `sessionStorage`, so it is discarded when that browser tab/session ends.
+
+## Manage Library
+
+The management console reads both private B2 catalogs and provides a phone-friendly view of the existing library.
+
+Current management features:
+
+- Search across series, authors, tags and volume titles.
+- Filter between All, Main and 18+ catalogs.
+- View total series, volume and adult-series counts.
+- Edit series title, author, year, status, tags and description.
+- Move an entire series between Main and 18+.
+- Edit individual volume title, number, date, publisher and description.
+- Remove an individual volume and its EPUB from B2.
+- Delete an entire series and its stored EPUB/cover objects from B2.
+- Refresh the management view directly from the live private catalogs.
+
+Delete actions require an explicit browser confirmation and are permanent.
+
+## Add New Books
+
+Choose **Add New Books** from the unlocked dashboard.
+
 On the phone:
 
-1. Enter `SG_ADMIN_TOKEN` and unlock Garden Keeper.
-2. Choose an EPUB from phone storage.
-3. The browser opens the EPUB locally with JSZip and extracts metadata and its cover before uploading.
-4. Review/edit series, volume number, title, author, year, tags and description.
-5. Toggle **18+ / Adult Library** when appropriate.
-6. Tap **Upload EPUB to Shadow Garden**.
+1. Choose an EPUB from phone storage.
+2. The browser opens the EPUB locally with JSZip and extracts metadata and its cover before uploading.
+3. Review/edit series, volume number, title, author, year, tags and description.
+4. Toggle **18+ / Adult Library** when appropriate.
+5. Tap **Upload**.
 
 The upload workflow then:
 
@@ -113,9 +141,7 @@ The upload workflow then:
 5. Ensures both main and adult catalog files exist.
 6. Stores same-origin `/media/...` URLs rather than exposing B2 origin URLs.
 
-The mobile uploader enforces a 50 MB file limit. This is below Cloudflare Free's current request-body limit and comfortably above the project's normal EPUB sizes.
-
-The admin token is held only in `sessionStorage`, so it is discarded when that browser tab/session ends.
+The mobile uploader enforces a 50 MB file limit.
 
 ## Activating B2 for readers
 
@@ -178,6 +204,7 @@ It is no longer required for normal administration.
 - No Backblaze key is sent to the browser.
 - `/admin.html` has `noindex` headers/meta and is not linked publicly.
 - The browser sends `SG_ADMIN_TOKEN` only over HTTPS as an Authorization header.
+- Management deletions are restricted server-side to the `shadow-garden/` object prefix.
 - The main site remains public; private B2 storage protects the origin and credentials, not the public availability of valid `/media/...` URLs.
 - The existing 18+ gate remains a client-side acknowledgement, not user authentication.
 

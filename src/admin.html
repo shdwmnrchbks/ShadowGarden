@@ -11,10 +11,13 @@
   <link rel="stylesheet" href="/assets/css/nav.css">
   <link rel="stylesheet" href="/assets/css/admin.css">
   <link rel="stylesheet" href="/assets/css/admin-preflight.css">
+  <link rel="stylesheet" href="/assets/css/admin-batch.css">
   <script src="/assets/vendor/jszip.min.js" defer></script>
   <script src="/assets/js/admin.js" defer></script>
   <script src="/assets/js/admin-audio.js" defer></script>
   <script src="/assets/js/admin-preflight.js" defer></script>
+  <script src="/assets/js/admin-batch.js" defer></script>
+  <script src="/assets/js/admin-batch-safety.js" defer></script>
 </head>
 <body class="admin-page">
   <header class="site-header admin-header">
@@ -63,7 +66,7 @@
         </button>
         <button class="admin-choice" type="button" data-admin-view="add">
           <span class="choice-mark">＋</span>
-          <span class="choice-copy"><strong>Add New Books</strong><small>Inspect an EPUB on this phone and upload it to the private B2 library.</small></span>
+          <span class="choice-copy"><strong>Add New Books</strong><small>Inspect one or many EPUBs on this phone and upload them to the private B2 library.</small></span>
           <span class="choice-arrow">→</span>
         </button>
       </section>
@@ -98,19 +101,19 @@
       <section id="addView" class="admin-workspace hidden">
         <div class="workspace-head">
           <button class="workspace-back" type="button" data-back-dashboard>← Dashboard</button>
-          <div><p class="kicker">NEW GROWTH</p><h2>Plant a new seed</h2></div>
+          <div><p class="kicker">NEW GROWTH</p><h2>Plant new seeds</h2></div>
         </div>
 
         <section class="admin-card">
           <div class="admin-card-head">
-            <div><span>01</span><h2>Select a new seed</h2></div>
+            <div><span>01</span><h2>Select new seeds</h2></div>
             <strong id="fileState" class="state-pill">WAITING</strong>
           </div>
           <label class="file-picker" for="epubFile">
-            <input id="epubFile" type="file" accept=".epub,application/epub+zip">
+            <input id="epubFile" type="file" multiple accept=".epub,application/epub+zip">
             <span class="file-picker-mark">＋</span>
-            <strong id="filePickerTitle">Choose EPUB from phone</strong>
-            <small id="filePickerMeta">Up to 50 MB through the mobile uploader</small>
+            <strong id="filePickerTitle">Choose EPUBs from phone</strong>
+            <small id="filePickerMeta">Select one or many EPUBs · 50 MB maximum per file</small>
           </label>
         </section>
 
@@ -133,7 +136,7 @@
 
         <section id="metadataCard" class="admin-card hidden">
           <div class="admin-card-head">
-            <div><span>02</span><h2>Temper the new seed</h2></div>
+            <div><span>02</span><h2>Temper the selected seed</h2></div>
             <strong class="state-pill ready">EDITABLE</strong>
           </div>
 
@@ -161,7 +164,7 @@
 
         <section id="uploadCard" class="admin-card hidden">
           <div class="admin-card-head">
-            <div><span>03</span><h2>Let it take root beneath the shadows</h2></div>
+            <div><span>03</span><h2>Let the batch take root beneath the shadows</h2></div>
             <strong id="uploadState" class="state-pill">READY</strong>
           </div>
           <div class="upload-status">

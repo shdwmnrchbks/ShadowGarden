@@ -1,3 +1,5 @@
+https://shadowgarden-bon.pages.dev/
+
 # Shadow Garden v0.5
 
 A static EPUB library and browser reader for Cloudflare Pages, using a **private Backblaze B2 bucket** for book storage and a phone-friendly private upload console.

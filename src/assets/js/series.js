@@ -46,7 +46,7 @@ async function init(){
         ${s.description?`<p class="series-description">${esc(s.description)}</p>`:""}
         <div class="series-section-head"><h2>Volumes</h2><span>${vols.length} ${vols.length===1?"volume":"volumes"}</span></div>
         <div class="volume-grid">${vols.map((v,i)=>{
-          const c=v.coverThumb||s.coverThumb||v.cover||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0;
+          const c=v.coverThumb||v.cover||s.coverThumb||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0;
           return `<article class="volume-card">
             <div class="volume-cover">${c?`<img src="${esc(c)}" alt="${esc(v.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:""}</div>
             <h3 class="volume-title">${esc(v.title||`Volume ${i+1}`)}</h3>

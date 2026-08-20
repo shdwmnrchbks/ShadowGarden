@@ -1,11 +1,11 @@
 /* Dedicated Continuous-mode seek rail.
- * The visible vertical rail is not a native <input type="range">. Dragging previews the
- * requested percentage locally; one explicit seek event is sent on release/click. This
- * avoids browser-specific vertical range behavior and overlapping EPUB.js display calls.
+ * This is only a vertical UI proxy for the normal #progressRange control.
+ * It writes the same value and fires the same input/change events, so Paged and
+ * Continuous modes use exactly the same reader.js seekTo()/navigateToPercentage() path.
  */
 (()=>{
   let activePointer=null;
-  let rail=null,track=null,thumb=null,label=null,range=null,coreText=null;
+  let rail=null,track=null,label=null,range=null,coreText=null;
 
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 
@@ -16,11 +16,10 @@
   function init(){
     rail=document.getElementById("continuousSeek");
     track=document.getElementById("continuousSeekTrack");
-    thumb=document.getElementById("continuousSeekThumb");
     label=document.getElementById("continuousSeekText");
     range=document.getElementById("progressRange");
     coreText=document.getElementById("progressText");
-    if(!rail||!track||!thumb||!label||!range||!coreText)return;
+    if(!rail||!track||!label||!range||!coreText)return;
 
     syncFromCore();
     new MutationObserver(()=>{
@@ -51,12 +50,11 @@
     return clamp01((clientY-rect.top)/rect.height);
   }
 
-  function commitSeek(percentage){
+  function forwardToCore(percentage,type){
     const p=clamp01(percentage);
+    range.value=String(Math.round(p*1000));
     render(p);
-    document.dispatchEvent(new CustomEvent("sg-continuous-seek",{
-      detail:{percentage:p,immediate:true}
-    }));
+    range.dispatchEvent(new Event(type,{bubbles:true}));
   }
 
   function pointerDown(event){
@@ -64,7 +62,7 @@
     event.preventDefault();
     activePointer=event.pointerId;
     try{track.setPointerCapture?.(event.pointerId)}catch{}
-    render(valueFromY(event.clientY));
+    forwardToCore(valueFromY(event.clientY),"input");
     track.addEventListener("pointermove",pointerMove);
     track.addEventListener("pointerup",pointerUp);
     track.addEventListener("pointercancel",pointerCancel);
@@ -73,7 +71,7 @@
   function pointerMove(event){
     if(event.pointerId!==activePointer)return;
     event.preventDefault();
-    render(valueFromY(event.clientY));
+    forwardToCore(valueFromY(event.clientY),"input");
   }
 
   function finishPointer(event,shouldCommit){
@@ -85,7 +83,7 @@
     track.removeEventListener("pointermove",pointerMove);
     track.removeEventListener("pointerup",pointerUp);
     track.removeEventListener("pointercancel",pointerCancel);
-    if(shouldCommit)commitSeek(percentage);
+    if(shouldCommit)forwardToCore(percentage,"change");
     else syncFromCore();
   }
 
@@ -104,7 +102,7 @@
     else handled=false;
     if(!handled)return;
     event.preventDefault();
-    commitSeek(clamp01(p));
+    forwardToCore(clamp01(p),"change");
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});

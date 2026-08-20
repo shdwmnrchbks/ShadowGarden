@@ -14,6 +14,7 @@
   <script src="/assets/js/nav.js" defer></script>
   <script src="/assets/js/data-source.js" defer></script>
   <script src="/assets/js/library.js" defer></script>
+  <script src="/assets/js/library-filter-collapse.js" defer></script>
 </head>
 <body class="adult-library" data-library-scope="nsfw">
   <div id="adultGate" class="adult-gate hidden" role="dialog" aria-modal="true" aria-labelledby="adultGateTitle">
@@ -72,10 +73,11 @@
         </div>
 
         <div class="search-stack">
-          <label class="search-field">
-            <span>⌕</span>
-            <input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off">
-          </label>
+          <div class="search-field">
+            <span aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search adult library">
+            <button id="filterToggle" class="filter-toggle" type="button" aria-expanded="true" aria-label="Collapse filters" title="Collapse filters">⌃</button>
+          </div>
           <p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p>
         </div>
 

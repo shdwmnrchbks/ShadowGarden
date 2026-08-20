@@ -25,26 +25,26 @@
   <main class="admin-shell">
     <section class="admin-intro">
       <p class="kicker">PRIVATE STORAGE CONSOLE</p>
-      <h1>Garden Keeper</h1>
-      <p>Upload EPUBs from this phone directly into Shadow Garden's private Backblaze B2 bucket.</p>
+      <h1>Garden </h1>
+      <p>Plant new seeds beneath the shadows.</p>
     </section>
 
     <section class="admin-card" id="authCard">
       <div class="admin-card-head">
-        <div><span>01</span><h2>Unlock uploader</h2></div>
+        <div><span>01</span><h2>Pickup your tools</h2></div>
         <strong id="authState" class="state-pill">LOCKED</strong>
       </div>
       <label class="admin-field">
         <span>Admin token</span>
-        <input id="adminToken" type="password" autocomplete="current-password" placeholder="Cloudflare SG_ADMIN_TOKEN">
+        <input id="adminToken" type="password" autocomplete="current-password" placeholder="Password">
       </label>
       <p class="field-note">Stored only for this browser tab. It is never written to the EPUB or catalog.</p>
-      <button id="unlockButton" class="admin-primary" type="button">Unlock Garden Keeper</button>
+      <button id="unlockButton" class="admin-primary" type="button">Unlock the Garden</button>
     </section>
 
     <section class="admin-card">
       <div class="admin-card-head">
-        <div><span>02</span><h2>Select EPUB</h2></div>
+        <div><span>02</span><h2>Select a new seed</h2></div>
         <strong id="fileState" class="state-pill">WAITING</strong>
       </div>
       <label class="file-picker" for="epubFile">
@@ -57,7 +57,7 @@
 
     <section id="metadataCard" class="admin-card hidden">
       <div class="admin-card-head">
-        <div><span>03</span><h2>Review metadata</h2></div>
+        <div><span>03</span><h2>Temper the new seed</h2></div>
         <strong class="state-pill ready">EDITABLE</strong>
       </div>
 
@@ -85,14 +85,14 @@
 
     <section id="uploadCard" class="admin-card hidden">
       <div class="admin-card-head">
-        <div><span>04</span><h2>Send to the Garden</h2></div>
+        <div><span>04</span><h2>Let it take root beneath the shadows</h2></div>
         <strong id="uploadState" class="state-pill">READY</strong>
       </div>
       <div class="upload-status">
         <span id="statusMark">✦</span>
         <div><strong id="statusTitle">Ready to upload</strong><p id="statusDetail">The bucket remains private. Readers receive files through Cloudflare.</p></div>
       </div>
-      <button id="uploadButton" class="admin-primary" type="button">Upload EPUB to Shadow Garden</button>
+      <button id="uploadButton" class="admin-primary" type="button">Upload</button>
       <a id="openSeries" class="admin-secondary hidden" href="#">Open uploaded series →</a>
     </section>
   </main>

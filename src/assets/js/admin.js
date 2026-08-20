@@ -100,14 +100,13 @@ async function unlock(){
   $("#unlockButton").disabled=true;setAuthState("CHECKING");
   try{
     await api("/admin-api/status",{method:"POST"});
-    sessionStorage.setItem("sg-admin-token",token());
     state.unlocked=true;setAuthState("UNLOCKED","ready");
     $("#lockedView").classList.add("hidden");$("#dashboardView").classList.remove("hidden");showDashboardHome();
   }catch(error){state.unlocked=false;setAuthState("DENIED","error");alert(error.message)}
   finally{$("#unlockButton").disabled=false}
 }
 function lockAdmin(){
-  sessionStorage.removeItem("sg-admin-token");state.unlocked=false;state.management=null;state.activeSeriesId=null;
+  state.unlocked=false;state.management=null;state.activeSeriesId=null;
   $("#adminToken").value="";setAuthState("LOCKED");$("#dashboardView").classList.add("hidden");$("#lockedView").classList.remove("hidden");
   try{$("#seriesEditor").close()}catch{}
 }
@@ -129,7 +128,7 @@ function updateManagement(data){
 }
 async function loadLibrary(force=false){
   if(state.management&&!force){renderManagerList();return}
-  $("#manageLoading").classList.remove("hidden");$("#manageEmpty").classList.add("hidden");$("#seriesManagerList").innerHTML="";
+  $("#manageLoading").textContent="Loading the Garden…";$("#manageLoading").classList.remove("hidden");$("#manageEmpty").classList.add("hidden");$("#seriesManagerList").innerHTML="";
   try{updateManagement(await api("/admin-api/library",{method:"GET"}))}
   catch(error){console.error(error);$("#manageLoading").textContent=`Could not load the library: ${error.message}`;return}
   $("#manageLoading").classList.add("hidden");
@@ -265,4 +264,3 @@ $("#saveSeries")?.addEventListener("click",saveSeries);$("#deleteSeries")?.addEv
 $("#epubFile")?.addEventListener("change",fileChanged);
 [$("#seriesInput"),$("#titleInput"),$("#volumeInput")].forEach(el=>el?.addEventListener("input",syncPreview));
 $("#uploadButton")?.addEventListener("click",uploadBook);
-const saved=sessionStorage.getItem("sg-admin-token");if(saved){$("#adminToken").value=saved;unlock()}

@@ -42,8 +42,18 @@ async function saveCatalog(aws, key, catalog) {
   catalog.series = arr(catalog.series).sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
   await putObject(aws, key, JSON.stringify(catalog, null, 2), {
     "content-type": "application/json; charset=utf-8",
-    "cache-control": "no-cache, no-store, max-age=0"
+    "cache-control": "public, max-age=30, stale-while-revalidate=120"
   });
+}
+
+async function invalidatePublicCatalogCache(request) {
+  try {
+    const cache = caches.default;
+    const origin = new URL(request.url).origin;
+    await Promise.all([MAIN_KEY, ADULT_KEY].map(key => cache.delete(new Request(`${origin}/media/${key}`))));
+  } catch (error) {
+    console.warn("Public catalog cache invalidation skipped", error);
+  }
 }
 
 export async function onRequestPost({ request, env }) {
@@ -59,6 +69,7 @@ export async function onRequestPost({ request, env }) {
   const author = clean(input.author, 240);
   const epubKey = clean(input.epubKey, 700);
   const coverKey = clean(input.coverKey, 700);
+  const coverThumbKey = clean(input.coverThumbKey, 700);
   const description = clean(input.description, 12000);
   const language = clean(input.language, 40);
   const publisher = clean(input.publisher, 240);
@@ -77,6 +88,9 @@ export async function onRequestPost({ request, env }) {
   if (coverKey && !validObjectKey(coverKey, ["shadow-garden/covers/"])) {
     return json({ ok: false, error: "Invalid cover key" }, 400);
   }
+  if (coverThumbKey && !validObjectKey(coverThumbKey, ["shadow-garden/covers/"])) {
+    return json({ ok: false, error: "Invalid cover thumbnail key" }, 400);
+  }
   if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB URL must use http:// or https://" }, 400);
 
   try {
@@ -86,6 +100,7 @@ export async function onRequestPost({ request, env }) {
     const sid = `${adult ? "adult-" : ""}${slug(seriesName)}`;
     let series = target.series.find(item => item.id === sid);
     const cover = coverKey ? `/media/${coverKey}` : "";
+    const coverThumb = coverThumbKey ? `/media/${coverThumbKey}` : "";
     const year = Number(input.year) || Number.parseInt(date.slice(0, 4)) || "";
 
     if (!series) {
@@ -98,6 +113,7 @@ export async function onRequestPost({ request, env }) {
         description,
         tags,
         cover,
+        coverThumb,
         nsfw: adult,
         volumes: []
       };
@@ -110,6 +126,7 @@ export async function onRequestPost({ request, env }) {
       series.description = description || series.description;
       series.tags = [...new Set([...arr(series.tags), ...tags])];
       if (cover && !series.cover) series.cover = cover;
+      if (coverThumb && !series.coverThumb) series.coverThumb = coverThumb;
     }
 
     const volume = {
@@ -117,6 +134,7 @@ export async function onRequestPost({ request, env }) {
       number,
       file: `/media/${epubKey}`,
       cover,
+      coverThumb,
       author,
       language,
       date,
@@ -134,9 +152,11 @@ export async function onRequestPost({ request, env }) {
     else series.volumes.push(volume);
     series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title).localeCompare(String(b.title)));
     if (!series.cover && cover) series.cover = cover;
+    if (!series.coverThumb && coverThumb) series.coverThumb = coverThumb;
 
     await Promise.all([saveCatalog(aws, MAIN_KEY, main), saveCatalog(aws, ADULT_KEY, restricted)]);
-    return json({ ok: true, seriesId: sid, series: series.title, volume: title, file: volume.file, cover: volume.cover });
+    await invalidatePublicCatalogCache(request);
+    return json({ ok: true, seriesId: sid, series: series.title, volume: title, file: volume.file, cover: volume.cover, coverThumb: volume.coverThumb });
   } catch (error) {
     console.error("Catalog update failed", error);
     return json({ ok: false, error: "Catalog update failed", detail: String(error?.message || error) }, 502);

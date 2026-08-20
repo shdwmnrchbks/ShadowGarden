@@ -1,8 +1,7 @@
 /* Dedicated Continuous-mode seek rail.
  * The visible vertical rail is not a native <input type="range">. Pointer/keyboard
- * interaction is mapped to the existing horizontal progress input only long enough for
- * reader.js to invoke its normal seek path. This avoids browser-specific vertical-range
- * behavior and bypasses the older Continuous range adapter without changing reader state.
+ * interaction sends one explicit custom event to the EPUB adapter, so Continuous mode
+ * has no dependency on browser-specific vertical range behavior.
  */
 (()=>{
   let activePointer=null;
@@ -24,18 +23,26 @@
     if(!rail||!track||!thumb||!label||!range||!coreText)return;
 
     syncFromCore();
-    new MutationObserver(syncFromCore).observe(coreText,{childList:true,characterData:true,subtree:true});
+    new MutationObserver(()=>{
+      if(activePointer===null)syncFromCore();
+    }).observe(coreText,{childList:true,characterData:true,subtree:true});
 
     track.addEventListener("pointerdown",pointerDown);
     rail.addEventListener("keydown",keyDown);
   }
 
+  function render(percentage){
+    const p=clamp01(percentage);
+    rail.style.setProperty("--sg-progress",`${p*100}%`);
+    rail.setAttribute("aria-valuenow",String(Math.round(p*100)));
+    label.textContent=`${Math.round(p*100)}%`;
+  }
+
   function syncFromCore(){
     if(!range||!rail)return;
     const p=clamp01(Number(range.value||0)/1000);
-    rail.style.setProperty("--sg-progress",`${p*100}%`);
-    rail.setAttribute("aria-valuenow",String(Math.round(p*100)));
-    if(label)label.textContent=coreText?.textContent||`${Math.round(p*100)}%`;
+    render(p);
+    if(coreText?.textContent)label.textContent=coreText.textContent;
   }
 
   function valueFromY(clientY){
@@ -44,33 +51,12 @@
     return clamp01((clientY-rect.top)/rect.height);
   }
 
-  function setCoreValue(percentage){
+  function sendSeek(percentage,immediate){
     const p=clamp01(percentage);
-    range.value=String(Math.round(p*1000));
-    syncFromCore();
-    return p;
-  }
-
-  /* reader-epub-adapter.js still has legacy handlers for #progressRange in Continuous
-     mode. Temporarily remove only the CSS mode marker while dispatching, so those capture
-     handlers ignore the synthetic event and reader.js receives it directly. The actual
-     rendition remains Continuous because reader state is unchanged. */
-  function dispatchToReader(type){
-    const body=document.body;
-    const hadScrolled=body?.classList.contains("reader-flow-scrolled");
-    if(hadScrolled)body.classList.remove("reader-flow-scrolled");
-    try{range.dispatchEvent(new Event(type,{bubbles:true}))}
-    finally{if(hadScrolled)body.classList.add("reader-flow-scrolled")}
-  }
-
-  function preview(percentage){
-    setCoreValue(percentage);
-    dispatchToReader("input");
-  }
-
-  function commit(percentage){
-    setCoreValue(percentage);
-    dispatchToReader("change");
+    render(p);
+    document.dispatchEvent(new CustomEvent("sg-continuous-seek",{
+      detail:{percentage:p,immediate:Boolean(immediate)}
+    }));
   }
 
   function pointerDown(event){
@@ -78,7 +64,7 @@
     event.preventDefault();
     activePointer=event.pointerId;
     try{track.setPointerCapture?.(event.pointerId)}catch{}
-    preview(valueFromY(event.clientY));
+    sendSeek(valueFromY(event.clientY),false);
     track.addEventListener("pointermove",pointerMove);
     track.addEventListener("pointerup",pointerUp);
     track.addEventListener("pointercancel",pointerCancel);
@@ -87,7 +73,7 @@
   function pointerMove(event){
     if(event.pointerId!==activePointer)return;
     event.preventDefault();
-    preview(valueFromY(event.clientY));
+    sendSeek(valueFromY(event.clientY),false);
   }
 
   function finishPointer(event,shouldCommit){
@@ -99,7 +85,8 @@
     track.removeEventListener("pointermove",pointerMove);
     track.removeEventListener("pointerup",pointerUp);
     track.removeEventListener("pointercancel",pointerCancel);
-    if(shouldCommit)commit(percentage);
+    if(shouldCommit)sendSeek(percentage,true);
+    else syncFromCore();
   }
 
   function pointerUp(event){finishPointer(event,true)}
@@ -117,7 +104,7 @@
     else handled=false;
     if(!handled)return;
     event.preventDefault();
-    commit(clamp01(p));
+    sendSeek(clamp01(p),true);
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});

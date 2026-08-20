@@ -68,6 +68,14 @@ export async function getTextObject(aws, key) {
   return response.text();
 }
 
+export async function headObject(aws, key) {
+  if (!validObjectKey(key)) return false;
+  const response = await aws.fetch(objectUrl(key), { method: "HEAD" });
+  if (response.status === 404) return false;
+  if (!response.ok) throw new Error(`B2 HEAD ${key} failed (${response.status}): ${await response.text()}`);
+  return true;
+}
+
 export async function putObject(aws, key, body, headers = {}) {
   const response = await aws.fetch(objectUrl(key), { method: "PUT", body, headers });
   if (!response.ok) throw new Error(`B2 PUT ${key} failed (${response.status}): ${await response.text()}`);

@@ -204,6 +204,14 @@
     },true);
   }
 
+  function bindEpubContentLifecycle(){
+    document.addEventListener("sg-reader-content",event=>{
+      const doc=event.detail?.document;
+      if(doc)installGestures(doc);
+    });
+    arr(window.__sgReaderGestureDocuments).forEach(doc=>installGestures(doc));
+  }
+
   function wireIframe(iframe){
     if(!iframe||iframe.dataset.sgReaderPolishFrame==="1")return;
     iframe.dataset.sgReaderPolishFrame="1";
@@ -251,7 +259,7 @@
   }
 
   function init(){
-    bindUi();watchReaderFrames();watchProgress();loadSeriesContext();
+    bindUi();bindEpubContentLifecycle();watchReaderFrames();watchProgress();loadSeriesContext();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();

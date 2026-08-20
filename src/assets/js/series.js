@@ -52,7 +52,8 @@ async function init(){
             <p class="volume-meta">${[v.date||"",fmtSize(v.size),p?`${pct}% read`:""].filter(Boolean).join(" · ")}</p>
             <div class="volume-actions">
               <a class="read" href="/reader.html?book=${encodeURIComponent(v.file)}&series=${encodeURIComponent(s.id)}">${p?"Continue":"Read"}</a>
-              <a href="${esc(v.file)}" download>EPUB</a>
+              <a class="download" href="${esc(v.file)}" download>Download EPUB</a>
+              ${v.audioAlignedUrl?`<a class="audio-download" href="${esc(v.audioAlignedUrl)}" target="_blank" rel="noopener noreferrer" download>Audio EPUB</a>`:""}
             </div>
           </article>`}).join("")}</div>
       </section>`;

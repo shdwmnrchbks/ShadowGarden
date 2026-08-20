@@ -46,7 +46,7 @@ function apply(){
   $("#catalogGrid").classList.toggle("compact",state.view==="compact");
   $("#resultCount").textContent=`${state.filtered.length} series · ${state.filtered.reduce((n,s)=>n+arr(s.volumes).length,0)} volumes`;
   $("#emptyState").classList.toggle("hidden",state.filtered.length>0);
-  $("#emptyMessage").textContent=state.items.length?"No series match these filters.":"Sow new forbidden knowledge under the shadows.";
+  $("#emptyMessage").textContent=state.items.length?"No series match these filters.":"No seeds have taken root in the Garden yet.";
   document.querySelectorAll("#genreChips button").forEach(b=>b.classList.toggle("active",b.dataset.genre===state.genre));
   document.querySelectorAll(".view-switch button").forEach(b=>b.classList.toggle("active",b.dataset.view===state.view));
 }

@@ -1,7 +1,7 @@
 /* Dedicated Continuous-mode seek rail.
- * The visible vertical rail is not a native <input type="range">. Pointer/keyboard
- * interaction sends one explicit custom event to the EPUB adapter, so Continuous mode
- * has no dependency on browser-specific vertical range behavior.
+ * The visible vertical rail is not a native <input type="range">. Dragging previews the
+ * requested percentage locally; one explicit seek event is sent on release/click. This
+ * avoids browser-specific vertical range behavior and overlapping EPUB.js display calls.
  */
 (()=>{
   let activePointer=null;
@@ -51,11 +51,11 @@
     return clamp01((clientY-rect.top)/rect.height);
   }
 
-  function sendSeek(percentage,immediate){
+  function commitSeek(percentage){
     const p=clamp01(percentage);
     render(p);
     document.dispatchEvent(new CustomEvent("sg-continuous-seek",{
-      detail:{percentage:p,immediate:Boolean(immediate)}
+      detail:{percentage:p,immediate:true}
     }));
   }
 
@@ -64,7 +64,7 @@
     event.preventDefault();
     activePointer=event.pointerId;
     try{track.setPointerCapture?.(event.pointerId)}catch{}
-    sendSeek(valueFromY(event.clientY),false);
+    render(valueFromY(event.clientY));
     track.addEventListener("pointermove",pointerMove);
     track.addEventListener("pointerup",pointerUp);
     track.addEventListener("pointercancel",pointerCancel);
@@ -73,7 +73,7 @@
   function pointerMove(event){
     if(event.pointerId!==activePointer)return;
     event.preventDefault();
-    sendSeek(valueFromY(event.clientY),false);
+    render(valueFromY(event.clientY));
   }
 
   function finishPointer(event,shouldCommit){
@@ -85,7 +85,7 @@
     track.removeEventListener("pointermove",pointerMove);
     track.removeEventListener("pointerup",pointerUp);
     track.removeEventListener("pointercancel",pointerCancel);
-    if(shouldCommit)sendSeek(percentage,true);
+    if(shouldCommit)commitSeek(percentage);
     else syncFromCore();
   }
 
@@ -104,7 +104,7 @@
     else handled=false;
     if(!handled)return;
     event.preventDefault();
-    sendSeek(clamp01(p),true);
+    commitSeek(clamp01(p));
   }
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});

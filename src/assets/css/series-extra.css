@@ -1,0 +1,6 @@
+.volume-actions{flex-wrap:wrap;align-items:center}
+.volume-actions a{white-space:nowrap}
+.volume-actions a.download{color:var(--text);border-color:var(--line2);background:rgba(255,255,255,.02)}
+.volume-actions a.audio-download{color:var(--gold);border-color:rgba(185,157,107,.32);background:rgba(185,157,107,.055)}
+.volume-actions a:hover{border-color:var(--line2);filter:brightness(1.12)}
+@media(max-width:720px){.volume-actions{gap:5px}.volume-actions a{padding:6px 7px;font-size:.64rem}}

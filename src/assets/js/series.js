@@ -23,12 +23,13 @@ async function init(){
     const resumed=vols.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
     const startVol=resumed?.v||first;
     const startHref=startVol?`/reader.html?book=${encodeURIComponent(startVol.file)}&series=${encodeURIComponent(s.id)}`:"#";
-    const cover=s.cover||first?.cover||"";
+    const cover=s.cover||first?.cover||s.coverThumb||first?.coverThumb||"";
+    const heroThumb=s.coverThumb||first?.coverThumb||cover;
     $("#seriesRoot").innerHTML=`
       <section class="series-hero">
-        ${cover?`<div class="series-backdrop" style="background-image:url('${esc(cover)}')"></div>`:""}
+        ${heroThumb?`<div class="series-backdrop" style="background-image:url('${esc(heroThumb)}')"></div>`:""}
         <div class="series-hero-inner">
-          ${cover?`<img class="series-cover" src="${esc(cover)}" alt="${esc(s.title)} cover">`:`<div class="series-cover-fallback">${esc(s.title)}</div>`}
+          ${cover?`<img class="series-cover" src="${esc(cover)}" alt="${esc(s.title)} cover" loading="eager" decoding="async" fetchpriority="high">`:`<div class="series-cover-fallback">${esc(s.title)}</div>`}
           <div class="series-info">
             <p class="kicker">${s.nsfw?"ADULT · ":""}${esc((s.status||"SERIES").toUpperCase())}</p>
             <h1>${esc(s.title)}</h1>
@@ -45,9 +46,9 @@ async function init(){
         ${s.description?`<p class="series-description">${esc(s.description)}</p>`:""}
         <div class="series-section-head"><h2>Volumes</h2><span>${vols.length} ${vols.length===1?"volume":"volumes"}</span></div>
         <div class="volume-grid">${vols.map((v,i)=>{
-          const c=v.cover||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0;
+          const c=v.coverThumb||v.cover||s.coverThumb||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0;
           return `<article class="volume-card">
-            <div class="volume-cover">${c?`<img src="${esc(c)}" alt="${esc(v.title)} cover" loading="lazy">`:""}</div>
+            <div class="volume-cover">${c?`<img src="${esc(c)}" alt="${esc(v.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:""}</div>
             <h3 class="volume-title">${esc(v.title||`Volume ${i+1}`)}</h3>
             <p class="volume-meta">${[v.date||"",fmtSize(v.size),p?`${pct}% read`:""].filter(Boolean).join(" · ")}</p>
             <div class="volume-actions">

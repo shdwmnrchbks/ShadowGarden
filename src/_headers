@@ -7,6 +7,9 @@
   Cache-Control: no-store
   X-Robots-Tag: noindex, nofollow, noarchive
 
+/data/source.json
+  Cache-Control: public, max-age=60, stale-while-revalidate=300
+
 /books/*
   Content-Type: application/epub+zip
 

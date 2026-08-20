@@ -43,8 +43,18 @@ async function saveCatalog(aws, key, catalog) {
   catalog.series = arr(catalog.series).sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
   await putObject(aws, key, JSON.stringify(catalog, null, 2), {
     "content-type": "application/json; charset=utf-8",
-    "cache-control": "no-cache, no-store, max-age=0"
+    "cache-control": "public, max-age=30, stale-while-revalidate=120"
   });
+}
+
+async function invalidatePublicCatalogCache(request) {
+  try {
+    const cache = caches.default;
+    const origin = new URL(request.url).origin;
+    await Promise.all([MAIN_KEY, ADULT_KEY].map(key => cache.delete(new Request(`${origin}/media/${key}`))));
+  } catch (error) {
+    console.warn("Public catalog cache invalidation skipped", error);
+  }
 }
 
 async function catalogs(aws) {
@@ -121,6 +131,7 @@ export async function onRequestPost({ request, env }) {
         destination.series.push(series);
       }
       await Promise.all([saveCatalog(aws, MAIN_KEY, data.main), saveCatalog(aws, ADULT_KEY, data.adult)]);
+      await invalidatePublicCatalogCache(request);
       return json({ ...publicShape(data), changedId: series.id });
     }
 
@@ -139,6 +150,7 @@ export async function onRequestPost({ request, env }) {
       volume.audioAlignedUrl = audioAlignedUrl;
       series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title || "").localeCompare(String(b.title || "")));
       await saveCatalog(aws, found.key, found.catalog);
+      await invalidatePublicCatalogCache(request);
       return json(publicShape(data));
     }
 
@@ -148,38 +160,50 @@ export async function onRequestPost({ request, env }) {
       const [volume] = series.volumes.splice(volumeIndex, 1);
       const fileKey = mediaKey(volume.file);
       const coverKey = mediaKey(volume.cover);
+      const coverThumbKey = mediaKey(volume.coverThumb);
 
       if (fileKey) await deleteObject(aws, fileKey);
 
       if (!series.volumes.length) {
         found.catalog.series.splice(found.index, 1);
         series.cover = "";
-      } else if (series.cover === volume.cover) {
-        series.cover = series.volumes.find(v => v.cover)?.cover || "";
+        series.coverThumb = "";
+      } else {
+        if (series.cover === volume.cover) series.cover = series.volumes.find(v => v.cover)?.cover || "";
+        if (series.coverThumb === volume.coverThumb) series.coverThumb = series.volumes.find(v => v.coverThumb)?.coverThumb || "";
       }
 
       const coverStillUsed = coverKey && (
         arr(series.volumes).some(v => mediaKey(v.cover) === coverKey) ||
         mediaKey(series.cover) === coverKey
       );
+      const thumbStillUsed = coverThumbKey && (
+        arr(series.volumes).some(v => mediaKey(v.coverThumb) === coverThumbKey) ||
+        mediaKey(series.coverThumb) === coverThumbKey
+      );
       if (coverKey && !coverStillUsed) await deleteObject(aws, coverKey);
+      if (coverThumbKey && !thumbStillUsed && coverThumbKey !== coverKey) await deleteObject(aws, coverThumbKey);
 
       await saveCatalog(aws, found.key, found.catalog);
+      await invalidatePublicCatalogCache(request);
       return json(publicShape(data));
     }
 
     if (action === "delete-series") {
       const keys = new Set();
       for (const volume of arr(series.volumes)) {
-        const fileKey = mediaKey(volume.file), coverKey = mediaKey(volume.cover);
+        const fileKey = mediaKey(volume.file), coverKey = mediaKey(volume.cover), coverThumbKey = mediaKey(volume.coverThumb);
         if (fileKey) keys.add(fileKey);
         if (coverKey) keys.add(coverKey);
+        if (coverThumbKey) keys.add(coverThumbKey);
       }
-      const seriesCover = mediaKey(series.cover);
+      const seriesCover = mediaKey(series.cover), seriesThumb = mediaKey(series.coverThumb);
       if (seriesCover) keys.add(seriesCover);
+      if (seriesThumb) keys.add(seriesThumb);
       for (const key of keys) await deleteObject(aws, key);
       found.catalog.series.splice(found.index, 1);
       await saveCatalog(aws, found.key, found.catalog);
+      await invalidatePublicCatalogCache(request);
       return json(publicShape(data));
     }
 

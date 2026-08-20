@@ -95,12 +95,10 @@ https://shadowgarden-bon.pages.dev/admin.html
 
 The admin page is intentionally not linked from the public library and is marked `noindex`. Security comes from `SG_ADMIN_TOKEN`; the hidden URL by itself is not treated as authentication.
 
-Before authentication, the page displays only the **Unlock the Garden** card. After a correct token is entered, the admin dashboard presents two paths:
+Every page load starts at the **Unlock the Garden** card. Garden Keeper does not persist or auto-reuse the admin token across reloads. After a correct token is entered, the admin dashboard presents two paths:
 
 1. **Manage Library**
 2. **Add New Books**
-
-The admin token is stored only in `sessionStorage`, so it is discarded when that browser tab/session ends.
 
 ## Manage Library
 

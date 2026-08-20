@@ -86,29 +86,30 @@ async function imageSource(blob){
   }catch(error){URL.revokeObjectURL(url);throw error}
 }
 
-async function webpDerivative(blob,maxWidth,quality){
-  const image=await imageSource(blob);
-  try{
-    if(!image.width||!image.height)throw new Error("Cover has invalid dimensions");
-    const scale=Math.min(1,maxWidth/image.width),width=Math.max(1,Math.round(image.width*scale)),height=Math.max(1,Math.round(image.height*scale));
-    const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
-    const ctx=canvas.getContext("2d",{alpha:true});if(!ctx)throw new Error("Canvas is unavailable");
-    ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(image.source,0,0,width,height);
-    const output=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",quality));
-    canvas.width=1;canvas.height=1;
-    if(!output||output.type!=="image/webp")throw new Error("WebP encoding is unavailable");
-    return output;
-  }finally{image.close()}
+async function renderWebp(image,maxWidth,quality){
+  if(!image.width||!image.height)throw new Error("Cover has invalid dimensions");
+  const scale=Math.min(1,maxWidth/image.width),width=Math.max(1,Math.round(image.width*scale)),height=Math.max(1,Math.round(image.height*scale));
+  const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+  const ctx=canvas.getContext("2d",{alpha:true});if(!ctx)throw new Error("Canvas is unavailable");
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(image.source,0,0,width,height);
+  const output=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",quality));
+  canvas.width=1;canvas.height=1;
+  if(!output||output.type!=="image/webp")throw new Error("WebP encoding is unavailable");
+  return output;
 }
 
 async function optimizedCoverSet(blob){
+  let image;
   try{
-    const [detail,thumb]=await Promise.all([webpDerivative(blob,1000,.84),webpDerivative(blob,480,.78)]);
-    return{detail:detail.size<blob.size?detail:blob,thumb,optimized:true};
+    image=await imageSource(blob);
+    /* Render sequentially from one decoded image to keep peak memory low on phones. */
+    const detail=await renderWebp(image,1000,.84);
+    const thumb=await renderWebp(image,480,.78);
+    return{detail,thumb,optimized:true};
   }catch(error){
     console.warn("Cover optimization unavailable; using original cover",error);
     return{detail:blob,thumb:null,optimized:false};
-  }
+  }finally{image?.close?.()}
 }
 
 async function optimizedUploadBook(){

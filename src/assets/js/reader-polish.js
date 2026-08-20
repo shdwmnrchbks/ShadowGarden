@@ -1,7 +1,6 @@
-/* Shadow Garden v0.13 — reader polish.
- * This layer deliberately reuses the reader's proven controls instead of implementing
- * another EPUB navigation path. Gestures click the existing page buttons, completion
- * watches the authoritative progress UI, and focus mode only changes reader chrome.
+/* Shadow Garden v0.13.2 — reader polish.
+ * Reader polish reuses the core reader controls. EPUB.js forwards touch events through
+ * reader-gesture-hook.js so swipe/tap detection remains stable on chapter boundaries.
  */
 (()=>{
   const SETTINGS_KEY="sg-reader-polish-settings";
@@ -27,7 +26,8 @@
     catch{return{...defaults}}
   }
   function saveSettings(){
-    try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(state.settings))}catch(error){console.warn("Reader polish settings could not be saved",error)}
+    try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(state.settings))}
+    catch(error){console.warn("Reader polish settings could not be saved",error)}
   }
 
   function normalizedFile(value){
@@ -169,6 +169,94 @@
     });
   }
 
+  let touchGesture=null;
+  let suppressClickUntil=0;
+
+  function preventOriginal(detail){
+    try{detail?.originalEvent?.preventDefault?.()}catch{}
+  }
+
+  function beginTouch(detail){
+    if(detail?.interactive){touchGesture=null;return}
+    touchGesture={
+      x:Number(detail?.x)||0,
+      y:Number(detail?.y)||0,
+      width:Math.max(1,Number(detail?.width)||1),
+      at:performance.now()
+    };
+  }
+
+  function endTouch(detail){
+    if(!touchGesture)return;
+    const start=touchGesture;
+    touchGesture=null;
+    if(detail?.selection)return;
+    const x=Number(detail?.x)||0,y=Number(detail?.y)||0;
+    const dx=x-start.x,dy=y-start.y,distance=Math.hypot(dx,dy),elapsed=performance.now()-start.at;
+    const paginated=document.body.classList.contains("reader-flow-paginated");
+
+    if(paginated&&state.settings.swipeTurns&&elapsed<1000&&Math.abs(dx)>=48&&Math.abs(dx)>Math.abs(dy)*1.18){
+      preventOriginal(detail);
+      suppressClickUntil=Date.now()+420;
+      pageTurn(dx<0?1:-1);
+      return;
+    }
+
+    if(distance>16||elapsed>520)return;
+    const width=Math.max(1,Number(detail?.width)||start.width||1);
+    const ratio=Math.max(0,Math.min(1,x/width));
+    const center=ratio>.27&&ratio<.73;
+
+    if(state.chromeHidden&&center){
+      preventOriginal(detail);
+      suppressClickUntil=Date.now()+350;
+      setChromeHidden(false);
+      return;
+    }
+    if(!state.settings.tapZones)return;
+    if(paginated&&ratio<=.27){
+      preventOriginal(detail);
+      suppressClickUntil=Date.now()+350;
+      pageTurn(-1);
+    }else if(paginated&&ratio>=.73){
+      preventOriginal(detail);
+      suppressClickUntil=Date.now()+350;
+      pageTurn(1);
+    }else if(center){
+      preventOriginal(detail);
+      suppressClickUntil=Date.now()+350;
+      toggleChrome();
+    }
+  }
+
+  function bindRenditionTouchBridge(){
+    document.addEventListener("sg-reader-touch",event=>{
+      const detail=event.detail||{};
+      if(detail.type==="start")beginTouch(detail);
+      else if(detail.type==="end")endTouch(detail);
+    });
+  }
+
+  function bindDirectTouchFallback(doc){
+    if(window.__sgReaderRenditionTouchBridge)return;
+    let fallback=null;
+    doc.addEventListener("touchstart",event=>{
+      const point=event.touches?.[0];
+      if(!point||interactiveTarget(event.target)){fallback=null;return}
+      fallback={x:point.clientX,y:point.clientY,width:doc.documentElement?.clientWidth||doc.defaultView?.innerWidth||1,at:performance.now()};
+    },{capture:true,passive:true});
+    doc.addEventListener("touchcancel",()=>{fallback=null},{capture:true,passive:true});
+    doc.addEventListener("touchend",event=>{
+      if(!fallback)return;
+      const point=event.changedTouches?.[0];
+      const start=fallback;fallback=null;
+      if(!point||hasSelection(doc))return;
+      beginTouch({x:start.x,y:start.y,width:start.width});
+      if(touchGesture)touchGesture.at=start.at;
+      endTouch({x:point.clientX,y:point.clientY,width:start.width,selection:false,originalEvent:event});
+    },{capture:true,passive:false});
+  }
+
   function installGestures(doc){
     const root=doc?.documentElement;
     if(!root||root.dataset.sgReaderPolish==="1")return;
@@ -176,37 +264,17 @@
     try{
       const style=doc.createElement("style");
       style.id="sg-reader-polish-gestures";
-      style.textContent="html,body{overscroll-behavior-x:contain!important}body{touch-action:pan-y pinch-zoom}";
+      style.textContent="html,body{overscroll-behavior-x:contain!important;touch-action:pan-y pinch-zoom!important;min-height:100%!important}";
       doc.head?.appendChild(style);
     }catch{}
 
-    let gesture=null,suppressClickUntil=0;
-    doc.addEventListener("pointerdown",event=>{
-      if(event.pointerType!=="touch"||interactiveTarget(event.target))return;
-      gesture={id:event.pointerId,x:event.clientX,y:event.clientY,at:performance.now()};
-    },true);
-    doc.addEventListener("pointercancel",event=>{if(gesture&&event.pointerId===gesture.id)gesture=null},true);
-    doc.addEventListener("pointerup",event=>{
-      if(!gesture||event.pointerId!==gesture.id)return;
-      const start=gesture;gesture=null;
-      if(hasSelection(doc))return;
-      const dx=event.clientX-start.x,dy=event.clientY-start.y,distance=Math.hypot(dx,dy),elapsed=performance.now()-start.at;
-      const paginated=document.body.classList.contains("reader-flow-paginated");
-      if(paginated&&state.settings.swipeTurns&&elapsed<900&&Math.abs(dx)>=52&&Math.abs(dx)>Math.abs(dy)*1.25){
-        event.preventDefault();suppressClickUntil=Date.now()+350;pageTurn(dx<0?1:-1);return;
-      }
-      if(distance>14||elapsed>480)return;
-      const width=Number(doc.documentElement?.clientWidth)||Number(doc.defaultView?.innerWidth)||1;
-      const ratio=Math.max(0,Math.min(1,event.clientX/width));
-      const center=ratio>.27&&ratio<.73;
-      if(state.chromeHidden&&center){event.preventDefault();suppressClickUntil=Date.now()+300;setChromeHidden(false);return}
-      if(!state.settings.tapZones)return;
-      if(paginated&&ratio<=.27){event.preventDefault();suppressClickUntil=Date.now()+300;pageTurn(-1)}
-      else if(paginated&&ratio>=.73){event.preventDefault();suppressClickUntil=Date.now()+300;pageTurn(1)}
-      else if(center){event.preventDefault();suppressClickUntil=Date.now()+300;toggleChrome()}
-    },true);
+    bindDirectTouchFallback(doc);
+
     doc.addEventListener("click",event=>{
-      if(Date.now()<suppressClickUntil&&!interactiveTarget(event.target)){event.preventDefault();event.stopImmediatePropagation()}
+      if(Date.now()<suppressClickUntil&&!interactiveTarget(event.target)){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
     },true);
   }
 
@@ -265,8 +333,14 @@
   }
 
   function init(){
-    bindUi();bindEpubContentLifecycle();watchReaderFrames();watchProgress();loadSeriesContext();
+    bindUi();
+    bindRenditionTouchBridge();
+    bindEpubContentLifecycle();
+    watchReaderFrames();
+    watchProgress();
+    loadSeriesContext();
   }
+
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();
 })();

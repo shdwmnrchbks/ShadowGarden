@@ -20,6 +20,7 @@
   const $=selector=>document.querySelector(selector);
   const arr=value=>Array.isArray(value)?value:[];
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
+  const decode=value=>{try{return decodeURIComponent(value)}catch{return value}};
 
   function loadSettings(){
     try{return{...defaults,...(JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null")||{})}}
@@ -30,8 +31,8 @@
   }
 
   function normalizedFile(value){
-    try{return decodeURIComponent(new URL(String(value||""),location.origin).pathname).replace(/\/+$/g,"")}
-    catch{return decodeURIComponent(String(value||"").split(/[?#]/)[0]).replace(/\/+$/g,"")}
+    try{return decode(new URL(String(value||""),location.origin).pathname).replace(/\/+$/g,"")}
+    catch{return decode(String(value||"").split(/[?#]/)[0]).replace(/\/+$/g,"")}
   }
 
   function sameFile(a,b){return Boolean(a&&b&&normalizedFile(a)===normalizedFile(b))}
@@ -96,7 +97,6 @@
     closeDrawers();
     syncCompletionCopy();
     try{dialog.showModal()}catch{dialog.setAttribute("open","")}
-    requestAnimationFrame(()=>($("#nextVolumeLink"):not(.hidden),#completeReturnLink));
     const focusTarget=!$("#nextVolumeLink")?.classList.contains("hidden")?$("#nextVolumeLink"):$("#completeReturnLink");
     setTimeout(()=>focusTarget?.focus?.(),40);
   }
@@ -150,7 +150,7 @@
   function toggleChrome(){setChromeHidden(!state.chromeHidden)}
 
   function interactiveTarget(target){
-    return target instanceof Element&&Boolean(target.closest("a,button,input,select,textarea,label,[contenteditable=true],[role=button],[role=slider]"));
+    return typeof target?.closest==="function"&&Boolean(target.closest("a,button,input,select,textarea,label,[contenteditable=true],[role=button],[role=slider]"));
   }
 
   function hasSelection(doc){
@@ -177,11 +177,7 @@
     let gesture=null,suppressClickUntil=0;
     doc.addEventListener("pointerdown",event=>{
       if(event.pointerType!=="touch"||interactiveTarget(event.target))return;
-      gesture={id:event.pointerId,x:event.clientX,y:event.clientY,lastX:event.clientX,lastY:event.clientY,at:performance.now(),target:event.target};
-    },true);
-    doc.addEventListener("pointermove",event=>{
-      if(!gesture||event.pointerId!==gesture.id)return;
-      gesture.lastX=event.clientX;gesture.lastY=event.clientY;
+      gesture={id:event.pointerId,x:event.clientX,y:event.clientY,at:performance.now()};
     },true);
     doc.addEventListener("pointercancel",event=>{if(gesture&&event.pointerId===gesture.id)gesture=null},true);
     doc.addEventListener("pointerup",event=>{
@@ -194,7 +190,7 @@
         event.preventDefault();suppressClickUntil=Date.now()+350;pageTurn(dx<0?1:-1);return;
       }
       if(distance>14||elapsed>480)return;
-      let width=Number(doc.documentElement?.clientWidth)||Number(doc.defaultView?.innerWidth)||1;
+      const width=Number(doc.documentElement?.clientWidth)||Number(doc.defaultView?.innerWidth)||1;
       const ratio=Math.max(0,Math.min(1,event.clientX/width));
       const center=ratio>.27&&ratio<.73;
       if(state.chromeHidden&&center){event.preventDefault();suppressClickUntil=Date.now()+300;setChromeHidden(false);return}

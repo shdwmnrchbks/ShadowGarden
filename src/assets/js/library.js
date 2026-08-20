@@ -6,12 +6,12 @@ const arr=v=>Array.isArray(v)?v:[];
 
 function pinnedIds(){try{return new Set(JSON.parse(localStorage.getItem("sg-pinned")||"[]"))}catch{return new Set()}}
 function latest(series){return Math.max(0,...arr(series.volumes).map(v=>Date.parse(v.added||"1970-01-01")||0))}
-function cover(series){return series.cover||series.volumes?.find(v=>v.cover)?.cover||""}
-function card(series){
-  const c=cover(series), vols=arr(series.volumes).length;
+function cover(series){return series.coverThumb||series.volumes?.find(v=>v.coverThumb)?.coverThumb||series.cover||series.volumes?.find(v=>v.cover)?.cover||""}
+function card(series,index=0){
+  const c=cover(series), vols=arr(series.volumes).length,aboveFold=index<4;
   return `<a class="series-card" href="/series.html?id=${encodeURIComponent(series.id)}">
     <div class="cover">
-      ${c?`<img src="${esc(c)}" alt="${esc(series.title)} cover" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">`:""}
+      ${c?`<img src="${esc(c)}" alt="${esc(series.title)} cover" loading="${aboveFold?"eager":"lazy"}" decoding="async" fetchpriority="${index<2?"high":"low"}" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">`:""}
       <div class="cover-fallback ${c?"hidden":""}">${esc(series.title)}</div>
       <span class="volume-pill">${vols} ${vols===1?"VOL":"VOLS"}</span>
       ${series.nsfw?`<span class="adult-pill">18+</span>`:""}
@@ -42,7 +42,7 @@ function apply(){
     if(state.sort==="volumes")return arr(b.volumes).length-arr(a.volumes).length;
     return latest(b)-latest(a);
   });
-  $("#catalogGrid").innerHTML=state.filtered.map(card).join("");
+  $("#catalogGrid").innerHTML=state.filtered.map((series,index)=>card(series,index)).join("");
   $("#catalogGrid").classList.toggle("compact",state.view==="compact");
   $("#resultCount").textContent=`${state.filtered.length} series · ${state.filtered.reduce((n,s)=>n+arr(s.volumes).length,0)} volumes`;
   $("#emptyState").classList.toggle("hidden",state.filtered.length>0);
@@ -96,6 +96,6 @@ $("#yearSelect")?.addEventListener("change",e=>{state.year=e.target.value;apply(
 $("#sortSelect")?.addEventListener("change",e=>{state.sort=e.target.value;apply()});
 $("#clearFilters")?.addEventListener("click",()=>{state.query=state.genre=state.year="";state.sort="recent";state.pinnedOnly=false;$("#searchInput").value="";$("#genreSelect").value="";$("#yearSelect").value="";$("#sortSelect").value="recent";$("#pinnedNav")?.classList.remove("active");apply()});
 $("#genreChips")?.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.genre=state.genre===b.dataset.genre?"":b.dataset.genre;$("#genreSelect").value=state.genre;apply()});
-$("#pinnedNav")?.addEventListener("click",()=>{state.pinnedOnly=!state.pinnedOnly;$("#pinnedNav").classList.toggle("active",state.pinnedOnly);apply()});
+$("#pinnedNav")?.addEventListener("click",()=>{state.pinnedOnly=!state.pinnedOnly;$("#pinnedNav")?.classList.toggle("active",state.pinnedOnly);apply()});
 document.querySelector(".view-switch")?.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;state.view=b.dataset.view;localStorage.setItem(`sg-view:${scope}`,state.view);apply()});
 init();

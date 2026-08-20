@@ -3,7 +3,8 @@ import { adminAuthorized, json, putObject, validObjectKey, writeClient } from ".
 const MAX_BYTES = 50 * 1024 * 1024;
 const ALLOWED_PREFIXES = ["shadow-garden/books/", "shadow-garden/covers/"];
 
-export async function onRequestPost({ request, env }) {
+export async function onRequestPost(context) {
+  const { request, env } = context;
   if (!(await adminAuthorized(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
 
   const url = new URL(request.url);
@@ -32,6 +33,17 @@ export async function onRequestPost({ request, env }) {
       "cache-control": key.includes("/covers/") ? "public, max-age=31536000, immutable" : "private, max-age=0"
     };
     await putObject(aws, key, body, headers);
+
+    /* Replacement uploads can deliberately keep the same public EPUB URL so reader
+       progress/bookmark keys remain stable. Evict that URL from the edge immediately. */
+    try {
+      const mediaUrl = `${url.origin}/media/${key.split("/").map(encodeURIComponent).join("/")}`;
+      const eviction = caches.default.delete(new Request(mediaUrl));
+      if (context.waitUntil) context.waitUntil(eviction); else await eviction;
+    } catch (error) {
+      console.warn("Uploaded media cache invalidation skipped", error);
+    }
+
     return json({ ok: true, key, size: body.byteLength, url: `/media/${key}` });
   } catch (error) {
     console.error("Admin B2 upload failed", error);

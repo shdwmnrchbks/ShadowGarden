@@ -1,0 +1,64 @@
+/* Shadow Garden v1.0 — accessibility bridge around the existing reader UI. */
+(()=>{
+  const $=selector=>document.querySelector(selector);
+  const tocToggle=$('#tocToggle'),settingsToggle=$('#settingsToggle');
+  const tocDrawer=$('#tocDrawer'),settingsDrawer=$('#settingsDrawer');
+  const drawers=[tocDrawer,settingsDrawer].filter(Boolean);
+  let returnTarget=null;
+
+  const triggerFor=drawer=>drawer===tocDrawer?tocToggle:drawer===settingsDrawer?settingsToggle:null;
+  const focusable=drawer=>drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
+
+  function syncDrawers(){
+    let openDrawer=null;
+    drawers.forEach(drawer=>{
+      const open=drawer.classList.contains('open');
+      drawer.setAttribute('aria-hidden',open?'false':'true');
+      triggerFor(drawer)?.setAttribute('aria-expanded',open?'true':'false');
+      if(open)openDrawer=drawer;
+    });
+    if(openDrawer){
+      if(!openDrawer.contains(document.activeElement))requestAnimationFrame(()=>focusable(openDrawer)?.focus({preventScroll:true}));
+    }else if(returnTarget&&document.contains(returnTarget)){
+      const target=returnTarget;returnTarget=null;
+      requestAnimationFrame(()=>target.focus({preventScroll:true}));
+    }
+  }
+
+  tocToggle?.addEventListener('click',()=>{returnTarget=tocToggle},{capture:true});
+  settingsToggle?.addEventListener('click',()=>{returnTarget=settingsToggle},{capture:true});
+  drawers.forEach(drawer=>new MutationObserver(syncDrawers).observe(drawer,{attributes:true,attributeFilter:['class']}));
+  syncDrawers();
+
+  const tabs=$('.drawer-tabs');
+  if(tabs){
+    tabs.setAttribute('role','tablist');
+    const syncTabs=()=>{
+      tabs.querySelectorAll('button[data-panel]').forEach(button=>{
+        const selected=button.classList.contains('active');
+        const panel=document.getElementById(button.dataset.panel==='toc'?'tocPanel':'bookmarksPanel');
+        button.setAttribute('role','tab');
+        button.setAttribute('aria-selected',selected?'true':'false');
+        if(panel?.id)button.setAttribute('aria-controls',panel.id);
+        if(panel){panel.setAttribute('role','tabpanel');panel.setAttribute('aria-hidden',panel.classList.contains('hidden')?'true':'false')}
+      });
+    };
+    tabs.addEventListener('click',()=>requestAnimationFrame(syncTabs));
+    new MutationObserver(syncTabs).observe(tabs,{subtree:true,attributes:true,attributeFilter:['class']});
+    syncTabs();
+  }
+
+  const fullscreen=$('#fullscreenButton');
+  const syncFullscreen=()=>fullscreen?.setAttribute('aria-pressed',document.fullscreenElement?'true':'false');
+  document.addEventListener('fullscreenchange',syncFullscreen);syncFullscreen();
+
+  const chapter=$('#chapterTitle');
+  chapter?.setAttribute('aria-live','polite');
+  chapter?.setAttribute('aria-atomic','true');
+
+  const continuousText=$('#continuousSeekText'),continuous=$('#continuousSeek');
+  if(continuousText&&continuous){
+    const syncContinuous=()=>continuous.setAttribute('aria-valuetext',continuousText.textContent||'0%');
+    new MutationObserver(syncContinuous).observe(continuousText,{childList:true,characterData:true,subtree:true});syncContinuous();
+  }
+})();

@@ -125,8 +125,6 @@ export async function onRequestPost({ request, env }) {
       series.status = status || series.status;
       series.description = description || series.description;
       series.tags = [...new Set([...arr(series.tags), ...tags])];
-      if (cover && !series.cover) series.cover = cover;
-      if (coverThumb && !series.coverThumb) series.coverThumb = coverThumb;
     }
 
     const volume = {
@@ -148,11 +146,25 @@ export async function onRequestPost({ request, env }) {
     const existing = arr(series.volumes).findIndex(v =>
       (number !== 9999 && Number(v.number) === number) || String(v.title || "") === title
     );
-    if (existing >= 0) series.volumes[existing] = volume;
-    else series.volumes.push(volume);
+
+    if (existing >= 0) {
+      const previous = series.volumes[existing];
+      const previousWasSeriesCover = Boolean(previous?.cover && series.cover === previous.cover);
+      const previousWasSeriesThumb = Boolean(previous?.coverThumb && series.coverThumb === previous.coverThumb);
+      series.volumes[existing] = volume;
+      if (previousWasSeriesCover && cover) series.cover = cover;
+      if ((previousWasSeriesThumb || previousWasSeriesCover) && coverThumb) series.coverThumb = coverThumb;
+    } else {
+      series.volumes.push(volume);
+    }
+
     series.volumes.sort((a, b) => (Number(a.number) || 9999) - (Number(b.number) || 9999) || String(a.title).localeCompare(String(b.title)));
-    if (!series.cover && cover) series.cover = cover;
-    if (!series.coverThumb && coverThumb) series.coverThumb = coverThumb;
+    if (!series.cover && cover) {
+      series.cover = cover;
+      series.coverThumb = coverThumb;
+    } else if (!series.coverThumb && series.cover === cover && coverThumb) {
+      series.coverThumb = coverThumb;
+    }
 
     await Promise.all([saveCatalog(aws, MAIN_KEY, main), saveCatalog(aws, ADULT_KEY, restricted)]);
     await invalidatePublicCatalogCache(request);

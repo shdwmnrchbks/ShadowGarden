@@ -61,7 +61,7 @@ renderManagerList=function(){
   }).sort((a,b)=>String(a.series.title||"").localeCompare(String(b.series.title||"")));
   $("#manageEmpty").classList.toggle("hidden",items.length>0);
   $("#seriesManagerList").innerHTML=items.map(({series,scope})=>{
-    const cover=series.coverThumb||arr(series.volumes).find(v=>v.coverThumb)?.coverThumb||series.cover||arr(series.volumes).find(v=>v.cover)?.cover||"";
+    const cover=series.coverThumb||series.cover||arr(series.volumes).find(v=>v.coverThumb)?.coverThumb||arr(series.volumes).find(v=>v.cover)?.cover||"";
     return `<article class="manager-card">
       <div class="manager-card-cover">${cover?`<img src="${esc(cover)}" alt="${esc(series.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:`<span>✦</span>`}</div>
       <div class="manager-card-copy">

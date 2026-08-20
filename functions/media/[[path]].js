@@ -24,6 +24,10 @@ function cachePolicy(key) {
   return "private, no-store";
 }
 
+function cacheableKey(key) {
+  return key.endsWith(".json") || key.endsWith(".epub") || /\.(?:jpe?g|png|webp|avif|gif|svg)$/i.test(key);
+}
+
 export async function onRequest(context) {
   const { request, env, params } = context;
   const method = request.method.toUpperCase();
@@ -42,7 +46,7 @@ export async function onRequest(context) {
   if (!key) return new Response("Not found", { status: 404 });
 
   const incomingRange = request.headers.get("range");
-  const canCache = method === "GET" && !incomingRange;
+  const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
   const cacheKey = new Request(request.url, { method: "GET" });
 

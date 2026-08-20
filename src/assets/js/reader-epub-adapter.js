@@ -5,7 +5,7 @@
   const originalEpub=window.ePub;
   if(typeof originalEpub!=="function")return;
 
-  let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0;
+  let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0,seekTimer=0,seekSerial=0;
 
   function viewerElement(target=currentTarget){
     if(target instanceof Element)return target;
@@ -42,10 +42,10 @@
       style.id="sg-mobile-page-layout";
       doc.head.appendChild(style);
     }
-    /* EPUB.js calculates its columns from the iframe width. A 100%-wide, border-box
-       body ensures the reader theme's horizontal padding is included in that column
-       instead of extending beyond it and becoming the first slice of the next page. */
-    style.textContent="html{width:100%!important;max-width:100%!important}body{width:100%!important;max-width:100%!important;box-sizing:border-box!important;margin-left:0!important;margin-right:0!important}";
+    /* Do not force a body width here. EPUB.js writes the exact paginated column width
+       inline; overriding that width was what allowed a neighboring column to bleed into
+       the mobile viewport. We only normalize box sizing and author-side margins. */
+    style.textContent="html,body{box-sizing:border-box!important}html{max-width:none!important}body{max-width:none!important;margin-left:0!important;margin-right:0!important}";
   }
 
   function patchRendition(rendition,target){
@@ -131,6 +131,12 @@
     document.getElementById("drawerBackdrop")?.classList.add("hidden");
   }
 
+  async function displaySettled(rendition,target){
+    await rendition.display(target);
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    if(rendition===currentRendition&&document.body?.classList.contains("reader-flow-scrolled"))await rendition.display(target);
+  }
+
   /* In the continuous manager, display(href) can reuse a retained section offset.
      Resolve the TOC href to a concrete CFI so chapter/anchor navigation is exact. */
   document.addEventListener("click",event=>{
@@ -144,11 +150,7 @@
     (async()=>{
       try{
         const target=await cfiFromTocHref(book,href);
-        await rendition.display(target);
-        /* A second exact placement after layout settles corrects continuous views that
-           were already preloaded with an older height/scroll offset. */
-        await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-        if(rendition===currentRendition&&document.body.classList.contains("reader-flow-scrolled"))await rendition.display(target);
+        await displaySettled(rendition,target);
         closeTocDrawer();
       }catch(error){
         console.error("Continuous TOC navigation failed",error);
@@ -157,9 +159,58 @@
     })();
   },true);
 
-  /* Mobile browser chrome can change the visual viewport without producing a useful
-     layout width for EPUB.js. Forward that change to the reader's normal resize path. */
+  function locationCount(book){
+    try{
+      const value=book?.locations?.length?.();
+      if(Number.isFinite(value))return value;
+    }catch{}
+    return Array.isArray(book?.locations?._locations)?book.locations._locations.length:0;
+  }
+
+  function spineTarget(book,percentage){
+    const raw=book?.spine?.spineItems||[];
+    const linear=raw.filter(item=>item?.href&&item.linear!=="no");
+    const items=linear.length?linear:raw.filter(item=>item?.href);
+    if(!items.length)return"";
+    const p=Math.min(1,Math.max(0,Number(percentage)||0));
+    const index=p>=1?items.length-1:Math.min(items.length-1,Math.floor(p*items.length));
+    return items[index]?.href||"";
+  }
+
+  async function continuousSeek(percentage){
+    const book=currentBook,rendition=currentRendition;
+    if(!book||!rendition||!document.body?.classList.contains("reader-flow-scrolled"))return;
+    const serial=++seekSerial,p=Math.min(1,Math.max(0,Number(percentage)||0));
+    let target="";
+    if(locationCount(book)>0){
+      try{target=book.locations.cfiFromPercentage(p)||""}catch(error){console.warn("Continuous exact seek failed",error)}
+    }
+    if(!target)target=spineTarget(book,p);
+    if(!target||serial!==seekSerial)return;
+    try{await displaySettled(rendition,target)}catch(error){console.error("Continuous seek failed",error)}
+  }
+
+  /* Continuous mode gets a dedicated settled seek path. The core still owns paginated
+     seeking. During dragging we debounce navigation; release/change commits immediately. */
+  for(const type of ["input","change","pointerup","touchend"]){
+    document.addEventListener(type,event=>{
+      const range=event.target?.closest?.("#progressRange");
+      if(!range||!document.body?.classList.contains("reader-flow-scrolled"))return;
+      event.stopImmediatePropagation();
+      const value=Math.min(1,Math.max(0,Number(range.value||0)/1000));
+      const text=document.getElementById("progressText");
+      if(text)text.textContent=`${Math.round(value*100)}%`;
+      clearTimeout(seekTimer);
+      if(type==="input")seekTimer=setTimeout(()=>continuousSeek(value),140);
+      else continuousSeek(value);
+    },true);
+  }
+
+  /* Mobile browser chrome continuously changes visualViewport height while scrolling.
+     Only paginated mode needs those changes forwarded into EPUB.js page measurement;
+     forwarding them in continuous mode causes repeated reflows and breaks scroll/seek. */
   window.visualViewport?.addEventListener("resize",()=>{
+    if(!document.body?.classList.contains("reader-flow-paginated"))return;
     clearTimeout(viewportTimer);
     viewportTimer=setTimeout(()=>window.dispatchEvent(new Event("resize")),80);
   });

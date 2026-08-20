@@ -150,11 +150,25 @@ function persistSettings() {
   syncSettingsControls();
 }
 
+function paginatedNeedsSinglePage() {
+  if (state.settings.flow !== "paginated") return false;
+  const visualWidth = Number(window.visualViewport?.width);
+  const innerWidth = Number(window.innerWidth);
+  const clientWidth = Number(document.documentElement?.clientWidth);
+  const widths = [visualWidth, innerWidth, clientWidth].filter(value => Number.isFinite(value) && value > 0);
+  const viewportWidth = widths.length ? Math.min(...widths) : 0;
+  const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches === true;
+  const mobileUa = navigator.userAgentData?.mobile === true || /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent || "");
+  return mobileUa || (viewportWidth > 0 && viewportWidth < 900) || (coarsePointer && viewportWidth > 0 && viewportWidth <= 1024);
+}
+
 function configureSpread(rendition = state.rendition) {
   if (!rendition) return;
   try {
-    if (state.settings.flow === "paginated") rendition.spread("auto", 900);
-    else rendition.spread("none");
+    if (state.settings.flow === "paginated") {
+      if (paginatedNeedsSinglePage()) rendition.spread("none");
+      else rendition.spread("auto", 900);
+    } else rendition.spread("none");
   } catch (error) {
     console.warn("Reader spread configuration skipped", error);
   }
@@ -415,12 +429,13 @@ async function createRendition(target) {
   if (!state.book) throw new Error("EPUB is not open");
   const serial = ++state.renditionSerial;
   const scrolled = state.settings.flow === "scrolled-doc";
+  const singlePage = !scrolled && paginatedNeedsSinglePage();
   const rendition = state.book.renderTo("viewer", {
     width: "100%",
     height: "100%",
     manager: scrolled ? "continuous" : "default",
     flow: scrolled ? "scrolled-doc" : "paginated",
-    spread: scrolled ? "none" : "auto",
+    spread: scrolled || singlePage ? "none" : "auto",
     minSpreadWidth: 900
   });
   state.rendition = rendition;

@@ -7,6 +7,7 @@
 
   let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0,seekTimer=0,seekSerial=0;
   let lastSeekValue=0,lastSeekAt=0;
+  const progressByCfi=new Map();
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 
   function viewerElement(target=currentTarget){
@@ -113,10 +114,16 @@
   function normalizeLocationProgress(book,location){
     if(!book||!location?.start)return;
     const progress=reliableProgress(book,location.start);
-    if(Number.isFinite(progress))location.start.percentage=progress;
+    if(Number.isFinite(progress)){
+      location.start.percentage=progress;
+      if(location.start.cfi)progressByCfi.set(location.start.cfi,progress);
+    }
     if(location?.end){
       const endProgress=reliableProgress(book,location.end);
-      if(Number.isFinite(endProgress))location.end.percentage=endProgress;
+      if(Number.isFinite(endProgress)){
+        location.end.percentage=endProgress;
+        if(location.end.cfi)progressByCfi.set(location.end.cfi,endProgress);
+      }
     }
   }
 
@@ -130,6 +137,8 @@
         let exact=NaN;
         try{exact=Number(rawPercentage(cfi))}catch{}
         if(Number.isFinite(exact)&&exact>0)return clamp01(exact);
+        const remembered=progressByCfi.get(cfi);
+        if(Number.isFinite(remembered)&&remembered>0)return clamp01(remembered);
         const coarse=coarseProgress(book,{cfi});
         if(Number.isFinite(coarse)&&coarse>0)return coarse;
         return Number.isFinite(exact)?clamp01(exact):0;
@@ -176,6 +185,7 @@
     if(!book||book.__sgAdapterPatched)return book;
     book.__sgAdapterPatched=true;
     currentBook=book;
+    progressByCfi.clear();
     patchLocations(book);
     const rawRenderTo=book.renderTo.bind(book);
     book.renderTo=(target,options={})=>{

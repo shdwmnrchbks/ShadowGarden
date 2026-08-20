@@ -6,7 +6,7 @@ const arr=v=>Array.isArray(v)?v:[];
 
 function pinnedIds(){try{return new Set(JSON.parse(localStorage.getItem("sg-pinned")||"[]"))}catch{return new Set()}}
 function latest(series){return Math.max(0,...arr(series.volumes).map(v=>Date.parse(v.added||"1970-01-01")||0))}
-function cover(series){return series.coverThumb||series.volumes?.find(v=>v.coverThumb)?.coverThumb||series.cover||series.volumes?.find(v=>v.cover)?.cover||""}
+function cover(series){return series.coverThumb||series.cover||series.volumes?.find(v=>v.coverThumb)?.coverThumb||series.volumes?.find(v=>v.cover)?.cover||""}
 function card(series,index=0){
   const c=cover(series), vols=arr(series.volumes).length,aboveFold=index<4;
   return `<a class="series-card" href="/series.html?id=${encodeURIComponent(series.id)}">

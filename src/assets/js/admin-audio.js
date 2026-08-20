@@ -66,3 +66,12 @@ uploadBook=async function(){
   }catch(error){console.error(error);setUploadState("FAILED","error");setStatus("Upload failed",error.message,"!");$("#uploadButton").disabled=false}
   finally{state.uploading=false;try{await wakeLock?.release()}catch{}}
 };
+
+/* Dismiss the modal only when the actual dialog backdrop is clicked. */
+(()=>{
+  const dialog=document.querySelector("#seriesEditor");
+  if(!dialog)return;
+  dialog.addEventListener("click",event=>{
+    if(event.target===dialog)dialog.close();
+  });
+})();

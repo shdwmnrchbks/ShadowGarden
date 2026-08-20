@@ -12,6 +12,7 @@
   <script src="/assets/js/reader.js" defer></script>
   <script src="/assets/js/reader-contrast-fix.js" defer></script>
   <script src="/assets/js/reader-seek-fix.js" defer></script>
+  <script src="/assets/js/reader-flow-bookmark.js" defer></script>
 </head>
 <body class="reader-theme-garden">
   <div id="readerApp" class="reader-app">
@@ -25,7 +26,7 @@
         <span id="chapterTitle"></span>
       </div>
       <div class="reader-actions">
-        <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location">◇</button>
+        <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location" aria-pressed="false">◇</button>
         <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">↩</a>
         <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings">Aa</button>
         <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen">⛶</button>

@@ -25,11 +25,12 @@
         const cfi=book.locations.cfiFromPercentage(p);
         if(cfi){
           await rendition.display(cfi);
-          if(serial===seekSerial)return;
+          return;
         }
       }catch(error){console.warn("Exact progress seek failed; using spine fallback",error)}
     }
 
+    if(serial!==seekSerial)return;
     const href=spineTarget(p);
     if(!href)return;
     try{await rendition.display(href)}catch(error){console.error("Progress seek failed",error)}

@@ -1,31 +1,78 @@
-https://shadowgarden-bon.pages.dev/
+# Shadow Garden v1.0
 
-# Shadow Garden v0.6
+Shadow Garden is a private-storage, public-facing EPUB library and browser reader hosted on Cloudflare Pages. EPUBs and covers live in a **private Backblaze B2 bucket** and are delivered through same-origin Cloudflare Pages Functions. Administration is handled through the phone-friendly **Garden Keeper** console.
 
-A static EPUB library and browser reader for Cloudflare Pages, using a **private Backblaze B2 bucket** for book storage and a phone-friendly private administration console.
+Production site: https://shadowgarden-bon.pages.dev/
+
+## What v1.0 includes
+
+### Library
+- Main and separate 18+ / Adult libraries.
+- Dark Shadow Garden theme with a rose/wine Adult variant.
+- Recently Added volume shelf.
+- Search across series metadata and volume titles.
+- Author, year, volume-count, pinned, and exact multi-tag filtering.
+- URL-persisted filter/sort/view state with browser Back/Forward restoration.
+- Grid and Compact views.
+- Incremental catalog rendering for larger libraries.
+- Collapsible filter panel; collapsed mode keeps only search visible.
+- Continue Reading and pinned-series persistence in the browser.
+
+### EPUB reader
+- EPUB.js-based browser reader.
+- Paginated and Continuous reading modes.
+- Persistent progress, bookmarks, themes, typeface, font size, line height, and text width.
+- Paginated mobile swipe and tap-zone controls.
+- Distraction-free reader mode.
+- Next-volume completion flow.
+- Table of contents and bookmark drawer.
+- Continuous-mode vertical progress rail and paginated bottom seek bar.
+- Reader accessibility support for keyboard focus, drawer state, live status, reduced motion, increased contrast, and forced-colors environments.
+
+### Garden Keeper
+- Token-protected private administration console at `/admin.html`.
+- Batch EPUB uploader with sequential phone-friendly processing.
+- Browser-local EPUB preflight checks.
+- Duplicate detection by hash, filename, volume identity, and title.
+- Duplicate policies: **Skip**, **Replace**, or **Add Separate**.
+- Metadata editing and Main/18+ shelf management.
+- Series-level Audio EPUB link support.
+- Cover extraction and WebP derivative generation.
+- Garden Maintenance dashboard with:
+  - Garden Health diagnostics
+  - batched deep B2 object checks
+  - legacy-cover optimization
+  - automatic catalog snapshots
+  - catalog history and rollback
+  - soft-delete Trash
+  - restore and protected permanent purge
+
+The previously planned PWA / offline-books milestone was intentionally skipped and is not part of v1.0.
 
 ## Architecture
 
 ```text
-GitHub
-  site code + non-secret B2 config
+GitHub repository
+  site code + non-secret B2 configuration
         |
         v
 Cloudflare Pages
-  static library + reader + /admin.html
+  static library / reader / Garden Keeper
         |
-        +--> /media/*       read-only Pages Function
-        |        |
-        |        v
+        +--> /media/*
+        |      read-only Pages Function
+        |          |
+        |          v
         |   private Backblaze B2
         |
-        +--> /admin-api/*   token-protected Pages Functions
-                 |
-                 v
-       private B2 uploads + catalog management
+        +--> /admin-api/*
+               token-protected Pages Functions
+                    |
+                    v
+          B2 uploads + catalog maintenance
 ```
 
-The B2 bucket remains private. Backblaze credentials are stored only as encrypted Cloudflare secrets.
+The B2 bucket remains private. Backblaze credentials and the Garden Keeper admin token are stored only as encrypted Cloudflare secrets.
 
 ## Current B2 configuration
 
@@ -36,54 +83,47 @@ Region:   us-east-005
 Proxy:    /media
 ```
 
-`library/b2.json` contains only these non-secret values. It stays `"enabled": false` until the first remote catalog has been created and the Cloudflare secrets are configured.
+`library/b2.json` contains only non-secret configuration and currently uses private-B2 mode. The public frontend reads the two catalogs through the same-origin `/media` proxy.
+
+Current catalog keys:
+
+```text
+shadow-garden/data/catalog.json
+shadow-garden/data/adult-catalog.json
+```
 
 ## Cloudflare Pages settings
 
 ```text
-Framework preset: None
-Build command: npm run build
+Framework preset:       None
+Production branch:      main
+Build command:          npm run build
 Build output directory: dist
-Production branch: main
+Root directory:         repository root
 ```
 
-Only `/media/*` and `/admin-api/*` invoke Pages Functions. The normal library, reader UI, CSS, JS and images remain static requests.
+Normal HTML, CSS, JavaScript, and bundled vendor assets are static Pages files. `/media/*` and `/admin-api/*` are handled by Pages Functions.
 
-## Required Backblaze keys
+## Required Cloudflare secrets
 
-Keep `shadow-garden-books-01` **Private**.
-
-Create two application keys scoped to this bucket and optionally to the `shadow-garden/` prefix:
-
-1. `sgdelivery` — **Read Only**.
-2. `sguploader` — **Read and Write**.
-
-Do not commit either key to GitHub.
-
-## Cloudflare secrets
-
-In Cloudflare:
+In the Cloudflare Pages project, configure these encrypted Production secrets:
 
 ```text
-Workers & Pages
-→ shadowgarden-bon
-→ Settings
-→ Variables and Secrets
+B2_READ_KEY_ID
+B2_READ_APPLICATION_KEY
+B2_WRITE_KEY_ID
+B2_WRITE_APPLICATION_KEY
+SG_ADMIN_TOKEN
 ```
 
-Add these Production secrets:
+Recommended Backblaze application keys:
 
-```text
-B2_READ_KEY_ID              = sgdelivery keyID
-B2_READ_APPLICATION_KEY     = sgdelivery applicationKey
-B2_WRITE_KEY_ID             = sguploader keyID
-B2_WRITE_APPLICATION_KEY    = sguploader applicationKey
-SG_ADMIN_TOKEN              = a long private token/password you choose
-```
+- `sgdelivery` — Read Only
+- `sguploader` — Read and Write
 
-Encrypt all five values. `SG_ADMIN_TOKEN` is the password for Garden Keeper and should not be reused anywhere else.
+Both may be restricted to `shadow-garden-books-01` and optionally the `shadow-garden/` prefix.
 
-Redeploy the Pages project after setting or changing secrets.
+Never commit Backblaze application keys or `SG_ADMIN_TOKEN` to this repository.
 
 ## Garden Keeper
 
@@ -93,119 +133,123 @@ Open:
 https://shadowgarden-bon.pages.dev/admin.html
 ```
 
-The admin page is intentionally not linked from the public library and is marked `noindex`. Security comes from `SG_ADMIN_TOKEN`; the hidden URL by itself is not treated as authentication.
+Garden Keeper is intentionally not linked from the public library and is marked `noindex`. The hidden URL is not considered authentication; access is protected by `SG_ADMIN_TOKEN`.
 
-Every page load starts at the **Unlock the Garden** card. Garden Keeper does not persist or auto-reuse the admin token across reloads. After a correct token is entered, the admin dashboard presents two paths:
+The token is kept only in the currently open Garden Keeper page and is not written into EPUBs or catalogs.
 
-1. **Manage Library**
-2. **Add New Books**
+### Add New Books
 
-## Manage Library
+The uploader can queue multiple EPUBs. For each book it can:
 
-The management console reads both private B2 catalogs and provides a phone-friendly view of the existing library.
+1. inspect the EPUB locally in the browser;
+2. extract metadata and cover artwork;
+3. run reader-focused preflight checks;
+4. detect likely duplicates;
+5. upload sequentially to private B2;
+6. update the appropriate catalog;
+7. generate optimized cover derivatives;
+8. snapshot catalogs before mutation.
 
-Current management features:
+The web uploader currently enforces a 50 MB EPUB limit.
 
-- Search across series, authors, tags and volume titles.
-- Filter between All, Main and 18+ catalogs.
-- View total series, volume and adult-series counts.
-- Edit series title, author, year, status, tags and description.
-- Move an entire series between Main and 18+.
-- Edit individual volume title, number, date, publisher and description.
-- Remove an individual volume and its EPUB from B2.
-- Delete an entire series and its stored EPUB/cover objects from B2.
-- Refresh the management view directly from the live private catalogs.
+### Duplicate handling
 
-Delete actions require an explicit browser confirmation and are permanent.
+- **Skip** — leave the existing catalog entry untouched.
+- **Replace** — replace the matching existing volume while preserving the logical catalog identity where appropriate.
+- **Add Separate** — upload the EPUB as a distinct item even when a likely duplicate is detected.
 
-## Add New Books
+### Garden Maintenance
 
-Choose **Add New Books** from the unlocked dashboard.
+Garden Maintenance is the recovery/diagnostics side of Garden Keeper.
 
-On the phone:
-
-1. Choose an EPUB from phone storage.
-2. The browser opens the EPUB locally with JSZip and extracts metadata and its cover before uploading.
-3. Review/edit series, volume number, title, author, year, tags and description.
-4. Toggle **18+ / Adult Library** when appropriate.
-5. Tap **Upload**.
-
-The upload workflow then:
-
-1. Sends the EPUB through the authenticated Cloudflare upload API.
-2. Stores it in private B2 under `shadow-garden/books/`.
-3. Uploads the extracted cover under `shadow-garden/covers/`.
-4. Reads and updates the appropriate B2 catalog.
-5. Ensures both main and adult catalog files exist.
-6. Stores same-origin `/media/...` URLs rather than exposing B2 origin URLs.
-
-The mobile uploader enforces a 50 MB file limit.
-
-## Activating B2 for readers
-
-Activate only after:
-
-1. all five Cloudflare secrets above exist;
-2. Garden Keeper successfully uploads at least one EPUB and creates the B2 catalog files.
-
-Then change in `library/b2.json`:
-
-```json
-"enabled": false
-```
-
-to:
-
-```json
-"enabled": true
-```
-
-After Cloudflare redeploys, Shadow Garden loads:
-
-```text
-/media/shadow-garden/data/catalog.json
-/media/shadow-garden/data/adult-catalog.json
-```
-
-Covers and EPUBs are served through the same read-only private-B2 proxy. Range requests are forwarded for EPUB.js/read/download compatibility.
+- **Garden Health** reports catalog and object-reference issues.
+- **Deep B2 Check** verifies referenced EPUB/cover objects in small batches.
+- **Optimize Existing Covers** creates current WebP derivatives for older entries.
+- **Catalog History** stores versioned snapshots before mutations and allows rollback.
+- **Trash** removes entries from the live public catalogs without immediately deleting their B2 files.
+- **Restore** returns Trash items to their original shelf when no conflicting active entry exists.
+- **Purge** is the explicit permanent-delete action and protects objects still referenced elsewhere.
 
 ## B2 storage layout
+
+Current maintenance/catalog keys are organized like this:
 
 ```text
 shadow-garden/
 ├─ books/
-│  ├─ series-name/
-│  │  └─ volume-01.epub
-│  └─ adult-series-name/
+│  └─ <series-id>/
+│     └─ <filename>-<hash>.epub
 ├─ covers/
-└─ data/
-   ├─ catalog.json
-   └─ adult-catalog.json
+├─ data/
+│  ├─ catalog.json
+│  ├─ adult-catalog.json
+│  └─ trash.json
+└─ backups/
+   ├─ catalog-index.json
+   └─ catalogs/
+      └─ <timestamp>-<reason>-<id>.json
 ```
 
-## Optional desktop CLI
+Trash stores catalog payloads and keeps the referenced EPUB/cover objects in place until an explicit purge. Backup filenames are generated by the maintenance backend and the newest 30 snapshots are retained.
 
-The older local uploader remains available for anyone who later wants to use a desktop:
+## Browser-local data
+
+Shadow Garden intentionally has no user accounts. These values stay in browser `localStorage`:
 
 ```text
-npm run b2:setup
-npm run b2:upload -- "D:\Books\Volume 01.epub"
+sg-progress:<bookUrl>
+sg-reader-settings
+sg-bookmarks:<bookUrl>
+sg-pinned
+sg-adult-ack
+sg-view:<library>
+sg-filters-collapsed:<library>
+sg-reader-polish-settings
 ```
 
-It is no longer required for normal administration.
+Changing browser/profile or clearing site data removes that local reading state.
 
-## Security notes
+## Security model
 
-- The B2 bucket is private.
-- `sgdelivery` is read-only.
-- `sguploader` is used only by token-protected admin API routes.
-- No Backblaze key is sent to the browser.
-- `/admin.html` has `noindex` headers/meta and is not linked publicly.
-- The browser sends `SG_ADMIN_TOKEN` only over HTTPS as an Authorization header.
-- Management deletions are restricted server-side to the `shadow-garden/` object prefix.
-- The main site remains public; private B2 storage protects the origin and credentials, not the public availability of valid `/media/...` URLs.
-- The existing 18+ gate remains a client-side acknowledgement, not user authentication.
+- Backblaze B2 remains private.
+- Read and write B2 credentials are separate.
+- B2 credentials are never sent to the public browser.
+- Garden Keeper mutations require `SG_ADMIN_TOKEN`.
+- Admin mutation routes restrict managed objects to the Shadow Garden namespace.
+- Public `/media/...` URLs intentionally make cataloged books readable through Shadow Garden while keeping B2 origin credentials private.
+- The Adult Library gate is a client-side acknowledgement, not authentication or parental control.
 
-## Reader persistence
+## Development
 
-Reading progress, bookmarks, pinned series, the Adult Library acknowledgement and reader settings remain in browser `localStorage`.
+Requirements:
+
+- Node.js
+- npm
+
+Install and build:
+
+```bash
+npm install
+npm run build
+```
+
+Local static preview:
+
+```bash
+npm run preview
+```
+
+The generated Pages output is written to `dist/`.
+
+Optional desktop B2 utilities remain available:
+
+```bash
+npm run b2:setup
+npm run b2:upload -- "path/to/book.epub"
+```
+
+They are not required for normal phone-based administration.
+
+## Release history
+
+See [`CHANGELOG.md`](./CHANGELOG.md).

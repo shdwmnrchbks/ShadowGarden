@@ -11,15 +11,18 @@
   <link rel="stylesheet" href="/assets/css/nav.css">
   <link rel="stylesheet" href="/assets/css/adult.css">
   <link rel="stylesheet" href="/assets/css/library-scale.css">
+  <link rel="stylesheet" href="/assets/css/v1-polish.css">
   <script src="/assets/js/nav.js" defer></script>
   <script src="/assets/js/data-source.js" defer></script>
   <script src="/assets/js/library.js" defer></script>
   <script src="/assets/js/library-filter-collapse.js" defer></script>
+  <script src="/assets/js/site-a11y.js" defer></script>
 </head>
 <body class="adult-library" data-library-scope="nsfw">
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div id="adultGate" class="adult-gate hidden" role="dialog" aria-modal="true" aria-labelledby="adultGateTitle">
     <div class="adult-gate-card">
-      <div class="adult-gate-mark">✦</div>
+      <div class="adult-gate-mark" aria-hidden="true">✦</div>
       <p class="kicker">RESTRICTED WING</p>
       <h1 id="adultGateTitle">The Forbidden Sanctuary</h1>
       <p>This section contains adult or sexually explicit books. Continue only if you are of legal age to view this material in your jurisdiction.</p>
@@ -32,19 +35,19 @@
   </div>
 
   <header class="site-header">
-    <a class="brand" href="/">
-      <span class="brand-mark">✦</span>
-      <span><strong>Shadow Garden</strong><small>EPUB LIBRARY</small></span>
-    </a>
-    <nav>
+    <div class="brand">
+      <button class="brand-mark" type="button" aria-label="Open navigation" aria-controls="siteNav" aria-expanded="false">✦</button>
+      <a class="brand-home" href="/" aria-label="Shadow Garden home"><strong>Shadow Garden</strong><small>EPUB LIBRARY</small></a>
+    </div>
+    <nav id="siteNav" aria-label="Primary navigation">
       <a href="/">Library</a>
-      <a class="adult-nav-link active" href="/nsfw.html">Adult Section <span>18+</span></a>
+      <a class="adult-nav-link active" aria-current="page" href="/nsfw.html">Adult Section <span>18+</span></a>
       <button id="pinnedNav" class="nav-button" type="button">Pinned</button>
     </nav>
     <div class="header-stat"><span id="headerVolumes">0</span> adult volumes</div>
   </header>
 
-  <main class="library-shell">
+  <main id="mainContent" class="library-shell" tabindex="-1">
     <section class="library-intro adult-intro">
       <div>
         <p class="kicker">THE FORBIDDEN SANCTUARY</p>
@@ -56,22 +59,15 @@
 
     <section id="recentSection" class="recent-section hidden" aria-labelledby="recentHeading">
       <div class="recent-head">
-        <div>
-          <p class="kicker">NEW GROWTH</p>
-          <h2 id="recentHeading">Recently Added</h2>
-        </div>
+        <div><p class="kicker">NEW GROWTH</p><h2 id="recentHeading">Recently Added</h2></div>
         <button id="recentViewAll" class="recent-view-all" type="button">View newest in archive →</button>
       </div>
       <div id="recentVolumes" class="recent-volumes"></div>
     </section>
 
-    <section id="catalogSection" class="catalog-layout">
+    <section id="catalogSection" class="catalog-layout" aria-label="Adult library catalog">
       <aside class="filters" aria-label="Adult library filters">
-        <div class="filter-head">
-          <strong>Filter adult archive</strong>
-          <button id="clearFilters" type="button">Reset</button>
-        </div>
-
+        <div class="filter-head"><strong>Filter adult archive</strong><button id="clearFilters" type="button">Reset</button></div>
         <div class="search-stack">
           <div class="search-field">
             <span aria-hidden="true">⌕</span>
@@ -80,76 +76,38 @@
           </div>
           <p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p>
         </div>
-
-        <div class="filter-group">
-          <label for="authorSelect">Author</label>
-          <select id="authorSelect"><option value="">Any author</option></select>
-        </div>
-
-        <div class="filter-group">
-          <label for="yearSelect">Year</label>
-          <select id="yearSelect"><option value="">Any year</option></select>
-        </div>
-
+        <div class="filter-group"><label for="authorSelect">Author</label><select id="authorSelect"><option value="">Any author</option></select></div>
+        <div class="filter-group"><label for="yearSelect">Year</label><select id="yearSelect"><option value="">Any year</option></select></div>
         <div class="filter-group">
           <label for="volumeCountSelect">Volume count</label>
-          <select id="volumeCountSelect">
-            <option value="">Any size</option>
-            <option value="1">Single volume</option>
-            <option value="2-5">2–5 volumes</option>
-            <option value="6-10">6–10 volumes</option>
-            <option value="11+">11+ volumes</option>
-          </select>
+          <select id="volumeCountSelect"><option value="">Any size</option><option value="1">Single volume</option><option value="2-5">2–5 volumes</option><option value="6-10">6–10 volumes</option><option value="11+">11+ volumes</option></select>
         </div>
-
         <div class="filter-group">
           <label for="sortSelect">Sort</label>
-          <select id="sortSelect">
-            <option value="recent">Recently added</option>
-            <option value="title">Title</option>
-            <option value="author">Author</option>
-            <option value="year">Year released</option>
-            <option value="volumes">Volumes</option>
-          </select>
+          <select id="sortSelect"><option value="recent">Recently added</option><option value="title">Title</option><option value="author">Author</option><option value="year">Year released</option><option value="volumes">Volumes</option></select>
         </div>
-
         <div class="filter-group filter-tags">
           <label for="tagSelect">Exact tags</label>
-          <div class="tag-picker">
-            <select id="tagSelect"><option value="">Add a tag…</option></select>
-            <div id="activeTags" class="active-filter-tags" aria-label="Selected tags"></div>
-          </div>
-          <span class="filter-sub-label">Popular tags</span>
-          <div id="genreChips" class="genre-chips"></div>
+          <div class="tag-picker"><select id="tagSelect"><option value="">Add a tag…</option></select><div id="activeTags" class="active-filter-tags" aria-label="Selected tags"></div></div>
+          <span class="filter-sub-label">Popular tags</span><div id="genreChips" class="genre-chips"></div>
         </div>
       </aside>
 
       <div class="catalog-main">
         <div class="catalog-bar">
-          <p id="resultCount">Loading restricted archive…</p>
-          <div class="view-switch" aria-label="View style">
-            <button class="active" data-view="grid" type="button">Grid</button>
-            <button data-view="compact" type="button">Compact</button>
+          <p id="resultCount" role="status" aria-live="polite" aria-atomic="true">Loading restricted archive…</p>
+          <div class="view-switch" role="group" aria-label="View style">
+            <button class="active" data-view="grid" type="button" aria-pressed="true">Grid</button>
+            <button data-view="compact" type="button" aria-pressed="false">Compact</button>
           </div>
         </div>
-
         <div id="catalogGrid" class="catalog-grid"></div>
-        <div id="catalogSentinel" class="catalog-sentinel hidden">
-          <button id="loadMore" type="button">Load more</button>
-        </div>
-
-        <div id="emptyState" class="empty-state hidden">
-          <span>✦</span>
-          <h2>No books in the Night Garden.</h2>
-          <p id="emptyMessage">Sow new forbidden knowledge beneath the shadows.</p>
-        </div>
+        <div id="catalogSentinel" class="catalog-sentinel hidden"><button id="loadMore" type="button">Load more</button></div>
+        <div id="emptyState" class="empty-state hidden" role="status"><span aria-hidden="true">✦</span><h2>No books in the Night Garden.</h2><p id="emptyMessage">Sow new forbidden knowledge beneath the shadows.</p></div>
       </div>
     </section>
   </main>
 
-  <footer>
-    <span>Shadow Garden · Adult Section</span>
-    <span><button id="adultReset" class="footer-button" type="button">18+ Content warning</button></span>
-  </footer>
+  <footer><span>Shadow Garden · Adult Section</span><span><button id="adultReset" class="footer-button" type="button">18+ Content warning</button></span></footer>
 </body>
 </html>

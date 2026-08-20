@@ -15,6 +15,17 @@ function uniqueTags(value) {
   return [...new Set(arr(value).map(v => clean(v, 80)).filter(Boolean))].slice(0, 40);
 }
 
+function externalUrl(value) {
+  const raw = clean(value, 2000);
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
 async function loadCatalog(aws, key) {
   const text = await getTextObject(aws, key);
   if (!text) return { generatedAt: new Date().toISOString(), series: [] };
@@ -55,6 +66,7 @@ export async function onRequestPost({ request, env }) {
   const status = clean(input.status, 80);
   const tags = uniqueTags(input.tags);
   const size = Math.max(0, Number(input.size) || 0);
+  const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
   let number = Number(input.number);
   if (!Number.isFinite(number) || number <= 0) number = 9999;
 
@@ -65,6 +77,7 @@ export async function onRequestPost({ request, env }) {
   if (coverKey && !validObjectKey(coverKey, ["shadow-garden/covers/"])) {
     return json({ ok: false, error: "Invalid cover key" }, 400);
   }
+  if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB URL must use http:// or https://" }, 400);
 
   try {
     const aws = writeClient(env);
@@ -110,7 +123,8 @@ export async function onRequestPost({ request, env }) {
       size,
       added: new Date().toISOString().slice(0, 10),
       publisher,
-      description
+      description,
+      audioAlignedUrl
     };
 
     const existing = arr(series.volumes).findIndex(v =>

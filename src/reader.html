@@ -8,10 +8,13 @@
   <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/css/reader.css">
   <link rel="stylesheet" href="/assets/css/reader-continuous-rail.css">
+  <link rel="stylesheet" href="/assets/css/reader-polish.css">
   <script src="/assets/vendor/jszip.min.js"></script>
   <script src="/assets/vendor/epub.min.js"></script>
+  <script src="/assets/js/data-source.js"></script>
   <script src="/assets/js/reader-continuous-rail.js"></script>
   <script src="/assets/js/reader-epub-adapter.js"></script>
+  <script src="/assets/js/reader-polish.js" defer></script>
   <script type="module" src="/assets/js/reader.js"></script>
 </head>
 <body class="reader-theme-garden reader-flow-paginated">
@@ -29,6 +32,7 @@
         <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location" aria-pressed="false">◇</button>
         <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">↩</a>
         <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings">Aa</button>
+        <button id="focusModeButton" class="reader-icon" type="button" title="Distraction-free mode" aria-label="Enter distraction-free mode" aria-pressed="false">◐</button>
         <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen">⛶</button>
       </div>
     </header>
@@ -93,6 +97,16 @@
           </select>
         </label>
 
+        <label class="reader-toggle-setting">
+          <span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span>
+          <input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns">
+        </label>
+
+        <label class="reader-toggle-setting">
+          <span><b>Tap zones & focus</b><small>Tap left/right to turn pages; tap the center to hide or show reader controls.</small></span>
+          <input id="tapZonesToggle" type="checkbox" checked aria-label="Tap zones and focus mode">
+        </label>
+
         <button id="resetReader" class="reader-reset" type="button">Reset reader settings</button>
       </div>
     </aside>
@@ -119,6 +133,20 @@
       </div>
       <span id="continuousSeekText" class="continuous-seek-text">0%</span>
     </div>
+
+    <dialog id="volumeComplete" class="volume-complete" aria-labelledby="volumeCompleteHeading" aria-describedby="volumeCompleteDetail">
+      <div class="volume-complete-card">
+        <button id="volumeCompleteClose" class="volume-complete-close" type="button" aria-label="Close volume complete message">×</button>
+        <div class="volume-complete-mark" aria-hidden="true">✦</div>
+        <p class="volume-complete-kicker">VOLUME COMPLETE</p>
+        <h2 id="volumeCompleteHeading"><span id="volumeCompleteTitle">Volume complete</span></h2>
+        <p id="volumeCompleteDetail" class="volume-complete-detail">The next path through the Garden is ready.</p>
+        <div class="volume-complete-actions">
+          <a id="nextVolumeLink" class="volume-complete-next" href="#">Read next volume →</a>
+          <a id="completeReturnLink" class="volume-complete-return" href="/">Return to series</a>
+        </div>
+      </div>
+    </dialog>
 
     <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
     <div id="toast" class="toast hidden"></div>

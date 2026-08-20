@@ -157,10 +157,16 @@
     try{return Boolean(doc.getSelection?.()?.toString().trim())}catch{return false}
   }
 
+  let turnQueued=false;
   function pageTurn(direction){
-    if(!document.body.classList.contains("reader-flow-paginated"))return;
-    const button=direction<0?$("#prevBottom"):$("#nextBottom");
-    button?.click();
+    if(turnQueued||!document.body.classList.contains("reader-flow-paginated"))return;
+    turnQueued=true;
+    requestAnimationFrame(()=>{
+      turnQueued=false;
+      if(!document.body.classList.contains("reader-flow-paginated"))return;
+      const button=direction<0?$("#prevBottom"):$("#nextBottom");
+      button?.click();
+    });
   }
 
   function installGestures(doc){
@@ -202,6 +208,14 @@
     doc.addEventListener("click",event=>{
       if(Date.now()<suppressClickUntil&&!interactiveTarget(event.target)){event.preventDefault();event.stopImmediatePropagation()}
     },true);
+  }
+
+  function bindEpubContentLifecycle(){
+    document.addEventListener("sg-reader-content",event=>{
+      const doc=event.detail?.document;
+      if(doc)installGestures(doc);
+    });
+    arr(window.__sgReaderGestureDocuments).forEach(doc=>installGestures(doc));
   }
 
   function wireIframe(iframe){
@@ -251,7 +265,7 @@
   }
 
   function init(){
-    bindUi();watchReaderFrames();watchProgress();loadSeriesContext();
+    bindUi();bindEpubContentLifecycle();watchReaderFrames();watchProgress();loadSeriesContext();
   }
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
   else init();

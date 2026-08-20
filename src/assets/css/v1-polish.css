@@ -7,7 +7,7 @@
 .site-header nav a[aria-current="page"]{color:var(--text);border-color:var(--line)!important;background:rgba(162,135,211,.07)!important}
 .search-field input{min-width:0}.filter-toggle{min-width:40px;width:40px;height:40px}
 .catalog-bar [role="group"] button[aria-pressed="true"]{color:var(--text);background:rgba(255,255,255,.05)}
-.volume-card{content-visibility:auto;contain-intrinsic-size:300px 520px}
+.volume-card{content-visibility:auto;contain-intrinsic-size:auto 520px}
 .series-card img,.recent-volume img,.volume-card img{background:var(--panel)}
 @media(prefers-contrast:more){:root{--line:rgba(255,255,255,.24);--line2:rgba(255,255,255,.42);--muted:#c6c0ce;--dim:#aaa2b5}.adult-library{--line:rgba(255,230,238,.25);--line2:rgba(255,230,238,.44)}.series-card .cover,.continue-panel,.filters,.search-field,.filter-group select{border-width:2px}}
 @media(forced-colors:active){.skip-link,.brand-mark,.site-header nav a,.site-header nav button,.series-card .cover,.search-field,.filter-group select{forced-color-adjust:auto}.brand-mark,.site-header nav a,.site-header nav button{border:1px solid ButtonText!important}}

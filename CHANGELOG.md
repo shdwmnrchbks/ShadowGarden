@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 1.0.3 — Uploader Controller Hotfix
+- Removed the batch uploader's file-input clone/replace handoff and made the batch controller own the existing picker directly.
+- Snapshot selected `File` objects immediately in a capture-phase change handler, then stop the obsolete single-file handlers before they can interfere.
+- Show the batch queue and CHECKING state before any catalog/B2 lookup, and run local EPUB inspection in parallel with duplicate lookup.
+- Added a visible processing failure state if the file-selection pipeline itself throws.
+
 ## 1.0.2 — File Selection Hotfix
 - Fixed browser-dependent EPUB selections disappearing before the batch importer could copy them.
 - Snapshot selected `File` objects during the input event before Garden Keeper clears the file picker for reuse.

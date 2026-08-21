@@ -1,4 +1,4 @@
-/* Shadow Garden v0.10 batch uploader + duplicate/replace handling. */
+/* Shadow Garden v1.0.3 batch uploader + duplicate/replace handling. */
 (()=>{
   const MAX_BYTES=50*1024*1024;
   const KNOWN_FONT_OBFUSCATION=new Set(["http://www.idpf.org/2008/embedding","http://ns.adobe.com/pdf/enc#RC"]);
@@ -25,10 +25,10 @@
     <p class="batch-note">Duplicates are never replaced automatically. Choose Replace or Add separate for each detected duplicate.</p>`;
   pickerCard?.appendChild(panel);
 
-  const originalInput=fileInput;
-  const replacement=originalInput.cloneNode(true);
-  replacement.multiple=true;
-  originalInput.replaceWith(replacement);
+  /* Keep one stable picker node. Older uploader layers attached bubble-phase listeners to this
+   * node before the batch controller loaded; the capture listener installed below owns selection
+   * first and stops those obsolete single-file handlers without cloning the input again. */
+  const replacement=fileInput;
 
   const oldUpload=$("#uploadButton");
   const batchUpload=oldUpload.cloneNode(true);
@@ -345,11 +345,21 @@
   }
 
   async function addFiles(files){
-    const chosen=[...files].filter(file=>/\.epub$/i.test(file.name)||file.type==="application/epub+zip");
-    if(!chosen.length)return;
-    await ensureLibrary();
+    const chosen=Array.from(files||[]).filter(file=>/\.epub$/i.test(file.name)||file.type==="application/epub+zip");
+    if(!chosen.length){
+      setFileState("NO EPUB","error");
+      $("#filePickerMeta").textContent="No EPUB file was received from the file picker. Please choose an .epub file.";
+      return;
+    }
+
+    /* Give immediate feedback before any B2/catalog network work. Duplicate lookup runs in
+     * parallel with local inspection, then every ready item is evaluated once the lookup settles. */
     panel.classList.remove("hidden");$("#metadataCard").classList.add("hidden");$("#preflightCard").classList.add("hidden");$("#uploadCard").classList.remove("hidden");$("#openSeries").classList.add("hidden");
     setFileState("CHECKING");setStatus("Preparing batch",`Running local preflight on ${chosen.length} EPUB${chosen.length===1?"":"s"}.`,"✦");
+    $("#filePickerTitle").textContent=`${chosen.length} EPUB${chosen.length===1?"":"s"} selected`;
+    $("#filePickerMeta").textContent="Reading EPUB metadata on this device…";
+    const libraryPromise=ensureLibrary();
+
     for(const file of chosen){
       const sameLocal=q.items.find(x=>x.file.name===file.name&&x.file.size===file.size&&x.file.lastModified===file.lastModified);
       if(sameLocal)continue;
@@ -359,7 +369,6 @@
         const meta=await inspect(file);
         Object.assign(item,meta,{file,status:"queued",metaReady:Boolean(meta.title),adult:false,audioAlignedUrl:""});
         if(meta.validation?.status==="fail")item.action="skip";
-        evaluateDuplicate(item);
       }catch(error){
         console.error(error);item.validation=failed("EPUB inspection failed",error.message);item.status="failed";item.error=error.message;item.action="skip";
       }
@@ -367,6 +376,11 @@
       if(!q.activeId&&item.metaReady)selectItem(item.id);
       await new Promise(resolve=>setTimeout(resolve,0));
     }
+
+    await libraryPromise;
+    for(const item of q.items)if(item.metaReady&&item.status!=="done")evaluateDuplicate(item);
+    renderQueue();
+
     const failedCount=q.items.filter(i=>i.validation?.status==="fail").length;
     setFileState(failedCount?"REVIEW":"READY",failedCount?"warning":"ready");
     $("#filePickerTitle").textContent=`${q.items.length} EPUB${q.items.length===1?"":"s"} in batch`;
@@ -450,7 +464,20 @@
     $("#filePickerTitle").textContent="Choose EPUBs from phone";$("#filePickerMeta").textContent="Select one or many EPUBs · 50 MB maximum per file";setFileState("WAITING");
   }
 
-  replacement.addEventListener("change",event=>{const files=event.target.files;event.target.value="";addFiles(files)});
+  replacement.addEventListener("change",event=>{
+    const files=Array.from(event.currentTarget.files||[]);
+    if(!files.length)return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    event.currentTarget.value="";
+    void addFiles(files).catch(error=>{
+      console.error("Batch selection failed",error);
+      setFileState("FAILED","error");
+      setUploadState("BLOCKED","error");
+      setStatus("Could not process selected EPUBs",error?.message||String(error),"!");
+      $("#filePickerMeta").textContent=error?.message||String(error);
+    });
+  },true);
   $("#batchAddMore").addEventListener("click",()=>replacement.click());
   $("#batchClear").addEventListener("click",()=>{if(q.items.length&&!confirm("Clear the entire batch queue?"))return;resetQueue()});
   $("#batchList").addEventListener("click",event=>{const edit=event.target.closest("[data-batch-edit]");if(edit)selectItem(edit.dataset.batchEdit)});

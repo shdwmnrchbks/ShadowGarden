@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 1.0.1 — Uploader Hotfix
+- Added bounded waits around the duplicate-library lookup so a stalled B2/catalog request cannot leave file selection appearing frozen indefinitely.
+- Added explicit uploader guidance for EPUBs still being inspected, failed preflight, duplicates left on Skip, and queues where every item is skipped.
+- Added clear timeout errors for stalled EPUB uploads and catalog updates instead of leaving the upload UI looking inert.
+- Preserved existing replacement safety rules and successful/partial batch completion status.
+
 ## 1.0.0
 
 ### Accessibility and UI polish

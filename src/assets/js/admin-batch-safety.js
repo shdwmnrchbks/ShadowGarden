@@ -1,29 +1,10 @@
-/* v1.0.2 replacement safety + uploader resilience guard. Loaded after admin-batch.js. */
+/* v1.0.3 replacement safety + uploader resilience guard. Loaded after admin-batch.js. */
 (()=>{
   const q=state.batch,list=document.querySelector("#batchList"),upload=document.querySelector("#uploadButton");
   if(!q||!list||!upload)return;
 
-  /* admin-batch.js intentionally clears the file input so the same EPUB can be picked again.
-   * Some browsers expose input.files as a live FileList, so clearing input.value can empty the
-   * FileList reference before addFiles() copies it. Snapshot the selection during capture and
-   * temporarily expose that stable array to the existing batch change handler. */
-  const epubInput=document.querySelector("#epubFile");
-  const nativeFiles=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"files");
-  if(epubInput&&nativeFiles?.get){
-    epubInput.addEventListener("change",()=>{
-      const selected=Array.from(nativeFiles.get.call(epubInput)||[]);
-      if(!selected.length)return;
-      try{
-        Object.defineProperty(epubInput,"files",{configurable:true,get:()=>selected});
-        queueMicrotask(()=>{try{delete epubInput.files}catch{}});
-      }catch(error){
-        console.warn("Could not stabilize EPUB file selection",error);
-      }
-    },true);
-  }
-
-  /* The batch uploader performs a B2-backed library lookup before local EPUB inspection.
-   * Bound that wait so an unhealthy catalog request cannot leave file selection looking dead.
+  /* The batch uploader performs a B2-backed library lookup while local EPUB inspection runs.
+   * Bound that wait so an unhealthy catalog request cannot stall duplicate detection forever.
    * Actual EPUB uploads get a much larger allowance. */
   if(typeof api==="function"&&!api.__sgUploadResilient){
     const baseApi=api;
@@ -153,6 +134,5 @@
 
   new MutationObserver(()=>queueMicrotask(syncUploadGuidance)).observe(list,{childList:true,subtree:true,attributes:true,attributeFilter:["data-action","data-status"]});
   list.addEventListener("change",()=>queueMicrotask(syncUploadGuidance));
-  document.querySelector("#epubFile")?.addEventListener("change",()=>setTimeout(syncUploadGuidance,0),true);
   syncUploadGuidance();
 })();

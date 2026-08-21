@@ -55,6 +55,10 @@
 
   function syncUploadGuidance(){
     if(q.running||!q.items.length)return;
+    const uploadState=document.querySelector("#uploadState")?.textContent||"";
+    const terminal=q.items.every(item=>item.status==="done"||item.status==="failed");
+    if(terminal&&/^COMPLETE/.test(uploadState))return;
+
     const checking=q.items.filter(item=>item.status==="checking").length;
     const actionable=q.items.filter(item=>item.metaReady&&item.validation?.status!=="fail"&&item.action!=="skip"&&item.status!=="done");
     const failed=q.items.filter(item=>item.validation?.status==="fail"||item.status==="failed").length;
@@ -72,7 +76,7 @@
 
     if(actionable.length){
       upload.removeAttribute("title");
-      if(document.querySelector("#uploadState")?.textContent!=="COMPLETE"){
+      if(!/^COMPLETE/.test(uploadState)){
         setUploadState("READY","ready");
         setStatus("Ready to upload",`${actionable.length} book${actionable.length===1?" is":"s are"} ready to send to private B2.`,"✓");
       }

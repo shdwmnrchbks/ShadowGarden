@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 1.0.4 — Batch Editor Selector
+- Added an `Editing EPUB` dropdown to the Editable section for multi-EPUB queues.
+- The selector lists every queued EPUB, including checking/failed state, extracted title, and volume number when available.
+- Switching EPUBs uses the existing queue Edit path, so current metadata edits are saved before the next EPUB is loaded.
+- Kept the v1.0.3 uploader controller and upload pipeline unchanged.
+
 ## 1.0.3 — Uploader Controller Hotfix
 - Removed the batch uploader's file-input clone/replace handoff and made the batch controller own the existing picker directly.
 - Snapshot selected `File` objects immediately in a capture-phase change handler, then stop the obsolete single-file handlers before they can interfere.

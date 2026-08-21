@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 1.0.2 — File Selection Hotfix
+- Fixed browser-dependent EPUB selections disappearing before the batch importer could copy them.
+- Snapshot selected `File` objects during the input event before Garden Keeper clears the file picker for reuse.
+- Kept the v1.0.1 timeout diagnostics, duplicate handling, preflight, and upload pipeline unchanged.
+
 ## 1.0.1 — Uploader Hotfix
 - Added bounded waits around the duplicate-library lookup so a stalled B2/catalog request cannot leave file selection appearing frozen indefinitely.
 - Added explicit uploader guidance for EPUBs still being inspected, failed preflight, duplicates left on Skip, and queues where every item is skipped.

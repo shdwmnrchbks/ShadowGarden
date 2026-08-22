@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 1.0.5 — Series Editor Polish
+- Removed the Series Editor's outer scrollbar so only the intended content pane scrolls while the header and action bar stay fixed.
+- Automatically close the Series Editor after a successful series save or move-to-Trash action.
+- Added lightweight Garden Keeper success toasts for completed series saves and Trash moves.
+- Keep the editor open on failures so errors can be corrected without losing context.
+
 ## 1.0.4 — Batch Editor Selector
 - Added an `Editing EPUB` dropdown to the Editable section for multi-EPUB queues.
 - The selector lists every queued EPUB, including checking/failed state, extracted title, and volume number when available.

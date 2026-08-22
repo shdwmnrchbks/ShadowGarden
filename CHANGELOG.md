@@ -1,5 +1,16 @@
 # Shadow Garden Changelog
 
+## 1.3.0 — Visual Page Cache
+- Added a first-run EPUB spine scanner that identifies genuinely standalone cover/illustration XHTML and SVG pages before the live reader lays them out.
+- Store prepared visual-page assets locally in a dedicated IndexedDB cache keyed by book URL, so later opens can reuse the prepared pages without rescanning the EPUB.
+- Convert JPEG/PNG/AVIF and compatible SVG visual pages to local WebP copies when the browser encoder supports it; preserve existing WebP/GIF assets or SVG fallbacks when conversion is unnecessary or unavailable.
+- Extract the underlying raster directly from common SVG-wrapped cover pages instead of asking EPUB.js to continuously size the original `100vh`/percentage-based SVG wrapper.
+- Replace detected visual spine documents with a deterministic synthetic one-viewport image page before EPUB.js performs its first layout measurement in both Pages and Continuous modes.
+- Keep detection intentionally conservative: normal chapters, title pages with meaningful text, and small decorative section-break artwork remain normal EPUB XHTML.
+- Keep the canonical Page Map rule that a standalone visual spine item represents one device page while removing the unstable original visual XHTML from the live Continuous manager.
+- Show `Preparing visual pages…` during uncached first-run preprocessing and fall back to the original EPUB page if preparation of a particular book cannot be completed.
+- Right-align the Continuous seekbar page counter and let large `current/total` values grow leftward, preventing page counts in the thousands from clipping off the right side of the screen.
+
 ## 1.2.2 — Runtime Navigation & Adult Control Rewrite
 - Replaced EPUB.js Continuous recursive `check()` / `fill()` loading with a bounded iterative spine loader that stops after a finite number of inserts and aborts repeated no-growth media boundaries instead of letting the scroll queue lock indefinitely.
 - Rebound EPUB.js's already-created debounced `_scrolled` callback to the bounded controller so normal wheel/touch scrolling cannot keep calling the superseded recursive handler.

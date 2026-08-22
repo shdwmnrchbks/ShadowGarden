@@ -48,13 +48,20 @@ async function index(env) {
   return buildIndex(env);
 }
 
+function find(lookup, ref) {
+  if (isBookId(ref)) return lookup.byId.get(ref) || null;
+  const file = normalizeBookFile(ref);
+  return file ? lookup.byFile.get(file) || null : null;
+}
+
 export async function resolveBookReference(env, value) {
   const ref = String(value || "").trim();
   if (!ref) return null;
   const lookup = await index(env);
-  if (isBookId(ref)) return lookup.byId.get(ref) || null;
-  const file = normalizeBookFile(ref);
-  return file ? lookup.byFile.get(file) || null : null;
+  const found = find(lookup, ref);
+  if (found) return found;
+  if (!cached || Date.now() - cachedAt >= CACHE_TTL_MS) return null;
+  return find(await buildIndex(env), ref);
 }
 
 export function clearBookResolverCache() {

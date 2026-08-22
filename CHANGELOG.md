@@ -1,5 +1,17 @@
 # Shadow Garden Changelog
 
+## 1.4.0 — Continuous Core Rewrite
+- Retired the stacked v1.1.5 Continuous anchor shim, v1.2.2 runtime stability manager, and v1.3.1 seek-neighborhood layer from the reader load path so only one controller owns Continuous mode.
+- Added one authoritative Continuous controller for scroll listeners, real scroll-coordinate synchronization, spine buffering, idle trimming, display deduplication, boundary recovery, location reporting, and the end-of-volume page.
+- Keep four already-rendered spine sections buffered on either side of the visible section instead of waiting until the viewport reaches an XHTML boundary before loading the next section.
+- Keep retained iframe views rendered while scrolling and trim only after idle, with a bounded twelve-view working set to avoid the previous hide/show/destroy interactions.
+- Give individual neighboring spine loads a timeout so one malformed or slow section cannot hold the Continuous manager indefinitely.
+- Emit the Continuous `scrolled` location event immediately when scrolling settles, before background neighbor buffering, so canonical page tracking and the seekbar counter continue updating even while adjacent content is loading.
+- Rebind the EPUB.js scroll container only after it actually exists, avoiding the earlier lifecycle race where a controller could mark itself installed before any live scroll listener was attached.
+- Preserve the viewport while prepending previous sections by measuring the visible DOM anchor before/after insertion and correcting the real container scroll position.
+- Keep v1.3.0 Visual Page Cache preprocessing and the v1.2 canonical Page Map, while removing the old Continuous-specific visual/layout and seek recovery scripts from `reader.html`.
+- Serve `/reader.html` with `Cache-Control: no-store` so deployments cannot retain an older combination of Continuous runtime scripts in the browser shell.
+
 ## 1.3.1 — Continuous Seek Neighborhood Recovery
 - Fixed Continuous seeks leaving EPUB.js with only the landed XHTML spine item mounted, which allowed scrolling inside that section but blocked traversal into the previous or next section.
 - After each committed Continuous seek, immediately mount two neighboring spine items on each side of the landed section instead of waiting for boundary-triggered background fill.
@@ -155,7 +167,7 @@
 ## 0.14.0 — Library Scaling
 - Added a Recently Added volume shelf.
 - Added author, exact multi-tag, year, volume-count, pinned, and richer sort filters.
-- Added token-based search and URL-persisted filter/view state with browser history restoration.
+- Added token-based search and URL-persisted filter/view state with browser Back/Forward restoration.
 - Added incremental catalog rendering with automatic and manual load-more behavior.
 
 ## 0.13.2 — Reader Polish Hotfix

@@ -63,9 +63,6 @@
     page.classList.remove("hidden");page.classList.add("active");
     requestAnimationFrame(()=>page.querySelector("a:not(.hidden)")?.focus?.({preventScroll:true}));
   }
-  function removeContinuousEnd(rendition){
-    try{rendition?.manager?.container?.querySelector?.(".volume-end-page-continuous")?.remove()}catch{}
-  }
   function stripCloneIds(root){
     root.removeAttribute("id");root.removeAttribute("aria-labelledby");root.removeAttribute("aria-describedby");
     root.querySelectorAll?.("[id]").forEach(node=>node.removeAttribute("id"));
@@ -137,7 +134,7 @@
         if(!bounds||!box)break;
         const visibleLength=horizontal?Math.floor(Number(bounds.width)||box.clientWidth):Number(bounds.height)||box.clientHeight;
         const contentLength=horizontal?Number(box.scrollWidth)||0:Number(box.scrollHeight)||0;
-        let offset=horizontal?Number(manager.scrollLeft)||0:Number(manager.scrollTop)||0;
+        const offset=horizontal?Number(manager.scrollLeft)||0:Number(manager.scrollTop)||0;
         let delta=Number(manager.settings?.offset)||0;
         if(horizontal&&Number(_offsetLeft)>0)delta=Number(_offsetLeft);
         if(!horizontal&&Number(_offsetTop)>0)delta=Number(_offsetTop);
@@ -209,6 +206,14 @@
       },Math.max(18,Number(manager.settings?.afterScrolledTimeout)||18));
     };
 
+    /* addScrollListeners() may already have bound the previous scrolled() implementation.
+       Replace the debounced callback too, so onScroll always reaches the bounded controller. */
+    try{manager._scrolled?.cancel?.()}catch{}
+    manager._scrolled=()=>{
+      clearTimeout(manager.__sgBoundedScrollTimer);
+      manager.__sgBoundedScrollTimer=setTimeout(()=>manager.scrolled(),30);
+    };
+
     let lastNudge=0;
     const nudge=direction=>{
       const now=Date.now();if(now-lastNudge<80)return;
@@ -248,6 +253,13 @@
       syncContinuousEnd(rendition);
     })}catch{}
     try{manager.container?.addEventListener?.("wheel",event=>{const dy=Number(event.deltaY)||0;if(Math.abs(dy)>1)nudge(Math.sign(dy))},{passive:true})}catch{}
+
+    const oldDestroy=typeof manager.destroy==="function"?manager.destroy.bind(manager):null;
+    if(oldDestroy)manager.destroy=(...args)=>{
+      clearTimeout(manager.__sgBoundedScrollTimer);
+      clearTimeout(manager.afterScrolled);
+      return oldDestroy(...args);
+    };
 
     /* Prime adjacent views without entering EPUB.js's recursive fill loop. */
     setTimeout(()=>{Promise.resolve(manager.check()).catch(()=>{})},0);
@@ -297,6 +309,7 @@
 
     if(continuous){
       const install=()=>installContinuousManager(rendition);
+      install();
       try{Promise.resolve(rendition.started).then(install).catch(()=>{})}catch{}
       try{rendition.on?.("started",install)}catch{}
       setTimeout(install,0);

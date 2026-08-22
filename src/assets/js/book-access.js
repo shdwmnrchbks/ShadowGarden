@@ -3,6 +3,7 @@
   const nativeFetch=window.fetch.bind(window);
   const cache=new Map();
   const initialBook=new URLSearchParams(location.search).get("book")||"";
+  let renewalTimer=0;
 
   function normalizeIdentity(book){
     try{return new URL(String(book||""),location.href).pathname}catch{return String(book||"")}
@@ -15,12 +16,12 @@
     return Boolean(url&&url.origin===location.origin&&url.pathname.startsWith("/media/shadow-garden/")&&url.pathname.toLowerCase().endsWith(".epub")&&!url.searchParams.has("sig"));
   }
 
-  async function resolve(book){
+  async function resolve(book,{force=false}={}){
     const identity=normalizeIdentity(book);
     if(!identity)throw new Error("No EPUB was selected.");
     const now=Math.floor(Date.now()/1000);
     const cached=cache.get(identity);
-    if(cached&&(!cached.protected||Number(cached.expiresAt)-now>45))return cached;
+    if(!force&&cached&&(!cached.protected||Number(cached.expiresAt)-now>45))return cached;
 
     const response=await nativeFetch("/book-access",{
       method:"POST",
@@ -40,6 +41,18 @@
     const result={url:resolved.pathname+resolved.search,identity,protected:true,expiresAt:Number(payload.expiresAt)||0,ttlSeconds:Number(payload.ttlSeconds)||0};
     cache.set(identity,result);
     return result;
+  }
+
+  function scheduleRenewal(ticket){
+    clearTimeout(renewalTimer);
+    if(!ticket?.protected||!initialBook)return;
+    const delay=Math.max(30000,(Number(ticket.expiresAt)-Math.floor(Date.now()/1000)-60)*1000);
+    renewalTimer=setTimeout(()=>{
+      resolve(initialBook,{force:true}).then(scheduleRenewal).catch(error=>{
+        console.warn("Reader ticket renewal delayed",error);
+        renewalTimer=setTimeout(()=>resolve(initialBook,{force:true}).then(scheduleRenewal).catch(()=>{}),60000);
+      });
+    },delay);
   }
 
   window.fetch=async(input,init)=>{
@@ -80,5 +93,7 @@
   });
 
   const initial=initialBook?resolve(initialBook):Promise.resolve(null);
+  initial.then(scheduleRenewal).catch(()=>{});
+  window.addEventListener("pagehide",()=>clearTimeout(renewalTimer),{once:true});
   window.ShadowGardenBookAccess={resolve,download,initial,identity:initialBook};
 })();

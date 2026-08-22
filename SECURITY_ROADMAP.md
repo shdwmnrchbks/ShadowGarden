@@ -15,7 +15,7 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB that a legiti
 
 | Milestone | Status | Scope |
 | --- | --- | --- |
-| 1. Baseline media hardening | 🟨 In progress | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
+| 1. Baseline media hardening | 🟨 In progress | Merged and CI-verified; production smoke test pending |
 | 2. Signed book access tickets | ⬜ Planned | Short-lived HMAC access URLs for EPUB delivery |
 | 3. Opaque public book identifiers | ⬜ Planned | Stop exposing durable B2 object paths in public catalog data |
 | 4. Human access sessions | ⬜ Planned | Free Cloudflare Turnstile session verification before protected book acquisition |
@@ -29,7 +29,7 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB that a legiti
 
 ## Milestone 1 — Baseline media hardening
 
-**Status:** 🟨 In progress — implementation complete; CI/production validation pending
+**Status:** 🟨 In progress — merged and CI-verified; production validation pending
 
 Low-risk hardening of the delivery surface before changing how book URLs are generated.
 
@@ -43,7 +43,8 @@ Low-risk hardening of the delivery surface before changing how book URLs are gen
 - [x] Keep Range forwarding unchanged so same-origin Reader seeking remains supported.
 - [x] Preserve existing Cloudflare cache behavior and private B2 origin.
 - [x] Extend repository checks so the baseline hardening cannot accidentally disappear.
-- [ ] Pass CI and smoke-test Main/Adult catalog loading plus Reader Pages/Continuous.
+- [x] Pass repository CI.
+- [ ] Production smoke-test Main/Adult catalog loading plus Reader Pages/Continuous and seeking.
 
 ### Acceptance criteria
 

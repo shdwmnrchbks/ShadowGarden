@@ -10,6 +10,12 @@
 /reader.html
   Cache-Control: no-store
 
+/assets/js/book-access.js
+  Cache-Control: no-store
+
+/assets/js/reader-bootstrap.js
+  Cache-Control: no-store
+
 /assets/js/nav-pinned.js
   Cache-Control: no-store
 

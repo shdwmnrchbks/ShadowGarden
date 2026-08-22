@@ -29,20 +29,20 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB that a legiti
 
 ## Milestone 1 — Baseline media hardening
 
-**Status:** 🟨 In progress
+**Status:** 🟨 In progress — implementation complete; CI/production validation pending
 
 Low-risk hardening of the delivery surface before changing how book URLs are generated.
 
 ### Implementation
 
-- [ ] Reject browser requests for EPUB files when `Sec-Fetch-Site: cross-site`.
-- [ ] Add `Cross-Origin-Resource-Policy: same-origin` to EPUB and catalog responses.
-- [ ] Remove upstream CORS response headers from protected EPUB/catalog responses.
-- [ ] Add `X-Robots-Tag` anti-index/archive headers to EPUB/catalog delivery.
-- [ ] Add `robots.txt` rules for `/media/`, `/admin.html`, `/admin-api/`, and future `/book-access/` routes.
-- [ ] Keep same-origin Reader Range requests working.
-- [ ] Preserve existing Cloudflare cache behavior and private B2 origin.
-- [ ] Extend repository checks so the baseline hardening cannot accidentally disappear.
+- [x] Reject browser requests for EPUB files when `Sec-Fetch-Site: cross-site`.
+- [x] Add `Cross-Origin-Resource-Policy: same-origin` to EPUB and catalog responses.
+- [x] Remove upstream CORS response headers from protected EPUB/catalog responses.
+- [x] Add `X-Robots-Tag` anti-index/archive headers to EPUB/catalog delivery.
+- [x] Add `robots.txt` rules for `/media/`, `/admin.html`, `/admin-api/`, and future `/book-access/` routes.
+- [x] Keep Range forwarding unchanged so same-origin Reader seeking remains supported.
+- [x] Preserve existing Cloudflare cache behavior and private B2 origin.
+- [x] Extend repository checks so the baseline hardening cannot accidentally disappear.
 - [ ] Pass CI and smoke-test Main/Adult catalog loading plus Reader Pages/Continuous.
 
 ### Acceptance criteria

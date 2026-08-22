@@ -1,5 +1,14 @@
 import { ROOT_PREFIX, objectUrl, readClient } from "../_lib/b2.js";
 
+const PROTECTED_CORS_HEADERS = [
+  "access-control-allow-credentials",
+  "access-control-allow-headers",
+  "access-control-allow-methods",
+  "access-control-allow-origin",
+  "access-control-expose-headers",
+  "timing-allow-origin"
+];
+
 function getObjectKey(value) {
   const parts = Array.isArray(value) ? value : [value];
   const clean = parts.filter(Boolean).map(String);
@@ -19,6 +28,40 @@ function cacheableKey(key) {
   return key.endsWith(".json") || key.endsWith(".epub") || /\.(?:jpe?g|png|webp|avif|gif|svg)$/i.test(key);
 }
 
+function protectedMedia(key) {
+  return key.endsWith(".epub") || key.endsWith(".json");
+}
+
+function crossSiteEpubRequest(request, key) {
+  if (!key.endsWith(".epub")) return false;
+  return request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site";
+}
+
+function applySecurityHeaders(headers, key) {
+  headers.set("X-Content-Type-Options", "nosniff");
+  if (!protectedMedia(key)) return headers;
+
+  headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  headers.set("X-Robots-Tag", "noindex, nofollow, noarchive, nosnippet");
+  for (const name of PROTECTED_CORS_HEADERS) headers.delete(name);
+
+  if (key.endsWith(".epub")) {
+    const vary = new Set(String(headers.get("Vary") || "").split(",").map(value => value.trim()).filter(Boolean));
+    vary.add("Sec-Fetch-Site");
+    headers.set("Vary", [...vary].join(", "));
+  }
+  return headers;
+}
+
+function securedResponse(response, key, method = "GET") {
+  const headers = applySecurityHeaders(new Headers(response.headers), key);
+  return new Response(method === "HEAD" ? null : response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 export async function onRequest(context) {
   const { request, env, params } = context;
   const method = request.method.toUpperCase();
@@ -36,6 +79,14 @@ export async function onRequest(context) {
   const key = getObjectKey(params.path);
   if (!key) return new Response("Not found", { status: 404 });
 
+  // Browser hotlinks from unrelated origins are denied before cache or B2 access. Requests without
+  // Fetch Metadata (for example older clients or command-line tools) are handled by later roadmap
+  // milestones with signed tickets rather than being blocked here for compatibility.
+  if (crossSiteEpubRequest(request, key)) {
+    const headers = applySecurityHeaders(new Headers({ "Cache-Control": "private, no-store" }), key);
+    return new Response("Cross-site EPUB access is not allowed.", { status: 403, headers });
+  }
+
   const incomingRange = request.headers.get("range");
   const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
@@ -43,7 +94,7 @@ export async function onRequest(context) {
 
   if (canCache) {
     const cached = await cache.match(cacheKey);
-    if (cached) return cached;
+    if (cached) return securedResponse(cached, key, method);
   }
 
   const forwarded = new Headers();
@@ -60,9 +111,8 @@ export async function onRequest(context) {
     return new Response("Storage request failed.", { status: 502 });
   }
 
-  const headers = new Headers(upstream.headers);
+  const headers = applySecurityHeaders(new Headers(upstream.headers), key);
   headers.set("Cache-Control", cachePolicy(key));
-  headers.set("X-Content-Type-Options", "nosniff");
   headers.delete("server");
   headers.delete("x-amz-id-2");
   headers.delete("x-amz-request-id");

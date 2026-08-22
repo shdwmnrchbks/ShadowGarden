@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 1.1.3 — Continuous Reader Hardening
+- Backported EPUB.js's newer Continuous manager scroll-position synchronization so recursive previous-section prepends use the real scroll container position instead of stale bookkeeping.
+- Stop destroying offscreen spine iframes during active scrolling; hide them while moving, then trim only after the reader is idle while retaining a bounded three-section neighborhood around the viewport.
+- Delay Continuous `scrolled` location reports until the queued manager check has settled, preventing stale geometry from pushing the reader forward or leaving the viewport blank during repeated upward traversal.
+- Normalize visual-only XHTML sections before EPUB.js measures them, including `<figure><img>`, standalone image pages, and SVG cover wrappers that use percentage sizing or `100vh`.
+- Keep visual pages at least one reader viewport tall, remeasure after media and fonts settle, and preserve intrinsic SVG/image aspect ratios instead of forcing SVG-only sections to exactly one viewport.
+- Increased the Continuous preload window to roughly 2.25 viewports so prior spine items are prepared earlier without changing Paginated mode.
+
 ## 1.1.2 — Continuous Media & Reverse Scroll Stability
 - Fixed image-only, full-page illustration, and SVG cover spine items collapsing or disappearing in Continuous mode while remaining valid in Paginated mode.
 - Added a viewport-height fallback only for visual-dominant sections whose initial EPUB.js text measurement is zero or too small, then remeasure after normal images, SVG image resources, video metadata, and fonts settle.

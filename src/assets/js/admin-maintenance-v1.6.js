@@ -78,7 +78,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   });
 
   const boot=async()=>{
-    await loadScript('script[data-admin-upload-workflow]','/assets/js/admin-upload-workflow-v1.7.0.js?v=1.8.0','adminUploadWorkflow');
+    await loadScript('script[data-admin-upload-workflow]','/assets/js/admin-upload-workflow.js?v=1.8.0','adminUploadWorkflow');
     await loadScript('script[data-admin-upload-completion]','/assets/js/admin-upload-completion.js?v=1.8.0','adminUploadCompletion');
     await loadScript('script[data-admin-upload-polish]','/assets/js/admin-upload-polish.js?v=1.8.0','adminUploadPolish');
     await loadScript('script[data-admin-backup-history]','/assets/js/admin-backup-history.js?v=1.8.0','adminBackupHistory');

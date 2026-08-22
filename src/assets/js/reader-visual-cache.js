@@ -161,6 +161,15 @@
     return VISUAL_HINT.test(signal);
   }
 
+  function simpleRasterSvg(svg){
+    if(!svg)return null;
+    const images=localElements(svg,"image");
+    if(images.length!==1)return null;
+    const allowed=new Set(["image","title","desc"]);
+    const extra=[...svg.getElementsByTagName("*")].some(node=>!allowed.has(node.localName));
+    return extra?null:images[0];
+  }
+
   function svgDimensions(svg){
     if(!svg)return null;
     try{
@@ -298,9 +307,9 @@
 
     const svg=svgs[0]||(doc.documentElement?.localName==="svg"?doc.documentElement:null);
     if(!asset&&svg){
-      const embedded=localElements(svg,"image");
-      if(embedded.length===1){
-        const href=embedded[0].getAttribute("href")||embedded[0].getAttribute("xlink:href")||"";
+      const embedded=simpleRasterSvg(svg);
+      if(embedded){
+        const href=embedded.getAttribute("href")||embedded.getAttribute("xlink:href")||"";
         if(href&&!/^(?:data:|blob:|https?:|\/\/)/i.test(href)){
           sourcePath=resolvePath(dirName(item.path),href);
           cover=hrefMatches(sourcePath,coverPath);

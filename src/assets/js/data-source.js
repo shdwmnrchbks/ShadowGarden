@@ -1,5 +1,42 @@
 window.ShadowGardenData=(()=>{
   let sourcePromise;
+  const encoder=new TextEncoder();
+  const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
+  const LEGACY_BOOK=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
+  function base64Url(bytes){
+    let binary='';
+    for(const value of bytes)binary+=String.fromCharCode(value);
+    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+  }
+  async function bookIdForLegacyPath(value){
+    let path='';
+    try{const url=new URL(String(value||''),location.href);if(url.origin===location.origin&&LEGACY_BOOK.test(url.pathname))path=url.pathname}catch{}
+    if(!path)return'';
+    const digest=new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(`shadow-garden-book-id-v1\n${path}`)));
+    return `bk_${base64Url(digest.slice(0,16))}`;
+  }
+  async function migrateLegacyStateFallback(bookIds){
+    const wanted=new Set(bookIds.filter(id=>BOOK_ID.test(id)));
+    if(!wanted.size)return;
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++)keys.push(localStorage.key(i));
+    for(const key of keys){
+      if(!key?.startsWith('sg-progress:'))continue;
+      const oldIdentity=key.slice('sg-progress:'.length);
+      if(!LEGACY_BOOK.test(oldIdentity))continue;
+      const bookId=await bookIdForLegacyPath(oldIdentity);
+      if(!wanted.has(bookId))continue;
+      const raw=localStorage.getItem(key);if(raw===null)continue;
+      const nextKey=`sg-progress:${bookId}`;
+      try{
+        const oldValue=JSON.parse(raw),current=JSON.parse(localStorage.getItem(nextKey)||'null');
+        if(!current||Number(oldValue?.updatedAt)||0>Number(current?.updatedAt)||0){
+          if(oldValue&&typeof oldValue==='object')oldValue.file=bookId;
+          localStorage.setItem(nextKey,JSON.stringify(oldValue));
+        }
+      }catch{if(localStorage.getItem(nextKey)===null)localStorage.setItem(nextKey,raw)}
+    }
+  }
   async function getSource(){
     if(!sourcePromise){
       sourcePromise=fetch('/data/source.json',{cache:'default'})
@@ -23,15 +60,18 @@ window.ShadowGardenData=(()=>{
       ...item,
       volumes:(Array.isArray(item?.volumes)?item.volumes:[]).map(volume=>{
         const bookId=String(volume?.bookId||'');
-        if(/^bk_[A-Za-z0-9_-]{22}$/.test(bookId)){
+        if(BOOK_ID.test(bookId)){
           bookIds.push(bookId);
           return {...volume,file:bookId};
         }
         return volume;
       })
     }));
-    if(bookIds.length&&window.ShadowGardenBookAccess?.migrateLegacyState){
-      try{await window.ShadowGardenBookAccess.migrateLegacyState(bookIds)}catch(error){console.warn('Legacy reading-state migration skipped',error)}
+    if(bookIds.length){
+      try{
+        if(window.ShadowGardenBookAccess?.migrateLegacyState)await window.ShadowGardenBookAccess.migrateLegacyState(bookIds);
+        else await migrateLegacyStateFallback(bookIds);
+      }catch(error){console.warn('Legacy reading-state migration skipped',error)}
     }
     return {...value,series};
   }

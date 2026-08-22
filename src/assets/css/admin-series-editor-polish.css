@@ -1,4 +1,4 @@
-/* Shadow Garden v1.2.1 — Series Editor / Adult Library stability */
+/* Shadow Garden v1.2.2 — stable Series Editor / Adult Library controls. */
 .admin-dialog{
   box-sizing:border-box;
   overflow:hidden;
@@ -8,30 +8,63 @@
   min-height:0;
   overflow:hidden;
 }
-.admin-dialog .dialog-head,
-.admin-dialog .dialog-actions{
-  flex:0 0 auto;
-}
 .admin-dialog .dialog-scroll{
-  flex:1 1 auto;
   min-height:0;
   overflow-x:hidden;
   overflow-y:auto;
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
 }
-/* A fixed editor flex height prevents the form from shrinking to its footer after the Adult
-   checkbox changes intrinsic layout/scroll anchoring. */
-#seriesEditor .dialog-shell{
+
+/* Series Editor uses explicit grid rows instead of a flex-height negotiation. This prevents
+   Chromium from collapsing the scrolling body toward the footer when a visually-hidden
+   checkbox changes state/focus. */
+#seriesEditor{
   height:min(88dvh,900px);
-  min-height:min(70dvh,620px);
+  max-height:min(88dvh,900px);
 }
-#seriesEditor .dialog-scroll{flex:1 1 0}
+#seriesEditor .dialog-shell{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  width:100%;
+  height:100%;
+  max-height:none;
+  min-height:0;
+}
+#seriesEditor .dialog-head,
+#seriesEditor .dialog-actions{min-height:0}
+#seriesEditor .dialog-scroll{
+  min-height:0;
+  height:auto;
+  overflow-y:auto;
+}
+
+/* Keep checkbox focusable/accessibile without leaving a zero-sized absolute control at an
+   unstable scroll anchor inside the dialog. */
+.adult-toggle{position:relative}
+.adult-toggle>input{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  margin:0!important;
+  padding:0!important;
+  opacity:0!important;
+  overflow:hidden!important;
+  clip:rect(0 0 0 0)!important;
+  clip-path:inset(50%)!important;
+  white-space:nowrap!important;
+}
+.adult-toggle:focus-within{
+  border-color:rgba(214,160,173,.34);
+  box-shadow:0 0 0 3px rgba(183,121,139,.08);
+}
+
 /* Add-to-series already inherits its catalog. Keep the informative target bar and remove the
    redundant disabled toggle entirely. */
 .keeper-targeted #metadataCard .adult-toggle{display:none!important}
 .add-series-target[data-scope="adult"]{border-color:rgba(214,160,173,.28);background:rgba(183,121,139,.08)}
 .add-series-target[data-scope="adult"] .add-series-target-mark{background:rgba(183,121,139,.12);color:#d6a0ad}
+
 .admin-toast-host{
   position:fixed;
   right:max(18px,env(safe-area-inset-right));
@@ -55,11 +88,12 @@
   animation:adminToastIn .18s ease both;
 }
 .admin-toast.success{border-color:rgba(115,176,132,.30)}
+.admin-toast.info{border-color:rgba(195,180,238,.24)}
 .admin-toast.leaving{animation:adminToastOut .16s ease both}
 @keyframes adminToastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes adminToastOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(6px)}}
 @media(max-width:560px){
-  #seriesEditor .dialog-shell{height:94dvh;min-height:0}
+  #seriesEditor{height:94dvh;max-height:94dvh}
   .admin-toast-host{right:18px;left:18px;width:auto}
 }
 @media(prefers-reduced-motion:reduce){.admin-toast,.admin-toast.leaving{animation:none}}

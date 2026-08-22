@@ -37,9 +37,10 @@ async function checkTicketCrypto(){
 }
 
 async function checkWiring(){
-  const [routesText,reader,series,client,bootstrap,endpoint,media]=await Promise.all([
+  const [routesText,reader,series,client,bootstrap,endpoint,media,mediaTicket]=await Promise.all([
     read("src/_routes.json"),read("src/reader.html"),read("src/series.html"),read("src/assets/js/book-access.js"),
-    read("src/assets/js/reader-bootstrap.js"),read("functions/book-access.js"),read("functions/media/[[path]].js")
+    read("src/assets/js/reader-bootstrap.js"),read("functions/book-access.js"),read("functions/media/[[path]].js"),
+    read("functions/_lib/media-ticket.js")
   ]);
   const routes=JSON.parse(routesText);
   if(!routes.include?.includes("/book-access"))fail("_routes.json must route /book-access through Pages Functions");
@@ -55,8 +56,11 @@ async function checkWiring(){
     if(!client.includes(marker))fail(`book-access.js is missing ${marker}`);
   }
   for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.5.0")'])if(!bootstrap.includes(marker))fail(`reader-bootstrap.js is missing ${marker}`);
-  for(const marker of ["issueMediaTicket","ticketCookie","Set-Cookie","SG_MEDIA_SIGNING_SECRET","ticketing_not_configured"]){
+  for(const marker of ["issueMediaTicket","ticketCookie","Set-Cookie","ticketing_not_configured"]){
     if(!endpoint.includes(marker))fail(`book-access endpoint is missing ${marker}`);
+  }
+  for(const marker of ["SG_MEDIA_SIGNING_SECRET","HMAC","SHA-256","sg-media-ticket-v1"]){
+    if(!mediaTicket.includes(marker))fail(`media-ticket helper is missing ${marker}`);
   }
   for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing"]){
     if(!media.includes(marker))fail(`media ticket enforcement is missing ${marker}`);

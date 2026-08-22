@@ -1,5 +1,16 @@
 # Shadow Garden Changelog
 
+## 1.2.2 — Runtime Navigation & Adult Control Rewrite
+- Replaced EPUB.js Continuous recursive `check()` / `fill()` loading with a bounded iterative spine loader that stops after a finite number of inserts and aborts repeated no-growth media boundaries instead of letting the scroll queue lock indefinitely.
+- Rebound EPUB.js's already-created debounced `_scrolled` callback to the bounded controller so normal wheel/touch scrolling cannot keep calling the superseded recursive handler.
+- Made seekbar dragging preview-only and deduplicate the second identical Continuous `display()` inside the same committed seek transaction, while leaving the canonical Pages ↔ Continuous location reassertion intact.
+- Added direct wheel/touch boundary recovery for full-page covers and standalone illustrations so the neighboring spine item can load even when the current visual page exactly fills the scroll extent.
+- Made the end-of-volume page depend on the real final linear spine item instead of progress-text thresholds; Paginated shows it when advancing beyond the actual last page, while Continuous appends it physically after the final rendered spine view.
+- Removed the obsolete v1.2.1 standalone end-page script so completion has one authoritative controller.
+- Replaced the Add New Book and Manage Series Adult Library checkbox DOM nodes after legacy admin scripts initialize, removing the conflicting listeners that rebuilt/collapsed their dialogs.
+- Keep Add New Book scope changes in the active batch model without redrawing the queue during the checkbox event, while direct Add-to-Series continues to hide the redundant toggle and inherit its series shelf.
+- Rebuilt Series Editor geometry as explicit header / scrolling-content / footer grid rows and stabilized the visually-hidden checkbox focus box so changing Main ↔ 18+ cannot collapse the editor body.
+
 ## 1.2.1 — Reader & Adult Toggle Stability
 - Changed reader seekbar scrubbing to preview only while dragging and navigate once on release, preventing overlapping Continuous `display()` cycles.
 - Coalesce duplicate/overlapping EPUB.js display requests and top-level Continuous fill work, while preserving EPUB.js recursive fill behavior.

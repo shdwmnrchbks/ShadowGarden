@@ -12,10 +12,13 @@
   <link rel="stylesheet" href="/assets/css/library-scale.css">
   <link rel="stylesheet" href="/assets/css/v1-polish.css">
   <link rel="stylesheet" href="/assets/css/site-v1.5.css?v=1.5.2">
+  <link rel="stylesheet" href="/assets/css/site-v1.6.css?v=1.6.0">
+  <link rel="stylesheet" href="/assets/css/ui-symbols.css?v=1.6.0">
   <script src="/assets/js/nav.js" defer></script>
   <script src="/assets/js/data-source.js" defer></script>
   <script src="/assets/js/library.js" defer></script>
-  <script src="/assets/js/library-mobile-filter.js?v=1.5.2" defer></script>
+  <script src="/assets/js/nav-pinned.js?v=1.6.0" defer></script>
+  <script src="/assets/js/library-mobile-filter.js?v=1.6.0" defer></script>
   <script src="/assets/js/library-continue-meta.js?v=1.5.1" defer></script>
   <script src="/assets/js/site-a11y.js" defer></script>
 </head>
@@ -29,7 +32,6 @@
     <nav id="siteNav" aria-label="Primary navigation">
       <a class="active" aria-current="page" href="/">Library</a>
       <a class="adult-nav-link" href="/nsfw.html">Adult Section <span>18+</span></a>
-      <button id="pinnedNav" class="nav-button" type="button">Pinned</button>
     </nav>
     <div class="header-actions">
       <div class="header-stat"><span id="headerVolumes">0</span> volumes</div>
@@ -54,7 +56,7 @@
           <div class="search-field">
             <span aria-hidden="true">⌕</span>
             <input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search library">
-            <button id="filterToggle" class="filter-toggle mobile-filter-toggle" type="button" hidden aria-expanded="true" aria-label="Expand library filters" title="Expand filters">⌄</button>
+            <button id="filterToggle" class="filter-toggle mobile-filter-toggle" type="button" hidden aria-expanded="true" aria-label="Expand library filters" title="Expand filters">▼</button>
           </div>
           <p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p>
         </div>

@@ -56,6 +56,12 @@ function deniedEpub(key, message = "A valid Shadow Garden book ticket is require
   return new Response(message, { status: 403, headers });
 }
 
+function unavailableEpub(key) {
+  const headers = applySecurityHeaders(new Headers({ "Cache-Control": "private, no-store" }), key);
+  headers.set("X-SG-Media-Ticketing", "unavailable");
+  return new Response("Signed EPUB access is not configured.", { status: 503, headers });
+}
+
 async function authorizedEpub(request, env) {
   const queryTicket = await verifyMediaTicket(env, request.url);
   if (queryTicket.valid) return true;
@@ -73,12 +79,15 @@ export async function onRequest(context) {
   const key = getObjectKey(params.path);
   if (!key) return new Response("Not found", { status: 404 });
   if (crossSiteEpubRequest(request, key)) return deniedEpub(key, "Cross-site EPUB access is not allowed.");
-  if (key.endsWith(".epub") && ticketingEnabled(env) && !(await authorizedEpub(request, env))) return deniedEpub(key);
+  if (key.endsWith(".epub")) {
+    if (!ticketingEnabled(env)) return unavailableEpub(key);
+    if (!(await authorizedEpub(request, env))) return deniedEpub(key);
+  }
 
   const incomingRange = request.headers.get("range");
   const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
-  const cacheUrl = key.endsWith(".epub") && ticketingEnabled(env) ? canonicalMediaCacheUrl(request.url) : request.url;
+  const cacheUrl = key.endsWith(".epub") ? canonicalMediaCacheUrl(request.url) : request.url;
   const cacheKey = new Request(cacheUrl, { method: "GET" });
   if (canCache) {
     const cached = await cache.match(cacheKey);
@@ -97,7 +106,7 @@ export async function onRequest(context) {
 
   const headers = applySecurityHeaders(new Headers(upstream.headers), key);
   headers.set("Cache-Control", cachePolicy(key));
-  headers.set("X-SG-Media-Ticketing", ticketingEnabled(env) && key.endsWith(".epub") ? "active" : "disabled");
+  headers.set("X-SG-Media-Ticketing", key.endsWith(".epub") ? "active" : "disabled");
   headers.delete("server"); headers.delete("x-amz-id-2"); headers.delete("x-amz-request-id");
   const response = new Response(method === "HEAD" ? null : upstream.body, { status: upstream.status, statusText: upstream.statusText, headers });
   if (canCache && upstream.status === 200) context.waitUntil(cache.put(cacheKey, response.clone()));

@@ -1,7 +1,7 @@
 import { createReaderStorage } from "./reader/storage.js";
 import { createThemeController } from "./reader/theme.js";
-import { createTocController } from "./reader/toc.js";
-import { createPageMapController } from "./reader/page-map.js";
+import { createTocController } from "./reader/toc.js?v=1.2.0";
+import { createPageMapController } from "./reader/page-map.js?v=1.2.0";
 
 const $ = selector => document.querySelector(selector);
 const params = new URLSearchParams(location.search);

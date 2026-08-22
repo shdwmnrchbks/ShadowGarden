@@ -3,6 +3,7 @@
   const nativeFetch=window.fetch.bind(window);
   const cache=new Map();
   const initialBook=new URLSearchParams(location.search).get("book")||"";
+  const ACCESS_TIMEOUT_MS=12000;
   let renewalTimer=0;
 
   function normalizeIdentity(book){
@@ -16,6 +17,25 @@
     return Boolean(url&&url.origin===location.origin&&url.pathname.startsWith("/media/shadow-garden/")&&url.pathname.toLowerCase().endsWith(".epub")&&!url.searchParams.has("sig"));
   }
 
+  async function requestTicket(identity){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),ACCESS_TIMEOUT_MS);
+    try{
+      return await nativeFetch("/book-access",{
+        method:"POST",
+        credentials:"same-origin",
+        signal:controller.signal,
+        headers:{"content-type":"application/json"},
+        body:JSON.stringify({book:identity})
+      });
+    }catch(error){
+      if(error?.name==="AbortError")throw new Error("Book authorization timed out. Please try again.");
+      throw error;
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+
   async function resolve(book,{force=false}={}){
     const identity=normalizeIdentity(book);
     if(!identity)throw new Error("No EPUB was selected.");
@@ -23,12 +43,7 @@
     const cached=cache.get(identity);
     if(!force&&cached&&(!cached.protected||Number(cached.expiresAt)-now>45))return cached;
 
-    const response=await nativeFetch("/book-access",{
-      method:"POST",
-      credentials:"same-origin",
-      headers:{"content-type":"application/json"},
-      body:JSON.stringify({book:identity})
-    });
+    const response=await requestTicket(identity);
     let payload=null;
     try{payload=await response.json()}catch{}
     if(response.status===503&&payload?.code==="ticketing_not_configured"){
@@ -68,16 +83,16 @@
     link.href=ticket.url;
     link.download=filename||"";
     link.rel="nofollow";
+    link.dataset.sgBookAccessBypass="1";
     link.style.display="none";
     document.body.appendChild(link);
-    link.click();
-    link.remove();
+    try{link.click()}finally{link.remove()}
     return ticket;
   }
 
   document.addEventListener("click",event=>{
     const link=event.target.closest?.("a[download]");
-    if(!link||!isRawEpubRequest(link.href))return;
+    if(!link||link.dataset.sgBookAccessBypass==="1"||!isRawEpubRequest(link.href))return;
     event.preventDefault();
     if(link.dataset.sgBookAccessBusy==="1")return;
     link.dataset.sgBookAccessBusy="1";

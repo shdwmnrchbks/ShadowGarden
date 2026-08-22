@@ -52,9 +52,15 @@ async function checkWiring(){
   if(bootstrapPos<0||reader.includes('type="module" src="/assets/js/reader.js'))fail("Reader shell must start through reader-bootstrap.js, not reader.js directly");
   if(!series.includes("/assets/js/book-access.js"))fail("Series page must load book-access.js for direct EPUB downloads");
 
-  for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer"]){
+  for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass"]){
     if(!client.includes(marker))fail(`book-access.js is missing ${marker}`);
   }
+  const bypassAssignment=client.indexOf('link.dataset.sgBookAccessBypass="1"');
+  const syntheticClick=client.indexOf("link.click()");
+  const bypassGuard=client.indexOf('link.dataset.sgBookAccessBypass==="1"');
+  if(bypassAssignment<0||syntheticClick<0||bypassAssignment>syntheticClick)fail("synthetic EPUB download links must be marked before click()");
+  if(bypassGuard<0)fail("download interceptor must ignore internally authorized download links");
+
   for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.5.0")'])if(!bootstrap.includes(marker))fail(`reader-bootstrap.js is missing ${marker}`);
   for(const marker of ["issueMediaTicket","ticketCookie","Set-Cookie","ticketing_not_configured"]){
     if(!endpoint.includes(marker))fail(`book-access endpoint is missing ${marker}`);

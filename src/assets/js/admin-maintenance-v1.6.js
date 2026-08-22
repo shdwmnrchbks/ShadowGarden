@@ -39,7 +39,7 @@
   enhance();
 })();
 
-/* v1.7 runs after every deferred Garden Keeper controller has initialized, including the
+/* v1.7+ runs after every deferred Garden Keeper controller has initialized, including the
    targeted-series New Books layer. This keeps the existing uploader engine intact. */
 window.addEventListener('DOMContentLoaded',()=>{
   if(!document.querySelector('link[data-admin-v17]')){
@@ -49,9 +49,32 @@ window.addEventListener('DOMContentLoaded',()=>{
     link.dataset.adminV17='1';
     document.head.appendChild(link);
   }
-  if(document.querySelector('script[data-admin-upload-v17]'))return;
+  if(!document.querySelector('link[data-admin-v171]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='/assets/css/admin-v1.7.1.css?v=1.7.1';
+    link.dataset.adminV171='1';
+    document.head.appendChild(link);
+  }
+
+  const loadCompletionFix=()=>{
+    if(document.querySelector('script[data-admin-upload-completion-v171]'))return;
+    const fix=document.createElement('script');
+    fix.src='/assets/js/admin-upload-completion-v1.7.1.js?v=1.7.1';
+    fix.dataset.adminUploadCompletionV171='1';
+    document.body.appendChild(fix);
+  };
+
+  const existing=document.querySelector('script[data-admin-upload-v17]');
+  if(existing){
+    if(existing.dataset.loaded==='1')loadCompletionFix();
+    else existing.addEventListener('load',()=>{existing.dataset.loaded='1';loadCompletionFix()},{once:true});
+    return;
+  }
+
   const script=document.createElement('script');
   script.src='/assets/js/admin-upload-workflow-v1.7.0.js?v=1.7.0';
   script.dataset.adminUploadV17='1';
+  script.addEventListener('load',()=>{script.dataset.loaded='1';loadCompletionFix()},{once:true});
   document.body.appendChild(script);
 },{once:true});

@@ -11,11 +11,11 @@
   <link rel="stylesheet" href="/assets/css/nav.css">
   <link rel="stylesheet" href="/assets/css/library-scale.css">
   <link rel="stylesheet" href="/assets/css/v1-polish.css">
-  <link rel="stylesheet" href="/assets/css/site-v1.5.css?v=1.5.0">
+  <link rel="stylesheet" href="/assets/css/site-v1.5.css?v=1.5.1">
   <script src="/assets/js/nav.js" defer></script>
   <script src="/assets/js/data-source.js" defer></script>
   <script src="/assets/js/library.js" defer></script>
-  <script src="/assets/js/library-filter-collapse.js" defer></script>
+  <script src="/assets/js/library-continue-meta.js?v=1.5.1" defer></script>
   <script src="/assets/js/site-a11y.js" defer></script>
 </head>
 <body data-library-scope="main">
@@ -46,14 +46,6 @@
       <div id="continuePanel" class="continue-panel hidden"></div>
     </section>
 
-    <section id="recentSection" class="recent-section hidden" aria-labelledby="recentHeading">
-      <div class="recent-head">
-        <div><p class="kicker">NEW GROWTH</p><h2 id="recentHeading">Recently Added</h2></div>
-        <button id="recentViewAll" class="recent-view-all" type="button">View newest in archive →</button>
-      </div>
-      <div id="recentVolumes" class="recent-volumes"></div>
-    </section>
-
     <section id="catalogSection" class="catalog-layout" aria-label="Library catalog">
       <aside class="filters" aria-label="Library filters">
         <div class="filter-head"><strong>Filter archive</strong><button id="clearFilters" type="button">Reset</button></div>
@@ -61,7 +53,6 @@
           <div class="search-field">
             <span aria-hidden="true">⌕</span>
             <input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search library">
-            <button id="filterToggle" class="filter-toggle" type="button" aria-expanded="true" aria-label="Collapse filters" title="Collapse filters">⌃</button>
           </div>
           <p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p>
         </div>
@@ -83,6 +74,14 @@
       </aside>
 
       <div class="catalog-main">
+        <section id="recentSection" class="recent-section hidden" aria-labelledby="recentHeading">
+          <div class="recent-head">
+            <div><p class="kicker">NEW GROWTH</p><h2 id="recentHeading">Recently Added</h2></div>
+            <button id="recentViewAll" class="recent-view-all" type="button">View newest in archive →</button>
+          </div>
+          <div id="recentVolumes" class="recent-volumes"></div>
+        </section>
+
         <div class="catalog-bar">
           <p id="resultCount" role="status" aria-live="polite" aria-atomic="true">Loading archive…</p>
           <div class="view-switch" role="group" aria-label="View style">

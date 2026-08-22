@@ -30,7 +30,8 @@ window.ShadowGardenData=(()=>{
       const nextKey=`sg-progress:${bookId}`;
       try{
         const oldValue=JSON.parse(raw),current=JSON.parse(localStorage.getItem(nextKey)||'null');
-        if(!current||Number(oldValue?.updatedAt)||0>Number(current?.updatedAt)||0){
+        const oldUpdated=Number(oldValue?.updatedAt)||0,currentUpdated=Number(current?.updatedAt)||0;
+        if(!current||oldUpdated>currentUpdated){
           if(oldValue&&typeof oldValue==='object')oldValue.file=bookId;
           localStorage.setItem(nextKey,JSON.stringify(oldValue));
         }

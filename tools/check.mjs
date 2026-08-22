@@ -150,6 +150,39 @@ async function checkRuntimeAssetRefs() {
   }
 }
 
+async function checkSecurityBaseline() {
+  const robotsPath = path.join(SRC, "robots.txt");
+  const mediaPath = path.join(ROOT, "functions", "media", "[[path]].js");
+
+  if (!fssync.existsSync(robotsPath)) {
+    fail("security baseline requires src/robots.txt");
+  } else {
+    const robots = await fs.readFile(robotsPath, "utf8");
+    for (const route of ["/media/", "/admin.html", "/admin-api/", "/book-access/"]) {
+      if (!robots.includes(`Disallow: ${route}`)) fail(`src/robots.txt must disallow ${route}`);
+    }
+  }
+
+  if (!fssync.existsSync(mediaPath)) {
+    fail("security baseline requires functions/media/[[path]].js");
+    return;
+  }
+
+  const media = await fs.readFile(mediaPath, "utf8");
+  const requiredMarkers = [
+    '"sec-fetch-site"',
+    '"cross-site"',
+    '"Cross-Origin-Resource-Policy"',
+    '"same-origin"',
+    '"X-Robots-Tag"',
+    '"noindex, nofollow, noarchive, nosnippet"',
+    '"access-control-allow-origin"'
+  ];
+  for (const marker of requiredMarkers) {
+    if (!media.includes(marker)) fail(`media security baseline is missing ${marker}`);
+  }
+}
+
 function checkRetiredFiles() {
   for (const item of retiredPaths) {
     if (fssync.existsSync(path.join(ROOT, item))) fail(`retired compatibility asset returned: ${item}`);
@@ -162,6 +195,7 @@ async function main() {
   await checkJson();
   await checkHtml();
   await checkRuntimeAssetRefs();
+  await checkSecurityBaseline();
 
   if (failures.length) {
     console.error(`Shadow Garden check failed with ${failures.length} problem${failures.length === 1 ? "" : "s"}:`);

@@ -1,0 +1,35 @@
+/* Shadow Garden v1.2.1 — reader stability/end-page UI */
+.volume-end-page{
+  box-sizing:border-box;
+  min-height:100%;
+  padding:clamp(28px,6vw,72px);
+  display:grid;
+  place-items:center;
+  background:#120e19;
+  color:var(--text,#ede9f2);
+}
+.volume-end-page.hidden{display:none!important}
+.volume-end-page .volume-complete-card{
+  width:min(620px,100%);
+  margin:auto;
+  text-align:center;
+}
+.volume-end-page .volume-complete-actions{justify-content:center;flex-wrap:wrap}
+body.reader-theme-night .volume-end-page{background:#11171a}
+body.reader-theme-black .volume-end-page{background:#000}
+body.reader-theme-paper .volume-end-page{background:#eee9dc;color:#292a25}
+body.adult-reader .volume-end-page{background:#140d10}
+body.reader-flow-paginated .volume-end-page{
+  position:absolute;
+  inset:0;
+  z-index:8;
+}
+body.reader-flow-scrolled .volume-end-page.continuous-end{
+  position:relative;
+  inset:auto;
+  width:100%;
+  min-height:max(520px,calc(100dvh - 54px));
+  margin:0;
+  z-index:0;
+  flex:0 0 auto;
+}

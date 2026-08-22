@@ -1,12 +1,11 @@
-/* Shadow Garden v1.7.4 — authoritative Catalog History row renderer. */
+/* Shadow Garden — authoritative Catalog History row renderer. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
 
   let observer=null;
   let scheduled=false;
-
-  function textOf(el){return String(el?.textContent||'').trim()}
+  const textOf=el=>String(el?.textContent||'').trim();
 
   function rebuild(){
     scheduled=false;

@@ -1,4 +1,4 @@
-/* Shadow Garden v1.1.0 — unified Garden Keeper workspace */
+/* Shadow Garden — unified Garden Keeper workspace */
 #dashboardView{display:block}
 #dashboardView.hidden{display:none!important}
 .manage-home-head{display:grid;grid-template-columns:150px minmax(0,1fr) auto;align-items:start;gap:22px;margin-bottom:24px}
@@ -8,7 +8,10 @@
 .manage-home-copy{min-width:0}
 .manage-home-copy h1{margin:.08em 0 .18em;font-size:clamp(2rem,6vw,3.6rem);line-height:1}
 .manage-home-copy>p:last-child{margin:0;max-width:660px;color:#aaa2b5;line-height:1.55}
-.manage-lock{align-self:start}
+.manage-lock{align-self:start;width:40px;height:40px;padding:0!important;display:grid!important;place-items:center}
+.manage-lock svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.backup-delete-icon{min-width:38px;width:38px;padding:0!important;display:inline-grid;place-items:center;font-size:0}
+.backup-delete-icon::before{content:"🗑";font-size:.88rem;line-height:1;filter:grayscale(1)}
 .manager-card-actions{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:10px}
 .manager-card-actions .manager-open,.manager-card-actions .manager-add{width:auto;min-height:36px;margin:0;padding:8px 11px}
 .manager-card-actions .manager-add{border:1px solid rgba(195,180,238,.22);background:rgba(154,134,211,.08);color:#cbbcf0;border-radius:11px;cursor:pointer;font:inherit;font-size:.75rem}

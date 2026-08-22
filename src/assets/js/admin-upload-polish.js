@@ -1,4 +1,4 @@
-/* Shadow Garden v1.7.4 — safe queue editor restore and uploaded-series cover chooser. */
+/* Shadow Garden — safe queue editor restore and uploaded-series cover chooser. */
 (()=>{
   const dialog=document.querySelector('#addBooksDialog');
   const batchList=document.querySelector('#batchList');
@@ -7,8 +7,8 @@
   const stage=document.querySelector('#uploadWorkflowStage');
   const q=state?.batch;
 
-  /* Keep local EPUB inspection authoritative. Restore the previously active editor only after
-     every checking item has fully settled. */
+  /* Local EPUB inspection is authoritative. Restore the previously active editor only after every
+     checking item has settled, so UI polish never fights the validator's intentional hide/show. */
   let editorRestoreTimer=0;
   function scheduleEditorRestore(){
     clearTimeout(editorRestoreTimer);
@@ -28,8 +28,7 @@
   }
   dialog?.addEventListener('close',()=>clearTimeout(editorRestoreTimer));
 
-  /* Turn the multi-series completion chooser into library-like cover cards. The v1.7 listener is
-     attached to each button itself, so replacing its children keeps navigation behavior intact. */
+  /* Enrich the multi-series completion chooser with the freshly updated catalog covers. */
   let libraryPromise=null;
   async function getLibrary(){
     if(!libraryPromise){
@@ -39,6 +38,7 @@
     }
     return libraryPromise;
   }
+
   async function enhanceSeriesChooser(){
     const grid=stage?.querySelector('.upload-series-grid');
     if(!grid||grid.dataset.coverCards)return;
@@ -48,6 +48,7 @@
       ...((Array.isArray(data?.main)?data.main:[]).map(series=>[series.id,series])),
       ...((Array.isArray(data?.adult)?data.adult:[]).map(series=>[series.id,series]))
     ]);
+
     for(const button of grid.querySelectorAll('[data-open-uploaded-series]')){
       const id=button.dataset.openUploadedSeries||'';
       const existingTitle=button.querySelector('strong')?.textContent||'Uploaded series';
@@ -58,20 +59,30 @@
       coverBox.className='upload-series-card-cover';
       if(cover){
         const img=document.createElement('img');
-        img.src=cover;img.alt='';img.loading='lazy';img.decoding='async';
+        img.src=cover;
+        img.alt='';
+        img.loading='lazy';
+        img.decoding='async';
         coverBox.appendChild(img);
       }else{
-        const fallback=document.createElement('span');fallback.className='upload-series-card-fallback';fallback.textContent='✦';coverBox.appendChild(fallback);
+        const fallback=document.createElement('span');
+        fallback.className='upload-series-card-fallback';
+        fallback.textContent='✦';
+        coverBox.appendChild(fallback);
       }
-      const copy=document.createElement('span');copy.className='upload-series-card-copy';
-      const title=document.createElement('strong');title.textContent=series?.title||existingTitle;
-      const meta=document.createElement('small');meta.textContent=existingMeta;
+      const copy=document.createElement('span');
+      copy.className='upload-series-card-copy';
+      const title=document.createElement('strong');
+      title.textContent=series?.title||existingTitle;
+      const meta=document.createElement('small');
+      meta.textContent=existingMeta;
       copy.append(title,meta);
       button.classList.add('upload-series-card');
       button.replaceChildren(coverBox,copy);
     }
     grid.dataset.coverCards='ready';
   }
+
   if(stage){
     new MutationObserver(()=>queueMicrotask(()=>void enhanceSeriesChooser())).observe(stage,{childList:true,subtree:true});
     void enhanceSeriesChooser();

@@ -1,9 +1,11 @@
 {
   "name": "shadow-garden-library",
-  "version": "1.7.5",
+  "version": "1.8.0",
   "private": true,
   "type": "module",
   "scripts": {
+    "check": "node tools/check.mjs",
+    "prebuild": "npm run check",
     "build": "node tools/build.mjs && node tools/write-source.mjs",
     "preview": "npx serve dist",
     "b2:setup": "node tools/b2-setup.mjs",

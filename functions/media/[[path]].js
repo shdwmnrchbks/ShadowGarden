@@ -1,20 +1,11 @@
-import { AwsClient } from "aws4fetch";
-
-const B2_BUCKET = "shadow-garden-books-01";
-const B2_ENDPOINT = "https://s3.us-east-005.backblazeb2.com";
-const B2_REGION = "us-east-005";
-const ALLOWED_PREFIX = "shadow-garden/";
+import { ROOT_PREFIX, objectUrl, readClient } from "../_lib/b2.js";
 
 function getObjectKey(value) {
   const parts = Array.isArray(value) ? value : [value];
   const clean = parts.filter(Boolean).map(String);
   if (!clean.length || clean.some(part => part === "." || part === ".." || part.includes("\\"))) return "";
   const key = clean.join("/");
-  return key.startsWith(ALLOWED_PREFIX) ? key : "";
-}
-
-function encodeKey(key) {
-  return key.split("/").map(encodeURIComponent).join("/");
+  return key.startsWith(ROOT_PREFIX) ? key : "";
 }
 
 function cachePolicy(key) {
@@ -61,18 +52,9 @@ export async function onRequest(context) {
     if (value) forwarded.set(name, value);
   }
 
-  const aws = new AwsClient({
-    accessKeyId: env.B2_READ_KEY_ID,
-    secretAccessKey: env.B2_READ_APPLICATION_KEY,
-    service: "s3",
-    region: B2_REGION,
-    retries: 2
-  });
-
-  const target = `${B2_ENDPOINT}/${B2_BUCKET}/${encodeKey(key)}`;
   let upstream;
   try {
-    upstream = await aws.fetch(target, { method, headers: forwarded });
+    upstream = await readClient(env).fetch(objectUrl(key), { method, headers: forwarded });
   } catch (error) {
     console.error("B2 proxy request failed", error);
     return new Response("Storage request failed.", { status: 502 });

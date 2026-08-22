@@ -16,7 +16,7 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB that a legiti
 | Milestone | Status | Scope |
 | --- | --- | --- |
 | 1. Baseline media hardening | ✅ Done | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
-| 2. Signed book access tickets | 🟨 In progress | Short-lived HMAC access URLs for EPUB delivery |
+| 2. Signed book access tickets | 🟨 In progress | Code merged and CI-verified; Cloudflare secret activation + production validation pending |
 | 3. Opaque public book identifiers | ⬜ Planned | Stop exposing durable B2 object paths in public catalog data |
 | 4. Human access sessions | ⬜ Planned | Free Cloudflare Turnstile session verification before protected book acquisition |
 | 5. Bulk-download throttling | ⬜ Planned | Free Cloudflare rate-limiting rule and unique-book acquisition policy |
@@ -39,7 +39,7 @@ Implemented and production-validated.
 - [x] Add `Cross-Origin-Resource-Policy: same-origin` to EPUB and catalog responses.
 - [x] Remove upstream CORS response headers from protected EPUB/catalog responses.
 - [x] Add `X-Robots-Tag` anti-index/archive headers to EPUB/catalog delivery.
-- [x] Add `robots.txt` rules for `/media/`, `/admin.html`, `/admin-api/`, and future `/book-access/` routes.
+- [x] Add `robots.txt` rules for `/media/`, `/admin.html`, `/admin-api/`, and `/book-access` routes.
 - [x] Preserve same-origin Reader Range requests.
 - [x] Preserve existing Cloudflare cache behavior and private B2 origin.
 - [x] Extend repository checks so the baseline hardening cannot silently disappear.
@@ -50,42 +50,47 @@ Implemented and production-validated.
 
 ## Milestone 2 — Signed book access tickets
 
-**Status:** 🟨 In progress
+**Status:** 🟨 In progress — code merged and CI-verified; activation and production validation pending
 
 Replace permanently reusable EPUB delivery URLs with short-lived HMAC-authorized access while keeping the current catalog schema intact. Milestone 3 will later replace the exposed durable media path with an opaque `bookId`; this milestone deliberately signs the existing EPUB path first so URL authorization can be validated independently.
 
-### Planned implementation
+### Implementation
 
-- [ ] Add a same-origin `/book-access` endpoint that accepts the current EPUB media path and returns a short-lived signed URL.
-- [ ] Add HMAC-SHA256 signing and validation shared by `/book-access` and `/media`.
-- [ ] Default ticket lifetime to roughly 10 minutes.
-- [ ] Require a valid ticket for EPUB requests once `SG_MEDIA_SIGNING_SECRET` is configured.
-- [ ] Keep a safe legacy fallback while the signing secret is not configured so deployment does not break before activation.
-- [ ] Make the Reader exchange its stable catalog EPUB path for a signed source URL before EPUB.js opens the book.
-- [ ] Keep progress, bookmarks, Visual Page Cache, and canonical Page Map keyed to the stable catalog path rather than the expiring signed URL.
-- [ ] Make direct Series-page EPUB downloads acquire a fresh ticket before downloading.
-- [ ] Preserve Range requests for the full ticket lifetime.
-- [ ] Use a canonical Cloudflare EPUB cache key after signature validation so different ticket signatures do not fragment the cache.
-- [ ] Add repository checks for ticket enforcement and route wiring.
-- [ ] Pass CI and production smoke test.
+- [x] Add a same-origin `/book-access` endpoint that accepts the current EPUB media path and returns a short-lived signed URL.
+- [x] Add HMAC-SHA256 signing and validation shared by `/book-access` and `/media`.
+- [x] Default ticket lifetime to roughly 10 minutes.
+- [x] Require a valid signed query ticket or exact-path Reader cookie for EPUB requests once `SG_MEDIA_SIGNING_SECRET` is configured.
+- [x] Keep a safe Milestone 1 fallback while the signing secret is not configured so deployment does not break before activation.
+- [x] Gate Reader startup on authorization while keeping the stable catalog EPUB path as the Reader identity.
+- [x] Keep progress, bookmarks, Visual Page Cache, and canonical Page Map keyed to the stable catalog path rather than the expiring signed URL.
+- [x] Use an HttpOnly, Secure, SameSite=Strict cookie scoped to the exact EPUB path for Reader requests.
+- [x] Renew the active Reader authorization shortly before expiry so long reading sessions continue normally.
+- [x] Make direct Series-page EPUB downloads acquire a fresh signed URL before downloading.
+- [x] Preserve Range requests for the ticket lifetime and renew Reader authorization during long sessions.
+- [x] Use a canonical Cloudflare EPUB cache key after signature validation so different ticket signatures do not fragment the cache.
+- [x] Add cryptographic, tamper, cookie, route, and Reader wiring checks.
+- [x] Pass repository CI.
+- [ ] Configure the Production `SG_MEDIA_SIGNING_SECRET` Cloudflare secret.
+- [ ] Production smoke-test protected Reader and download behavior.
 
 ### Activation requirement
 
-Create a Cloudflare Pages secret named:
+Create a Cloudflare Pages **Production secret** named:
 
 `SG_MEDIA_SIGNING_SECRET`
 
-Use a randomly generated value of at least 32 bytes. Until this secret exists, Shadow Garden will retain the Milestone 1 delivery behavior so the deployment is safe to roll out before activation.
+Use a randomly generated value of at least 32 bytes. Until this secret exists, Shadow Garden retains the Milestone 1 delivery behavior so the merged code is safe before activation.
 
 ### Acceptance criteria
 
 1. With `SG_MEDIA_SIGNING_SECRET` configured, a bare catalog EPUB URL returns a denial rather than the book.
 2. `/book-access` returns a signed same-origin EPUB URL for a valid catalog media path.
 3. Changing the path, expiry, or signature invalidates the ticket.
-4. An expired ticket is rejected.
+4. An expired signed URL is rejected.
 5. Pages and Continuous Reader modes open and seek normally.
-6. Reading progress and visual/page-map caches do not reset every time a new ticket is issued.
-7. Direct Series-page downloads still work, but the generated URL expires.
+6. Reading progress and visual/page-map caches do not reset when authorization is renewed.
+7. Direct Series-page downloads still work, but the generated download URL expires.
+8. A Reader left open beyond one ticket lifetime continues working through silent authorization renewal.
 
 ---
 

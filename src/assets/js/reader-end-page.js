@@ -57,6 +57,11 @@
     else container.appendChild(end);
   }
 
+  function syncProgressEnd(){
+    if(pagedActive&&!canonicalEnd())hidePagedEnd();
+    ensureContinuousEnd();
+  }
+
   function syncFlow(){
     const end=page();if(!end)return;
     if(document.body.classList.contains("reader-flow-scrolled")){
@@ -75,7 +80,7 @@
     event.preventDefault?.();
     showPagedEnd();
   });
-  document.addEventListener("sg-reader-navigation-settled",()=>ensureContinuousEnd());
+  document.addEventListener("sg-reader-navigation-settled",syncProgressEnd);
 
   document.addEventListener("click",event=>{
     const next=event.target?.closest?.("#nextPage,#nextBottom");
@@ -99,7 +104,7 @@
 
   function init(){
     const text=$("#progressText"),master=page();
-    if(text)new MutationObserver(()=>ensureContinuousEnd()).observe(text,{childList:true,characterData:true,subtree:true});
+    if(text)new MutationObserver(syncProgressEnd).observe(text,{childList:true,characterData:true,subtree:true});
     if(master)new MutationObserver(()=>{if(document.body.classList.contains("reader-flow-scrolled")&&canonicalEnd())ensureContinuousEnd(true)}).observe(master,{childList:true,characterData:true,subtree:true,attributes:true});
     new MutationObserver(syncFlow).observe(document.body,{attributes:true,attributeFilter:["class"]});
     const viewer=$("#viewer");

@@ -140,8 +140,7 @@
   function visibleRange(manager){
     const views=loadedViews(manager);
     if(!views.length)return{views,first:-1,last:-1};
-    const container=manager.container;
-    const viewport=container?.getBoundingClientRect?.();
+    const viewport=manager.container?.getBoundingClientRect?.();
     const indices=[];
     if(viewport){
       views.forEach((view,index)=>{
@@ -199,7 +198,7 @@
     return displayView(view,manager);
   }
 
-  function preserveAnchorBeforePrepend(manager,range){
+  function preserveAnchorBeforePrepend(range){
     const view=range.views[range.first];
     const top=view?.element?.getBoundingClientRect?.().top;
     return Number.isFinite(top)?{view,top}:null;
@@ -211,7 +210,7 @@
     if(!Number.isFinite(top))return;
     const delta=top-anchor.top;
     if(Math.abs(delta)>1){
-      manager.__sgSuppressScrollUntil=performance.now()+80;
+      manager.__sgSuppressScrollUntil=performance.now()+100;
       manager.container.scrollTop=(Number(manager.container.scrollTop)||0)+delta;
     }
     manager.ignore=false;
@@ -240,11 +239,11 @@
   async function ensureNeighborhood(manager,rendition){
     if(manager.__sgCoreCheckPromise)return manager.__sgCoreCheckPromise;
     const run=async()=>{
-      if(manager.__sgDestroyed)return false;
+      if(manager.__sgDestroyed||!manager.container||!manager.views)return false;
       syncScrollPosition(manager);
       let range=visibleRange(manager);
       if(range.first<0)return false;
-      const anchor=preserveAnchorBeforePrepend(manager,range);
+      const anchor=preserveAnchorBeforePrepend(range);
       let changed=false;
 
       const before=Math.max(0,range.first);
@@ -294,10 +293,15 @@
 
   function installManager(rendition){
     const manager=rendition?.manager;
-    if(!manager||manager.__sgContinuousCoreInstalled)return;
+    if(!manager||manager.__sgContinuousCoreInstalled)return Boolean(manager?.__sgContinuousCoreInstalled);
+    if(!manager.container||!manager.views){
+      clearTimeout(rendition.__sgContinuousCoreInstallTimer);
+      rendition.__sgContinuousCoreInstallTimer=setTimeout(()=>installManager(rendition),30);
+      return false;
+    }
+
     manager.__sgContinuousCoreInstalled=true;
     manager.__sgDestroyed=false;
-
     const scroller=scrollerFor(manager);
     try{manager._scrolled?.cancel?.()}catch{}
     try{if(manager._onScroll&&scroller)scroller.removeEventListener("scroll",manager._onScroll)}catch{}
@@ -315,8 +319,7 @@
     };
     manager.onScroll=()=>{
       const position=syncScrollPosition(manager);
-      const now=performance.now();
-      if(now<(Number(manager.__sgSuppressScrollUntil)||0))return;
+      if(performance.now()<(Number(manager.__sgSuppressScrollUntil)||0))return;
       manager.ignore=false;
       manager.__sgLastUserScrollAt=Date.now();
       try{manager.emit?.("scroll",position)}catch{}
@@ -325,16 +328,16 @@
     manager.scrolled=()=>{
       const requestId=(manager.__sgCoreScrollRequestId||0)+1;
       manager.__sgCoreScrollRequestId=requestId;
-      const scrollStartedAt=Date.now();
+      const immediate=syncScrollPosition(manager);
+
+      /* Location reporting must never sit behind image/chapter buffering. Emit SCROLLED now so
+         Rendition.reportLocation() updates the canonical page counter from the live viewport. */
+      try{manager.emit?.("scrolled",immediate)}catch{}
+
       Promise.resolve(manager.check()).catch(error=>console.warn("Continuous scroll neighborhood skipped",error)).finally(()=>{
         if(requestId!==manager.__sgCoreScrollRequestId)return;
-        const position=syncScrollPosition(manager);
-        try{manager.emit?.("scrolled",position)}catch{}
-        setTimeout(()=>{
-          if((Number(rendition.__sgLastRelocatedAt)||0)<scrollStartedAt){
-            try{rendition.reportLocation?.()}catch{}
-          }
-        },120);
+        const settled=syncScrollPosition(manager);
+        try{manager.emit?.("scrolled",settled)}catch{}
       });
     };
     manager._onScroll=manager.onScroll;
@@ -352,6 +355,7 @@
       manager.__sgDestroyed=true;
       clearTimeout(manager.__sgCoreScrollTimer);
       clearTimeout(manager.__sgCoreTrimTimer);
+      clearTimeout(rendition.__sgContinuousCoreInstallTimer);
       try{if(manager._onScroll&&scroller)scroller.removeEventListener("scroll",manager._onScroll)}catch{}
       return rawDestroy(...args);
     };
@@ -359,6 +363,7 @@
     manager.ignore=false;
     syncScrollPosition(manager);
     setTimeout(()=>{Promise.resolve(manager.check()).catch(()=>{})},0);
+    return true;
   }
 
   function patchRendition(rendition,options){
@@ -366,8 +371,6 @@
     rendition.__sgContinuousCorePatched=true;
     const continuous=isContinuous(options,rendition);
     let lastDisplayKey="",lastDisplayDoneAt=0,lastDisplayPromise=null,lastDisplayResult=null;
-
-    try{rendition.on?.("relocated",()=>{rendition.__sgLastRelocatedAt=Date.now()})}catch{}
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);
@@ -385,8 +388,10 @@
           if(continuous){
             installManager(rendition);
             try{await rendition.manager?.check?.()}catch(error){console.warn("Continuous post-display neighborhood skipped",error)}
-            rendition.manager.ignore=false;
-            syncScrollPosition(rendition.manager);
+            if(rendition.manager){
+              rendition.manager.ignore=false;
+              syncScrollPosition(rendition.manager);
+            }
             syncContinuousEnd(rendition);
           }
           return result;
@@ -422,7 +427,7 @@
       const install=()=>installManager(rendition);
       install();
       try{rendition.on?.("started",install)}catch{}
-      try{Promise.resolve(rendition.started).then(install).catch(()=>{})}catch{}
+      try{Promise.resolve(rendition.started).then(()=>{install();setTimeout(install,0)}).catch(()=>{})}catch{}
       try{rendition.on?.("rendered",()=>syncContinuousEnd(rendition))}catch{}
     }else{
       try{rendition.on?.("relocated",()=>hidePagedEnd())}catch{}

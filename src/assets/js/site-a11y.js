@@ -38,4 +38,11 @@
     new MutationObserver(syncBusy).observe(seriesRoot,{childList:true,subtree:true});
     syncBusy();
   }
+
+  if(!document.querySelector('script[data-ui-direction-triangles]')){
+    const script=document.createElement('script');
+    script.src='/assets/js/ui-direction-triangles.js?v=1.7.5';
+    script.dataset.uiDirectionTriangles='1';
+    document.head.appendChild(script);
+  }
 })();

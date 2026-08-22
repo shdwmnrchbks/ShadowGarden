@@ -196,6 +196,7 @@
     const {width,height}=viewportMetrics(rendition);
     const documentReady=setDocumentGeometry(view,width,height);
     if(!documentReady)return false;
+    try{view.reframe?.(width,height)}catch{}
     setFrameGeometry(view,width,height);
     try{
       view._needsReframe=false;
@@ -215,21 +216,6 @@
       view.expand=(force)=>{
         if(isVisualView(view)&&view.contents?.document&&fitVisualView(view,rendition))return;
         return rawExpand(force);
-      };
-    }
-
-    if(typeof view.reframe==="function"){
-      const rawReframe=view.reframe.bind(view);
-      view.reframe=(width,height)=>{
-        if(isVisualView(view)&&view.contents?.document){
-          const metrics=viewportMetrics(rendition);
-          setDocumentGeometry(view,metrics.width,metrics.height);
-          setFrameGeometry(view,metrics.width,metrics.height);
-          view.prevBounds={width:metrics.width,height:metrics.height,widthDelta:0,heightDelta:0};
-          view.elementBounds=view.element?.getBoundingClientRect?.()||view.elementBounds;
-          return;
-        }
-        return rawReframe(width,height);
       };
     }
 

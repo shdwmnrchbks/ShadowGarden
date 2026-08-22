@@ -14,6 +14,13 @@
   margin:auto;
   text-align:center;
 }
+.volume-end-page h2{
+  margin:9px auto 8px;
+  max-width:410px;
+  font:600 clamp(1.5rem,5vw,2.25rem)/1.1 Georgia,serif;
+  color:#f0edf5;
+}
+body.reader-theme-paper .volume-end-page h2{color:#292a25}
 .volume-end-page .volume-complete-actions{justify-content:center;flex-wrap:wrap}
 body.reader-theme-night .volume-end-page{background:#11171a}
 body.reader-theme-black .volume-end-page{background:#000}

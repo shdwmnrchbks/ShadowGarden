@@ -13,7 +13,7 @@
   const CACHE_VERSION=1;
   const DB_VERSION=1;
   const MAX_WEBP_EDGE=2600;
-  const TEXT_LIMIT=48;
+  const TEXT_LIMIT=4;
   const VISUAL_HINT=/(?:cover|illustration|illustrated|insert|plate|frontispiece|full[-_ ]?page|image[-_ ]?page|artwork|map)/i;
   const RASTER_MIME=/^image\/(?:jpeg|png|webp|avif|gif)$/i;
   const CONVERT_MIME=/^image\/(?:jpeg|png|avif|svg\+xml)$/i;
@@ -146,9 +146,12 @@
 
   function meaningfulText(doc){
     const root=doc?.body||firstLocal(doc,"body")||doc?.documentElement;if(!root)return"";
+    const svgDocument=doc?.documentElement?.localName==="svg";
     const clone=root.cloneNode(true);
     const discard=new Set(["script","style","noscript","img","picture","source","video","canvas","object","title","desc"]);
-    [...clone.getElementsByTagName("*")].forEach(node=>{if(discard.has(node.localName))node.remove()});
+    [...clone.getElementsByTagName("*")].forEach(node=>{
+      if(discard.has(node.localName)||(!svgDocument&&node.localName==="svg"))node.remove();
+    });
     return String(clone.textContent||"").replace(/\s+/g," ").trim();
   }
 
@@ -271,7 +274,8 @@
     const root=doc.body||firstLocal(doc,"body")||doc.documentElement;
     if(!root)return null;
     const text=meaningfulText(doc);
-    if(text.length>TEXT_LIMIT)return null;
+    const svgDocument=doc.documentElement?.localName==="svg";
+    if(!svgDocument&&text.length>TEXT_LIMIT)return null;
 
     const hinted=structuralHint(doc,item.href);
     const images=localElements(root,"img");

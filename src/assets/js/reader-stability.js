@@ -147,7 +147,10 @@
         if(direction<0&&!nearTop)return;
         if(direction>0&&!nearBottom)return;
         lastNudge=now;
-        nudgePromise=Promise.resolve(manager.check()).catch(error=>console.warn("Continuous boundary recovery skipped",error)).finally(()=>{nudgePromise=null});
+        let task;
+        try{task=manager.q?.enqueue?manager.q.enqueue(()=>manager.check()):manager.check()}
+        catch(error){console.warn("Continuous boundary recovery skipped",error);return}
+        nudgePromise=Promise.resolve(task).catch(error=>console.warn("Continuous boundary recovery skipped",error)).finally(()=>{nudgePromise=null});
       };
 
       const wireContents=contents=>{

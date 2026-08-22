@@ -1,4 +1,5 @@
 import { json } from "./_lib/b2.js";
+import { resolveBookReference } from "./_lib/book-resolver.js";
 import { issueMediaTicket, ticketCookie, ticketingEnabled } from "./_lib/media-ticket.js";
 
 function sameOriginBrowserRequest(request) {
@@ -22,7 +23,7 @@ export async function onRequest(context) {
   }
   if (!ticketingEnabled(env)) {
     return json({ code: "ticketing_not_configured", error: "Signed book access is not configured yet." }, 503, {
-      "X-SG-Media-Ticketing": "disabled",
+      "X-SG-Media-Ticketing": "unavailable",
       "X-Robots-Tag": "noindex, nofollow, noarchive"
     });
   }
@@ -30,9 +31,15 @@ export async function onRequest(context) {
   let payload;
   try { payload = await request.json(); } catch { return json({ error: "Invalid request body." }, 400); }
   try {
-    const ticket = await issueMediaTicket(env, payload?.book, request.url);
+    const reference = payload?.bookId || payload?.book;
+    const resolved = await resolveBookReference(env, reference);
+    if (!resolved) {
+      return json({ error: "Book not found." }, 404, { "X-Robots-Tag": "noindex, nofollow, noarchive" });
+    }
+    const ticket = await issueMediaTicket(env, resolved.file, request.url);
     return json({
       url: ticket.url,
+      bookId: resolved.bookId,
       expiresAt: ticket.expiresAt,
       ttlSeconds: ticket.ttlSeconds,
       protected: true
@@ -42,7 +49,8 @@ export async function onRequest(context) {
       "X-Robots-Tag": "noindex, nofollow, noarchive"
     });
   } catch (error) {
-    return json({ error: error?.message || "Could not authorize this EPUB." }, 400, {
+    console.error("Book authorization failed", error);
+    return json({ error: "Could not authorize this EPUB." }, 502, {
       "X-Robots-Tag": "noindex, nofollow, noarchive"
     });
   }

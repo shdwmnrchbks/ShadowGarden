@@ -1,4 +1,5 @@
 import { adminAuthorized, getTextObject, json, putObject, validObjectKey, writeClient } from "../_lib/b2.js";
+import { bookIdForFile, isBookId } from "../_lib/book-id.js";
 import { snapshotCatalogs } from "../_lib/garden-maintenance.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";
@@ -199,10 +200,15 @@ export async function onRequestPost({ request, env }) {
 
     const previous = existing >= 0 ? series.volumes[existing] : null;
     const replacing = duplicatePolicy === "replace" && existing >= 0;
+    const file = `/media/${epubKey}`;
+    const bookId = replacing
+      ? (isBookId(previous?.bookId) ? previous.bookId : await bookIdForFile(previous?.file || file))
+      : await bookIdForFile(file);
     const volume = {
       title,
       number,
-      file: `/media/${epubKey}`,
+      file,
+      ...(bookId ? { bookId } : {}),
       cover: cover || (replacing ? previous?.cover || "" : ""),
       coverThumb: coverThumb || (replacing ? previous?.coverThumb || "" : ""),
       author,
@@ -243,6 +249,7 @@ export async function onRequestPost({ request, env }) {
       series: series.title,
       volume: title,
       file: volume.file,
+      bookId: volume.bookId || "",
       cover: volume.cover,
       coverThumb: volume.coverThumb,
       audioAlignedUrl: series.audioAlignedUrl || "",

@@ -28,6 +28,38 @@ export function createTocController({ panel, navigate, closeDrawers }) {
   let items = [];
   let flat = [];
   let activeButton = null;
+  let pageResolver = null;
+
+  function pageNumberFor(href) {
+    if (!pageResolver || !href) return null;
+    try {
+      const value = Number(pageResolver(href));
+      return Number.isFinite(value) && value > 0 ? value : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function syncPageNumbers() {
+    panel.querySelectorAll(".toc-entry-link[data-href]").forEach(button => {
+      const row = button.closest(".toc-row");
+      if (!row) return;
+      let page = row.querySelector(".toc-page-number");
+      const number = pageNumberFor(button.dataset.href);
+      if (!number) {
+        page?.remove();
+        return;
+      }
+      if (!page) {
+        page = document.createElement("span");
+        page.className = "toc-page-number";
+        page.setAttribute("aria-label", `Starts on page ${number}`);
+        row.appendChild(page);
+      }
+      page.textContent = String(number);
+      page.setAttribute("aria-label", `Starts on page ${number}`);
+    });
+  }
 
   function createNode(item, depth, path) {
     const node = document.createElement("div");
@@ -88,6 +120,14 @@ export function createTocController({ panel, navigate, closeDrawers }) {
         }
       });
       row.appendChild(button);
+      const pageNumber = pageNumberFor(href);
+      if (pageNumber) {
+        const page = document.createElement("span");
+        page.className = "toc-page-number";
+        page.textContent = String(pageNumber);
+        page.setAttribute("aria-label", `Starts on page ${pageNumber}`);
+        row.appendChild(page);
+      }
     } else {
       const text = document.createElement("span");
       text.className = "toc-link toc-entry-label";
@@ -115,6 +155,12 @@ export function createTocController({ panel, navigate, closeDrawers }) {
     tree.setAttribute("role", "tree");
     items.forEach((item, index) => tree.appendChild(createNode(item, 0, String(index))));
     panel.appendChild(tree);
+    syncPageNumbers();
+  }
+
+  function setPageResolver(resolver) {
+    pageResolver = typeof resolver === "function" ? resolver : null;
+    syncPageNumbers();
   }
 
   function matchForLocation(location) {
@@ -148,5 +194,5 @@ export function createTocController({ panel, navigate, closeDrawers }) {
     }
   }
 
-  return { render, chapterForLocation, setActiveForLocation };
+  return { render, setPageResolver, chapterForLocation, setActiveForLocation };
 }

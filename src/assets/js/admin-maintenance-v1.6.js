@@ -1,8 +1,8 @@
 /* Shadow Garden v1.8.0 — Garden Keeper backup actions + compatibility bootstrap.
  *
  * This file remains under its historical name because admin.html references it directly.
- * All post-v1.6 visual patches are consolidated into admin-current.css, and runtime add-ons are
- * loaded in one explicit order after the base deferred controllers have initialized.
+ * Current visual polish is consolidated into admin-current.css, and runtime add-ons are loaded in
+ * one explicit order after the base deferred controllers have initialized.
  */
 (()=>{
   const list=document.getElementById('backupList');
@@ -78,10 +78,10 @@ window.addEventListener('DOMContentLoaded',()=>{
   });
 
   const boot=async()=>{
-    await loadScript('script[data-admin-upload-v17]','/assets/js/admin-upload-workflow-v1.7.0.js?v=1.8.0','adminUploadV17');
-    await loadScript('script[data-admin-upload-completion-v171]','/assets/js/admin-upload-completion-v1.7.1.js?v=1.8.0','adminUploadCompletionV171');
-    await loadScript('script[data-admin-v172]','/assets/js/admin-v1.7.2.js?v=1.8.0','adminV172');
-    await loadScript('script[data-admin-backup-v174]','/assets/js/admin-backup-history-v1.7.4.js?v=1.8.0','adminBackupV174');
+    await loadScript('script[data-admin-upload-workflow]','/assets/js/admin-upload-workflow-v1.7.0.js?v=1.8.0','adminUploadWorkflow');
+    await loadScript('script[data-admin-upload-completion]','/assets/js/admin-upload-completion.js?v=1.8.0','adminUploadCompletion');
+    await loadScript('script[data-admin-upload-polish]','/assets/js/admin-upload-polish.js?v=1.8.0','adminUploadPolish');
+    await loadScript('script[data-admin-backup-history]','/assets/js/admin-backup-history.js?v=1.8.0','adminBackupHistory');
     await loadScript('script[data-ui-direction-triangles]','/assets/js/ui-direction-triangles.js?v=1.8.0','uiDirectionTriangles');
   };
   void boot().catch(error=>console.error('Garden Keeper compatibility bootstrap failed',error));

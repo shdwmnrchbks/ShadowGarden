@@ -1,4 +1,4 @@
-/* Shadow Garden v1.5.0 — public library/header polish. */
+/* Shadow Garden v1.5.1 — public library/header and archive-layout polish. */
 
 /* Long resumed-volume titles must never push the Continue button out of its card. */
 .continue-panel{
@@ -10,7 +10,7 @@
 .continue-panel strong,.continue-panel span{max-width:100%}
 .continue-panel a{flex:none;white-space:nowrap}
 
-/* Main Library: move the Adult-section entrance out of the hero and into the top-right header. */
+/* Main Library: Adult-section entrance in the top-right header. */
 .header-actions{
   min-width:0;
   justify-self:end;
@@ -20,20 +20,23 @@
   gap:12px;
 }
 .header-actions .header-stat{justify-self:auto;white-space:nowrap}
-.header-adult-link{
+.header-adult-link,
+.header-main-link{
   min-height:36px;
   padding:0 12px;
   display:inline-flex;
   align-items:center;
   gap:6px;
-  border:1px solid rgba(201,130,153,.24);
   border-radius:9px;
-  color:#c997a7;
-  background:rgba(126,54,77,.055);
   text-decoration:none;
   font-size:.72rem;
   white-space:nowrap;
   transition:border-color .16s ease,background .16s ease,color .16s ease;
+}
+.header-adult-link{
+  border:1px solid rgba(201,130,153,.24);
+  color:#c997a7;
+  background:rgba(126,54,77,.055);
 }
 .header-adult-link span{
   padding:2px 5px;
@@ -49,6 +52,23 @@
   border-color:rgba(225,151,173,.42);
   background:rgba(126,54,77,.11);
 }
+.header-main-link{
+  border:1px solid rgba(214,160,173,.25);
+  color:#d6a0ad;
+  background:rgba(183,121,139,.06);
+}
+.header-main-link:hover,.header-main-link:focus-visible{
+  color:#f0d6dd;
+  border-color:rgba(225,151,173,.42);
+  background:rgba(183,121,139,.12);
+}
+
+/* Filters are now permanently expanded and share the same band as Recently Added. */
+.catalog-layout{padding-top:30px;align-items:start}
+.catalog-main>.recent-section{padding:0 0 4px}
+.catalog-main>.recent-section+.catalog-bar{margin-top:30px}
+.catalog-main>.recent-section.hidden+.catalog-bar{margin-top:0}
+.search-field{padding-right:12px}
 
 /* Adult pages should never fall back to the old green site chrome. */
 body.adult-library{
@@ -81,13 +101,18 @@ body.adult-library .volume-cover{background:#160d12}
 
 @media(max-width:980px){
   .header-actions{gap:8px}
-  .header-adult-link{min-height:34px;padding:0 10px}
+  .header-adult-link,.header-main-link{min-height:34px;padding:0 10px}
+  .catalog-main>.recent-section{padding-top:24px}
+  .catalog-main>.recent-section+.catalog-bar{margin-top:24px}
 }
 @media(max-width:720px){
   .header-actions .header-stat{display:none}
   .header-adult-link{padding:0 9px;font-size:0;gap:4px}
   .header-adult-link::before{content:"Adult";font-size:.69rem}
   .header-adult-link::after{content:"→";font-size:.69rem}
+  .header-main-link{padding:0 9px;font-size:0;gap:4px}
+  .header-main-link::before{content:"Main";font-size:.69rem}
+  .header-main-link::after{content:"→";font-size:.69rem}
   .continue-panel{grid-template-columns:42px minmax(0,1fr) auto;gap:9px;padding:12px}
   .continue-mark{width:42px;height:56px}
   .continue-panel a{padding:7px 8px}

@@ -102,17 +102,24 @@
       const bookId=await bookIdForLegacyPath(oldIdentity);
       if(!wanted.has(bookId))continue;
       const nextKey=`${prefix}${bookId}`;
-      if(localStorage.getItem(nextKey)!==null)continue;
       const raw=localStorage.getItem(key);
       if(raw===null)continue;
       if(prefix==="sg-progress:"){
+        let nextRaw=raw;
+        let oldUpdated=0;
         try{
           const value=JSON.parse(raw);
+          oldUpdated=Number(value?.updatedAt)||0;
           if(value&&typeof value==="object")value.file=bookId;
-          localStorage.setItem(nextKey,JSON.stringify(value));
-        }catch{localStorage.setItem(nextKey,raw)}
-      }else localStorage.setItem(nextKey,raw);
-      migrated++;
+          nextRaw=JSON.stringify(value);
+        }catch{}
+        let currentUpdated=0;
+        try{currentUpdated=Number(JSON.parse(localStorage.getItem(nextKey)||"null")?.updatedAt)||0}catch{}
+        if(localStorage.getItem(nextKey)===null||oldUpdated>currentUpdated){localStorage.setItem(nextKey,nextRaw);migrated++}
+      }else if(localStorage.getItem(nextKey)===null){
+        localStorage.setItem(nextKey,raw);
+        migrated++;
+      }
     }
     return migrated;
   }
@@ -152,7 +159,8 @@
   document.addEventListener("click",event=>{
     const link=event.target.closest?.("a[download]");
     if(!link||link.dataset.sgBookAccessBypass==="1")return;
-    const reference=link.dataset.bookId|| (isRawEpubRequest(link.href)?link.href:"");
+    const rawHref=String(link.getAttribute("href")||"").trim();
+    const reference=link.dataset.bookId|| (BOOK_ID.test(rawHref)?rawHref:isRawEpubRequest(link.href)?link.href:"");
     if(!reference)return;
     event.preventDefault();
     if(link.dataset.sgBookAccessBusy==="1")return;

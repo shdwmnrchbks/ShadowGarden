@@ -88,6 +88,7 @@ export async function onRequestPost({ request, env }) {
 
   const adult = Boolean(input.adult);
   const seriesName = clean(input.series, 240);
+  const targetSeriesId = clean(input.targetSeriesId, 180);
   const title = clean(input.title, 300);
   const author = clean(input.author, 240);
   const epubKey = clean(input.epubKey, 700);
@@ -127,8 +128,19 @@ export async function onRequestPost({ request, env }) {
     const aws = writeClient(env);
     const [main, restricted] = await Promise.all([loadCatalog(aws, MAIN_KEY), loadCatalog(aws, ADULT_KEY)]);
     const target = adult ? restricted : main;
-    const sid = `${adult ? "adult-" : ""}${slug(seriesName)}`;
-    let series = target.series.find(item => item.id === sid);
+    let sid = `${adult ? "adult-" : ""}${slug(seriesName)}`;
+    let series;
+
+    if (targetSeriesId) {
+      series = target.series.find(item => item.id === targetSeriesId);
+      if (!series) {
+        return json({ ok: false, error: "Target series no longer exists on this shelf. Refresh Garden Keeper and try again." }, 409);
+      }
+      sid = series.id;
+    } else {
+      series = target.series.find(item => item.id === sid);
+    }
+
     const cover = coverKey ? `/media/${coverKey}` : "";
     const coverThumb = coverThumbKey ? `/media/${coverThumbKey}` : "";
     const year = Number(input.year) || Number.parseInt(date.slice(0, 4)) || "";
@@ -233,7 +245,8 @@ export async function onRequestPost({ request, env }) {
       coverThumb: volume.coverThumb,
       audioAlignedUrl: series.audioAlignedUrl || "",
       duplicatePolicy,
-      replaced: replacing
+      replaced: replacing,
+      targeted: Boolean(targetSeriesId)
     });
   } catch (error) {
     console.error("Catalog update failed", error);

@@ -1,4 +1,5 @@
 import { ROOT_PREFIX, objectUrl, readClient } from "../_lib/b2.js";
+import { canonicalMediaCacheUrl, ticketingEnabled, verifyMediaTicket } from "../_lib/media-ticket.js";
 
 const PROTECTED_CORS_HEADERS = [
   "access-control-allow-credentials",
@@ -62,6 +63,12 @@ function securedResponse(response, key, method = "GET") {
   });
 }
 
+function deniedEpub(key, message = "A valid Shadow Garden book ticket is required.") {
+  const headers = applySecurityHeaders(new Headers({ "Cache-Control": "private, no-store" }), key);
+  headers.set("X-SG-Media-Ticketing", "active");
+  return new Response(message, { status: 403, headers });
+}
+
 export async function onRequest(context) {
   const { request, env, params } = context;
   const method = request.method.toUpperCase();
@@ -79,18 +86,18 @@ export async function onRequest(context) {
   const key = getObjectKey(params.path);
   if (!key) return new Response("Not found", { status: 404 });
 
-  // Browser hotlinks from unrelated origins are denied before cache or B2 access. Requests without
-  // Fetch Metadata (for example older clients or command-line tools) are handled by later roadmap
-  // milestones with signed tickets rather than being blocked here for compatibility.
-  if (crossSiteEpubRequest(request, key)) {
-    const headers = applySecurityHeaders(new Headers({ "Cache-Control": "private, no-store" }), key);
-    return new Response("Cross-site EPUB access is not allowed.", { status: 403, headers });
+  if (crossSiteEpubRequest(request, key)) return deniedEpub(key, "Cross-site EPUB access is not allowed.");
+
+  if (key.endsWith(".epub") && ticketingEnabled(env)) {
+    const ticket = await verifyMediaTicket(env, request.url);
+    if (!ticket.valid) return deniedEpub(key);
   }
 
   const incomingRange = request.headers.get("range");
   const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
-  const cacheKey = new Request(request.url, { method: "GET" });
+  const cacheUrl = key.endsWith(".epub") && ticketingEnabled(env) ? canonicalMediaCacheUrl(request.url) : request.url;
+  const cacheKey = new Request(cacheUrl, { method: "GET" });
 
   if (canCache) {
     const cached = await cache.match(cacheKey);
@@ -113,6 +120,7 @@ export async function onRequest(context) {
 
   const headers = applySecurityHeaders(new Headers(upstream.headers), key);
   headers.set("Cache-Control", cachePolicy(key));
+  headers.set("X-SG-Media-Ticketing", ticketingEnabled(env) && key.endsWith(".epub") ? "active" : "disabled");
   headers.delete("server");
   headers.delete("x-amz-id-2");
   headers.delete("x-amz-request-id");
@@ -123,9 +131,6 @@ export async function onRequest(context) {
     headers
   });
 
-  if (canCache && upstream.status === 200) {
-    context.waitUntil(cache.put(cacheKey, response.clone()));
-  }
-
+  if (canCache && upstream.status === 200) context.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 }

@@ -10,6 +10,18 @@
 /reader.html
   Cache-Control: no-store
 
+/assets/js/nav-pinned.js
+  Cache-Control: no-store
+
+/assets/js/admin-maintenance-v1.6.js
+  Cache-Control: no-store
+
+/assets/js/admin-upload-workflow-v1.7.0.js
+  Cache-Control: no-store
+
+/assets/css/admin-v1.7.css
+  Cache-Control: no-store
+
 /data/source.json
   Cache-Control: public, max-age=60, stale-while-revalidate=300
 

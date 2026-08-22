@@ -7,6 +7,7 @@
   const targetKey=target=>typeof target==="string"?target:target?.toString?.()||"";
 
   function canonicalEnd(){
+    if(window.__sgSeekPreviewActive||window.__sgSeekNavigationPending)return false;
     const total=Number(window.__sgCanonicalPageMap?.totalPages)||0;
     const text=String(document.getElementById("progressText")?.textContent||"").trim();
     const match=text.match(/^(\d+)\s*\/\s*(\d+)$/);
@@ -33,12 +34,20 @@
      once, on change. Also suppress the core pointer/touch duplicate commits. */
   document.addEventListener("input",event=>{
     if(event.target?.id!=="progressRange")return;
+    window.__sgSeekPreviewActive=true;
     event.stopImmediatePropagation();
     renderSeekPreview(event.target);
+  },true);
+  document.addEventListener("change",event=>{
+    if(event.target?.id!=="progressRange")return;
+    window.__sgSeekPreviewActive=false;
+    window.__sgSeekNavigationPending=true;
   },true);
   document.addEventListener("pointerup",event=>{
     if(event.target?.id==="progressRange")event.stopImmediatePropagation();
   },true);
+  document.addEventListener("pointercancel",()=>{window.__sgSeekPreviewActive=false},true);
+  document.addEventListener("touchcancel",()=>{window.__sgSeekPreviewActive=false},true);
   document.addEventListener("touchend",event=>{
     if(event.target?.id==="progressRange")event.stopImmediatePropagation();
   },true);
@@ -51,6 +60,14 @@
     if(!rendition||rendition.__sgStabilityPatched)return rendition;
     rendition.__sgStabilityPatched=true;
     const continuous=options?.manager==="continuous"||String(options?.flow||rendition.settings?.flow||"").startsWith("scrolled");
+
+    try{
+      rendition.on?.("relocated",()=>{
+        if(!window.__sgSeekNavigationPending)return;
+        window.__sgSeekNavigationPending=false;
+        document.dispatchEvent(new CustomEvent("sg-reader-navigation-settled"));
+      });
+    }catch{}
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);

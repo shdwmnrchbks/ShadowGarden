@@ -1,4 +1,4 @@
-/* Shadow Garden v1.0.5 — Series Editor success flow */
+/* Shadow Garden v1.2.1 — Series Editor / Adult Library stability */
 (()=>{
   const dialog=document.querySelector("#seriesEditor");
   if(!dialog)return;
@@ -99,6 +99,49 @@
       button.textContent=old;
     }
   }
+
+  /* The batch controller used to redraw the whole queue immediately from the Adult toggle's
+     change handler. On some browsers that DOM replacement invalidated the active modal layout.
+     Keep the active batch item's scope in sync here and let upload-time saveEditor() do the
+     duplicate recalculation, without rebuilding the modal while the checkbox is being clicked. */
+  const addAdult=document.querySelector("#adultInput");
+  addAdult?.addEventListener("change",event=>{
+    const target=state.addBookTarget;
+    if(target){
+      event.target.checked=target.scope==="adult";
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      return;
+    }
+    const q=state.batch,item=q?.items?.find?.(entry=>entry.id===q.activeId);
+    if(item)item.adult=Boolean(event.target.checked);
+    if(item?.action==="replace"){
+      item.action="skip";
+      const select=document.querySelector(`#batchList [data-batch-action="${CSS.escape(item.id)}"]`);
+      if(select)select.value="skip";
+    }
+    event.stopImmediatePropagation();
+  },true);
+
+  /* Preserve the editor's scroll/flex geometry while changing catalog scope. */
+  document.querySelector("#manageAdult")?.addEventListener("change",()=>{
+    const scroller=dialog.querySelector(".dialog-scroll"),top=scroller?.scrollTop||0;
+    requestAnimationFrame(()=>{
+      void dialog.offsetHeight;
+      if(scroller)scroller.scrollTop=top;
+    });
+  });
+
+  function syncTargetInfo(){
+    const target=state.addBookTarget,banner=document.querySelector("#addSeriesTarget"),meta=document.querySelector("#addSeriesTargetMeta");
+    if(!target||!banner||!meta)return;
+    banner.dataset.scope=target.scope;
+    meta.textContent=target.scope==="adult"
+      ?"18+ / Adult Library · New books inherit this series library automatically."
+      :"Main Library · New books inherit this series library automatically.";
+  }
+  const addDialog=document.querySelector("#addBooksDialog");
+  if(addDialog)new MutationObserver(()=>queueMicrotask(syncTargetInfo)).observe(addDialog,{attributes:true,attributeFilter:["class","open"]});
 
   replaceButton("#saveSeries",saveAndClose);
   replaceButton("#deleteSeries",trashAndClose);

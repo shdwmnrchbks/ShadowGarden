@@ -1,4 +1,4 @@
-/* Shadow Garden v1.0.5 — Series Editor modal polish */
+/* Shadow Garden v1.2.1 — Series Editor / Adult Library stability */
 .admin-dialog{
   box-sizing:border-box;
   overflow:hidden;
@@ -20,6 +20,18 @@
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
 }
+/* A fixed editor flex height prevents the form from shrinking to its footer after the Adult
+   checkbox changes intrinsic layout/scroll anchoring. */
+#seriesEditor .dialog-shell{
+  height:min(88dvh,900px);
+  min-height:min(70dvh,620px);
+}
+#seriesEditor .dialog-scroll{flex:1 1 0}
+/* Add-to-series already inherits its catalog. Keep the informative target bar and remove the
+   redundant disabled toggle entirely. */
+.keeper-targeted #metadataCard .adult-toggle{display:none!important}
+.add-series-target[data-scope="adult"]{border-color:rgba(214,160,173,.28);background:rgba(183,121,139,.08)}
+.add-series-target[data-scope="adult"] .add-series-target-mark{background:rgba(183,121,139,.12);color:#d6a0ad}
 .admin-toast-host{
   position:fixed;
   right:max(18px,env(safe-area-inset-right));
@@ -42,27 +54,12 @@
   line-height:1.45;
   animation:adminToastIn .18s ease both;
 }
-.admin-toast.success{
-  border-color:rgba(115,176,132,.30);
-}
-.admin-toast.leaving{
-  animation:adminToastOut .16s ease both;
-}
-@keyframes adminToastIn{
-  from{opacity:0;transform:translateY(8px)}
-  to{opacity:1;transform:none}
-}
-@keyframes adminToastOut{
-  from{opacity:1;transform:none}
-  to{opacity:0;transform:translateY(6px)}
-}
+.admin-toast.success{border-color:rgba(115,176,132,.30)}
+.admin-toast.leaving{animation:adminToastOut .16s ease both}
+@keyframes adminToastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes adminToastOut{from{opacity:1;transform:none}to{opacity:0;transform:translateY(6px)}}
 @media(max-width:560px){
-  .admin-toast-host{
-    right:18px;
-    left:18px;
-    width:auto;
-  }
+  #seriesEditor .dialog-shell{height:94dvh;min-height:0}
+  .admin-toast-host{right:18px;left:18px;width:auto}
 }
-@media(prefers-reduced-motion:reduce){
-  .admin-toast,.admin-toast.leaving{animation:none}
-}
+@media(prefers-reduced-motion:reduce){.admin-toast,.admin-toast.leaving{animation:none}}

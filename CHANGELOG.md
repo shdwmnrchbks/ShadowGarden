@@ -1,5 +1,14 @@
 # Shadow Garden Changelog
 
+## 1.2.1 — Reader & Adult Toggle Stability
+- Changed reader seekbar scrubbing to preview only while dragging and navigate once on release, preventing overlapping Continuous `display()` cycles.
+- Coalesce duplicate/overlapping EPUB.js display requests and top-level Continuous fill work, while preserving EPUB.js recursive fill behavior.
+- Add wheel/touch boundary recovery so Continuous can append/prepend the next view even when a standalone image exactly fills the viewport and no scroll event fires.
+- Replaced the automatic percentage-triggered Volume Complete dialog with an end-of-volume page: Pages mode reaches it only by advancing past the final canonical page; Continuous receives it as a normal block after the final book content.
+- Prevent the Add New Book Adult toggle from rebuilding the entire batch queue during the checkbox change; scope is saved safely without blanking the modal.
+- Hide the redundant Adult toggle when adding directly to an existing series and keep a clear inherited Main/18+ information banner.
+- Lock the Series Editor shell to a stable flex height and preserve scroll position when changing Adult Library scope, preventing the editor body from collapsing.
+
 ## 1.2.0 — Canonical Device Page Map
 - Added a layout-specific canonical Page Map generated from real paginated rendering for the current device viewport, font, font size, line height, text-width setting, spread mode, and EPUB publication/spine signature.
 - Cache completed Page Maps in browser IndexedDB so a previously measured book/layout can restore page tracking immediately on later opens.

@@ -1,45 +1,14 @@
-/* Shadow Garden v1.7.3 — Catalog History rows, safe queue editor restore, and cover chooser. */
+/* Shadow Garden v1.7.4 — safe queue editor restore and uploaded-series cover chooser. */
 (()=>{
   const dialog=document.querySelector('#addBooksDialog');
   const batchList=document.querySelector('#batchList');
   const metadata=document.querySelector('#metadataCard');
   const preflight=document.querySelector('#preflightCard');
   const stage=document.querySelector('#uploadWorkflowStage');
-  const backupList=document.querySelector('#backupList');
   const q=state?.batch;
 
-  /* Catalog History gets a dedicated component instead of inheriting the generic maintenance
-     item geometry. This prevents older mobile/grid rules from collapsing backup rows together. */
-  function normalizeBackupRows(){
-    if(!backupList)return;
-    for(const row of backupList.children){
-      if(!row.querySelector?.('[data-restore-backup]'))continue;
-      row.classList.add('backup-history-entry');
-      row.classList.remove('maintenance-item');
-      const copy=row.querySelector('.maintenance-item-copy,.backup-history-copy');
-      if(copy){
-        copy.classList.add('backup-history-copy');
-        copy.classList.remove('maintenance-item-copy');
-        copy.querySelector('strong')?.classList.add('backup-history-reason');
-        const date=[...copy.children].find(el=>el.tagName==='SPAN'&&!el.classList.contains('backup-meta'));
-        date?.classList.add('backup-history-date');
-        copy.querySelector('.backup-meta')?.classList.add('backup-history-meta');
-      }
-      row.querySelector('.maintenance-item-actions')?.classList.add('backup-history-actions');
-    }
-  }
-  if(backupList){
-    new MutationObserver(()=>queueMicrotask(normalizeBackupRows)).observe(backupList,{childList:true,subtree:false});
-    normalizeBackupRows();
-  }
-
-  /* v1.7.2 watched metadataCard's class attribute and immediately fought the legacy uploader's
-     intentional hide/show sequence while local EPUB inspection was running. On mobile Chromium
-     that could create a hot mutation loop and make preflight appear permanently CHECKING.
-
-     Do not touch editor visibility while any queue item is being inspected. The batch renderer
-     replaces its direct rows whenever a real status changes, so debounce those row replacements
-     and restore the previous active editor only after local inspection has completely settled. */
+  /* Keep local EPUB inspection authoritative. Restore the previously active editor only after
+     every checking item has fully settled. */
   let editorRestoreTimer=0;
   function scheduleEditorRestore(){
     clearTimeout(editorRestoreTimer);

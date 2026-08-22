@@ -30,6 +30,12 @@ export async function volumeBookId(volume) {
   return bookIdForFile(volume?.file);
 }
 
+export async function persistentVolumeBookId(previous, nextFile) {
+  if (isBookId(previous?.bookId)) return String(previous.bookId);
+  const previousFile = normalizeBookFile(previous?.file);
+  return bookIdForFile(previousFile || nextFile);
+}
+
 export async function publicCatalogShape(catalog) {
   const source = catalog && typeof catalog === "object" ? catalog : {};
   const series = await Promise.all((Array.isArray(source.series) ? source.series : []).map(async item => {

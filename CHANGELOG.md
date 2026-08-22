@@ -64,7 +64,7 @@
 - Added this changelog.
 
 ## 0.14.1
-- Added collapsible Main and Adult library filter panels. Collapsed mode keeps only search visible.
+- Added collapsible Main and Adult library filter panels. Collapsed mode keeps only search and its expand control visible.
 - Persisted collapsed state independently for each library.
 
 ## 0.14.0 — Library Scaling

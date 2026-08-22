@@ -58,14 +58,14 @@ window.addEventListener('DOMContentLoaded',()=>{
     fix.dataset.adminUploadCompletionV171='1';
     document.body.appendChild(fix);
   };
-  const loadV172=()=>{
+  const loadPolish=()=>{
     if(document.querySelector('script[data-admin-v172]'))return;
     const polish=document.createElement('script');
-    polish.src='/assets/js/admin-v1.7.2.js?v=1.7.2';
+    polish.src='/assets/js/admin-v1.7.2.js?v=1.7.3';
     polish.dataset.adminV172='1';
     document.body.appendChild(polish);
   };
-  const afterWorkflow=()=>{loadCompletionFix();loadV172()};
+  const afterWorkflow=()=>{loadCompletionFix();loadPolish()};
 
   const existing=document.querySelector('script[data-admin-upload-v17]');
   if(existing){

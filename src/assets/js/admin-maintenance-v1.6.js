@@ -50,7 +50,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   addStyle('link[data-admin-v17]','/assets/css/admin-v1.7.css?v=1.7.0','adminV17');
   addStyle('link[data-admin-v171]','/assets/css/admin-v1.7.1.css?v=1.7.1','adminV171');
   addStyle('link[data-admin-v172]','/assets/css/admin-v1.7.2.css?v=1.7.2','adminV172');
-  addStyle('link[data-admin-backup-v174]','/assets/css/admin-backup-history-v1.7.4.css?v=1.7.4','adminBackupV174');
+  addStyle('link[data-admin-backup-v174]','/assets/css/admin-backup-history-v1.7.4.css?v=1.7.5','adminBackupV174');
 
   const loadCompletionFix=()=>{
     if(document.querySelector('script[data-admin-upload-completion-v171]'))return;
@@ -69,11 +69,18 @@ window.addEventListener('DOMContentLoaded',()=>{
   const loadBackupHistory=()=>{
     if(document.querySelector('script[data-admin-backup-v174]'))return;
     const script=document.createElement('script');
-    script.src='/assets/js/admin-backup-history-v1.7.4.js?v=1.7.4';
+    script.src='/assets/js/admin-backup-history-v1.7.4.js?v=1.7.5';
     script.dataset.adminBackupV174='1';
     document.body.appendChild(script);
   };
-  const afterWorkflow=()=>{loadCompletionFix();loadPolish();loadBackupHistory()};
+  const loadTriangles=()=>{
+    if(document.querySelector('script[data-ui-direction-triangles]'))return;
+    const script=document.createElement('script');
+    script.src='/assets/js/ui-direction-triangles.js?v=1.7.5';
+    script.dataset.uiDirectionTriangles='1';
+    document.head.appendChild(script);
+  };
+  const afterWorkflow=()=>{loadCompletionFix();loadPolish();loadBackupHistory();loadTriangles()};
 
   const existing=document.querySelector('script[data-admin-upload-v17]');
   if(existing){

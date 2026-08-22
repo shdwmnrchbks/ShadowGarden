@@ -6,7 +6,7 @@
   function enhance(){
     list.querySelectorAll('[data-restore-backup]').forEach(restore=>{
       const id=restore.dataset.restoreBackup;
-      const actions=restore.closest('.maintenance-item-actions');
+      const actions=restore.closest('.maintenance-item-actions,.sg-backup-actions');
       if(!id||!actions||actions.querySelector(`[data-delete-backup="${CSS.escape(id)}"]`))return;
       const button=document.createElement('button');
       button.className='danger-button backup-delete-icon';
@@ -50,6 +50,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   addStyle('link[data-admin-v17]','/assets/css/admin-v1.7.css?v=1.7.0','adminV17');
   addStyle('link[data-admin-v171]','/assets/css/admin-v1.7.1.css?v=1.7.1','adminV171');
   addStyle('link[data-admin-v172]','/assets/css/admin-v1.7.2.css?v=1.7.2','adminV172');
+  addStyle('link[data-admin-backup-v174]','/assets/css/admin-backup-history-v1.7.4.css?v=1.7.4','adminBackupV174');
 
   const loadCompletionFix=()=>{
     if(document.querySelector('script[data-admin-upload-completion-v171]'))return;
@@ -61,11 +62,18 @@ window.addEventListener('DOMContentLoaded',()=>{
   const loadPolish=()=>{
     if(document.querySelector('script[data-admin-v172]'))return;
     const polish=document.createElement('script');
-    polish.src='/assets/js/admin-v1.7.2.js?v=1.7.3';
+    polish.src='/assets/js/admin-v1.7.2.js?v=1.7.4';
     polish.dataset.adminV172='1';
     document.body.appendChild(polish);
   };
-  const afterWorkflow=()=>{loadCompletionFix();loadPolish()};
+  const loadBackupHistory=()=>{
+    if(document.querySelector('script[data-admin-backup-v174]'))return;
+    const script=document.createElement('script');
+    script.src='/assets/js/admin-backup-history-v1.7.4.js?v=1.7.4';
+    script.dataset.adminBackupV174='1';
+    document.body.appendChild(script);
+  };
+  const afterWorkflow=()=>{loadCompletionFix();loadPolish();loadBackupHistory()};
 
   const existing=document.querySelector('script[data-admin-upload-v17]');
   if(existing){

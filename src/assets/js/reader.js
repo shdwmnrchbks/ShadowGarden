@@ -1,6 +1,7 @@
 import { createReaderStorage } from "./reader/storage.js";
 import { createThemeController } from "./reader/theme.js";
 import { createTocController } from "./reader/toc.js";
+import { createPageMapController } from "./reader/page-map.js";
 
 const $ = selector => document.querySelector(selector);
 const params = new URLSearchParams(location.search);
@@ -11,6 +12,8 @@ const isAdultReader = String(seriesId || "").startsWith("adult-");
 const elements = {
   readerApp: $("#readerApp"),
   loading: $("#readerLoading"),
+  viewerShell: $("#viewerShell"),
+  viewer: $("#viewer"),
   bookTitle: $("#bookTitle"),
   chapterTitle: $("#chapterTitle"),
   tocToggle: $("#tocToggle"),
@@ -54,6 +57,7 @@ const defaults = {
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, Number(value) || min));
 const clamp01 = value => Math.min(1, Math.max(0, Number(value) || 0));
+const nextPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
 function sanitizeSettings(value) {
   const input = value || {};
@@ -72,8 +76,10 @@ const state = {
   book: null,
   rendition: null,
   navigation: null,
+  pageMap: null,
   currentCfi: "",
   currentChapter: "",
+  currentPosition: null,
   locationsReady: false,
   locationsFailed: false,
   pendingSeek: null,
@@ -81,6 +87,7 @@ const state = {
   toastTimer: 0,
   resizeTimer: 0,
   relayoutTimer: 0,
+  pageMapRefreshTimer: 0,
   renditionSerial: 0,
   switchingFlow: false,
   queuedFlow: null,
@@ -151,7 +158,6 @@ function persistSettings() {
 }
 
 function paginatedNeedsSinglePage() {
-  if (state.settings.flow !== "paginated") return false;
   const visualWidth = Number(window.visualViewport?.width);
   const innerWidth = Number(window.innerWidth);
   const clientWidth = Number(document.documentElement?.clientWidth);
@@ -160,6 +166,15 @@ function paginatedNeedsSinglePage() {
   const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches === true;
   const mobileUa = navigator.userAgentData?.mobile === true || /Android|iPhone|iPod|Mobile/i.test(navigator.userAgent || "");
   return mobileUa || (viewportWidth > 0 && viewportWidth < 900) || (coarsePointer && viewportWidth > 0 && viewportWidth <= 1024);
+}
+
+function pageMapLayoutMetrics() {
+  const shell = elements.viewerShell || elements.viewer?.parentElement;
+  const rect = shell?.getBoundingClientRect?.();
+  const width = Math.max(320, Math.round(Number(rect?.width) || Number(shell?.clientWidth) || Number(window.innerWidth) || 720));
+  const height = Math.max(320, Math.round(Number(rect?.height) || Number(shell?.clientHeight) || Number(window.innerHeight) * 0.8 || 800));
+  const single = paginatedNeedsSinglePage() || width < 900;
+  return { width, height, spread: single ? "single" : "spread" };
 }
 
 function configureSpread(rendition = state.rendition) {
@@ -174,17 +189,63 @@ function configureSpread(rendition = state.rendition) {
   }
 }
 
-function applySettingsToRendition({ relayout = false } = {}) {
-  persistSettings();
-  if (!state.rendition) return;
-  try {
-    state.rendition.themes.default(themeController.css(state.settings));
-  } catch (error) {
-    console.warn("Reader theme update skipped", error);
+function pageMapPositionFromPercentage(percentage) {
+  const map = state.pageMap?.map?.();
+  const total = Number(map?.totalPages) || 0;
+  if (!total) return null;
+  const value = clamp01(percentage);
+  const page = value >= 1 ? total : Math.min(total, Math.floor(value * total) + 1);
+  return { page, totalPages: total, pageFraction: value >= 1 ? 1 : (value * total) % 1 };
+}
+
+function setProgressUI(percentage, position = state.currentPosition) {
+  const value = clamp01(percentage);
+  elements.progressRange.value = Math.round(value * 1000);
+  const page = Number(position?.page), total = Number(position?.totalPages);
+  if (Number.isFinite(page) && Number.isFinite(total) && page >= 1 && total > 0) {
+    elements.progressText.textContent = `${page}/${total}`;
+    elements.progressText.title = `Page ${page} of ${total} · ${Math.round(value * 100)}%`;
+  } else {
+    elements.progressText.textContent = `${Math.round(value * 100)}%`;
+    elements.progressText.title = state.pageMap?.isGenerating?.() ? "Preparing device page map…" : "Reading progress";
   }
-  configureSpread();
-  themeController.refresh(state.rendition);
-  if (relayout) scheduleRelayout();
+}
+
+function currentPageMapPosition(rendition = state.rendition, location = rendition?.location, flow = state.renderedFlow || state.settings.flow) {
+  if (!state.pageMap || !location?.start) return null;
+  try { return state.pageMap.positionForLocation(location, { rendition, flow }); } catch { return null; }
+}
+
+function schedulePageMapRefresh(delay = 700) {
+  clearTimeout(state.pageMapRefreshTimer);
+  state.pageMapRefreshTimer = setTimeout(() => {
+    if (!state.pageMap || !state.book) return;
+    state.pageMap.ensure({ anchorCfi: state.currentCfi }).catch(error => console.warn("Page map refresh failed", error));
+  }, delay);
+}
+
+function mapLayoutChangedSignificantly() {
+  const mapped = state.pageMap?.map?.()?.layout;
+  if (!mapped) return true;
+  const current = pageMapLayoutMetrics();
+  return Math.abs(Number(mapped.width) - current.width) > 24 ||
+    Math.abs(Number(mapped.height) - current.height) > 120 ||
+    String(mapped.spread) !== String(current.spread);
+}
+
+function applySettingsToRendition({ relayout = false, rebuildPageMap = false } = {}) {
+  persistSettings();
+  if (state.rendition) {
+    try {
+      state.rendition.themes.default(themeController.css(state.settings));
+    } catch (error) {
+      console.warn("Reader theme update skipped", error);
+    }
+    configureSpread();
+    themeController.refresh(state.rendition);
+    if (relayout) scheduleRelayout();
+  }
+  if (rebuildPageMap) schedulePageMapRefresh();
 }
 
 function scheduleRelayout() {
@@ -192,10 +253,11 @@ function scheduleRelayout() {
   state.relayoutTimer = setTimeout(async () => {
     const rendition = state.rendition;
     if (!rendition || state.switchingFlow) return;
+    const keepCfi = state.currentCfi;
     try { rendition.resize?.("100%", "100%"); } catch {}
     configureSpread(rendition);
-    if (state.currentCfi) {
-      try { await rendition.display(state.currentCfi); } catch (error) { console.warn("Reader relayout skipped", error); }
+    if (keepCfi) {
+      try { await rendition.display(keepCfi); } catch (error) { console.warn("Reader relayout skipped", error); }
     }
   }, 120);
 }
@@ -204,9 +266,21 @@ function bookmarks() {
   return storage.loadBookmarks();
 }
 
+function sameCanonicalPosition(bookmark, position = state.currentPosition) {
+  if (!bookmark || !position) return false;
+  const fingerprint = state.pageMap?.fingerprint?.();
+  if (fingerprint && bookmark.pageMapFingerprint === fingerprint && Number(bookmark.page) > 0 && Number(position.page) > 0) {
+    return Number(bookmark.page) === Number(position.page);
+  }
+  if (Number(bookmark.sectionIndex) === Number(position.sectionIndex) && Number(bookmark.localPage) > 0 && Number(position.localPage) > 0) {
+    return Number(bookmark.localPage) === Number(position.localPage) && bookmark.cfi === position.cfi;
+  }
+  return Boolean(bookmark.cfi && position.cfi && bookmark.cfi === position.cfi);
+}
+
 function bookmarkIndex() {
-  if (!state.currentCfi) return -1;
-  return bookmarks().findIndex(item => item?.cfi === state.currentCfi);
+  if (!state.currentCfi && !state.currentPosition) return -1;
+  return bookmarks().findIndex(item => sameCanonicalPosition(item));
 }
 
 function updateBookmarkState() {
@@ -238,7 +312,11 @@ function renderBookmarks() {
     label.textContent = bookmark.label || "Saved location";
     const meta = document.createElement("div");
     meta.className = "bookmark-meta";
-    meta.textContent = bookmark.at ? new Date(bookmark.at).toLocaleString() : "Saved bookmark";
+    const parts = [];
+    if (Number(bookmark.page) > 0 && Number(bookmark.totalPages) > 0) parts.push(`Page ${bookmark.page} of ${bookmark.totalPages}`);
+    else if (Number(bookmark.localPage) > 0) parts.push(`Section page ${bookmark.localPage}`);
+    if (bookmark.at) parts.push(new Date(bookmark.at).toLocaleString());
+    meta.textContent = parts.join(" · ") || "Saved bookmark";
     copy.append(label, meta);
 
     const open = document.createElement("button");
@@ -247,7 +325,10 @@ function renderBookmarks() {
     open.setAttribute("aria-label", `Open bookmark ${index + 1}`);
     open.addEventListener("click", async () => {
       try {
-        await navigate(bookmark.cfi);
+        const fingerprint = state.pageMap?.fingerprint?.();
+        const canonical = fingerprint && bookmark.pageMapFingerprint === fingerprint;
+        const target = canonical ? await state.pageMap.targetForPosition(bookmark, { includeFraction: true }) : bookmark.cfi;
+        await navigate(target || bookmark.cfi);
         closeDrawers();
       } catch (error) {
         console.error("Bookmark navigation failed", error);
@@ -273,9 +354,9 @@ function renderBookmarks() {
 }
 
 function toggleBookmark() {
-  if (!state.currentCfi) return;
+  if (!state.currentCfi && !state.currentPosition) return;
   const list = bookmarks();
-  const index = list.findIndex(item => item?.cfi === state.currentCfi);
+  const index = list.findIndex(item => sameCanonicalPosition(item));
   if (index >= 0) {
     list.splice(index, 1);
     storage.saveBookmarks(list);
@@ -284,8 +365,15 @@ function toggleBookmark() {
     toast("Bookmark removed");
     return;
   }
+  const position = state.currentPosition || {};
   list.push({
-    cfi: state.currentCfi,
+    cfi: state.currentCfi || position.cfi || "",
+    page: position.page || null,
+    totalPages: position.totalPages || null,
+    pageFraction: position.pageFraction || 0,
+    sectionIndex: position.sectionIndex ?? null,
+    localPage: position.localPage || null,
+    pageMapFingerprint: state.pageMap?.fingerprint?.() || null,
     label: state.currentChapter || elements.bookTitle.textContent || "Saved location",
     at: Date.now()
   });
@@ -293,12 +381,6 @@ function toggleBookmark() {
   renderBookmarks();
   updateBookmarkState();
   toast("Bookmark saved");
-}
-
-function setProgressUI(percentage) {
-  const value = clamp01(percentage);
-  elements.progressRange.value = Math.round(value * 1000);
-  elements.progressText.textContent = `${Math.round(value * 100)}%`;
 }
 
 function approximateProgress(location) {
@@ -333,19 +415,29 @@ function progressFromLocation(location) {
 }
 
 function saveProgress(location) {
-  const cfi = location?.start?.cfi;
-  if (!cfi) return;
+  const reportedCfi = location?.start?.cfi;
+  if (!reportedCfi) return;
+  const position = currentPageMapPosition(state.rendition, location) || { cfi: reportedCfi };
+  const cfi = position.cfi || reportedCfi;
   state.currentCfi = cfi;
-  const percentage = progressFromLocation(location);
+  const fallback = progressFromLocation(location);
+  const percentage = state.pageMap?.percentageForPosition?.(position, fallback) ?? fallback;
+  state.currentPosition = { ...position, cfi, percentage };
   storage.saveProgress({
     file: bookUrl,
     cfi,
     percentage,
+    page: position.page || null,
+    totalPages: position.totalPages || null,
+    pageFraction: position.pageFraction || 0,
+    sectionIndex: position.sectionIndex ?? null,
+    localPage: position.localPage || null,
+    pageMapFingerprint: state.pageMap?.fingerprint?.() || null,
     chapter: state.currentChapter,
     title: elements.bookTitle.textContent,
     updatedAt: Date.now()
   });
-  setProgressUI(percentage);
+  setProgressUI(percentage, state.currentPosition);
 }
 
 function spineTarget(percentage) {
@@ -363,6 +455,23 @@ async function navigateToPercentage(percentage) {
   const book = state.book;
   if (!rendition || !book) return;
   const value = clamp01(percentage);
+
+  if (state.pageMap?.hasCompleteMap?.()) {
+    try {
+      const target = await state.pageMap.targetForPercentage(value);
+      if (target) {
+        await rendition.display(target);
+        if (state.settings.flow === "scrolled-doc") {
+          await nextPaint();
+          await rendition.display(target);
+        }
+        return;
+      }
+    } catch (error) {
+      console.warn("Canonical page seek failed; using EPUB location fallback", error);
+    }
+  }
+
   if (state.locationsReady && book.locations) {
     try {
       const cfi = book.locations.cfiFromPercentage(value);
@@ -389,8 +498,8 @@ async function navigateToPercentage(percentage) {
 
 function seekTo(percentage, immediate = false) {
   const value = clamp01(percentage);
-  setProgressUI(value);
-  if (!state.locationsReady && !state.locationsFailed) {
+  setProgressUI(value, pageMapPositionFromPercentage(value));
+  if (!state.pageMap?.hasCompleteMap?.() && !state.locationsReady && !state.locationsFailed) {
     state.pendingSeek = { percentage: value, requestedAt: Date.now() };
   } else {
     state.pendingSeek = null;
@@ -451,6 +560,17 @@ async function createRendition(target) {
   return rendition;
 }
 
+async function captureFlowPosition(rendition, flow) {
+  if (!rendition) return state.currentPosition;
+  let location = rendition.location;
+  try {
+    const live = rendition.currentLocation?.();
+    if (live && typeof live.then === "function") location = await live;
+    else if (live) location = live;
+  } catch {}
+  return state.pageMap?.positionForLocation?.(location, { rendition, flow }) || state.currentPosition || { cfi: state.currentCfi };
+}
+
 async function switchFlow(nextFlow) {
   const desired = nextFlow === "scrolled-doc" ? "scrolled-doc" : "paginated";
   if (state.switchingFlow) {
@@ -464,23 +584,41 @@ async function switchFlow(nextFlow) {
   }
 
   const previousFlow = state.renderedFlow || state.settings.flow;
-  const target = state.currentCfi || storage.loadProgress()?.cfi || undefined;
+  const old = state.rendition;
+  const position = await captureFlowPosition(old, previousFlow);
+  let target = state.currentCfi || storage.loadProgress()?.cfi || undefined;
+  if (state.pageMap && position) {
+    try {
+      target = await state.pageMap.targetForPosition(position, { includeFraction: desired === "scrolled-doc" }) || target;
+    } catch (error) {
+      console.warn("Canonical flow target fallback", error);
+    }
+  }
+
+  state.currentPosition = position || state.currentPosition;
   state.settings.flow = desired;
   persistSettings();
   state.switchingFlow = true;
-  const old = state.rendition;
   state.rendition = null;
   try { old?.destroy?.(); } catch (error) { console.warn("Old rendition cleanup skipped", error); }
-  const viewer = $("#viewer");
-  if (viewer) viewer.innerHTML = "";
+  if (elements.viewer) elements.viewer.innerHTML = "";
 
   try {
     await createRendition(target);
+    /* v1.1.x's compatibility layer may still use its one-time CFI handoff on the first
+       display. A second explicit canonical display makes the Page Map authoritative. */
+    if (state.pageMap && position) {
+      const canonicalTarget = await state.pageMap.targetForPosition(position, { includeFraction: desired === "scrolled-doc" });
+      if (canonicalTarget && state.rendition) {
+        if (desired === "scrolled-doc") await nextPaint();
+        await state.rendition.display(canonicalTarget);
+      }
+    }
   } catch (error) {
     console.error("Reader flow switch failed", error);
     toast("Could not switch reading flow");
     try { state.rendition?.destroy?.(); } catch {}
-    if (viewer) viewer.innerHTML = "";
+    if (elements.viewer) elements.viewer.innerHTML = "";
     state.settings.flow = previousFlow;
     persistSettings();
     try {
@@ -498,6 +636,26 @@ async function switchFlow(nextFlow) {
   }
 }
 
+function onPageMapUpdate(event) {
+  if (event.type === "loading") {
+    elements.progressText.title = "Preparing device page map…";
+    tocController.setPageResolver(null);
+    return;
+  }
+  if (event.type === "cached" || event.type === "ready") {
+    const map = event.map;
+    tocController.setPageResolver(href => state.pageMap?.firstPageForHref?.(href));
+    elements.progressText.title = `${map.totalPages} device pages cached for this layout`;
+    const location = state.rendition?.location;
+    if (location?.start) saveProgress(location);
+    renderBookmarks();
+    return;
+  }
+  if (event.type === "error") {
+    elements.progressText.title = "Page map unavailable; using EPUB location tracking";
+  }
+}
+
 function startLocationGeneration() {
   state.book.ready.then(() => state.book.locations.generate(1200)).then(() => {
     state.locationsReady = true;
@@ -508,10 +666,14 @@ function startLocationGeneration() {
       navigateToPercentage(pending.percentage);
       return;
     }
+    if (state.rendition?.location?.start) {
+      saveProgress(state.rendition.location);
+      return;
+    }
     if (state.currentCfi) {
       try {
         const exact = state.book.locations.percentageFromCfi(state.currentCfi);
-        if (Number.isFinite(exact)) setProgressUI(exact);
+        if (Number.isFinite(exact)) setProgressUI(exact, state.currentPosition);
       } catch {}
     }
   }).catch(error => {
@@ -549,27 +711,28 @@ function bindSettings() {
   });
   elements.fontSelect.addEventListener("change", event => {
     state.settings.font = event.target.value;
-    applySettingsToRendition({ relayout: true });
+    applySettingsToRendition({ relayout: true, rebuildPageMap: true });
   });
   elements.fontSizeRange.addEventListener("input", event => {
     state.settings.fontSize = Number(event.target.value);
-    applySettingsToRendition({ relayout: true });
+    applySettingsToRendition({ relayout: true, rebuildPageMap: true });
   });
   elements.lineHeightRange.addEventListener("input", event => {
     state.settings.lineHeight = Number(event.target.value);
-    applySettingsToRendition({ relayout: true });
+    applySettingsToRendition({ relayout: true, rebuildPageMap: true });
   });
   elements.widthRange.addEventListener("input", event => {
     state.settings.width = Number(event.target.value);
-    applySettingsToRendition({ relayout: state.settings.flow === "scrolled-doc" });
+    applySettingsToRendition({ relayout: state.settings.flow === "scrolled-doc", rebuildPageMap: true });
   });
   elements.flowSelect.addEventListener("change", event => switchFlow(event.target.value));
   elements.resetReader.addEventListener("click", async () => {
     const previousFlow = state.settings.flow;
     state.settings = { ...defaults };
     persistSettings();
+    schedulePageMapRefresh(100);
     if (previousFlow !== state.settings.flow) await switchFlow(state.settings.flow);
-    else applySettingsToRendition({ relayout: true });
+    else applySettingsToRendition({ relayout: true, rebuildPageMap: true });
     toast("Reader settings reset");
   });
 }
@@ -611,12 +774,14 @@ function bindNavigation() {
     state.resizeTimer = setTimeout(async () => {
       const rendition = state.rendition;
       if (!rendition || state.switchingFlow) return;
+      const keepCfi = state.currentCfi;
       try { rendition.resize?.("100%", "100%"); } catch {}
       configureSpread(rendition);
-      if (state.settings.flow === "paginated" && state.currentCfi) {
-        try { await rendition.display(state.currentCfi); } catch {}
+      if (state.settings.flow === "paginated" && keepCfi) {
+        try { await rendition.display(keepCfi); } catch {}
       }
-    }, 140);
+      if (mapLayoutChangedSignificantly()) schedulePageMapRefresh(900);
+    }, 180);
   });
 }
 
@@ -663,10 +828,34 @@ async function init() {
     tocController.render(navigation?.toc || []);
 
     const saved = storage.loadProgress();
-    if (Number.isFinite(Number(saved?.percentage))) setProgressUI(Number(saved.percentage));
+    if (Number.isFinite(Number(saved?.percentage))) setProgressUI(Number(saved.percentage), saved);
+
+    state.pageMap = createPageMapController({
+      book: state.book,
+      bookUrl,
+      getSettings: () => state.settings,
+      getLayoutMetrics: pageMapLayoutMetrics,
+      getViewer: () => elements.viewer,
+      getPaginatedTheme: () => themeController.css({ ...state.settings, flow: "paginated" }),
+      onUpdate: onPageMapUpdate
+    });
+
+    const pageMapResult = await state.pageMap.ensure({ anchorCfi: saved?.cfi || "" });
+    let initialTarget = saved?.cfi || undefined;
+    if (pageMapResult?.map && saved?.pageMapFingerprint === state.pageMap.fingerprint() && Number(saved?.page) > 0) {
+      try { initialTarget = await state.pageMap.targetForPosition(saved, { includeFraction: state.settings.flow === "scrolled-doc" }) || initialTarget; } catch {}
+    }
 
     startLocationGeneration();
-    await createRendition(saved?.cfi || undefined);
+    await createRendition(initialTarget);
+    /* If v1.1.5's one-shot flow handoff chose an older CFI, immediately reassert the
+       cached canonical page after the live rendition is established. */
+    if (pageMapResult?.map && saved?.pageMapFingerprint === state.pageMap.fingerprint() && Number(saved?.page) > 0) {
+      try {
+        const canonicalTarget = await state.pageMap.targetForPosition(saved, { includeFraction: state.settings.flow === "scrolled-doc" });
+        if (canonicalTarget) await state.rendition.display(canonicalTarget);
+      } catch {}
+    }
     elements.loading.classList.add("hidden");
   } catch (error) {
     console.error("Reader initialization failed", error);

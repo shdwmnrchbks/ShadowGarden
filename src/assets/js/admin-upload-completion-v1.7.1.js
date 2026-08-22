@@ -10,7 +10,7 @@
  * completion screen from the captured per-item terminal states and returned series IDs.
  */
 (()=>{
-  const q=window.state?.batch;
+  const q=state?.batch;
   const dialog=document.querySelector('#addBooksDialog');
   const stage=document.querySelector('#uploadWorkflowStage');
   const uploadState=document.querySelector('#uploadState');

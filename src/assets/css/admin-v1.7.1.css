@@ -1,0 +1,38 @@
+/* Shadow Garden v1.7.1 — mobile Catalog History text-flow correction. */
+@media(max-width:760px){
+  #backupList .maintenance-item{
+    height:auto!important;
+    min-height:0!important;
+    overflow:visible!important;
+  }
+  #backupList .maintenance-item-copy{
+    width:100%!important;
+    min-width:0!important;
+    overflow:visible!important;
+  }
+  #backupList .maintenance-item-copy strong,
+  #backupList .maintenance-item-copy>span:not(.backup-meta){
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    height:auto!important;
+    max-height:none!important;
+    overflow:visible!important;
+    white-space:normal!important;
+    text-overflow:clip!important;
+    overflow-wrap:anywhere!important;
+    word-break:break-word!important;
+  }
+  #backupList .maintenance-item-copy strong{
+    line-height:1.42!important;
+    padding-block:1px!important;
+  }
+  #backupList .maintenance-item-copy>span:not(.backup-meta){
+    line-height:1.5!important;
+    padding-block:1px!important;
+  }
+  #backupList .backup-meta{
+    width:100%!important;
+    overflow:visible!important;
+  }
+}

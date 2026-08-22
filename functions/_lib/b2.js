@@ -31,6 +31,13 @@ function client(accessKeyId, secretAccessKey) {
   });
 }
 
+export function readClient(env) {
+  if (!env.B2_READ_KEY_ID || !env.B2_READ_APPLICATION_KEY) {
+    throw new Error("B2 read credentials are not configured.");
+  }
+  return client(env.B2_READ_KEY_ID, env.B2_READ_APPLICATION_KEY);
+}
+
 export function writeClient(env) {
   if (!env.B2_WRITE_KEY_ID || !env.B2_WRITE_APPLICATION_KEY) {
     throw new Error("B2 write credentials are not configured.");

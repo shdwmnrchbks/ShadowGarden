@@ -62,4 +62,11 @@
     const syncContinuous=()=>continuous.setAttribute('aria-valuetext',continuousText.textContent||'0%');
     new MutationObserver(syncContinuous).observe(continuousText,{childList:true,characterData:true,subtree:true});syncContinuous();
   }
+
+  if(!document.querySelector('script[data-ui-direction-triangles]')){
+    const script=document.createElement('script');
+    script.src='/assets/js/ui-direction-triangles.js?v=1.7.5';
+    script.dataset.uiDirectionTriangles='1';
+    document.head.appendChild(script);
+  }
 })();

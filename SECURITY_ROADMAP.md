@@ -15,8 +15,8 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB that a legiti
 
 | Milestone | Status | Scope |
 | --- | --- | --- |
-| 1. Baseline media hardening | 🟨 In progress | Merged and CI-verified; production smoke test pending |
-| 2. Signed book access tickets | ⬜ Planned | Short-lived HMAC access URLs for EPUB delivery |
+| 1. Baseline media hardening | ✅ Done | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
+| 2. Signed book access tickets | 🟨 In progress | Short-lived HMAC access URLs for EPUB delivery |
 | 3. Opaque public book identifiers | ⬜ Planned | Stop exposing durable B2 object paths in public catalog data |
 | 4. Human access sessions | ⬜ Planned | Free Cloudflare Turnstile session verification before protected book acquisition |
 | 5. Bulk-download throttling | ⬜ Planned | Free Cloudflare rate-limiting rule and unique-book acquisition policy |
@@ -29,54 +29,63 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB that a legiti
 
 ## Milestone 1 — Baseline media hardening
 
-**Status:** 🟨 In progress — merged and CI-verified; production validation pending
+**Status:** ✅ Done
 
-Low-risk hardening of the delivery surface before changing how book URLs are generated.
+Implemented and production-validated.
 
-### Implementation
+### Completed
 
 - [x] Reject browser requests for EPUB files when `Sec-Fetch-Site: cross-site`.
 - [x] Add `Cross-Origin-Resource-Policy: same-origin` to EPUB and catalog responses.
 - [x] Remove upstream CORS response headers from protected EPUB/catalog responses.
 - [x] Add `X-Robots-Tag` anti-index/archive headers to EPUB/catalog delivery.
 - [x] Add `robots.txt` rules for `/media/`, `/admin.html`, `/admin-api/`, and future `/book-access/` routes.
-- [x] Keep Range forwarding unchanged so same-origin Reader seeking remains supported.
+- [x] Preserve same-origin Reader Range requests.
 - [x] Preserve existing Cloudflare cache behavior and private B2 origin.
-- [x] Extend repository checks so the baseline hardening cannot accidentally disappear.
+- [x] Extend repository checks so the baseline hardening cannot silently disappear.
 - [x] Pass repository CI.
-- [ ] Production smoke-test Main/Adult catalog loading plus Reader Pages/Continuous and seeking.
-
-### Acceptance criteria
-
-1. Shadow Garden itself can still load both catalogs and EPUBs.
-2. Range requests from the Reader still work.
-3. A normal browser request initiated from an unrelated origin cannot use the EPUB endpoint as a hotlink.
-4. Search/archive crawlers receive explicit instructions not to index media/admin endpoints.
-5. No catalog schema change is introduced yet.
+- [x] Production smoke-test Main/Adult catalogs plus Reader Pages/Continuous and seeking.
 
 ---
 
 ## Milestone 2 — Signed book access tickets
 
-**Status:** ⬜ Planned
+**Status:** 🟨 In progress
 
-Replace permanently reusable EPUB delivery URLs with short-lived HMAC-authorized access.
+Replace permanently reusable EPUB delivery URLs with short-lived HMAC-authorized access while keeping the current catalog schema intact. Milestone 3 will later replace the exposed durable media path with an opaque `bookId`; this milestone deliberately signs the existing EPUB path first so URL authorization can be validated independently.
 
-### Planned design
+### Planned implementation
 
-- `/book-access/:bookId` issues a short-lived ticket.
-- Ticket contains book identity, expiry, nonce/session binding, and HMAC signature.
-- `/media/book/:bookId?...` validates the ticket before resolving the private B2 object.
-- Initial target lifetime: roughly 10 minutes, configurable.
-- Range requests remain valid for the ticket lifetime.
-- Cloudflare cache uses a canonical book cache key after authorization so unique signatures do not fragment cached EPUBs.
-- Signing secret exists only as a Cloudflare secret such as `SG_MEDIA_SIGNING_SECRET`.
+- [ ] Add a same-origin `/book-access` endpoint that accepts the current EPUB media path and returns a short-lived signed URL.
+- [ ] Add HMAC-SHA256 signing and validation shared by `/book-access` and `/media`.
+- [ ] Default ticket lifetime to roughly 10 minutes.
+- [ ] Require a valid ticket for EPUB requests once `SG_MEDIA_SIGNING_SECRET` is configured.
+- [ ] Keep a safe legacy fallback while the signing secret is not configured so deployment does not break before activation.
+- [ ] Make the Reader exchange its stable catalog EPUB path for a signed source URL before EPUB.js opens the book.
+- [ ] Keep progress, bookmarks, Visual Page Cache, and canonical Page Map keyed to the stable catalog path rather than the expiring signed URL.
+- [ ] Make direct Series-page EPUB downloads acquire a fresh ticket before downloading.
+- [ ] Preserve Range requests for the full ticket lifetime.
+- [ ] Use a canonical Cloudflare EPUB cache key after signature validation so different ticket signatures do not fragment the cache.
+- [ ] Add repository checks for ticket enforcement and route wiring.
+- [ ] Pass CI and production smoke test.
+
+### Activation requirement
+
+Create a Cloudflare Pages secret named:
+
+`SG_MEDIA_SIGNING_SECRET`
+
+Use a randomly generated value of at least 32 bytes. Until this secret exists, Shadow Garden will retain the Milestone 1 delivery behavior so the deployment is safe to roll out before activation.
 
 ### Acceptance criteria
 
-- Copying a protected EPUB URL stops working after expiry.
-- Changing the book ID or expiry invalidates the signature.
-- Existing Reader functions work without prompting on every Range request.
+1. With `SG_MEDIA_SIGNING_SECRET` configured, a bare catalog EPUB URL returns a denial rather than the book.
+2. `/book-access` returns a signed same-origin EPUB URL for a valid catalog media path.
+3. Changing the path, expiry, or signature invalidates the ticket.
+4. An expired ticket is rejected.
+5. Pages and Continuous Reader modes open and seek normally.
+6. Reading progress and visual/page-map caches do not reset every time a new ticket is issued.
+7. Direct Series-page downloads still work, but the generated URL expires.
 
 ---
 

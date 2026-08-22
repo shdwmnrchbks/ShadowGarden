@@ -1,5 +1,5 @@
 import { getTextObject, readClient } from "./b2.js";
-import { bookIdForFile, isBookId, normalizeBookFile, volumeBookId } from "./book-id.js";
+import { isBookId, normalizeBookFile, volumeBookId } from "./book-id.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";
 const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
@@ -54,11 +54,7 @@ export async function resolveBookReference(env, value) {
   const lookup = await index(env);
   if (isBookId(ref)) return lookup.byId.get(ref) || null;
   const file = normalizeBookFile(ref);
-  if (!file) return null;
-  const existing = lookup.byFile.get(file);
-  if (existing) return existing;
-  const bookId = await bookIdForFile(file);
-  return bookId ? { bookId, file, seriesId: "", volume: null, legacy: true } : null;
+  return file ? lookup.byFile.get(file) || null : null;
 }
 
 export function clearBookResolverCache() {

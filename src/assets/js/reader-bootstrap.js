@@ -3,6 +3,7 @@
   const access=window.ShadowGardenBookAccess;
   try{
     const ticket=access?.initial?await access.initial:null;
+    if(ticket?.identity&&access?.migrateLegacyState)await access.migrateLegacyState([ticket.identity]);
     if(ticket?.url)window.__sgReaderBookSource=ticket.url;
     if(ticket?.identity)window.__sgReaderBookIdentity=ticket.identity;
     await import("/assets/js/reader.js?v=1.9.0");

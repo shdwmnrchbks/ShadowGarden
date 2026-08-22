@@ -22,10 +22,16 @@
 /assets/js/admin-upload-completion-v1.7.1.js
   Cache-Control: no-store
 
+/assets/js/admin-v1.7.2.js
+  Cache-Control: no-store
+
 /assets/css/admin-v1.7.css
   Cache-Control: no-store
 
 /assets/css/admin-v1.7.1.css
+  Cache-Control: no-store
+
+/assets/css/admin-v1.7.2.css
   Cache-Control: no-store
 
 /data/source.json

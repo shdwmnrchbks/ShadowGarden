@@ -1,4 +1,4 @@
-/* Shadow Garden v1.0 — dynamic public-site accessibility state. */
+/* Shadow Garden — dynamic public-site accessibility state. */
 (()=>{
   function syncViewSwitch(){
     document.querySelectorAll('.view-switch button[data-view]').forEach(button=>{
@@ -37,12 +37,5 @@
     };
     new MutationObserver(syncBusy).observe(seriesRoot,{childList:true,subtree:true});
     syncBusy();
-  }
-
-  if(!document.querySelector('script[data-ui-direction-triangles]')){
-    const script=document.createElement('script');
-    script.src='/assets/js/ui-direction-triangles.js?v=1.7.5';
-    script.dataset.uiDirectionTriangles='1';
-    document.head.appendChild(script);
   }
 })();

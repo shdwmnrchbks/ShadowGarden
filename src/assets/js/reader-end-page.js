@@ -4,6 +4,7 @@
   let pagedActive=false;
 
   function canonicalEnd(){
+    if(window.__sgSeekPreviewActive||window.__sgSeekNavigationPending)return false;
     const total=Number(window.__sgCanonicalPageMap?.totalPages)||0;
     const text=String($("#progressText")?.textContent||"").trim();
     const match=text.match(/^(\d+)\s*\/\s*(\d+)$/);
@@ -31,7 +32,7 @@
   }
 
   function showPagedEnd(){
-    if(!document.body.classList.contains("reader-flow-paginated"))return;
+    if(!document.body.classList.contains("reader-flow-paginated")||!canonicalEnd())return;
     const end=page();if(!end)return;
     pagedActive=true;
     end.classList.remove("hidden");
@@ -74,6 +75,7 @@
     event.preventDefault?.();
     showPagedEnd();
   });
+  document.addEventListener("sg-reader-navigation-settled",()=>ensureContinuousEnd());
 
   document.addEventListener("click",event=>{
     const next=event.target?.closest?.("#nextPage,#nextBottom");

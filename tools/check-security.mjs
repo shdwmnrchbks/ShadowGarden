@@ -55,6 +55,7 @@ async function checkWiring(){
   for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass"]){
     if(!client.includes(marker))fail(`book-access.js is missing ${marker}`);
   }
+  if(client.includes("const legacy=")||client.includes("protected:false"))fail("book-access.js must not fall back to an unsigned EPUB URL when ticketing is unavailable");
   const bypassAssignment=client.indexOf('link.dataset.sgBookAccessBypass="1"');
   const syntheticClick=client.indexOf("link.click()");
   const bypassGuard=client.indexOf('link.dataset.sgBookAccessBypass==="1"');
@@ -68,9 +69,10 @@ async function checkWiring(){
   for(const marker of ["SG_MEDIA_SIGNING_SECRET","HMAC","SHA-256","sg-media-ticket-v1"]){
     if(!mediaTicket.includes(marker))fail(`media-ticket helper is missing ${marker}`);
   }
-  for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing"]){
+  for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing","unavailableEpub","ticketingEnabled(env)"]){
     if(!media.includes(marker))fail(`media ticket enforcement is missing ${marker}`);
   }
+  if(media.includes('ticketingEnabled(env) && !(await authorizedEpub'))fail("EPUB delivery must fail closed rather than skip authorization when ticketing is unavailable");
 }
 
 await checkTicketCrypto();

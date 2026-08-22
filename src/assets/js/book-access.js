@@ -41,15 +41,13 @@
     if(!identity)throw new Error("No EPUB was selected.");
     const now=Math.floor(Date.now()/1000);
     const cached=cache.get(identity);
-    if(!force&&cached&&(!cached.protected||Number(cached.expiresAt)-now>45))return cached;
+    if(!force&&cached&&Number(cached.expiresAt)-now>45)return cached;
 
     const response=await requestTicket(identity);
     let payload=null;
     try{payload=await response.json()}catch{}
     if(response.status===503&&payload?.code==="ticketing_not_configured"){
-      const legacy={url:identity,identity,protected:false,expiresAt:0};
-      cache.set(identity,legacy);
-      return legacy;
+      throw new Error("Signed EPUB access is unavailable because the server is not configured. Please try again later.");
     }
     if(!response.ok||!payload?.url)throw new Error(payload?.error||`Book access failed (${response.status}).`);
     const resolved=new URL(payload.url,location.href);

@@ -1,18 +1,5 @@
 /* Shadow Garden v1.8.0 — consolidated current Garden Keeper UI layers. */
 
-/* Shared compact icon controls. */
-.backup-delete-icon{
-  min-width:38px;
-  width:38px;
-  padding:0!important;
-  display:inline-grid;
-  place-items:center;
-  font-size:0;
-}
-.backup-delete-icon::before{content:"🗑";font-size:.88rem;line-height:1;filter:grayscale(1)}
-.manage-lock{width:40px;height:40px;padding:0!important;display:grid!important;place-items:center}
-.manage-lock svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-
 /* Upload queue: trash is the normal removal action; duplicate policy appears only for duplicates. */
 .batch-actions{display:flex!important;align-items:center;gap:7px;flex-wrap:nowrap}
 .batch-remove{

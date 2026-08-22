@@ -79,6 +79,9 @@
         active=Promise.resolve().then(()=>rawDisplay(target)).then(result=>{
           if(seekRequest)settleSeekNavigation();
           return result;
+        }).catch(error=>{
+          if(seekRequest)settleSeekNavigation();
+          throw error;
         }).finally(()=>{
           active=null;activeKey="";
           if(!queued)return;
@@ -94,7 +97,7 @@
         const seekRequest=Boolean(window.__sgSeekNavigationPending);
         if(active){
           if(key&&key===activeKey){
-            return seekRequest?active.then(value=>{settleSeekNavigation();return value}):active;
+            return seekRequest?active.then(value=>{settleSeekNavigation();return value},error=>{settleSeekNavigation();throw error}):active;
           }
           queued={target,key,seekRequest:Boolean(queued?.seekRequest||seekRequest)};
           return new Promise((resolve,reject)=>queuedWaiters.push({resolve,reject}));

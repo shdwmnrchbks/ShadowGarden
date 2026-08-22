@@ -11,17 +11,20 @@
   }
 
   function page(){return $("#volumeEndPage")}
-  function viewerShell(){return $("#viewerShell")}
   function scroller(){return $("#viewer .epub-container")}
+  function continuousClone(){return $("#viewer .volume-end-page-continuous")}
 
-  function moveHome(){
-    const end=page(),shell=viewerShell();
-    if(end&&shell&&end.parentElement!==shell)shell.appendChild(end);
+  function stripIds(root){
+    root.removeAttribute("id");
+    root.removeAttribute("aria-labelledby");
+    root.removeAttribute("aria-describedby");
+    root.querySelectorAll("[id]").forEach(node=>node.removeAttribute("id"));
   }
+
+  function removeContinuousEnd(){continuousClone()?.remove()}
 
   function hidePagedEnd(){
     pagedActive=false;
-    moveHome();
     const end=page();
     end?.classList.add("hidden");
     end?.classList.remove("active");
@@ -30,7 +33,6 @@
   function showPagedEnd(){
     if(!document.body.classList.contains("reader-flow-paginated"))return;
     const end=page();if(!end)return;
-    moveHome();
     pagedActive=true;
     end.classList.remove("hidden");
     end.classList.add("active");
@@ -38,23 +40,30 @@
   }
 
   function ensureContinuousEnd(){
-    if(!document.body.classList.contains("reader-flow-scrolled"))return;
-    const end=page(),container=scroller();
-    if(!end||!container||!canonicalEnd())return;
-    if(end.parentElement!==container)container.appendChild(end);
+    if(!document.body.classList.contains("reader-flow-scrolled")||!canonicalEnd()){
+      removeContinuousEnd();
+      return;
+    }
+    const master=page(),container=scroller();
+    if(!master||!container)return;
+    const previous=continuousClone();
+    const end=master.cloneNode(true);
+    stripIds(end);
     end.classList.remove("hidden","active");
-    end.classList.add("continuous-end");
+    end.classList.add("continuous-end","volume-end-page-continuous");
+    if(previous)previous.replaceWith(end);
+    else container.appendChild(end);
   }
 
   function syncFlow(){
     const end=page();if(!end)return;
     if(document.body.classList.contains("reader-flow-scrolled")){
       pagedActive=false;
+      end.classList.add("hidden");
       end.classList.remove("active");
       ensureContinuousEnd();
     }else{
-      end.classList.remove("continuous-end");
-      moveHome();
+      removeContinuousEnd();
       end.classList.toggle("hidden",!pagedActive);
       end.classList.toggle("active",pagedActive);
     }
@@ -86,8 +95,9 @@
   },true);
 
   function init(){
-    const text=$("#progressText");
-    if(text)new MutationObserver(()=>{ensureContinuousEnd()}).observe(text,{childList:true,characterData:true,subtree:true});
+    const text=$("#progressText"),master=page();
+    if(text)new MutationObserver(()=>ensureContinuousEnd()).observe(text,{childList:true,characterData:true,subtree:true});
+    if(master)new MutationObserver(()=>{if(document.body.classList.contains("reader-flow-scrolled")&&canonicalEnd())ensureContinuousEnd()}).observe(master,{childList:true,characterData:true,subtree:true,attributes:true});
     new MutationObserver(syncFlow).observe(document.body,{attributes:true,attributeFilter:["class"]});
     const viewer=$("#viewer");
     if(viewer)new MutationObserver(()=>{if(document.body.classList.contains("reader-flow-scrolled")&&canonicalEnd())ensureContinuousEnd()}).observe(viewer,{childList:true,subtree:true});

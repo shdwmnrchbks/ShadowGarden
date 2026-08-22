@@ -184,12 +184,14 @@ export async function onRequestPost({ request, env }) {
       };
       target.series.push(series);
     } else {
-      series.title = seriesName || series.title;
-      series.author = author || series.author;
-      series.year = year || series.year;
-      series.status = status || series.status;
-      series.description = description || series.description;
-      series.tags = [...new Set([...arr(series.tags), ...tags])];
+      if (!targetSeriesId) {
+        series.title = seriesName || series.title;
+        series.author = author || series.author;
+        series.year = year || series.year;
+        series.status = status || series.status;
+        series.description = description || series.description;
+        series.tags = [...new Set([...arr(series.tags), ...tags])];
+      }
       const legacyAudioUrl = arr(series.volumes).find(volume => volume.audioAlignedUrl)?.audioAlignedUrl || "";
       if (!series.audioAlignedUrl && legacyAudioUrl) series.audioAlignedUrl = legacyAudioUrl;
       if (audioAlignedUrl) series.audioAlignedUrl = audioAlignedUrl;

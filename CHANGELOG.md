@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 1.1.1 — Continuous Upward Scroll Fix
+- Fixed Continuous mode snapping downward or jumping into the current/next chapter while scrolling upward across a chapter boundary.
+- Disabled browser scroll anchoring for EPUB.js continuous-manager containers and loaded chapter documents so prepending the previous spine item no longer pulls the viewport back down.
+- Kept Paginated mode, gestures, seek behavior, TOC navigation, and reader state logic unchanged.
+
 ## 1.1.0 — Garden Keeper Overhaul
 - Removed the post-unlock dashboard and made Manage Library the permanent Garden Keeper home.
 - Replaced the old Dashboard navigation with a stacked Maintenance button and + New Books button beside the Manage Library heading.

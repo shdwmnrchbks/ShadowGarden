@@ -3,3 +3,4 @@ Disallow: /media/
 Disallow: /admin.html
 Disallow: /admin-api/
 Disallow: /book-access
+Disallow: /book-access/

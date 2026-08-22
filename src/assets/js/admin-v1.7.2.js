@@ -1,4 +1,4 @@
-/* Shadow Garden v1.7.2 — Catalog History rows, persistent queue editor, and cover chooser. */
+/* Shadow Garden v1.7.3 — Catalog History rows, safe queue editor restore, and cover chooser. */
 (()=>{
   const dialog=document.querySelector('#addBooksDialog');
   const batchList=document.querySelector('#batchList');
@@ -33,23 +33,31 @@
     normalizeBackupRows();
   }
 
-  /* admin-batch.js hides the editor whenever Add more EPUBs begins. If a valid active queue item
-     already exists, keep its editor/preflight visible while the new files are inspected. */
-  function keepActiveEditorVisible(){
-    if(!q||!dialog?.open||q.running||dialog.classList.contains('sg-workflow-stage'))return;
-    const active=q.items?.find(item=>item.id===q.activeId&&item.metaReady);
-    if(!active)return;
-    metadata?.classList.remove('hidden');
-    preflight?.classList.remove('hidden');
-    const picker=document.querySelector('#batchEditorPicker');
-    if(picker&&q.items.length>1)picker.classList.remove('hidden');
+  /* v1.7.2 watched metadataCard's class attribute and immediately fought the legacy uploader's
+     intentional hide/show sequence while local EPUB inspection was running. On mobile Chromium
+     that could create a hot mutation loop and make preflight appear permanently CHECKING.
+
+     Do not touch editor visibility while any queue item is being inspected. The batch renderer
+     replaces its direct rows whenever a real status changes, so debounce those row replacements
+     and restore the previous active editor only after local inspection has completely settled. */
+  let editorRestoreTimer=0;
+  function scheduleEditorRestore(){
+    clearTimeout(editorRestoreTimer);
+    editorRestoreTimer=setTimeout(()=>{
+      if(!q||!dialog?.open||q.running||dialog.classList.contains('sg-workflow-stage'))return;
+      if(q.items?.some(item=>item.status==='checking'))return;
+      const active=q.items?.find(item=>item.id===q.activeId&&item.metaReady);
+      if(!active)return;
+      metadata?.classList.remove('hidden');
+      preflight?.classList.remove('hidden');
+      const picker=document.querySelector('#batchEditorPicker');
+      if(picker&&q.items.length>1)picker.classList.remove('hidden');
+    },120);
   }
   if(batchList){
-    new MutationObserver(()=>queueMicrotask(keepActiveEditorVisible)).observe(batchList,{childList:true,subtree:false});
+    new MutationObserver(scheduleEditorRestore).observe(batchList,{childList:true,subtree:false});
   }
-  if(metadata){
-    new MutationObserver(()=>queueMicrotask(keepActiveEditorVisible)).observe(metadata,{attributes:true,attributeFilter:['class']});
-  }
+  dialog?.addEventListener('close',()=>clearTimeout(editorRestoreTimer));
 
   /* Turn the multi-series completion chooser into library-like cover cards. The v1.7 listener is
      attached to each button itself, so replacing its children keeps navigation behavior intact. */

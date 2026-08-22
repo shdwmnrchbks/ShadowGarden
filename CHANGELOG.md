@@ -1,5 +1,20 @@
 # Shadow Garden Changelog
 
+## 1.2.0 — Canonical Device Page Map
+- Added a layout-specific canonical Page Map generated from real paginated rendering for the current device viewport, font, font size, line height, text-width setting, spread mode, and EPUB publication/spine signature.
+- Cache completed Page Maps in browser IndexedDB so a previously measured book/layout can restore page tracking immediately on later opens.
+- Generate pagination in an isolated hidden EPUB.js sandbox so background page measurement cannot take over or destabilize the live Paginated/Continuous rendition.
+- Prioritize the current spine item plus its previous/next neighbors first, then continue the rest of the book without blocking reading; CFI/percentage tracking remains the fallback until the full map is ready.
+- Treat standalone text-free cover/illustration XHTML as exactly one canonical page, while normal chapter images and small in-text ornaments remain part of their surrounding text pagination.
+- Track Continuous mode against a stable reading point around 30% down the viewport and resolve that CFI into the same canonical page ranges used by Pages mode.
+- Make the canonical page coordinate authoritative when switching Pages ↔ Continuous, with the saved CFI retained as a precision/fallback anchor and optional within-page fraction.
+- Save canonical page, total pages, section/local page, page fraction, Page Map fingerprint, and CFI in reading progress; older CFI-only progress remains compatible.
+- Save page-aware bookmarks and restore them by canonical page when the matching layout map exists, otherwise fall back to their CFI.
+- Make the progress/seek controls page-aware once the map is complete and show `current/total` device pages instead of only percentage.
+- Add starting page numbers to TOC entries after the canonical map is ready.
+- Rebuild/reuse Page Maps when layout-affecting reader settings or significant viewport/orientation changes alter the layout fingerprint, while avoiding needless regeneration for small mobile browser-chrome height changes.
+- Keep the v1.1.5 Continuous visual-page startup fixes, reverse-scroll synchronization, stable retained views, and existing EPUB location generation as compatibility fallbacks.
+
 ## 1.1.5 — Flow Location & Continuous Startup Fix
 - Preserve the actual viewport location when switching between Pages and Continuous by capturing the old rendition's live CFI before it is destroyed and handing that exact anchor to the new rendition.
 - Re-apply the same CFI after Continuous has painted so immediate prepend/append work cannot silently move a flow switch back to the beginning of the chapter.

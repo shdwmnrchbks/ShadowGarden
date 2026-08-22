@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 1.1.4 — Continuous Visual Pages & Fast Scroll Fix
+- Fixed fast Continuous scrolling flicker at chapter boundaries by keeping retained iframe views visible while scrolling instead of repeatedly calling EPUB.js `hide()` / `show()`.
+- Avoid EPUB.js `hide()` setting `stopExpanding=true` on retained chapters, which could leave re-entered image/SVG sections stale or blank after fast traversal.
+- Move visual-only XHTML preparation into `IframeView.load()` completion so standalone images, `<figure><img>` pages, and SVG cover wrappers are normalized before EPUB.js performs its first layout and `textHeight()` measurement.
+- Neutralize rendered-copy `vh` wrapper sizing on visual-only pages to prevent circular iframe-height growth while preserving the source EPUB unchanged.
+- Restore expansion before any retained hidden view is shown, remeasure visual pages after media/fonts settle, and retain four neighboring sections on each side before idle trimming.
+- Kept the v1.1.3 real-scroll-position synchronization and delayed Continuous location reporting that fixed multi-chapter reverse scrolling.
+
 ## 1.1.3 — Continuous Reader Hardening
 - Backported EPUB.js's newer Continuous manager scroll-position synchronization so recursive previous-section prepends use the real scroll container position instead of stale bookkeeping.
 - Stop destroying offscreen spine iframes during active scrolling; hide them while moving, then trim only after the reader is idle while retaining a bounded three-section neighborhood around the viewport.

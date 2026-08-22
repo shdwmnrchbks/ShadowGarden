@@ -1,5 +1,14 @@
 # Shadow Garden Changelog
 
+## 1.1.0 — Garden Keeper Overhaul
+- Removed the post-unlock dashboard and made Manage Library the permanent Garden Keeper home.
+- Replaced the old Dashboard navigation with a stacked Maintenance button and + New Books button beside the Manage Library heading.
+- Converted Add New Books and Garden Maintenance into large single-scroll modal windows that match the Series Editor interaction model.
+- Added a + Add book action beside Manage series on every series card.
+- + Add book opens the New Books uploader already targeted to that exact existing series and shelf, with the series/shelf controls locked for that upload session.
+- Added exact `targetSeriesId` catalog support so renamed series cannot accidentally fork into a duplicate series when adding volumes directly.
+- Refresh Manage Library automatically after a completed upload batch.
+
 ## 1.0.5 — Series Editor Polish
 - Removed the Series Editor's outer scrollbar so only the intended content pane scrolls while the header and action bar stay fixed.
 - Automatically close the Series Editor after a successful series save or move-to-Trash action.

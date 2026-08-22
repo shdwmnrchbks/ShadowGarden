@@ -5,6 +5,7 @@
 
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
   const paint=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+  const targetKey=target=>typeof target==="string"?target:target?.toString?.()||"";
 
   function cleanHref(value){
     let href=String(value||"").split("#")[0].split("?")[0];
@@ -44,6 +45,11 @@
     event.stopImmediatePropagation();
     renderSeekPreview(event.target);
   },true);
+  document.addEventListener("change",event=>{
+    if(event.target?.id!=="progressRange")return;
+    window.__sgSeekCommitSerial=(Number(window.__sgSeekCommitSerial)||0)+1;
+    window.__sgSeekCommitExpires=performance.now()+1200;
+  },true);
   document.addEventListener("pointerup",event=>{
     if(event.target?.id==="progressRange")event.stopImmediatePropagation();
   },true);
@@ -69,9 +75,9 @@
   }
   function finalViewLoaded(rendition){
     const manager=rendition?.manager,views=manager?.views?.all?.()||[];
-    const last=views[views.length-1];
-    if(!last?.displayed||!last?.section)return false;
-    try{return !last.section.next?.()}catch{return false}
+    const rendered=views.filter(view=>view?.displayed&&view?.section);
+    const last=rendered[rendered.length-1],finalSection=lastSpineItem(rendition);
+    return Boolean(last?.section&&finalSection&&hrefMatches(last.section.href,finalSection.href));
   }
   function syncContinuousEnd(rendition,force=false){
     if(!rendition||!document.body.classList.contains("reader-flow-scrolled"))return;
@@ -269,11 +275,20 @@
     if(!rendition||rendition.__sgRuntimeStabilityPatched)return rendition;
     rendition.__sgRuntimeStabilityPatched=true;
     const continuous=options?.manager==="continuous"||String(options?.flow||rendition.settings?.flow||"").startsWith("scrolled");
+    let lastSeekSerial=0,lastSeekTarget="";
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);
       rendition.display=(...args)=>{
         hidePagedEnd();
+        const serial=Number(window.__sgSeekCommitSerial)||0;
+        const seekActive=continuous&&serial>0&&performance.now()<(Number(window.__sgSeekCommitExpires)||0);
+        const key=targetKey(args[0]);
+        if(seekActive&&serial===lastSeekSerial&&key&&key===lastSeekTarget){
+          syncContinuousEnd(rendition);
+          return Promise.resolve(rendition);
+        }
+        if(seekActive){lastSeekSerial=serial;lastSeekTarget=key}
         return Promise.resolve(rawDisplay(...args)).finally(()=>{
           if(continuous)syncContinuousEnd(rendition);
         });

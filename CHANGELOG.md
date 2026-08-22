@@ -1,5 +1,12 @@
 # Shadow Garden Changelog
 
+## 1.1.2 — Continuous Media & Reverse Scroll Stability
+- Fixed image-only, full-page illustration, and SVG cover spine items collapsing or disappearing in Continuous mode while remaining valid in Paginated mode.
+- Added a viewport-height fallback only for visual-dominant sections whose initial EPUB.js text measurement is zero or too small, then remeasure after normal images, SVG image resources, video metadata, and fonts settle.
+- Mark new EPUB.js `.epub-view` elements as non-anchorable at creation time, before previous spine sections are prepended above the viewport.
+- Increased the Continuous manager's preload window to roughly one viewport so previous sections begin loading before the reader is already pinned at the top boundary.
+- Kept ordinary text-chapter sizing, Paginated mode, gestures, seek behavior, TOC navigation, and reader state logic unchanged.
+
 ## 1.1.1 — Continuous Upward Scroll Fix
 - Fixed Continuous mode snapping downward or jumping into the current/next chapter while scrolling upward across a chapter boundary.
 - Disabled browser scroll anchoring for EPUB.js continuous-manager containers and loaded chapter documents so prepending the previous spine item no longer pulls the viewport back down.

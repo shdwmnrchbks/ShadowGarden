@@ -1,6 +1,12 @@
 import { ROOT_PREFIX, objectUrl, readClient } from "../_lib/b2.js";
+import { publicCatalogShape } from "../_lib/book-id.js";
 import { canonicalMediaCacheUrl, ticketingEnabled, verifyMediaTicket, verifyMediaTicketCookie } from "../_lib/media-ticket.js";
 
+const PUBLIC_CATALOG_KEYS = new Set([
+  "shadow-garden/data/catalog.json",
+  "shadow-garden/data/adult-catalog.json"
+]);
+const PUBLIC_CATALOG_CACHE_VERSION = "opaque-v1";
 const PROTECTED_CORS_HEADERS = [
   "access-control-allow-credentials",
   "access-control-allow-headers",
@@ -29,7 +35,15 @@ function cacheableKey(key) {
   return key.endsWith(".json") || key.endsWith(".epub") || /\.(?:jpe?g|png|webp|avif|gif|svg)$/i.test(key);
 }
 function protectedMedia(key) { return key.endsWith(".epub") || key.endsWith(".json"); }
+function publicCatalogKey(key) { return PUBLIC_CATALOG_KEYS.has(key); }
 function crossSiteEpubRequest(request, key) { return key.endsWith(".epub") && request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site"; }
+
+function publicCatalogCacheUrl(requestUrl) {
+  const url = new URL(requestUrl);
+  url.search = "";
+  url.searchParams.set("__sg_catalog_view", PUBLIC_CATALOG_CACHE_VERSION);
+  return url.toString();
+}
 
 function applySecurityHeaders(headers, key) {
   headers.set("X-Content-Type-Options", "nosniff");
@@ -87,7 +101,11 @@ export async function onRequest(context) {
   const incomingRange = request.headers.get("range");
   const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
-  const cacheUrl = key.endsWith(".epub") ? canonicalMediaCacheUrl(request.url) : request.url;
+  const cacheUrl = key.endsWith(".epub")
+    ? canonicalMediaCacheUrl(request.url)
+    : publicCatalogKey(key)
+      ? publicCatalogCacheUrl(request.url)
+      : request.url;
   const cacheKey = new Request(cacheUrl, { method: "GET" });
   if (canCache) {
     const cached = await cache.match(cacheKey);
@@ -108,7 +126,24 @@ export async function onRequest(context) {
   headers.set("Cache-Control", cachePolicy(key));
   headers.set("X-SG-Media-Ticketing", key.endsWith(".epub") ? "active" : "disabled");
   headers.delete("server"); headers.delete("x-amz-id-2"); headers.delete("x-amz-request-id");
-  const response = new Response(method === "HEAD" ? null : upstream.body, { status: upstream.status, statusText: upstream.statusText, headers });
+
+  let body = method === "HEAD" ? null : upstream.body;
+  if (method === "GET" && upstream.ok && publicCatalogKey(key)) {
+    try {
+      const raw = await upstream.json();
+      body = JSON.stringify(await publicCatalogShape(raw));
+      headers.set("Content-Type", "application/json; charset=utf-8");
+      headers.set("X-SG-Catalog-View", PUBLIC_CATALOG_CACHE_VERSION);
+      headers.delete("content-length");
+      headers.delete("etag");
+      headers.delete("content-md5");
+    } catch (error) {
+      console.error("Public catalog redaction failed", error);
+      return new Response("Catalog transformation failed.", { status: 502, headers: { "Cache-Control": "no-store" } });
+    }
+  }
+
+  const response = new Response(body, { status: upstream.status, statusText: upstream.statusText, headers });
   if (canCache && upstream.status === 200) context.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 }

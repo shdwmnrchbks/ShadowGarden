@@ -38,13 +38,6 @@ function protectedMedia(key) { return key.endsWith(".epub") || key.endsWith(".js
 function publicCatalogKey(key) { return PUBLIC_CATALOG_KEYS.has(key); }
 function crossSiteEpubRequest(request, key) { return key.endsWith(".epub") && request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site"; }
 
-function publicCatalogCacheUrl(requestUrl) {
-  const url = new URL(requestUrl);
-  url.search = "";
-  url.searchParams.set("__sg_catalog_view", PUBLIC_CATALOG_CACHE_VERSION);
-  return url.toString();
-}
-
 function applySecurityHeaders(headers, key) {
   headers.set("X-Content-Type-Options", "nosniff");
   if (!protectedMedia(key)) return headers;
@@ -101,15 +94,12 @@ export async function onRequest(context) {
   const incomingRange = request.headers.get("range");
   const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
-  const cacheUrl = key.endsWith(".epub")
-    ? canonicalMediaCacheUrl(request.url)
-    : publicCatalogKey(key)
-      ? publicCatalogCacheUrl(request.url)
-      : request.url;
+  const cacheUrl = key.endsWith(".epub") ? canonicalMediaCacheUrl(request.url) : request.url;
   const cacheKey = new Request(cacheUrl, { method: "GET" });
   if (canCache) {
     const cached = await cache.match(cacheKey);
-    if (cached) return securedResponse(cached, key, method);
+    const catalogCacheValid = !publicCatalogKey(key) || cached?.headers.get("X-SG-Catalog-View") === PUBLIC_CATALOG_CACHE_VERSION;
+    if (cached && catalogCacheValid) return securedResponse(cached, key, method);
   }
 
   const forwarded = new Headers();

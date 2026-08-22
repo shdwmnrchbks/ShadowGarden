@@ -6,6 +6,12 @@
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
   const targetKey=target=>typeof target==="string"?target:target?.toString?.()||"";
 
+  function settleSeekNavigation(){
+    if(!window.__sgSeekNavigationPending)return;
+    window.__sgSeekNavigationPending=false;
+    document.dispatchEvent(new CustomEvent("sg-reader-navigation-settled"));
+  }
+
   function canonicalEnd(){
     if(window.__sgSeekPreviewActive||window.__sgSeekNavigationPending)return false;
     const total=Number(window.__sgCanonicalPageMap?.totalPages)||0;
@@ -61,13 +67,7 @@
     rendition.__sgStabilityPatched=true;
     const continuous=options?.manager==="continuous"||String(options?.flow||rendition.settings?.flow||"").startsWith("scrolled");
 
-    try{
-      rendition.on?.("relocated",()=>{
-        if(!window.__sgSeekNavigationPending)return;
-        window.__sgSeekNavigationPending=false;
-        document.dispatchEvent(new CustomEvent("sg-reader-navigation-settled"));
-      });
-    }catch{}
+    try{rendition.on?.("relocated",settleSeekNavigation)}catch{}
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);
@@ -95,7 +95,10 @@
           queued={target,key};
           return new Promise((resolve,reject)=>queuedWaiters.push({resolve,reject,key}));
         }
-        if(key&&key===lastKey&&Date.now()-lastAt<750)return Promise.resolve(rendition);
+        if(key&&key===lastKey&&Date.now()-lastAt<750){
+          settleSeekNavigation();
+          return Promise.resolve(rendition);
+        }
         return run(target);
       };
     }

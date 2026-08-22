@@ -1,15 +1,12 @@
-/* Shadow Garden v1.4.0 — authoritative Continuous reader controller.
+/* Shadow Garden v1.4.1 — Continuous render/location lifecycle fix.
  *
- * Replaces the accumulated v1.1-v1.3 Continuous manager shims with one owner for:
- * - bounded previous/next spine buffering around the visible section;
- * - scroll bookkeeping and SCROLLED/location reporting;
- * - idle trimming without hiding retained iframes;
- * - seek/display deduplication;
- * - boundary recovery; and
- * - the end-of-volume page.
+ * Keeps v1.4's single-owner Continuous architecture, but separates three concerns:
+ * 1) navigation displays the requested spine item immediately;
+ * 2) bounded neighbor buffering runs in the background and is invalidated by navigation;
+ * 3) scroll/location events never wait for buffering.
  *
- * The v1.3 Visual Page Cache still runs before this layer, so standalone visual XHTML is
- * already normalized before EPUB.js measures it.
+ * Visible views are actively repaired/re-shown instead of relying on a no-op update(), so a
+ * partially prepared iframe cannot remain as a permanent blank shell after first open.
  */
 (()=>{
   const baseEpub=window.ePub;
@@ -17,9 +14,9 @@
 
   const BUFFER_EACH_SIDE=4;
   const MAX_RETAINED_VIEWS=12;
-  const CHECK_TIMEOUT_MS=5000;
-  const DISPLAY_DEDUPE_MS=900;
-  const SCROLL_SETTLE_MS=70;
+  const VIEW_TIMEOUT_MS=5000;
+  const DISPLAY_DEDUPE_MS=750;
+  const SCROLL_DEBOUNCE_MS=30;
   const TRIM_IDLE_MS=1400;
 
   const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
@@ -67,8 +64,8 @@
     }
   }
 
-  /* The core reader still has older drag-time listeners. Make drag input preview-only and
-     allow exactly the normal change event to commit navigation. */
+  /* Keep legacy reader.js drag handlers from navigating repeatedly. `change` remains the one
+     committed seek event; the dedicated Continuous rail already forwards that event. */
   document.addEventListener("input",event=>{
     if(event.target?.id!=="progressRange")return;
     event.stopImmediatePropagation();
@@ -143,6 +140,15 @@
       return typeof defaultProto?.display==="function"?defaultProto.display:null;
     }catch{return null}
   }
+  function debounce(fn,wait){
+    let timer=0;
+    const wrapped=(...args)=>{
+      clearTimeout(timer);
+      timer=setTimeout(()=>{timer=0;fn(...args)},wait);
+    };
+    wrapped.cancel=()=>{clearTimeout(timer);timer=0};
+    return wrapped;
+  }
 
   function visibleRange(manager){
     const views=loadedViews(manager);
@@ -172,47 +178,71 @@
     return{views,first:nearest,last:nearest};
   }
 
-  async function displayView(view,manager){
+  function viewNeedsRepair(view){
+    if(!view?.displayed)return true;
+    if(!view.iframe||!view.contents)return true;
+    const width=Number(view._width)||Number(view.element?.offsetWidth)||0;
+    const height=Number(view._height)||Number(view.element?.offsetHeight)||0;
+    return width<=1||height<=1;
+  }
+
+  async function displayView(view,manager,generation){
     if(!view)return false;
     try{
-      const work=Promise.resolve(view.display(manager.request)).then(result=>{
-        const shown=result||view;
-        shown.stopExpanding=false;
-        shown.show?.();
+      const work=Promise.resolve(view.display(manager.request)).then(async shown=>{
+        const live=shown||view;
+        if(generation!==undefined&&generation!==manager.__sgGeneration)return false;
+        live.stopExpanding=false;
+        try{live.expand?.(true)}catch{}
+        live.show?.();
+        await paint();
         return true;
       });
-      const result=await Promise.race([work,delay(CHECK_TIMEOUT_MS).then(()=>false)]);
-      if(result!==true)console.warn("Continuous neighbor display timed out",view?.section?.href||"");
+      const result=await Promise.race([work,delay(VIEW_TIMEOUT_MS).then(()=>false)]);
+      if(result!==true&&generation===manager.__sgGeneration){
+        console.warn("Continuous neighbor display timed out",view?.section?.href||"");
+      }
       return result===true;
     }catch(error){
-      console.warn("Continuous neighbor display skipped",view?.section?.href||"",error);
+      if(generation===undefined||generation===manager.__sgGeneration){
+        console.warn("Continuous neighbor display skipped",view?.section?.href||"",error);
+      }
       return false;
     }
   }
 
-  async function prependOne(manager){
-    const first=manager.views?.first?.(),section=first?.section?.prev?.();
-    if(!section)return false;
-    let view=null;
-    try{view=manager.prepend(section)}catch(error){console.warn("Continuous prepend skipped",error);return false}
-    return displayView(view,manager);
-  }
-  async function appendOne(manager){
-    const last=manager.views?.last?.(),section=last?.section?.next?.();
-    if(!section)return false;
-    let view=null;
-    try{view=manager.append(section)}catch(error){console.warn("Continuous append skipped",error);return false}
-    return displayView(view,manager);
+  async function safeUpdate(manager,offset=0,generation=manager.__sgGeneration){
+    if(!manager?.container||!manager?.views||generation!==manager.__sgGeneration)return false;
+    const bounds=manager.bounds?.();
+    const views=loadedViews(manager);
+    const jobs=[];
+    for(const view of views){
+      let visible=false;
+      try{visible=manager.isVisible?.(view,offset,offset,bounds)===true}catch{}
+      if(!visible)continue;
+      if(viewNeedsRepair(view)){
+        jobs.push(displayView(view,manager,generation));
+      }else{
+        try{
+          view.stopExpanding=false;
+          view.expand?.(true);
+          if(view.element?.style?.visibility!=="visible"||view.iframe?.style?.visibility!=="visible")view.show?.();
+        }catch{}
+      }
+    }
+    if(jobs.length)await Promise.allSettled(jobs);
+    return jobs.length>0;
   }
 
-  function preserveAnchorBeforePrepend(range){
+  function preserveAnchor(range){
     const view=range.views[range.first];
     const top=view?.element?.getBoundingClientRect?.().top;
     return Number.isFinite(top)?{view,top}:null;
   }
-  async function restorePrependAnchor(manager,anchor){
-    if(!anchor?.view?.element||!manager.container)return;
+  async function restoreAnchor(manager,anchor,generation){
+    if(generation!==manager.__sgGeneration||!anchor?.view?.element||!manager.container)return;
     await paint();
+    if(generation!==manager.__sgGeneration)return;
     const top=anchor.view.element.getBoundingClientRect?.().top;
     if(!Number.isFinite(top))return;
     const delta=top-anchor.top;
@@ -224,9 +254,32 @@
     syncScrollPosition(manager);
   }
 
+  async function prependOne(manager,generation){
+    if(generation!==manager.__sgGeneration)return false;
+    const first=manager.views?.first?.(),section=first?.section?.prev?.();
+    if(!section)return false;
+    let view=null;
+    try{view=manager.prepend(section)}catch(error){console.warn("Continuous prepend skipped",error);return false}
+    return displayView(view,manager,generation);
+  }
+  async function appendOne(manager,generation){
+    if(generation!==manager.__sgGeneration)return false;
+    const last=manager.views?.last?.(),section=last?.section?.next?.();
+    if(!section)return false;
+    let view=null;
+    try{view=manager.append(section)}catch(error){console.warn("Continuous append skipped",error);return false}
+    return displayView(view,manager,generation);
+  }
+
+  function emitScrolled(manager){
+    if(!manager?.container)return;
+    const position=syncScrollPosition(manager);
+    try{manager.emit?.("scrolled",position)}catch{}
+  }
+
   function scheduleTrim(manager,rendition){
-    clearTimeout(manager.__sgCoreTrimTimer);
-    manager.__sgCoreTrimTimer=setTimeout(()=>{
+    clearTimeout(manager.__sgTrimTimer);
+    manager.__sgTrimTimer=setTimeout(()=>{
       if(manager.__sgDestroyed)return;
       if(Date.now()-(Number(manager.__sgLastUserScrollAt)||0)<650){scheduleTrim(manager,rendition);return}
       const range=visibleRange(manager),views=range.views;
@@ -240,56 +293,73 @@
       manager.ignore=false;
       syncScrollPosition(manager);
       syncContinuousEnd(rendition);
+      emitScrolled(manager);
     },TRIM_IDLE_MS);
   }
 
-  async function ensureNeighborhood(manager,rendition){
-    if(manager.__sgCoreCheckPromise)return manager.__sgCoreCheckPromise;
-    const run=async()=>{
-      if(manager.__sgDestroyed||!manager.container||!manager.views)return false;
-      syncScrollPosition(manager);
-      let range=visibleRange(manager);
-      if(range.first<0)return false;
-      const anchor=preserveAnchorBeforePrepend(range);
-      let changed=false;
+  async function ensureNeighborhood(manager,rendition,generation){
+    if(generation!==manager.__sgGeneration||manager.__sgDestroyed||!manager.container||!manager.views)return false;
+    syncScrollPosition(manager);
+    let range=visibleRange(manager);
+    if(range.first<0)return false;
+    const anchor=preserveAnchor(range);
+    let changed=false;
 
-      const before=Math.max(0,range.first);
-      for(let count=before;count<BUFFER_EACH_SIDE;count+=1){
-        if(!await prependOne(manager))break;
-        changed=true;
-      }
-      if(changed)await restorePrependAnchor(manager,anchor);
+    const before=Math.max(0,range.first);
+    for(let count=before;count<BUFFER_EACH_SIDE;count+=1){
+      if(generation!==manager.__sgGeneration)return false;
+      if(!await prependOne(manager,generation))break;
+      changed=true;
+    }
+    if(changed)await restoreAnchor(manager,anchor,generation);
+    if(generation!==manager.__sgGeneration)return false;
 
-      range=visibleRange(manager);
-      const after=Math.max(0,range.views.length-1-range.last);
-      for(let count=after;count<BUFFER_EACH_SIDE;count+=1){
-        if(!await appendOne(manager))break;
-        changed=true;
-      }
+    range=visibleRange(manager);
+    const after=Math.max(0,range.views.length-1-range.last);
+    for(let count=after;count<BUFFER_EACH_SIDE;count+=1){
+      if(generation!==manager.__sgGeneration)return false;
+      if(!await appendOne(manager,generation))break;
+      changed=true;
+    }
+    if(generation!==manager.__sgGeneration)return false;
 
-      await paint();
-      manager.ignore=false;
-      syncScrollPosition(manager);
-      scheduleTrim(manager,rendition);
-      syncContinuousEnd(rendition);
-      return changed;
-    };
-    manager.__sgCoreCheckPromise=run().finally(()=>{manager.__sgCoreCheckPromise=null});
-    return manager.__sgCoreCheckPromise;
+    await safeUpdate(manager,0,generation);
+    if(generation!==manager.__sgGeneration)return false;
+    manager.ignore=false;
+    syncScrollPosition(manager);
+    scheduleTrim(manager,rendition);
+    syncContinuousEnd(rendition);
+    emitScrolled(manager);
+    return changed;
   }
 
-  function wireBoundaryContents(contents,manager){
+  function scheduleBuffer(manager,rendition){
+    if(!manager?.container||!manager?.views||manager.__sgDestroyed)return Promise.resolve(false);
+    const generation=manager.__sgGeneration||0;
+    if(manager.__sgBufferPromise&&manager.__sgBufferGeneration===generation)return manager.__sgBufferPromise;
+    const task=ensureNeighborhood(manager,rendition,generation).catch(error=>{
+      if(generation===manager.__sgGeneration)console.warn("Continuous background buffer skipped",error);
+      return false;
+    }).finally(()=>{
+      if(manager.__sgBufferPromise===task){manager.__sgBufferPromise=null;manager.__sgBufferGeneration=-1}
+    });
+    manager.__sgBufferPromise=task;
+    manager.__sgBufferGeneration=generation;
+    return task;
+  }
+
+  function wireBoundaryContents(contents,manager,rendition){
     const doc=contents?.document;
     if(!doc||doc.documentElement?.dataset.sgContinuousCoreBoundary==="1")return;
     doc.documentElement.dataset.sgContinuousCoreBoundary="1";
     doc.documentElement.style.setProperty("overflow-anchor","none","important");
     doc.body?.style?.setProperty("overflow-anchor","none","important");
-    const request=()=>{Promise.resolve(manager.check?.()).catch(error=>console.warn("Continuous boundary check skipped",error))};
-    doc.addEventListener("wheel",event=>{
-      if(Math.abs(Number(event.deltaY)||0)>1)request();
-    },{passive:true});
+    const request=()=>{scheduleBuffer(manager,rendition)};
+    doc.addEventListener("wheel",event=>{if(Math.abs(Number(event.deltaY)||0)>1)request()},{passive:true});
     let startY=null;
-    doc.addEventListener("touchstart",event=>{startY=Number(event.touches?.[0]?.clientY);if(!Number.isFinite(startY))startY=null},{passive:true});
+    doc.addEventListener("touchstart",event=>{
+      startY=Number(event.touches?.[0]?.clientY);if(!Number.isFinite(startY))startY=null;
+    },{passive:true});
     doc.addEventListener("touchmove",event=>{
       if(startY==null)return;
       const y=Number(event.touches?.[0]?.clientY);
@@ -298,126 +368,173 @@
     doc.addEventListener("touchend",()=>{startY=null},{passive:true});
   }
 
-  function installManager(rendition){
+  function patchManagerMethods(rendition){
     const manager=rendition?.manager;
-    if(!manager||manager.__sgContinuousCoreInstalled)return Boolean(manager?.__sgContinuousCoreInstalled);
-    if(!manager.container||!manager.views){
-      clearTimeout(rendition.__sgContinuousCoreInstallTimer);
-      rendition.__sgContinuousCoreInstallTimer=setTimeout(()=>installManager(rendition),30);
-      return false;
-    }
-
-    manager.__sgContinuousCoreInstalled=true;
+    if(!manager||manager.__sgCoreMethodsInstalled)return Boolean(manager?.__sgCoreMethodsInstalled);
+    manager.__sgCoreMethodsInstalled=true;
     manager.__sgDestroyed=false;
-    const scroller=scrollerFor(manager);
-    try{manager._scrolled?.cancel?.()}catch{}
-    try{if(manager._onScroll&&scroller)scroller.removeEventListener("scroll",manager._onScroll)}catch{}
+    manager.__sgGeneration=0;
+    manager.__sgBufferGeneration=-1;
 
     manager.getScrollPosition=()=>getScrollPosition(manager);
     manager.syncScrollPosition=()=>syncScrollPosition(manager);
-    manager.update=()=>Promise.resolve();
-    manager.check=()=>ensureNeighborhood(manager,rendition);
-    manager.fill=()=>manager.check();
+    manager.update=offset=>safeUpdate(manager,Number(offset)||0,manager.__sgGeneration);
+    manager.check=()=>{
+      scheduleBuffer(manager,rendition);
+      return Promise.resolve(false);
+    };
+    manager.fill=()=>{
+      scheduleBuffer(manager,rendition);
+      return Promise.resolve();
+    };
     manager.scheduleTrim=()=>scheduleTrim(manager,rendition);
 
-    /* ContinuousViewManager.display() normally waits for fill(). Use the default manager's
-       non-recursive display path and preload neighbors only after the requested section is live. */
     const baseDisplay=defaultManagerDisplay(manager);
     if(baseDisplay){
-      manager.display=(section,displayTarget)=>Promise.resolve(baseDisplay.call(manager,section,displayTarget)).then(result=>{
-        setTimeout(()=>{Promise.resolve(manager.check()).catch(error=>console.warn("Continuous background buffer skipped",error))},0);
-        return result;
-      });
+      manager.display=(section,displayTarget)=>{
+        const generation=(manager.__sgGeneration||0)+1;
+        manager.__sgGeneration=generation;
+        manager.__sgBufferGeneration=-1;
+        manager.__sgBufferPromise=null;
+        clearTimeout(manager.__sgTrimTimer);
+        return Promise.resolve(baseDisplay.call(manager,section,displayTarget)).then(result=>{
+          if(generation!==manager.__sgGeneration)return result;
+          manager.ignore=false;
+          if(manager.container)syncScrollPosition(manager);
+          setTimeout(()=>scheduleBuffer(manager,rendition),0);
+          return result;
+        });
+      };
     }
+    return true;
+  }
 
-    manager._scrolled=()=>{
-      clearTimeout(manager.__sgCoreScrollTimer);
-      manager.__sgCoreScrollTimer=setTimeout(()=>manager.scrolled(),SCROLL_SETTLE_MS);
-    };
-    manager.onScroll=()=>{
-      const position=syncScrollPosition(manager);
-      if(performance.now()<(Number(manager.__sgSuppressScrollUntil)||0))return;
-      manager.ignore=false;
-      manager.__sgLastUserScrollAt=Date.now();
-      try{manager.emit?.("scroll",position)}catch{}
-      manager._scrolled();
-    };
+  function bindScrollLifecycle(rendition){
+    const manager=rendition?.manager;
+    if(!manager||manager.__sgCoreScrollBound||!manager.container||!manager.views)return false;
+    patchManagerMethods(rendition);
+    manager.__sgCoreScrollBound=true;
+    const scroller=scrollerFor(manager);
+
+    try{manager._scrolled?.cancel?.()}catch{}
+    try{if(manager._onScroll)scroller?.removeEventListener?.("scroll",manager._onScroll)}catch{}
+
+    const initial=syncScrollPosition(manager);
+    manager.prevScrollTop=initial.top;
+    manager.prevScrollLeft=initial.left;
+    manager.scrollDeltaVert=0;
+    manager.scrollDeltaHorz=0;
+
     manager.scrolled=()=>{
-      const requestId=(manager.__sgCoreScrollRequestId||0)+1;
-      manager.__sgCoreScrollRequestId=requestId;
-      const immediate=syncScrollPosition(manager);
-
-      /* Location reporting must never sit behind image/chapter buffering. Emit SCROLLED now so
-         Rendition.reportLocation() updates the canonical page counter from the live viewport. */
-      try{manager.emit?.("scrolled",immediate)}catch{}
-
-      Promise.resolve(manager.check()).catch(error=>console.warn("Continuous scroll neighborhood skipped",error)).finally(()=>{
-        if(requestId!==manager.__sgCoreScrollRequestId)return;
-        const settled=syncScrollPosition(manager);
-        try{manager.emit?.("scrolled",settled)}catch{}
-      });
+      const position=syncScrollPosition(manager);
+      try{manager.emit?.("scroll",position)}catch{}
+      scheduleBuffer(manager,rendition);
+      clearTimeout(manager.afterScrolled);
+      manager.afterScrolled=setTimeout(()=>{
+        if(manager.snapper&&manager.snapper.supportsTouch&&manager.snapper.needsSnap?.())return;
+        emitScrolled(manager);
+      },Number(manager.settings?.afterScrolledTimeout)||10);
+    };
+    manager._scrolled=debounce(()=>manager.scrolled(),SCROLL_DEBOUNCE_MS);
+    manager.onScroll=()=>{
+      const {top,left}=syncScrollPosition(manager);
+      const suppressed=performance.now()<(Number(manager.__sgSuppressScrollUntil)||0);
+      if(!suppressed){
+        if(!manager.ignore)manager._scrolled();
+        else manager.ignore=false;
+        manager.__sgLastUserScrollAt=Date.now();
+      }else{
+        manager.ignore=false;
+      }
+      manager.scrollDeltaVert+=(Math.abs(top-(Number(manager.prevScrollTop)||0))||0);
+      manager.scrollDeltaHorz+=(Math.abs(left-(Number(manager.prevScrollLeft)||0))||0);
+      manager.prevScrollTop=top;
+      manager.prevScrollLeft=left;
+      clearTimeout(manager.scrollTimeout);
+      manager.scrollTimeout=setTimeout(()=>{manager.scrollDeltaVert=0;manager.scrollDeltaHorz=0},150);
+      manager.didScroll=false;
     };
     manager._onScroll=manager.onScroll;
     try{scroller?.addEventListener?.("scroll",manager._onScroll,{passive:true})}catch{}
 
-    try{rendition.getContents?.().forEach(contents=>wireBoundaryContents(contents,manager))}catch{}
-    try{rendition.hooks?.content?.register?.(contents=>wireBoundaryContents(contents,manager))}catch{}
+    try{rendition.getContents?.().forEach(contents=>wireBoundaryContents(contents,manager,rendition))}catch{}
+    try{rendition.hooks?.content?.register?.(contents=>wireBoundaryContents(contents,manager,rendition))}catch{}
     try{rendition.on?.("rendered",()=>{
-      try{rendition.getContents?.().forEach(contents=>wireBoundaryContents(contents,manager))}catch{}
-      Promise.resolve(manager.check()).catch(()=>{});
+      try{rendition.getContents?.().forEach(contents=>wireBoundaryContents(contents,manager,rendition))}catch{}
+      safeUpdate(manager,0,manager.__sgGeneration).catch(()=>{});
+      scheduleBuffer(manager,rendition);
     })}catch{}
 
     const rawDestroy=typeof manager.destroy==="function"?manager.destroy.bind(manager):null;
     if(rawDestroy)manager.destroy=(...args)=>{
       manager.__sgDestroyed=true;
-      clearTimeout(manager.__sgCoreScrollTimer);
-      clearTimeout(manager.__sgCoreTrimTimer);
-      clearTimeout(rendition.__sgContinuousCoreInstallTimer);
-      try{if(manager._onScroll&&scroller)scroller.removeEventListener("scroll",manager._onScroll)}catch{}
+      manager.__sgGeneration=(manager.__sgGeneration||0)+1;
+      clearTimeout(manager.__sgTrimTimer);
+      clearTimeout(manager.afterScrolled);
+      clearTimeout(manager.scrollTimeout);
+      clearTimeout(rendition.__sgInstallTimer);
+      try{manager._scrolled?.cancel?.()}catch{}
+      try{scroller?.removeEventListener?.("scroll",manager._onScroll)}catch{}
       return rawDestroy(...args);
     };
 
     manager.ignore=false;
-    syncScrollPosition(manager);
-    setTimeout(()=>{Promise.resolve(manager.check()).catch(()=>{})},0);
+    scheduleBuffer(manager,rendition);
     return true;
+  }
+
+  function installManager(rendition){
+    const manager=rendition?.manager;
+    if(!manager){
+      clearTimeout(rendition.__sgInstallTimer);
+      rendition.__sgInstallTimer=setTimeout(()=>installManager(rendition),25);
+      return false;
+    }
+    patchManagerMethods(rendition);
+    if(!manager.container||!manager.views){
+      clearTimeout(rendition.__sgInstallTimer);
+      rendition.__sgInstallTimer=setTimeout(()=>installManager(rendition),25);
+      return false;
+    }
+    return bindScrollLifecycle(rendition);
   }
 
   function patchRendition(rendition,options){
     if(!rendition||rendition.__sgContinuousCorePatched)return rendition;
     rendition.__sgContinuousCorePatched=true;
     const continuous=isContinuous(options,rendition);
-    let lastDisplayKey="",lastDisplayDoneAt=0,lastDisplayPromise=null,lastDisplayResult=null;
+    let lastKey="",lastDoneAt=0,lastPromise=null,lastResult=null;
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);
       rendition.display=(...args)=>{
         hidePagedEnd();
         if(continuous)installManager(rendition);
-        const key=targetKey(args[0]);
-        const now=performance.now();
-        if(continuous&&key&&key===lastDisplayKey){
-          if(lastDisplayPromise)return lastDisplayPromise;
-          if(now-lastDisplayDoneAt<DISPLAY_DEDUPE_MS)return Promise.resolve(lastDisplayResult||rendition);
+        const key=targetKey(args[0]),now=performance.now();
+        if(continuous&&key&&key===lastKey){
+          if(lastPromise)return lastPromise;
+          if(now-lastDoneAt<DISPLAY_DEDUPE_MS)return Promise.resolve(lastResult||rendition);
         }
-        lastDisplayKey=key;
+        lastKey=key;
         const task=Promise.resolve(rawDisplay(...args)).then(result=>{
-          lastDisplayResult=result;
+          lastResult=result;
           if(continuous){
             installManager(rendition);
-            if(rendition.manager){
-              rendition.manager.ignore=false;
-              syncScrollPosition(rendition.manager);
-              setTimeout(()=>{Promise.resolve(rendition.manager?.check?.()).catch(error=>console.warn("Continuous post-display buffer skipped",error))},0);
+            const manager=rendition.manager;
+            if(manager?.container){
+              manager.ignore=false;
+              syncScrollPosition(manager);
+              safeUpdate(manager,0,manager.__sgGeneration).catch(()=>{});
+              scheduleBuffer(manager,rendition);
             }
             syncContinuousEnd(rendition);
           }
           return result;
         }).finally(()=>{
-          lastDisplayDoneAt=performance.now();
-          lastDisplayPromise=null;
+          lastDoneAt=performance.now();
+          lastPromise=null;
         });
-        lastDisplayPromise=task;
+        lastPromise=task;
         return task;
       };
     }
@@ -425,18 +542,14 @@
     if(typeof rendition.next==="function"){
       const rawNext=rendition.next.bind(rendition);
       rendition.next=(...args)=>{
-        if(!continuous&&locationAtBookEnd(rendition)){
-          showPagedEnd();return Promise.resolve();
-        }
+        if(!continuous&&locationAtBookEnd(rendition)){showPagedEnd();return Promise.resolve()}
         hidePagedEnd();return rawNext(...args);
       };
     }
     if(typeof rendition.prev==="function"){
       const rawPrev=rendition.prev.bind(rendition);
       rendition.prev=(...args)=>{
-        if(!continuous&&pagedEndVisible()){
-          hidePagedEnd();return Promise.resolve();
-        }
+        if(!continuous&&pagedEndVisible()){hidePagedEnd();return Promise.resolve()}
         return rawPrev(...args);
       };
     }

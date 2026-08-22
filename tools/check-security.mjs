@@ -10,6 +10,7 @@ import {
 import {
   bookIdForFile,
   isBookId,
+  persistentVolumeBookId,
   publicCatalogShape
 } from "../functions/_lib/book-id.js";
 
@@ -48,6 +49,8 @@ async function checkOpaqueBookIds(){
   if(!isBookId(a))fail("bookIdForFile must return an opaque bk_ identifier");
   if(a!==again)fail("book IDs must be deterministic for legacy catalog migration");
   if(a===b)fail("different EPUB paths must not share a book ID");
+  if(await persistentVolumeBookId({file:first},second)!==a)fail("replacing a legacy EPUB must preserve the original derived book ID");
+  if(await persistentVolumeBookId({file:first,bookId:a},second)!==a)fail("replacing an EPUB must preserve its persisted book ID");
 
   const publicView=await publicCatalogShape({generatedAt:"test",series:[{id:"example",volumes:[{
     title:"Volume 1",file:first,sha256:"a".repeat(64),originalFilename:"secret-name.epub"
@@ -60,10 +63,10 @@ async function checkOpaqueBookIds(){
 }
 
 async function checkWiring(){
-  const [routesText,reader,series,client,bootstrap,endpoint,media,mediaTicket,bookResolver,dataSource]=await Promise.all([
+  const [routesText,reader,series,client,bootstrap,endpoint,media,mediaTicket,bookResolver,dataSource,headers]=await Promise.all([
     read("src/_routes.json"),read("src/reader.html"),read("src/series.html"),read("src/assets/js/book-access.js"),
     read("src/assets/js/reader-bootstrap.js"),read("functions/book-access.js"),read("functions/media/[[path]].js"),
-    read("functions/_lib/media-ticket.js"),read("functions/_lib/book-resolver.js"),read("src/assets/js/data-source.js")
+    read("functions/_lib/media-ticket.js"),read("functions/_lib/book-resolver.js"),read("src/assets/js/data-source.js"),read("src/_headers")
   ]);
   const routes=JSON.parse(routesText);
   if(!routes.include?.includes("/book-access"))fail("_routes.json must route /book-access through Pages Functions");
@@ -94,10 +97,12 @@ async function checkWiring(){
   for(const marker of ["SG_MEDIA_SIGNING_SECRET","HMAC","SHA-256","sg-media-ticket-v1"]){
     if(!mediaTicket.includes(marker))fail(`media-ticket helper is missing ${marker}`);
   }
-  for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing","unavailableEpub","ticketingEnabled(env)","publicCatalogShape","X-SG-Catalog-View","opaque-v1"]){
+  for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing","unavailableEpub","ticketingEnabled(env)","publicCatalogShape","X-SG-Catalog-View","opaque-v1","PUBLIC_COVER_KEY","PUBLIC_EPUB_KEY","publicMediaKey","privateObjectResponse","!key || !publicMediaKey(key)"]){
     if(!media.includes(marker))fail(`media security/catalog enforcement is missing ${marker}`);
   }
   if(media.includes('ticketingEnabled(env) && !(await authorizedEpub'))fail("EPUB delivery must fail closed rather than skip authorization when ticketing is unavailable");
+  if(!media.includes('"shadow-garden/data/catalog.json"')||!media.includes('"shadow-garden/data/adult-catalog.json"'))fail("public media boundary must explicitly allow only the two public catalog JSON files");
+  if(headers.indexOf("/assets/js/data-source.js")<0||!headers.includes("Cache-Control: no-store"))fail("changed public catalog adapter must be served no-store during opaque-ID rollout");
 
   for(const marker of ["resolveBookReference","byId","byFile","volumeBookId"]){
     if(!bookResolver.includes(marker))fail(`book resolver is missing ${marker}`);
@@ -117,5 +122,5 @@ if(failures.length){
   failures.forEach(message=>console.error(`- ${message}`));
   process.exitCode=1;
 }else{
-  console.log("Shadow Garden signed-media and opaque-catalog security checks passed.");
+  console.log("Shadow Garden signed-media, opaque-catalog, and private-media security checks passed.");
 }

@@ -1,4 +1,4 @@
-/* Shadow Garden v1.2.1 — Series Editor / Adult Library stability */
+/* Shadow Garden v1.2.2 — authoritative Adult Library controls + Series Editor success flow. */
 (()=>{
   const dialog=document.querySelector("#seriesEditor");
   if(!dialog)return;
@@ -37,6 +37,52 @@
     return replacement;
   }
 
+  /* Replace the checkbox DOM nodes themselves after legacy uploader scripts have initialized.
+     This intentionally drops every older listener attached to the original inputs while keeping
+     dynamic #adultInput / #manageAdult lookups in admin.js and admin-batch.js fully compatible. */
+  function ownCheckbox(id){
+    const current=document.getElementById(id);
+    if(!current)return null;
+    const replacement=current.cloneNode(true);
+    current.replaceWith(replacement);
+    return replacement;
+  }
+
+  const addAdult=ownCheckbox("adultInput");
+  const manageAdult=ownCheckbox("manageAdult");
+
+  addAdult?.addEventListener("change",()=>{
+    const target=state.addBookTarget;
+    const q=state.batch;
+    const item=q?.items?.find?.(entry=>entry.id===q.activeId);
+
+    if(target){
+      addAdult.checked=target.scope==="adult";
+      if(item)item.adult=target.scope==="adult";
+      return;
+    }
+    if(!item)return;
+
+    /* A true replacement stays on the shelf of the existing volume. Changing shelf while
+       replacing would turn the operation into a different logical book, so keep it stable. */
+    if(item.action==="replace"&&item.duplicate&&!item.duplicate.batch){
+      item.adult=item.duplicate.scope==="adult";
+      addAdult.checked=item.adult;
+      showAdminToast(`Replacement remains in the ${item.adult?"18+ / Adult":"Main"} Library.`,"info");
+      return;
+    }
+
+    item.adult=Boolean(addAdult.checked);
+    /* Do not rebuild the batch queue here. saveEditor() will recalculate duplicate state when
+       another field is committed or Upload is pressed, without tearing down the active dialog. */
+  });
+
+  /* Manage Series only needs to retain checkbox state until Save. The cloned control has no
+     layout/event side effects; saveAndClose() reads its current value directly. */
+  manageAdult?.addEventListener("change",()=>{
+    dialog.dataset.pendingAdult=manageAdult.checked?"adult":"main";
+  });
+
   async function saveAndClose(){
     if(!state.activeSeriesId)return;
     const button=document.querySelector("#saveSeries");
@@ -62,6 +108,7 @@
       });
       updateManagement(result);
       state.activeSeriesId=null;
+      delete dialog.dataset.pendingAdult;
       dialog.close();
       showAdminToast(`Saved “${title}”.`);
     }catch(error){
@@ -89,6 +136,7 @@
       });
       updateManagement(result);
       state.activeSeriesId=null;
+      delete dialog.dataset.pendingAdult;
       dialog.close();
       showAdminToast(`Moved “${title}” to Trash.`);
       if(typeof window.loadMaintenance==="function")void window.loadMaintenance(true);
@@ -99,38 +147,6 @@
       button.textContent=old;
     }
   }
-
-  /* The batch controller used to redraw the whole queue immediately from the Adult toggle's
-     change handler. On some browsers that DOM replacement invalidated the active modal layout.
-     Keep the active batch item's scope in sync here and let upload-time saveEditor() do the
-     duplicate recalculation, without rebuilding the modal while the checkbox is being clicked. */
-  const addAdult=document.querySelector("#adultInput");
-  addAdult?.addEventListener("change",event=>{
-    const target=state.addBookTarget;
-    if(target){
-      event.target.checked=target.scope==="adult";
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return;
-    }
-    const q=state.batch,item=q?.items?.find?.(entry=>entry.id===q.activeId);
-    if(item)item.adult=Boolean(event.target.checked);
-    if(item?.action==="replace"){
-      item.action="skip";
-      const select=document.querySelector(`#batchList [data-batch-action="${CSS.escape(item.id)}"]`);
-      if(select)select.value="skip";
-    }
-    event.stopImmediatePropagation();
-  },true);
-
-  /* Preserve the editor's scroll/flex geometry while changing catalog scope. */
-  document.querySelector("#manageAdult")?.addEventListener("change",()=>{
-    const scroller=dialog.querySelector(".dialog-scroll"),top=scroller?.scrollTop||0;
-    requestAnimationFrame(()=>{
-      void dialog.offsetHeight;
-      if(scroller)scroller.scrollTop=top;
-    });
-  });
 
   function syncTargetInfo(){
     const target=state.addBookTarget,banner=document.querySelector("#addSeriesTarget"),meta=document.querySelector("#addSeriesTargetMeta");

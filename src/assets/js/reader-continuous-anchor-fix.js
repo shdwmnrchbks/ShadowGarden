@@ -87,7 +87,7 @@
       });
     }catch{}
 
-    if(isVisualDominant(doc))measured=Math.max(measured,viewportHeight(manager,target));
+    measured=Math.max(measured,viewportHeight(manager,target));
     return Math.max(1,Math.ceil(measured));
   }
 
@@ -104,7 +104,7 @@
 
   function armMediaRemeasure(view,manager){
     const contents=view?.contents,doc=contents?.document;
-    if(!doc||doc.__sgMediaRemeasureArmed)return;
+    if(!doc||doc.__sgMediaRemeasureArmed||!isVisualDominant(doc))return;
     doc.__sgMediaRemeasureArmed=true;
 
     const remeasure=()=>refreshView(view,manager);
@@ -116,7 +116,7 @@
         if(node.tagName==="VIDEO")node.addEventListener?.("loadedmetadata",remeasure,{once:true,passive:true});
       });
     }catch{}
-    try{doc.fonts?.ready?.then(remeasure).catch(()=>{})}catch{}
+    try{doc.fonts?.ready?.then(remeasure)?.catch?.(()=>{})}catch{}
     setTimeout(remeasure,60);
     setTimeout(remeasure,420);
   }
@@ -139,14 +139,16 @@
     if(typeof view.expand==="function"){
       const rawExpand=view.expand.bind(view);
       view.expand=force=>{
-        const contents=view.contents;
+        const contents=view.contents,doc=contents?.document;
         if(contents){
           disableContentAnchoring(contents);
-          armMediaRemeasure(view,manager);
-          if(!contents.__sgVisualHeightPatched&&typeof contents.textHeight==="function"){
-            const rawTextHeight=contents.textHeight.bind(contents);
-            contents.textHeight=()=>visualHeight(contents,manager,target,rawTextHeight());
-            contents.__sgVisualHeightPatched=true;
+          if(isVisualDominant(doc)){
+            armMediaRemeasure(view,manager);
+            if(!contents.__sgVisualHeightPatched&&typeof contents.textHeight==="function"){
+              const rawTextHeight=contents.textHeight.bind(contents);
+              contents.textHeight=()=>visualHeight(contents,manager,target,rawTextHeight());
+              contents.__sgVisualHeightPatched=true;
+            }
           }
         }
         return rawExpand(force);
@@ -208,8 +210,10 @@
         disableManagerAnchoring(rendition,target);
         if(view?.contents){
           disableContentAnchoring(view.contents);
-          armMediaRemeasure(view,rendition.manager);
-          refreshView(view,rendition.manager);
+          if(isVisualDominant(view.contents.document)){
+            armMediaRemeasure(view,rendition.manager);
+            refreshView(view,rendition.manager);
+          }
         }
         try{rendition.getContents?.().forEach(disableContentAnchoring)}catch{}
       });

@@ -63,8 +63,8 @@ async function checkOpaqueBookIds(){
 }
 
 async function checkWiring(){
-  const [routesText,reader,series,client,bootstrap,endpoint,media,mediaTicket,bookResolver,dataSource,headers]=await Promise.all([
-    read("src/_routes.json"),read("src/reader.html"),read("src/series.html"),read("src/assets/js/book-access.js"),
+  const [routesText,reader,series,seriesSource,client,bootstrap,endpoint,media,mediaTicket,bookResolver,dataSource,headers]=await Promise.all([
+    read("src/_routes.json"),read("src/reader.html"),read("src/series.html"),read("src/assets/js/series.js"),read("src/assets/js/book-access.js"),
     read("src/assets/js/reader-bootstrap.js"),read("functions/book-access.js"),read("functions/media/[[path]].js"),
     read("functions/_lib/media-ticket.js"),read("functions/_lib/book-resolver.js"),read("src/assets/js/data-source.js"),read("src/_headers")
   ]);
@@ -77,6 +77,9 @@ async function checkWiring(){
   if(bookAccessPos<0||visualCachePos<0||bookAccessPos>visualCachePos)fail("Reader must load book-access.js before the Visual Page Cache");
   if(bootstrapPos<0||reader.includes('type="module" src="/assets/js/reader.js'))fail("Reader shell must start through reader-bootstrap.js, not reader.js directly");
   if(!series.includes("/assets/js/book-access.js"))fail("Series page must load book-access.js for direct EPUB downloads");
+  if(!series.includes("/assets/js/series.js?v=1.9.2"))fail("Series page must cache-bust the opaque download renderer");
+  if(!seriesSource.includes('data-book-id="${esc(v.file)}"'))fail("Series download controls must hand the opaque book ID to book-access.js");
+  if(seriesSource.includes('<a class="download" href="${esc(v.file)}" download>'))fail("Series download controls must not use volume.file as a direct href");
 
   for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass","bookId","migrateLegacyState"]){
     if(!client.includes(marker))fail(`book-access.js is missing ${marker}`);
@@ -103,6 +106,7 @@ async function checkWiring(){
   if(media.includes('ticketingEnabled(env) && !(await authorizedEpub'))fail("EPUB delivery must fail closed rather than skip authorization when ticketing is unavailable");
   if(!media.includes('"shadow-garden/data/catalog.json"')||!media.includes('"shadow-garden/data/adult-catalog.json"'))fail("public media boundary must explicitly allow only the two public catalog JSON files");
   if(headers.indexOf("/assets/js/data-source.js")<0||!headers.includes("Cache-Control: no-store"))fail("changed public catalog adapter must be served no-store during opaque-ID rollout");
+  if(headers.indexOf("/assets/js/series.js")<0)fail("Series download renderer must be served no-store during opaque-ID rollout");
 
   for(const marker of ["resolveBookReference","byId","byFile","volumeBookId"]){
     if(!bookResolver.includes(marker))fail(`book resolver is missing ${marker}`);

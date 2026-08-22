@@ -19,6 +19,9 @@
 /assets/js/reader-bootstrap.js
   Cache-Control: no-store
 
+/assets/js/series.js
+  Cache-Control: no-store
+
 /assets/js/nav-pinned.js
   Cache-Control: no-store
 

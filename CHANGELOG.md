@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 1.1.5 — Flow Location & Continuous Startup Fix
+- Preserve the actual viewport location when switching between Pages and Continuous by capturing the old rendition's live CFI before it is destroyed and handing that exact anchor to the new rendition.
+- Re-apply the same CFI after Continuous has painted so immediate prepend/append work cannot silently move a flow switch back to the beginning of the chapter.
+- Stop blocking Continuous `display()` on EPUB.js `fill()`; the requested spine item now opens first and neighboring sections preload on the manager queue afterward.
+- Prevent cover/illustration sections from holding the global rendition queue on `Opening the book…` when a neighboring visual section is slow, malformed, or still waiting on intrinsic media dimensions.
+- Give text-free cover and illustration XHTML a full-width rendered-copy layout, neutralize `vh` wrappers, and use bounded SVG/image aspect-ratio measurement instead of circular document `scrollHeight` growth.
+- Keep v1.1.4 reverse-scroll synchronization, stable retained views, delayed location reporting, and bounded idle trimming.
+
 ## 1.1.4 — Continuous Visual Pages & Fast Scroll Fix
 - Fixed fast Continuous scrolling flicker at chapter boundaries by keeping retained iframe views visible while scrolling instead of repeatedly calling EPUB.js `hide()` / `show()`.
 - Avoid EPUB.js `hide()` setting `stopExpanding=true` on retained chapters, which could leave re-entered image/SVG sections stale or blank after fast traversal.

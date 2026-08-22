@@ -1,9 +1,9 @@
-/* Shadow Garden v1.1.4 — EPUB.js Continuous-mode stable-view and visual-page fix.
+/* Shadow Garden v1.1.5 — Continuous-mode startup, visual-page, and flow-anchor hardening.
  *
- * Keeps the v1.1.3 reverse-scroll position synchronization, but avoids toggling
- * retained iframe visibility while the user is moving quickly. Visual-only XHTML
- * is normalized immediately after iframe load and before EPUB.js performs its first
- * layout/expand measurement.
+ * Keeps the reverse-scroll synchronization/stable retained views from v1.1.4, while:
+ * - preserving the real viewport location when switching Paginated <-> Continuous;
+ * - resolving Continuous display as soon as the requested section is ready, with fill/preload in background;
+ * - giving pure cover/illustration XHTML deterministic, non-circular layout before first measurement.
  */
 (()=>{
   const baseEpub=window.ePub;
@@ -12,11 +12,58 @@
   const VISUAL_SELECTOR="img,svg,picture,video,object,canvas";
   const MEDIA_SELECTOR="img,svg image,video,object";
   const KEEP_VIEWS_EACH_SIDE=4;
+  let activeRendition=null;
+  let activeFlow="";
+  let lastAnchor=null;
+  let pendingFlowAnchor=null;
 
   const noAnchor=element=>{
     if(!element?.style)return;
     try{element.style.setProperty("overflow-anchor","none","important")}catch{}
   };
+
+  const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+
+  function normalizeFlow(value){
+    return value==="scrolled-doc"||value==="scrolled"||value==="scrolled-continuous"?"scrolled-doc":"paginated";
+  }
+
+  function anchorFromLocation(location){
+    const start=location?.start;
+    if(!start)return null;
+    const cfi=typeof start.cfi==="string"?start.cfi:"";
+    const href=typeof start.href==="string"?start.href:"";
+    const percentage=Number(start.percentage);
+    const index=Number(start.index);
+    if(!cfi&&!href&&!Number.isFinite(index))return null;
+    return{
+      cfi,
+      href,
+      percentage:Number.isFinite(percentage)?Math.min(1,Math.max(0,percentage)):null,
+      index:Number.isFinite(index)?index:null
+    };
+  }
+
+  function captureRenditionAnchor(rendition=activeRendition){
+    if(!rendition)return lastAnchor;
+    try{
+      const location=rendition.currentLocation?.();
+      if(location&&typeof location.then!=="function"){
+        const anchor=anchorFromLocation(location);
+        if(anchor){lastAnchor=anchor;return anchor;}
+      }
+    }catch(error){console.warn("Flow anchor capture fell back to reported location",error)}
+    const reported=anchorFromLocation(rendition.location);
+    if(reported){lastAnchor=reported;return reported;}
+    return lastAnchor;
+  }
+
+  /* Capture in the capture phase: reader.js handles this same change event later and
+     destroys the old rendition. currentLocation() here still reflects the exact viewport. */
+  document.addEventListener("change",event=>{
+    if(event.target?.id!=="flowSelect")return;
+    pendingFlowAnchor=captureRenditionAnchor(activeRendition);
+  },true);
 
   function viewerElement(target){
     if(target&&typeof target==="object"&&target.nodeType===1)return target;
@@ -39,6 +86,19 @@
     return Math.max(240,Math.round(values[0]||values[values.length-1]||640));
   }
 
+  function viewportWidth(manager,target){
+    const viewer=viewerElement(target);
+    const values=[
+      Number(manager?.container?.clientWidth),
+      Number(manager?._bounds?.width),
+      Number(viewer?.clientWidth),
+      Number(viewer?.getBoundingClientRect?.().width),
+      Number(window.visualViewport?.width),
+      Number(window.innerWidth)
+    ].filter(value=>Number.isFinite(value)&&value>80);
+    return Math.max(240,Math.round(values[0]||values[values.length-1]||720));
+  }
+
   function disableContentAnchoring(contents){
     const doc=contents?.document;
     if(!doc)return;
@@ -56,11 +116,18 @@
     try{viewer?.querySelectorAll?.(".epub-container,.epub-view,iframe").forEach(noAnchor)}catch{}
   }
 
+  function visualText(doc){
+    return String(doc?.body?.innerText||doc?.body?.textContent||"").replace(/\s+/g," ").trim();
+  }
+
   function isVisualDominant(doc){
     const body=doc?.body;
     if(!body||!body.querySelector(VISUAL_SELECTOR))return false;
-    const text=String(body.innerText||body.textContent||"").replace(/\s+/g," ").trim();
-    return text.length<=320;
+    return visualText(doc).length<=320;
+  }
+
+  function isPureVisual(doc){
+    return isVisualDominant(doc)&&visualText(doc).length<=24;
   }
 
   function normalizeVisualDocument(contents,manager,target){
@@ -69,15 +136,16 @@
 
     const height=viewportHeight(manager,target);
     body.setAttribute("data-sg-visual-page","1");
+    if(isPureVisual(doc))body.setAttribute("data-sg-pure-visual","1");
+    else body.removeAttribute("data-sg-pure-visual");
 
-    /* Full-page cover XHTML often uses a 100vh wrapper around a percentage-height SVG.
-       Inside an auto-height EPUB iframe that becomes circular sizing: iframe height sets
-       100vh, 100vh grows the content, and content grows the iframe again. Mark only those
-       wrappers in the rendered copy so they can size intrinsically without editing EPUB. */
+    /* 100vh/percentage-height wrappers are circular inside EPUB.js auto-height iframes.
+       Neutralize only the rendered copy; source EPUB XHTML remains untouched. */
     try{
       body.querySelectorAll("[style]").forEach(node=>{
-        const value=String(node.style?.height||"");
-        if(/vh/i.test(value))node.setAttribute("data-sg-vh-wrapper","1");
+        const heightValue=String(node.style?.height||"");
+        const minHeightValue=String(node.style?.minHeight||"");
+        if(/vh/i.test(heightValue)||/vh/i.test(minHeightValue))node.setAttribute("data-sg-vh-wrapper","1");
       });
     }catch{}
 
@@ -95,30 +163,52 @@
       body[data-sg-visual-page="1"] svg[viewBox]{display:block!important;width:100%!important;height:auto!important;max-width:100%!important}
       body[data-sg-visual-page="1"] picture{display:block!important;max-width:100%!important}
       body[data-sg-visual-page="1"] figure{max-width:100%!important}
+      body[data-sg-pure-visual="1"]{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;box-sizing:border-box!important}
+      body[data-sg-pure-visual="1"]>figure{width:100%!important;margin:0!important;padding:0!important}
+      body[data-sg-pure-visual="1"] img{margin-left:auto!important;margin-right:auto!important}
     `;
     return true;
+  }
+
+  function svgAspectHeight(node,width){
+    try{
+      const vb=node?.viewBox?.baseVal;
+      if(vb?.width>0&&vb?.height>0&&width>0)return width*(vb.height/vb.width);
+      const text=node?.getAttribute?.("viewBox")||"";
+      const nums=text.trim().split(/[\s,]+/).map(Number);
+      if(nums.length===4&&nums[2]>0&&nums[3]>0&&width>0)return width*(nums[3]/nums[2]);
+    }catch{}
+    return 0;
+  }
+
+  function imageAspectHeight(node,width){
+    const naturalWidth=Number(node?.naturalWidth)||0;
+    const naturalHeight=Number(node?.naturalHeight)||0;
+    if(naturalWidth>0&&naturalHeight>0&&width>0)return width*(naturalHeight/naturalWidth);
+    return 0;
   }
 
   function visualHeight(contents,manager,target,rawHeight){
     const doc=contents?.document;
     if(!doc)return Number(rawHeight)||0;
     const viewport=viewportHeight(manager,target);
+    const width=viewportWidth(manager,target);
+    const cap=Math.max(viewport,viewport*8);
     normalizeVisualDocument(contents,manager,target);
 
-    let measured=Number(rawHeight)||0;
-    const body=doc.body,root=doc.documentElement;
-    measured=Math.max(
-      measured,
-      Number(root?.scrollHeight)||0,
-      Number(body?.scrollHeight)||0,
-      Number(root?.getBoundingClientRect?.().height)||0,
-      Number(body?.getBoundingClientRect?.().height)||0
-    );
+    let measured=Math.max(viewport,Math.min(cap,Number(rawHeight)||0));
+    const body=doc.body;
     try{
       const bodyTop=body?.getBoundingClientRect?.().top||0;
       doc.querySelectorAll(VISUAL_SELECTOR).forEach(node=>{
         const rect=node.getBoundingClientRect?.();
-        if(rect&&Number.isFinite(rect.bottom))measured=Math.max(measured,Math.ceil(rect.bottom-bodyTop));
+        if(rect&&Number.isFinite(rect.bottom)&&rect.bottom>bodyTop){
+          measured=Math.max(measured,Math.min(cap,Math.ceil(rect.bottom-bodyTop)));
+        }
+        const tag=node.tagName;
+        const basis=Math.max(1,Number(rect?.width)||Math.min(width,Number(body?.getBoundingClientRect?.().width)||width));
+        if(tag==="SVG")measured=Math.max(measured,Math.min(cap,Math.ceil(svgAspectHeight(node,basis)||0)));
+        if(tag==="IMG")measured=Math.max(measured,Math.min(cap,Math.ceil(imageAspectHeight(node,basis)||0)));
       });
     }catch{}
     return Math.max(1,viewport,Math.ceil(measured));
@@ -165,9 +255,9 @@
       });
     }catch{}
     try{doc.fonts?.ready?.then(remeasure)?.catch?.(()=>{})}catch{}
-    setTimeout(remeasure,120);
-    setTimeout(remeasure,450);
-    setTimeout(remeasure,1000);
+    setTimeout(remeasure,80);
+    setTimeout(remeasure,300);
+    setTimeout(remeasure,900);
   }
 
   function patchView(view,manager,target){
@@ -185,9 +275,6 @@
       };
     }
 
-    /* IframeView.render() calls load(), then layout.format(), then expand(). Repair the
-       rendered document at load completion so visual-only pages are valid before the
-       very first textHeight() call. This is earlier than rendition hooks.content. */
     if(typeof view.load==="function"){
       const rawLoad=view.load.bind(view);
       view.load=(...args)=>Promise.resolve(rawLoad(...args)).then(result=>{
@@ -284,9 +371,6 @@
         },()=>undefined);
         promises.push(displayed);
       }else{
-        /* Do not hide retained offscreen iframes. EPUB.js hide() sets stopExpanding=true;
-           fast chapter traversal then re-shows a stale frame and causes the boundary
-           flicker / blank media behavior reported in v1.1.3. Idle trim bounds memory. */
         const elementHidden=view.element?.style?.visibility==="hidden";
         const iframeHidden=view.iframe?.style?.visibility==="hidden";
         if(elementHidden||iframeHidden){
@@ -297,6 +381,14 @@
 
     stableTrim(manager);
     return promises.length?Promise.all(promises).then(()=>undefined):Promise.resolve();
+  }
+
+  function defaultManagerDisplay(manager){
+    try{
+      const continuousProto=Object.getPrototypeOf(manager);
+      const defaultProto=continuousProto&&Object.getPrototypeOf(continuousProto);
+      return typeof defaultProto?.display==="function"?defaultProto.display:null;
+    }catch{return null;}
   }
 
   function patchManager(rendition,target){
@@ -310,6 +402,25 @@
       manager.createView=(...args)=>patchView(rawCreateView(...args),manager,target);
     }
     try{manager.views?.all?.().forEach(view=>patchView(view,manager,target))}catch{}
+
+    /* ContinuousViewManager.display() waits for fill(), so one malformed/heavy neighboring
+       image section can hold the rendition queue and leave the app on “Opening the book…”.
+       Use DefaultViewManager.display() for the requested section, then preload/fill on the
+       manager's own queue after the requested section has resolved. */
+    const baseDisplay=defaultManagerDisplay(manager);
+    if(baseDisplay){
+      manager.display=(section,displayTarget)=>Promise.resolve(baseDisplay.call(manager,section,displayTarget)).then(result=>{
+        clearTimeout(manager.__sgBackgroundFillTimer);
+        manager.__sgBackgroundFillTimer=setTimeout(()=>{
+          if(manager.__sgDestroyed)return;
+          try{
+            const fill=manager.fill?.();
+            if(fill&&typeof fill.catch==="function")fill.catch(error=>console.warn("Continuous background fill skipped",error));
+          }catch(error){console.warn("Continuous background fill skipped",error)}
+        },0);
+        return result;
+      });
+    }
 
     if(typeof manager.check==="function"){
       const rawCheck=manager.check.bind(manager);
@@ -364,6 +475,8 @@
     if(typeof manager.destroy==="function"){
       const rawDestroy=manager.destroy.bind(manager);
       manager.destroy=(...args)=>{
+        manager.__sgDestroyed=true;
+        clearTimeout(manager.__sgBackgroundFillTimer);
         clearTimeout(manager.__sgStableTrimTimer);
         clearTimeout(manager.afterScrolled);
         clearTimeout(manager.trimTimeout);
@@ -378,16 +491,66 @@
     }catch{}
   }
 
+  function patchFlowHandoff(rendition,options){
+    if(!rendition||rendition.__sgFlowHandoffPatched)return rendition;
+    rendition.__sgFlowHandoffPatched=true;
+    const nextFlow=normalizeFlow(options?.flow||rendition.settings?.flow);
+    const previousFlow=activeFlow;
+    const previousRendition=activeRendition;
+    const switching=Boolean(previousRendition&&previousFlow&&previousFlow!==nextFlow);
+    const handoff=pendingFlowAnchor||(switching?lastAnchor:null);
+
+    activeRendition=rendition;
+    activeFlow=nextFlow;
+
+    try{
+      rendition.on?.("relocated",location=>{
+        if(rendition!==activeRendition)return;
+        const anchor=anchorFromLocation(location);
+        if(anchor)lastAnchor=anchor;
+      });
+    }catch{}
+
+    if(handoff&&typeof rendition.display==="function"){
+      const rawDisplay=rendition.display.bind(rendition);
+      let firstDisplay=true;
+      rendition.display=target=>{
+        if(!firstDisplay)return rawDisplay(target);
+        firstDisplay=false;
+        const anchorTarget=handoff.cfi||handoff.href||target;
+        const finish=result=>{
+          pendingFlowAnchor=null;
+          return result;
+        };
+        return Promise.resolve(rawDisplay(anchorTarget)).then(async result=>{
+          /* Continuous may prepend/append immediately after the first frame. Re-apply the
+             same exact CFI after two paints so the viewport itself, not chapter start,
+             survives the flow change. */
+          if(nextFlow==="scrolled-doc"&&anchorTarget){
+            await nextPaint();
+            try{await rawDisplay(anchorTarget)}catch(error){console.warn("Flow anchor settle skipped",error)}
+          }
+          return finish(result);
+        },async error=>{
+          if(anchorTarget!==target&&target){
+            try{return finish(await rawDisplay(target))}catch{}
+          }
+          pendingFlowAnchor=null;
+          throw error;
+        });
+      };
+    }
+    return rendition;
+  }
+
   function patchContinuousRendition(rendition,target,options){
     if(!rendition||rendition.__sgContinuousAnchorPatched)return rendition;
-    const continuous=options?.manager==="continuous"||options?.flow==="scrolled-doc";
+    const continuous=normalizeFlow(options?.flow||rendition.settings?.flow)==="scrolled-doc"||options?.manager==="continuous";
     if(!continuous)return rendition;
     rendition.__sgContinuousAnchorPatched=true;
 
     try{
-      rendition.hooks?.content?.register?.(contents=>{
-        prepareContents(contents,rendition.manager,target);
-      });
+      rendition.hooks?.content?.register?.(contents=>prepareContents(contents,rendition.manager,target));
     }catch{}
 
     const install=()=>patchManager(rendition,target);
@@ -415,7 +578,11 @@
     if(!book||book.__sgContinuousAnchorBookPatched||typeof book.renderTo!=="function")return book;
     book.__sgContinuousAnchorBookPatched=true;
     const rawRenderTo=book.renderTo.bind(book);
-    book.renderTo=(target,options={})=>patchContinuousRendition(rawRenderTo(target,options),target,options);
+    book.renderTo=(target,options={})=>{
+      const rendition=rawRenderTo(target,options);
+      patchFlowHandoff(rendition,options);
+      return patchContinuousRendition(rendition,target,options);
+    };
     return book;
   }
 

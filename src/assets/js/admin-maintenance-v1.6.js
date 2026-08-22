@@ -44,7 +44,7 @@
 window.addEventListener('DOMContentLoaded',()=>{
   if(document.querySelector('script[data-admin-upload-v17]'))return;
   const script=document.createElement('script');
-  script.src='/assets/js/admin-upload-workflow-v1.7.js?v=1.7.0';
+  script.src='/assets/js/admin-upload-workflow-v1.7.0.js?v=1.7.0';
   script.dataset.adminUploadV17='1';
   document.body.appendChild(script);
 },{once:true});

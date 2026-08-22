@@ -1,0 +1,13 @@
+/* Shadow Garden v1.6.0 — Garden Keeper maintenance polish. */
+#backupList{
+  max-height:390px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  padding-right:4px;
+}
+#backupList>.maintenance-item{min-height:72px}
+.backup-delete-icon{min-width:38px;width:38px;padding:0!important;display:inline-grid;place-items:center;font-size:0}
+.backup-delete-icon::before{content:"🗑";font-size:.88rem;line-height:1;filter:grayscale(1)}
+.manage-lock{width:40px;height:40px;padding:0!important;display:grid!important;place-items:center}
+.manage-lock svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}

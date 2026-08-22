@@ -7,6 +7,8 @@ const PUBLIC_CATALOG_KEYS = new Set([
   "shadow-garden/data/adult-catalog.json"
 ]);
 const PUBLIC_CATALOG_CACHE_VERSION = "opaque-v1";
+const PUBLIC_COVER_KEY = /^shadow-garden\/covers\/.+\.(?:jpe?g|png|webp|avif|gif|svg)$/i;
+const PUBLIC_EPUB_KEY = /^shadow-garden\/books\/.+\.epub$/i;
 const PROTECTED_CORS_HEADERS = [
   "access-control-allow-credentials",
   "access-control-allow-headers",
@@ -24,6 +26,18 @@ function getObjectKey(value) {
   return key.startsWith(ROOT_PREFIX) ? key : "";
 }
 
+function publicCatalogKey(key) { return PUBLIC_CATALOG_KEYS.has(key); }
+function publicMediaKey(key) { return publicCatalogKey(key) || PUBLIC_COVER_KEY.test(key) || PUBLIC_EPUB_KEY.test(key); }
+function privateObjectResponse() {
+  return new Response("Not found", {
+    status: 404,
+    headers: {
+      "Cache-Control": "private, no-store",
+      "X-Robots-Tag": "noindex, nofollow, noarchive, nosnippet"
+    }
+  });
+}
+
 function cachePolicy(key) {
   if (key.endsWith(".json")) return "public, max-age=30, stale-while-revalidate=120";
   if (/\.(?:jpe?g|png|webp|avif|gif|svg)$/i.test(key)) return "public, max-age=31536000, immutable";
@@ -35,7 +49,6 @@ function cacheableKey(key) {
   return key.endsWith(".json") || key.endsWith(".epub") || /\.(?:jpe?g|png|webp|avif|gif|svg)$/i.test(key);
 }
 function protectedMedia(key) { return key.endsWith(".epub") || key.endsWith(".json"); }
-function publicCatalogKey(key) { return PUBLIC_CATALOG_KEYS.has(key); }
 function crossSiteEpubRequest(request, key) { return key.endsWith(".epub") && request.headers.get("sec-fetch-site")?.toLowerCase() === "cross-site"; }
 
 function applySecurityHeaders(headers, key) {
@@ -84,7 +97,7 @@ export async function onRequest(context) {
   if (!env.B2_READ_KEY_ID || !env.B2_READ_APPLICATION_KEY) return new Response("Shadow Garden storage is not configured yet.", { status: 503 });
 
   const key = getObjectKey(params.path);
-  if (!key) return new Response("Not found", { status: 404 });
+  if (!key || !publicMediaKey(key)) return privateObjectResponse();
   if (crossSiteEpubRequest(request, key)) return deniedEpub(key, "Cross-site EPUB access is not allowed.");
   if (key.endsWith(".epub")) {
     if (!ticketingEnabled(env)) return unavailableEpub(key);

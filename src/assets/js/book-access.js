@@ -7,11 +7,12 @@
   function normalizeIdentity(book){
     try{return new URL(String(book||""),location.href).pathname}catch{return String(book||"")}
   }
+  function requestUrl(value){
+    try{return new URL(value instanceof Request?value.url:String(value||""),location.href)}catch{return null}
+  }
   function isRawEpubRequest(value){
-    try{
-      const url=new URL(value instanceof Request?value.url:String(value||""),location.href);
-      return url.origin===location.origin&&url.pathname.startsWith("/media/shadow-garden/")&&url.pathname.toLowerCase().endsWith(".epub")&&!url.searchParams.has("sig");
-    }catch{return false}
+    const url=requestUrl(value);
+    return Boolean(url&&url.origin===location.origin&&url.pathname.startsWith("/media/shadow-garden/")&&url.pathname.toLowerCase().endsWith(".epub")&&!url.searchParams.has("sig"));
   }
 
   async function resolve(book){
@@ -60,6 +61,23 @@
     link.remove();
     return ticket;
   }
+
+  document.addEventListener("click",event=>{
+    const link=event.target.closest?.("a[download]");
+    if(!link||!isRawEpubRequest(link.href))return;
+    event.preventDefault();
+    if(link.dataset.sgBookAccessBusy==="1")return;
+    link.dataset.sgBookAccessBusy="1";
+    const original=link.textContent;
+    if(original)link.textContent="Preparing…";
+    download(link.href,link.getAttribute("download")||"").catch(error=>{
+      console.error("EPUB download authorization failed",error);
+      alert(error?.message||"Could not prepare this EPUB download.");
+    }).finally(()=>{
+      delete link.dataset.sgBookAccessBusy;
+      if(original)link.textContent=original;
+    });
+  });
 
   const initial=initialBook?resolve(initialBook):Promise.resolve(null);
   window.ShadowGardenBookAccess={resolve,download,initial,identity:initialBook};

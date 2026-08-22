@@ -1,4 +1,4 @@
-/* Shadow Garden v1.6.0 — collapsible pinned-series sidebar and library indicators. */
+/* Shadow Garden v1.7.0 — shelf-scoped collapsible pinned-series sidebar and library indicators. */
 (()=>{
   const nav=document.querySelector('.site-header nav');
   if(!nav||!window.ShadowGardenData)return;
@@ -33,15 +33,10 @@
 
   const requestedSeries=new URLSearchParams(location.search).get('id')||'';
   const currentAdult=document.body.dataset.libraryScope==='nsfw'||document.body.classList.contains('adult-library')||requestedSeries.startsWith('adult-');
-  const adultAllowed=currentAdult||localStorage.getItem('sg-adult-ack')==='1';
-
-  const catalogsPromise=Promise.all([
-    window.ShadowGardenData.loadCatalog(false).catch(()=>({series:[]})),
-    adultAllowed?window.ShadowGardenData.loadCatalog(true).catch(()=>({series:[]})):Promise.resolve({series:[]})
-  ]).then(([main,adult])=>[
-    ...arr(main?.series).map(series=>({...series,__scope:'main'})),
-    ...arr(adult?.series).map(series=>({...series,__scope:'adult'}))
-  ]);
+  const currentScope=currentAdult?'adult':'main';
+  const catalogPromise=window.ShadowGardenData.loadCatalog(currentAdult)
+    .catch(()=>({series:[]}))
+    .then(catalog=>arr(catalog?.series).map(series=>({...series,__scope:currentScope})));
 
   function markCards(){
     const pins=pinnedIds();
@@ -59,12 +54,12 @@
 
   async function render(){
     const pins=pinnedIds();
-    const all=await catalogsPromise;
-    const pinned=all.filter(series=>pins.has(series.id)).sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
+    const shelf=await catalogPromise;
+    const pinned=shelf.filter(series=>pins.has(series.id)).sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
     if(!pinned.length){
-      list.innerHTML='<div class="nav-pinned-empty">No pinned series yet.</div>';
+      list.innerHTML=`<div class="nav-pinned-empty">No pinned ${currentAdult?'18+ ':''}series yet.</div>`;
     }else{
-      list.innerHTML=pinned.map(series=>`<a class="nav-pinned-entry" href="/series.html?id=${encodeURIComponent(series.id)}"><span class="pin-mark" aria-hidden="true">◆</span><span class="pin-title">${esc(series.title||'Untitled series')}</span>${series.__scope==='adult'?'<span class="pin-scope">18+</span>':''}</a>`).join('');
+      list.innerHTML=pinned.map(series=>`<a class="nav-pinned-entry" href="/series.html?id=${encodeURIComponent(series.id)}"><span class="pin-mark" aria-hidden="true">◆</span><span class="pin-title">${esc(series.title||'Untitled series')}</span>${currentAdult?'<span class="pin-scope">18+</span>':''}</a>`).join('');
     }
     markCards();
   }

@@ -120,10 +120,23 @@ body,
   background:var(--sg-ui-hover)!important;
 }
 .reader-icon.bookmarked{color:var(--gold)!important}
+#focusModeButton[aria-pressed="true"]{
+  color:var(--leaf)!important;
+  border-color:var(--sg-ui-accent-line)!important;
+  background:var(--sg-ui-hover)!important;
+}
 
 .viewer-shell,.reader-loading,.volume-end-page{background:var(--sg-ui-page)!important;color:var(--text)!important}
 .reader-loading span,.volume-complete-mark,.volume-complete-kicker{color:var(--leaf)!important}
 .volume-end-page h2{color:var(--text)!important}
+.volume-complete-mark{border-color:var(--sg-ui-accent-line)!important;background:var(--sg-ui-hover)!important}
+.volume-complete-detail{color:var(--muted)!important}
+.volume-complete-next{
+  border-color:var(--sg-ui-accent-line)!important;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--sg-ui-accent) 72%,#000),var(--sg-ui-accent))!important;
+  color:#f8f7f2!important;
+}
+.volume-complete-return{border-color:var(--line)!important;background:var(--sg-ui-hover)!important;color:var(--leaf)!important}
 
 .reader-drawer,.drawer-head{
   border-color:var(--line)!important;
@@ -147,7 +160,9 @@ body,
   background:var(--sg-ui-control)!important;
 }
 .settings-panel select option{color:var(--text);background:var(--sg-ui-control)}
-.settings-panel input[type=range],.progress-wrap input{accent-color:var(--sg-ui-accent)!important}
+.settings-panel input[type=range],.progress-wrap input,.settings-panel .reader-toggle-setting input[type=checkbox]{accent-color:var(--sg-ui-accent)!important}
+.settings-panel .reader-toggle-setting b{color:var(--text)!important}
+.settings-panel .reader-toggle-setting small{color:var(--muted)!important}
 .reader-reset{
   border-color:var(--line)!important;
   color:var(--muted)!important;
@@ -161,6 +176,15 @@ body,
   border-color:var(--line)!important;
   color:var(--text)!important;
   background:var(--sg-ui-panel-2)!important;
+}
+.reader-skip-link{
+  border-color:var(--line)!important;
+  background:var(--sg-ui-panel-2)!important;
+  color:var(--text)!important;
+}
+.reader-skip-link:focus,
+:where(.reader-app a,.reader-app button,.reader-app input,.reader-app select,.reader-app [tabindex]):focus-visible{
+  outline-color:var(--leaf)!important;
 }
 
 body.reader-flow-scrolled{

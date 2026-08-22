@@ -13,6 +13,15 @@
 /assets/js/nav-pinned.js
   Cache-Control: no-store
 
+/assets/js/site-a11y.js
+  Cache-Control: no-store
+
+/assets/js/reader-a11y.js
+  Cache-Control: no-store
+
+/assets/js/ui-direction-triangles.js
+  Cache-Control: no-store
+
 /assets/js/admin-maintenance-v1.6.js
   Cache-Control: no-store
 

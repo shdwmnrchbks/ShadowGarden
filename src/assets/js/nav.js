@@ -34,8 +34,54 @@
     }
   };
 
+  /* Hidden Garden Keeper shortcut. This is only a convenience route; /admin.html still
+     requires the normal Garden Keeper token before any protected action is available. */
+  const finePointer=window.matchMedia('(pointer:fine)');
+  const adminPath='/admin.html';
+  const desktopClicks=[];
+  let longPressTimer=0;
+  let longPressStart=null;
+  let suppressNextClick=false;
+
+  const openAdmin=()=>{
+    desktopClicks.length=0;
+    if(longPressTimer)window.clearTimeout(longPressTimer);
+    longPressTimer=0;
+    longPressStart=null;
+    suppressNextClick=true;
+    setOpen(false);
+    window.location.assign(adminPath);
+  };
+
+  const cancelLongPress=()=>{
+    if(longPressTimer)window.clearTimeout(longPressTimer);
+    longPressTimer=0;
+    longPressStart=null;
+  };
+
+  trigger.addEventListener('pointerdown',event=>{
+    if(event.pointerType==='mouse')return;
+    cancelLongPress();
+    longPressStart={id:event.pointerId,x:event.clientX,y:event.clientY};
+    longPressTimer=window.setTimeout(openAdmin,1500);
+  });
+  trigger.addEventListener('pointermove',event=>{
+    if(!longPressStart||event.pointerId!==longPressStart.id)return;
+    if(Math.hypot(event.clientX-longPressStart.x,event.clientY-longPressStart.y)>12)cancelLongPress();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(type=>trigger.addEventListener(type,cancelLongPress));
+
   trigger.addEventListener('click',event=>{
     event.preventDefault();
+    if(suppressNextClick){suppressNextClick=false;return}
+
+    if(finePointer.matches){
+      const now=performance.now();
+      desktopClicks.push(now);
+      while(desktopClicks.length&&now-desktopClicks[0]>2000)desktopClicks.shift();
+      if(desktopClicks.length>=5){openAdmin();return}
+    }else desktopClicks.length=0;
+
     setOpen(!open,{returnFocus:open});
   });
   backdrop.addEventListener('click',()=>setOpen(false,{returnFocus:true}));

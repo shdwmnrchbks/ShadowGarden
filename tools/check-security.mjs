@@ -7,6 +7,11 @@ import {
   verifyMediaTicket,
   verifyMediaTicketCookie
 } from "../functions/_lib/media-ticket.js";
+import {
+  bookIdForFile,
+  isBookId,
+  publicCatalogShape
+} from "../functions/_lib/book-id.js";
 
 const ROOT=process.cwd();
 const failures=[];
@@ -36,11 +41,29 @@ async function checkTicketCrypto(){
   if(normalizeBookPath("/media/not-shadow-garden/book.epub",requestUrl))fail("book access must reject EPUB paths outside the Shadow Garden namespace");
 }
 
+async function checkOpaqueBookIds(){
+  const first="/media/shadow-garden/books/example/volume-01.epub";
+  const second="/media/shadow-garden/books/example/volume-02.epub";
+  const a=await bookIdForFile(first),again=await bookIdForFile(first),b=await bookIdForFile(second);
+  if(!isBookId(a))fail("bookIdForFile must return an opaque bk_ identifier");
+  if(a!==again)fail("book IDs must be deterministic for legacy catalog migration");
+  if(a===b)fail("different EPUB paths must not share a book ID");
+
+  const publicView=await publicCatalogShape({generatedAt:"test",series:[{id:"example",volumes:[{
+    title:"Volume 1",file:first,sha256:"a".repeat(64),originalFilename:"secret-name.epub"
+  }]}]});
+  const volume=publicView?.series?.[0]?.volumes?.[0]||{};
+  if(!isBookId(volume.bookId))fail("public catalog volumes must expose bookId");
+  if("file" in volume)fail("public catalog volumes must not expose EPUB file paths");
+  if("sha256" in volume)fail("public catalog volumes must not expose private EPUB hashes");
+  if("originalFilename" in volume)fail("public catalog volumes must not expose original EPUB filenames");
+}
+
 async function checkWiring(){
-  const [routesText,reader,series,client,bootstrap,endpoint,media,mediaTicket]=await Promise.all([
+  const [routesText,reader,series,client,bootstrap,endpoint,media,mediaTicket,bookResolver,dataSource]=await Promise.all([
     read("src/_routes.json"),read("src/reader.html"),read("src/series.html"),read("src/assets/js/book-access.js"),
     read("src/assets/js/reader-bootstrap.js"),read("functions/book-access.js"),read("functions/media/[[path]].js"),
-    read("functions/_lib/media-ticket.js")
+    read("functions/_lib/media-ticket.js"),read("functions/_lib/book-resolver.js"),read("src/assets/js/data-source.js")
   ]);
   const routes=JSON.parse(routesText);
   if(!routes.include?.includes("/book-access"))fail("_routes.json must route /book-access through Pages Functions");
@@ -52,7 +75,7 @@ async function checkWiring(){
   if(bootstrapPos<0||reader.includes('type="module" src="/assets/js/reader.js'))fail("Reader shell must start through reader-bootstrap.js, not reader.js directly");
   if(!series.includes("/assets/js/book-access.js"))fail("Series page must load book-access.js for direct EPUB downloads");
 
-  for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass"]){
+  for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass","bookId","migrateLegacyState"]){
     if(!client.includes(marker))fail(`book-access.js is missing ${marker}`);
   }
   if(client.includes("const legacy=")||client.includes("protected:false"))fail("book-access.js must not fall back to an unsigned EPUB URL when ticketing is unavailable");
@@ -62,25 +85,37 @@ async function checkWiring(){
   if(bypassAssignment<0||syntheticClick<0||bypassAssignment>syntheticClick)fail("synthetic EPUB download links must be marked before click()");
   if(bypassGuard<0)fail("download interceptor must ignore internally authorized download links");
 
-  for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.5.0")'])if(!bootstrap.includes(marker))fail(`reader-bootstrap.js is missing ${marker}`);
-  for(const marker of ["issueMediaTicket","ticketCookie","Set-Cookie","ticketing_not_configured"]){
+  for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.9.0")',"history.replaceState","location.reload()","sourcePath"]){
+    if(!bootstrap.includes(marker))fail(`reader-bootstrap.js is missing ${marker}`);
+  }
+  for(const marker of ["issueMediaTicket","ticketCookie","Set-Cookie","ticketing_not_configured","resolveBookReference","payload?.bookId","bookId: resolved.bookId"]){
     if(!endpoint.includes(marker))fail(`book-access endpoint is missing ${marker}`);
   }
   for(const marker of ["SG_MEDIA_SIGNING_SECRET","HMAC","SHA-256","sg-media-ticket-v1"]){
     if(!mediaTicket.includes(marker))fail(`media-ticket helper is missing ${marker}`);
   }
-  for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing","unavailableEpub","ticketingEnabled(env)"]){
-    if(!media.includes(marker))fail(`media ticket enforcement is missing ${marker}`);
+  for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","canonicalMediaCacheUrl","X-SG-Media-Ticketing","unavailableEpub","ticketingEnabled(env)","publicCatalogShape","X-SG-Catalog-View","opaque-v1"]){
+    if(!media.includes(marker))fail(`media security/catalog enforcement is missing ${marker}`);
   }
   if(media.includes('ticketingEnabled(env) && !(await authorizedEpub'))fail("EPUB delivery must fail closed rather than skip authorization when ticketing is unavailable");
+
+  for(const marker of ["resolveBookReference","byId","byFile","volumeBookId"]){
+    if(!bookResolver.includes(marker))fail(`book resolver is missing ${marker}`);
+  }
+  if(bookResolver.includes("legacy: true"))fail("book resolver must not authorize arbitrary non-cataloged legacy EPUB paths");
+
+  for(const marker of ["bookId","file:bookId","migrateLegacyState","shadow-garden-book-id-v1"]){
+    if(!dataSource.includes(marker))fail(`public data adapter is missing ${marker}`);
+  }
 }
 
 await checkTicketCrypto();
+await checkOpaqueBookIds();
 await checkWiring();
 if(failures.length){
   console.error(`Shadow Garden security check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);
   failures.forEach(message=>console.error(`- ${message}`));
   process.exitCode=1;
 }else{
-  console.log("Shadow Garden signed-media security checks passed.");
+  console.log("Shadow Garden signed-media and opaque-catalog security checks passed.");
 }

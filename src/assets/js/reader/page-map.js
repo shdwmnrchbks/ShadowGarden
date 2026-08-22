@@ -332,13 +332,16 @@ export function createPageMapController({
 
   function fingerprintData() {
     const metrics = getLayoutMetrics?.() || { width: 0, height: 0, spread: "single" };
+    /* Continuous removes the 48px bottom navigation row. The canonical map always
+       describes Pages mode, so normalize that extra Continuous viewport height away. */
+    const flowHeightAdjustment = document.body?.classList.contains("reader-flow-scrolled") ? 48 : 0;
     const spine = linearSpine(book).map(item => `${item.index}:${cleanHref(item.href)}`).join("|");
     const metadata = book?.packaging?.metadata || {};
     const publication = `${metadata.identifier || ""}|${metadata.modified || ""}|${metadata.title || ""}`;
     const data = {
       version: PAGE_MAP_VERSION,
       width: Math.max(1, Math.round(Number(metrics.width) || 1)),
-      height: Math.max(1, Math.round(Number(metrics.height) || 1)),
+      height: Math.max(1, Math.round((Number(metrics.height) || 1) - flowHeightAdjustment)),
       spread: metrics.spread === "spread" ? "spread" : "single",
       ...settingsSnapshot(),
       spine: hashText(spine),

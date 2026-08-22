@@ -38,3 +38,13 @@
   new MutationObserver(enhance).observe(list,{childList:true,subtree:true});
   enhance();
 })();
+
+/* v1.7 runs after every deferred Garden Keeper controller has initialized, including the
+   targeted-series New Books layer. This keeps the existing uploader engine intact. */
+window.addEventListener('DOMContentLoaded',()=>{
+  if(document.querySelector('script[data-admin-upload-v17]'))return;
+  const script=document.createElement('script');
+  script.src='/assets/js/admin-upload-workflow-v1.7.js?v=1.7.0';
+  script.dataset.adminUploadV17='1';
+  document.body.appendChild(script);
+},{once:true});

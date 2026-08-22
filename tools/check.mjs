@@ -13,6 +13,10 @@ const retiredPaths = [
   "src/assets/js/reader-continuous-anchor-fix.js",
   "src/assets/js/reader-stability.js",
   "src/assets/js/reader-seek-neighborhood.js",
+  "src/assets/js/admin-upload-workflow-v1.7.0.js",
+  "src/assets/js/admin-upload-completion-v1.7.1.js",
+  "src/assets/js/admin-v1.7.2.js",
+  "src/assets/js/admin-backup-history-v1.7.4.js",
   "src/assets/css/reader-stability.css",
   "src/assets/css/v1-polish.css",
   "src/assets/css/site-v1.5.css",
@@ -90,7 +94,7 @@ async function checkScripts() {
 }
 
 async function checkJson() {
-  const roots = [SRC, path.join(ROOT, "functions")];
+  const roots = [SRC, path.join(ROOT, "functions"), path.join(ROOT, "library")];
   const files = (await Promise.all(roots.map(root => walk(root, file => file.endsWith(".json"))))).flat();
   files.push(path.join(ROOT, "package.json"));
   const seen = new Set();

@@ -39,7 +39,7 @@
     requestAnimationFrame(()=>end.querySelector("a:not(.hidden)")?.focus?.({preventScroll:true}));
   }
 
-  function ensureContinuousEnd(){
+  function ensureContinuousEnd(force=false){
     if(!document.body.classList.contains("reader-flow-scrolled")||!canonicalEnd()){
       removeContinuousEnd();
       return;
@@ -47,6 +47,7 @@
     const master=page(),container=scroller();
     if(!master||!container)return;
     const previous=continuousClone();
+    if(previous&&!force)return;
     const end=master.cloneNode(true);
     stripIds(end);
     end.classList.remove("hidden","active");
@@ -97,7 +98,7 @@
   function init(){
     const text=$("#progressText"),master=page();
     if(text)new MutationObserver(()=>ensureContinuousEnd()).observe(text,{childList:true,characterData:true,subtree:true});
-    if(master)new MutationObserver(()=>{if(document.body.classList.contains("reader-flow-scrolled")&&canonicalEnd())ensureContinuousEnd()}).observe(master,{childList:true,characterData:true,subtree:true,attributes:true});
+    if(master)new MutationObserver(()=>{if(document.body.classList.contains("reader-flow-scrolled")&&canonicalEnd())ensureContinuousEnd(true)}).observe(master,{childList:true,characterData:true,subtree:true,attributes:true});
     new MutationObserver(syncFlow).observe(document.body,{attributes:true,attributeFilter:["class"]});
     const viewer=$("#viewer");
     if(viewer)new MutationObserver(()=>{if(document.body.classList.contains("reader-flow-scrolled")&&canonicalEnd())ensureContinuousEnd()}).observe(viewer,{childList:true,subtree:true});

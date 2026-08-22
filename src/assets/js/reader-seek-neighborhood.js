@@ -16,7 +16,8 @@
   if(typeof baseEpub!=="function")return;
 
   const NEIGHBORS_EACH_SIDE=2;
-  const SEEK_WINDOW_MS=2400;
+  const SEEK_WINDOW_MS=8000;
+  const DUPLICATE_WINDOW_MS=1800;
   let seekSerial=0;
   let seekExpires=0;
 
@@ -208,25 +209,29 @@
   function patchRendition(rendition,options){
     if(!rendition||rendition.__sgSeekNeighborhoodPatched||!isContinuous(options,rendition))return rendition;
     rendition.__sgSeekNeighborhoodPatched=true;
-    let recoveredSerial=0,recoveredTarget="";
+    let recoveredSerial=0,recoveredTarget="",duplicateUntil=0;
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);
       rendition.display=(...args)=>{
         const serial=seekSerial;
         const key=targetKey(args[0]);
-        const committed=serial>0&&performance.now()<seekExpires;
 
         /* reader.js intentionally repeats the same target after two paints in Continuous.
-           Once this seek has rebuilt its neighborhood, do not let that second call touch the
-           manager again or EPUB.js may clear/reposition the recovered view set. */
-        if(committed&&serial===recoveredSerial&&key&&key===recoveredTarget)return Promise.resolve(rendition);
+           Consume exactly one post-recovery duplicate even if neighbor loading itself took
+           longer than the original seek-event window. */
+        if(serial===recoveredSerial&&key&&key===recoveredTarget&&performance.now()<duplicateUntil){
+          duplicateUntil=0;
+          return Promise.resolve(rendition);
+        }
 
+        const committed=serial>0&&performance.now()<seekExpires;
         return Promise.resolve(rawDisplay(...args)).then(async result=>{
           if(committed){
             await restoreNeighborhood(rendition,args[0]);
             recoveredSerial=serial;
             recoveredTarget=key;
+            duplicateUntil=performance.now()+DUPLICATE_WINDOW_MS;
             seekExpires=0;
           }
           return result;

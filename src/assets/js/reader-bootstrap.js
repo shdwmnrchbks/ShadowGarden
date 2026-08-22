@@ -1,9 +1,11 @@
-/* Shadow Garden Security Milestone 2 — authorize the selected EPUB before Reader startup. */
+/* Shadow Garden Security Milestones 2–3 — authorize and resolve the selected book before Reader startup. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   try{
-    if(access?.initial)await access.initial;
-    await import("/assets/js/reader.js?v=1.5.0");
+    const ticket=access?.initial?await access.initial:null;
+    if(ticket?.url)window.__sgReaderBookSource=ticket.url;
+    if(ticket?.identity)window.__sgReaderBookIdentity=ticket.identity;
+    await import("/assets/js/reader.js?v=1.9.0");
   }catch(error){
     console.error("Reader book authorization failed",error);
     const loading=document.getElementById("readerLoading");

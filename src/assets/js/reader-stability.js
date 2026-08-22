@@ -71,35 +71,35 @@
 
     if(typeof rendition.display==="function"){
       const rawDisplay=rendition.display.bind(rendition);
-      let active=null,activeKey="",queued=null,queuedWaiters=[],lastKey="",lastAt=0;
+      let active=null,activeKey="",queued=null,queuedWaiters=[];
 
-      const run=target=>{
+      const run=(target,seekRequest=false)=>{
         const key=targetKey(target);
         activeKey=key;
         active=Promise.resolve().then(()=>rawDisplay(target)).then(result=>{
-          lastKey=key;lastAt=Date.now();return result;
+          if(seekRequest)settleSeekNavigation();
+          return result;
         }).finally(()=>{
           active=null;activeKey="";
           if(!queued)return;
           const next=queued;queued=null;
           const waiters=queuedWaiters;queuedWaiters=[];
-          run(next.target).then(value=>waiters.forEach(waiter=>waiter.resolve(value)),error=>waiters.forEach(waiter=>waiter.reject(error)));
+          run(next.target,next.seekRequest).then(value=>waiters.forEach(waiter=>waiter.resolve(value)),error=>waiters.forEach(waiter=>waiter.reject(error)));
         });
         return active;
       };
 
       rendition.display=target=>{
         const key=targetKey(target);
+        const seekRequest=Boolean(window.__sgSeekNavigationPending);
         if(active){
-          if(key&&key===activeKey)return active;
-          queued={target,key};
-          return new Promise((resolve,reject)=>queuedWaiters.push({resolve,reject,key}));
+          if(key&&key===activeKey){
+            return seekRequest?active.then(value=>{settleSeekNavigation();return value}):active;
+          }
+          queued={target,key,seekRequest:Boolean(queued?.seekRequest||seekRequest)};
+          return new Promise((resolve,reject)=>queuedWaiters.push({resolve,reject}));
         }
-        if(key&&key===lastKey&&Date.now()-lastAt<750){
-          settleSeekNavigation();
-          return Promise.resolve(rendition);
-        }
-        return run(target);
+        return run(target,seekRequest);
       };
     }
 

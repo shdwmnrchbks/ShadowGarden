@@ -136,6 +136,13 @@
     manager.scrollLeft=position.left;
     return position;
   }
+  function defaultManagerDisplay(manager){
+    try{
+      const continuousProto=Object.getPrototypeOf(manager);
+      const defaultProto=continuousProto&&Object.getPrototypeOf(continuousProto);
+      return typeof defaultProto?.display==="function"?defaultProto.display:null;
+    }catch{return null}
+  }
 
   function visibleRange(manager){
     const views=loadedViews(manager);
@@ -313,6 +320,16 @@
     manager.fill=()=>manager.check();
     manager.scheduleTrim=()=>scheduleTrim(manager,rendition);
 
+    /* ContinuousViewManager.display() normally waits for fill(). Use the default manager's
+       non-recursive display path and preload neighbors only after the requested section is live. */
+    const baseDisplay=defaultManagerDisplay(manager);
+    if(baseDisplay){
+      manager.display=(section,displayTarget)=>Promise.resolve(baseDisplay.call(manager,section,displayTarget)).then(result=>{
+        setTimeout(()=>{Promise.resolve(manager.check()).catch(error=>console.warn("Continuous background buffer skipped",error))},0);
+        return result;
+      });
+    }
+
     manager._scrolled=()=>{
       clearTimeout(manager.__sgCoreScrollTimer);
       manager.__sgCoreScrollTimer=setTimeout(()=>manager.scrolled(),SCROLL_SETTLE_MS);
@@ -376,6 +393,7 @@
       const rawDisplay=rendition.display.bind(rendition);
       rendition.display=(...args)=>{
         hidePagedEnd();
+        if(continuous)installManager(rendition);
         const key=targetKey(args[0]);
         const now=performance.now();
         if(continuous&&key&&key===lastDisplayKey){
@@ -383,14 +401,14 @@
           if(now-lastDisplayDoneAt<DISPLAY_DEDUPE_MS)return Promise.resolve(lastDisplayResult||rendition);
         }
         lastDisplayKey=key;
-        const task=Promise.resolve(rawDisplay(...args)).then(async result=>{
+        const task=Promise.resolve(rawDisplay(...args)).then(result=>{
           lastDisplayResult=result;
           if(continuous){
             installManager(rendition);
-            try{await rendition.manager?.check?.()}catch(error){console.warn("Continuous post-display neighborhood skipped",error)}
             if(rendition.manager){
               rendition.manager.ignore=false;
               syncScrollPosition(rendition.manager);
+              setTimeout(()=>{Promise.resolve(rendition.manager?.check?.()).catch(error=>console.warn("Continuous post-display buffer skipped",error))},0);
             }
             syncContinuousEnd(rendition);
           }

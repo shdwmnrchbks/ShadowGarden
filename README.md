@@ -1,10 +1,10 @@
-# Shadow Garden v1.0
+# Shadow Garden v1.1
 
 Shadow Garden is a private-storage, public-facing EPUB library and browser reader hosted on Cloudflare Pages. EPUBs and covers live in a **private Backblaze B2 bucket** and are delivered through same-origin Cloudflare Pages Functions. Administration is handled through the phone-friendly **Garden Keeper** console.
 
 Production site: https://shadowgarden-bon.pages.dev/
 
-## What v1.0 includes
+## What v1.1 includes
 
 ### Library
 - Main and separate 18+ / Adult libraries.
@@ -31,6 +31,10 @@ Production site: https://shadowgarden-bon.pages.dev/
 
 ### Garden Keeper
 - Token-protected private administration console at `/admin.html`.
+- **Manage Library is the permanent home screen** after unlock; the old dashboard has been removed.
+- Add New Books and Garden Maintenance open as large modal windows instead of separate pages.
+- Every series card includes **+ Add book** beside **Manage series** for direct-to-series uploads.
+- Direct-to-series uploads target the exact existing catalog ID and shelf, including renamed series.
 - Batch EPUB uploader with sequential phone-friendly processing.
 - Browser-local EPUB preflight checks.
 - Duplicate detection by hash, filename, volume identity, and title.
@@ -38,7 +42,7 @@ Production site: https://shadowgarden-bon.pages.dev/
 - Metadata editing and Main/18+ shelf management.
 - Series-level Audio EPUB link support.
 - Cover extraction and WebP derivative generation.
-- Garden Maintenance dashboard with:
+- Garden Maintenance window with:
   - Garden Health diagnostics
   - batched deep B2 object checks
   - legacy-cover optimization
@@ -47,7 +51,7 @@ Production site: https://shadowgarden-bon.pages.dev/
   - soft-delete Trash
   - restore and protected permanent purge
 
-The previously planned PWA / offline-books milestone was intentionally skipped and is not part of v1.0.
+The previously planned PWA / offline-books milestone was intentionally skipped and is not part of Shadow Garden v1.1.
 
 ## Architecture
 
@@ -137,7 +141,11 @@ Garden Keeper is intentionally not linked from the public library and is marked 
 
 The token is kept only in the currently open Garden Keeper page and is not written into EPUBs or catalogs.
 
+After unlock, Garden Keeper opens directly to **Manage Library**. The left-side action stack opens **Maintenance** and **+ New Books** in modal windows, while the series list remains visible behind them.
+
 ### Add New Books
+
+The uploader can be opened globally with **+ New Books**, or from a series card with **+ Add book**. The per-series action locks the upload session to that exact series and Main/18+ shelf, while still allowing the book-level metadata to be edited.
 
 The uploader can queue multiple EPUBs. For each book it can:
 
@@ -160,7 +168,7 @@ The web uploader currently enforces a 50 MB EPUB limit.
 
 ### Garden Maintenance
 
-Garden Maintenance is the recovery/diagnostics side of Garden Keeper.
+Garden Maintenance is the recovery/diagnostics window in Garden Keeper.
 
 - **Garden Health** reports catalog and object-reference issues.
 - **Deep B2 Check** verifies referenced EPUB/cover objects in small batches.

@@ -3,21 +3,29 @@ function pins(){try{return JSON.parse(localStorage.getItem("sg-pinned")||"[]")}c
 function setPinned(id,on){const s=new Set(pins());on?s.add(id):s.delete(id);localStorage.setItem("sg-pinned",JSON.stringify([...s]))}
 function progressFor(file){try{return JSON.parse(localStorage.getItem(`sg-progress:${file}`)||"null")}catch{return null}}
 function fmtSize(n){if(!n)return"";let x=n,i=0,u=["B","KB","MB","GB"];while(x>=1024&&i<3){x/=1024;i++}return`${x.toFixed(i>1?1:0)} ${u[i]}`}
+function syncLibraryScope(adult){
+  document.body.classList.toggle("adult-library",Boolean(adult));
+  const home=$(".brand-home"),back=$("#headerBack"),adultNav=$(".adult-nav-link"),mainNav=$(".main-nav-link"),themeMeta=document.querySelector('meta[name="theme-color"]');
+  if(home){home.href=adult?"/nsfw.html":"/";home.setAttribute("aria-label",adult?"Shadow Garden Adult Library home":"Shadow Garden home")}
+  if(back){back.href=adult?"/nsfw.html":"/";back.textContent=adult?"← Back to Adult Library":"← Back to archive"}
+  if(adultNav){adultNav.classList.toggle("active",Boolean(adult));adult?adultNav.setAttribute("aria-current","page"):adultNav.removeAttribute("aria-current")}
+  if(mainNav){mainNav.classList.toggle("active",!adult);!adult?mainNav.setAttribute("aria-current","page"):mainNav.removeAttribute("aria-current")}
+  if(themeMeta)themeMeta.content=adult?"#10090c":"#09080d";
+}
 async function init(){
   const id=new URLSearchParams(location.search).get("id");
+  const requestedAdult=String(id||"").startsWith("adult-");
+  syncLibraryScope(requestedAdult);
   try{
-    const adult=String(id||"").startsWith("adult-");
-    if(adult&&localStorage.getItem("sg-adult-ack")!=="1"){
+    if(requestedAdult&&localStorage.getItem("sg-adult-ack")!=="1"){
       const ret=`/series.html?id=${encodeURIComponent(id)}`;
       location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`);
       return;
     }
     if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");
-    const cat=await window.ShadowGardenData.loadCatalog(adult),s=arr(cat.series).find(x=>x.id===id);
+    const cat=await window.ShadowGardenData.loadCatalog(requestedAdult),s=arr(cat.series).find(x=>x.id===id);
     if(!s)throw new Error("Series not found");
-    document.body.classList.toggle("adult-library",Boolean(s.nsfw));
-    const back=document.querySelector("#headerBack");
-    if(back){back.href=s.nsfw?"/nsfw.html":"/";back.textContent=s.nsfw?"← Back to Adult Library":"← Back to archive"}
+    syncLibraryScope(Boolean(s.nsfw));
     document.title=`${s.title} — Shadow Garden`;
     const vols=arr(s.volumes),first=vols[0],pinned=pins().includes(s.id);
     const resumed=vols.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
@@ -61,7 +69,9 @@ async function init(){
       </section>`;
     $("#pinButton")?.addEventListener("click",e=>{const on=!e.currentTarget.classList.contains("pinned");setPinned(s.id,on);e.currentTarget.classList.toggle("pinned",on);e.currentTarget.textContent=on?"◆ Pinned":"◇ Pin to Garden"});
   }catch(e){
-    console.error(e);$("#seriesRoot").innerHTML=`<section class="not-found"><span>SHELF NOT FOUND</span><h1>This series is missing.</h1><p>The catalog entry could not be opened.</p><a class="primary-button" href="/">Return to the archive</a></section>`;
+    console.error(e);
+    const home=requestedAdult?"/nsfw.html":"/";
+    $("#seriesRoot").innerHTML=`<section class="not-found"><span>SHELF NOT FOUND</span><h1>This series is missing.</h1><p>The catalog entry could not be opened.</p><a class="primary-button" href="${home}">Return to the archive</a></section>`;
   }
 }
 init();

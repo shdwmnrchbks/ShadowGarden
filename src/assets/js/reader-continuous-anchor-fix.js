@@ -69,6 +69,13 @@
   function visualHeight(contents,manager,target,rawHeight){
     const doc=contents?.document;
     if(!doc)return Number(rawHeight)||0;
+    const viewport=viewportHeight(manager,target);
+
+    /* A full-page SVG frequently lives inside a 100vh wrapper. If iframe height is
+       calculated from that same 100vh content, every remeasure can make the iframe
+       taller again. Give SVG-dominant pages one stable reader-viewport instead. */
+    if(doc.body?.querySelector("svg")&&!doc.body?.querySelector("img"))return viewport;
+
     let measured=Number(rawHeight)||0;
     const body=doc.body,root=doc.documentElement;
     measured=Math.max(
@@ -87,7 +94,7 @@
       });
     }catch{}
 
-    measured=Math.max(measured,viewportHeight(manager,target));
+    measured=Math.max(measured,viewport);
     return Math.max(1,Math.ceil(measured));
   }
 

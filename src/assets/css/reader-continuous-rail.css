@@ -61,16 +61,23 @@ body.reader-flow-scrolled .continuous-seek-thumb{
   pointer-events:none;
 }
 
+/* The page counter is anchored to the viewport's right edge and grows leftward. This keeps
+   large canonical counts such as 2166/19342 fully visible instead of clipping off-screen. */
 body.reader-flow-scrolled .continuous-seek-text{
-  width:30px;
+  align-self:flex-end;
+  width:max-content;
+  min-width:8ch;
+  max-width:none;
   min-height:18px;
-  display:grid;
-  place-items:center;
+  display:block;
+  margin-right:4px;
   color:var(--muted);
   background:transparent;
   border:0;
   font-size:.59rem;
-  line-height:1;
+  line-height:18px;
+  text-align:right;
+  white-space:nowrap;
   font-variant-numeric:tabular-nums;
   pointer-events:none;
 }
@@ -87,5 +94,5 @@ body.adult-reader.reader-flow-scrolled .continuous-seek:focus-visible{
 @media(max-width:700px){
   body.reader-flow-scrolled .continuous-seek{width:28px;padding-top:8px}
   body.reader-flow-scrolled .continuous-seek-thumb{width:13px;height:13px}
-  body.reader-flow-scrolled .continuous-seek-text{width:26px;font-size:.55rem}
+  body.reader-flow-scrolled .continuous-seek-text{min-width:8ch;margin-right:3px;font-size:.55rem}
 }

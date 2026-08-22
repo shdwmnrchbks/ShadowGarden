@@ -28,13 +28,13 @@
 /assets/js/admin-upload-workflow-v1.7.0.js
   Cache-Control: no-store
 
-/assets/js/admin-upload-completion-v1.7.1.js
+/assets/js/admin-upload-completion.js
   Cache-Control: no-store
 
-/assets/js/admin-v1.7.2.js
+/assets/js/admin-upload-polish.js
   Cache-Control: no-store
 
-/assets/js/admin-backup-history-v1.7.4.js
+/assets/js/admin-backup-history.js
   Cache-Control: no-store
 
 /assets/css/admin-current.css

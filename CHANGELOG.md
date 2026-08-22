@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 1.3.1 — Continuous Seek Neighborhood Recovery
+- Fixed Continuous seeks leaving EPUB.js with only the landed XHTML spine item mounted, which allowed scrolling inside that section but blocked traversal into the previous or next section.
+- After each committed Continuous seek, immediately mount two neighboring spine items on each side of the landed section instead of waiting for boundary-triggered background fill.
+- Re-center the exact seek CFI after neighbor dimensions settle so prepended sections do not move the requested reading position.
+- Reset EPUB.js silent-scroll suppression and resynchronize current/previous scroll coordinates and deltas after the seek transaction.
+- Re-prime the normal bounded Continuous checker from the restored multi-view neighborhood so ordinary scrolling resumes normally.
+- Suppress reader.js's second identical Continuous `display(target)` for the same committed seek only after neighborhood recovery, preventing that follow-up call from disturbing the recovered state.
+
 ## 1.3.0 — Visual Page Cache
 - Added a first-run EPUB spine scanner that identifies genuinely standalone cover/illustration XHTML and SVG pages before the live reader lays them out.
 - Store prepared visual-page assets locally in a dedicated IndexedDB cache keyed by book URL, so later opens can reuse the prepared pages without rescanning the EPUB.

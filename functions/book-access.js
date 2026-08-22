@@ -1,5 +1,5 @@
 import { json } from "./_lib/b2.js";
-import { issueMediaTicket, ticketingEnabled } from "./_lib/media-ticket.js";
+import { issueMediaTicket, ticketCookie, ticketingEnabled } from "./_lib/media-ticket.js";
 
 function sameOriginBrowserRequest(request) {
   const fetchSite = request.headers.get("sec-fetch-site")?.toLowerCase();
@@ -37,6 +37,7 @@ export async function onRequest(context) {
       ttlSeconds: ticket.ttlSeconds,
       protected: true
     }, 200, {
+      "Set-Cookie": ticketCookie(ticket),
       "X-SG-Media-Ticketing": "active",
       "X-Robots-Tag": "noindex, nofollow, noarchive"
     });

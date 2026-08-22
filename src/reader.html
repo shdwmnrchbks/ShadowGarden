@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/assets/css/reader-stability.css?v=1.2.2">
   <link rel="stylesheet" href="/assets/css/reader-a11y.css">
   <link rel="stylesheet" href="/assets/css/reader-interface-themes.css?v=1.5.0">
+  <link rel="stylesheet" href="/assets/css/ui-symbols.css?v=1.6.0">
   <script src="/assets/vendor/jszip.min.js"></script>
   <script src="/assets/vendor/epub.min.js"></script>
   <script src="/assets/js/data-source.js"></script>
@@ -24,6 +25,7 @@
   <script src="/assets/js/reader-gesture-hook.js"></script>
   <script src="/assets/js/reader-polish.js" defer></script>
   <script src="/assets/js/reader-a11y.js" defer></script>
+  <script src="/assets/js/reader-wheel-pages.js?v=1.6.0" defer></script>
   <script type="module" src="/assets/js/reader.js?v=1.5.0"></script>
 </head>
 <body class="reader-theme-garden reader-flow-paginated">
@@ -40,10 +42,10 @@
       </div>
       <div class="reader-actions">
         <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location" aria-pressed="false">◇</button>
-        <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">↩</a>
         <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings" aria-controls="settingsDrawer" aria-expanded="false">Aa</button>
         <button id="focusModeButton" class="reader-icon" type="button" title="Distraction-free mode" aria-label="Enter distraction-free mode" aria-pressed="false">◐</button>
         <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen" aria-pressed="false">⛶</button>
+        <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">↩</a>
       </div>
     </header>
 

@@ -16,9 +16,10 @@
       if(!row.querySelector?.('[data-restore-backup]'))continue;
       row.classList.add('backup-history-entry');
       row.classList.remove('maintenance-item');
-      const copy=row.querySelector('.maintenance-item-copy');
+      const copy=row.querySelector('.maintenance-item-copy,.backup-history-copy');
       if(copy){
         copy.classList.add('backup-history-copy');
+        copy.classList.remove('maintenance-item-copy');
         copy.querySelector('strong')?.classList.add('backup-history-reason');
         const date=[...copy.children].find(el=>el.tagName==='SPAN'&&!el.classList.contains('backup-meta'));
         date?.classList.add('backup-history-date');
@@ -56,7 +57,8 @@
   async function getLibrary(){
     if(!libraryPromise){
       libraryPromise=(typeof api==='function'?api('/admin-api/library',{method:'GET'}):Promise.resolve(null))
-        .catch(error=>{console.warn('Uploaded series cover lookup failed',error);return null});
+        .catch(error=>{console.warn('Uploaded series cover lookup failed',error);return null})
+        .finally(()=>{libraryPromise=null});
     }
     return libraryPromise;
   }

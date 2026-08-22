@@ -37,16 +37,7 @@
 /assets/js/admin-backup-history-v1.7.4.js
   Cache-Control: no-store
 
-/assets/css/admin-v1.7.css
-  Cache-Control: no-store
-
-/assets/css/admin-v1.7.1.css
-  Cache-Control: no-store
-
-/assets/css/admin-v1.7.2.css
-  Cache-Control: no-store
-
-/assets/css/admin-backup-history-v1.7.4.css
+/assets/css/admin-current.css
   Cache-Control: no-store
 
 /data/source.json

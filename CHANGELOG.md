@@ -1,5 +1,86 @@
 # Shadow Garden Changelog
 
+## 1.8.0 — Codebase Cleanup
+- Removed the retired v1.1-v1.3 Continuous-mode controllers that had remained in the repository after `reader-continuous-core.js` became authoritative.
+- Consolidated the public `v1-polish.css`, `site-v1.5.css`, and `site-v1.6.css` layers into `site-current.css` while preserving their final cascade behavior.
+- Consolidated the Garden Keeper v1.7/v1.7.1/v1.7.2/Catalog History CSS patch stack into `admin-current.css` and removed superseded mobile-backup overrides.
+- Renamed current Garden Keeper helper modules by responsibility: upload workflow, upload completion, upload polish, and backup history no longer use historical v1.7.x filenames.
+- Renamed the Reader's old `reader-stability.css` to `reader-end-page.css`; it contains only completion-page presentation and no runtime stability logic.
+- Made the shared filled-triangle control normalizer an explicit dependency instead of loading it indirectly through accessibility controllers.
+- Centralized Backblaze B2 read-client construction and object URL configuration in `functions/_lib/b2.js`, removing duplicate B2 client setup from the public media proxy.
+- Removed the one-time Cloudflare rebuild trigger and other proven-unreachable compatibility assets.
+- Added `tools/check.mjs` to syntax-check source JavaScript, validate JSON, catch duplicate HTML IDs, verify local/runtime asset references, inspect `_headers`, and reject retired compatibility files if they return.
+- Added `npm run check`, made it a `prebuild` gate, and added a Node 22 GitHub Actions verification workflow for pull requests and `main`.
+- Rewrote the README for the current private-B2, canonical Page Map, Visual Page Cache, single-owner Continuous core, and Garden Keeper architecture.
+- This release is intentionally a maintenance/refactor release; the stabilized Reader, Page Map, visual-page preparation, catalog schema, and upload semantics are not being redesigned.
+
+## 1.7.5 — Catalog History & Directional UI Polish
+- Fixed mobile Catalog History cards being compressed by inherited maintenance layout rules.
+- Normalized directional UI affordances to filled triangle glyphs across the current site surfaces.
+
+## 1.7.4 — Catalog History Card Rebuild
+- Rebuilt Catalog History rows as a dedicated component instead of inheriting generic maintenance-item geometry.
+- Preserved the v1.7.3 preflight behavior and the uploaded-series cover chooser while correcting mobile backup layout.
+
+## 1.7.3 — Local Preflight Recovery
+- Fixed the queue/editor visibility observer interfering with local EPUB inspection after additional files were added.
+- Kept browser-local preflight authoritative and restored the active editor only after checking items had settled.
+
+## 1.7.2 — Queue Editor & Upload Chooser Polish
+- Fixed mobile Catalog History text/row collapse.
+- Kept the active queue editor visible while adding more EPUBs.
+- Upgraded the multi-series upload completion chooser to cover-first cards matching the library visual language.
+
+## 1.7.1 — Upload Completion Handoff
+- Fixed the stateful New Books workflow remaining on the 100% Uploading screen after the underlying batch uploader had already completed.
+- Used the batch transaction boundary as the authoritative completion signal and re-emitted the terminal state after the legacy queue redraw settled.
+- Improved mobile Catalog History text wrapping.
+
+## 1.7.0 — Stateful New Books Workflow
+- Added the reviewed stateful New Books workflow with dedicated uploading, success, partial-failure, and multi-series completion states.
+- Added ordinary queue removal controls, duplicate-policy presentation, and collapsed preflight details.
+- Scoped pinned sidebar entries to the active Main or Adult archive.
+- Added mobile Catalog History layout improvements and explicit post-initialization workflow loading.
+
+## 1.6.1 — Concealed Garden Keeper Shortcut
+- Added the concealed desktop multi-click and mobile long-press shortcut to Garden Keeper while preserving normal token authentication.
+
+## 1.6.0 — Navigation & Keeper Utilities
+- Expanded archive navigation and standardized dropdown/disclosure symbols.
+- Added pinned series to the sidebar and pin indicators on library cards.
+- Added desktop mouse-wheel page turns in Paginated reader mode.
+- Added Garden Keeper Catalog History deletion controls and an authenticated backup-deletion endpoint.
+- Moved the mobile filter collapse control beside Reset when expanded and improved Adult archive mobile scaling.
+
+## 1.5.2 — Mobile Filter Collapse
+- Restored filter collapse only on mobile while leaving desktop/tablet archive filters permanently open.
+- Kept search visible in the compact collapsed mobile state.
+
+## 1.5.1 — Archive Navigation & Filter Layout
+- Added richer volume metadata to Continue Reading.
+- Aligned archive filters with Recently Added and improved Main/Adult return navigation.
+- Removed the obsolete always-collapsible desktop filter controller.
+
+## 1.5.0 — Reader Interface Themes & Adult UI
+- Added complete reader interface theme palettes and refreshed the Night palette.
+- Improved library headers and the Continue Reading card.
+- Moved the Adult Library entrance into the Main archive header.
+- Applied the Adult palette and Adult-aware navigation consistently on Adult series pages.
+
+## 1.4.3 — Paginated Visual Frame Sizing
+- Fixed standalone image pages in Pages mode using the wrong iframe geometry.
+- Made the full paginated iframe the visual-page frame so covers and illustrations remain centered and contained.
+
+## 1.4.2 — Paginated Visual Page Fit
+- Added a dedicated Paginated visual-page fit controller.
+- Centered and contained standalone covers/illustrations without changing ordinary chapter pagination.
+
+## 1.4.1 — Continuous Lifecycle Fix
+- Fixed blank retained Continuous views after first open by actively repairing/re-showing visible views.
+- Made background neighbor buffering generation-aware so stale work is invalidated by newer navigation.
+- Kept requested-section navigation, background buffering, and scroll/location reporting as separate concerns.
+- Ensured post-seek/current-page reporting remains independent of potentially slow neighbor preparation.
+
 ## 1.4.0 — Continuous Core Rewrite
 - Retired the stacked v1.1.5 Continuous anchor shim, v1.2.2 runtime stability manager, and v1.3.1 seek-neighborhood layer from the reader load path so only one controller owns Continuous mode.
 - Added one authoritative Continuous controller for scroll listeners, real scroll-coordinate synchronization, spine buffering, idle trimming, display deduplication, boundary recovery, location reporting, and the end-of-volume page.
@@ -202,4 +283,4 @@
 ## 0.6.0
 - Established the private B2 + Cloudflare Pages architecture and Garden Keeper administration flow.
 
-> The planned v0.11 PWA / offline-books milestone was intentionally skipped and is not part of Shadow Garden v1.0.
+> The planned v0.11 PWA / offline-books milestone was intentionally skipped and is not part of Shadow Garden.

@@ -1,0 +1,68 @@
+/* Shadow Garden v1.0.5 — Series Editor modal polish */
+.admin-dialog{
+  box-sizing:border-box;
+  overflow:hidden;
+}
+.admin-dialog .dialog-shell{
+  max-height:min(88dvh,900px);
+  min-height:0;
+  overflow:hidden;
+}
+.admin-dialog .dialog-head,
+.admin-dialog .dialog-actions{
+  flex:0 0 auto;
+}
+.admin-dialog .dialog-scroll{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-x:hidden;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+.admin-toast-host{
+  position:fixed;
+  right:max(18px,env(safe-area-inset-right));
+  bottom:max(18px,env(safe-area-inset-bottom));
+  z-index:1000;
+  display:grid;
+  gap:8px;
+  width:min(360px,calc(100vw - 36px));
+  pointer-events:none;
+}
+.admin-toast{
+  box-sizing:border-box;
+  padding:12px 14px;
+  border:1px solid rgba(195,180,238,.22);
+  border-radius:12px;
+  background:rgba(20,15,28,.97);
+  box-shadow:0 16px 45px rgba(0,0,0,.36);
+  color:#f0edf5;
+  font-size:.78rem;
+  line-height:1.45;
+  animation:adminToastIn .18s ease both;
+}
+.admin-toast.success{
+  border-color:rgba(115,176,132,.30);
+}
+.admin-toast.leaving{
+  animation:adminToastOut .16s ease both;
+}
+@keyframes adminToastIn{
+  from{opacity:0;transform:translateY(8px)}
+  to{opacity:1;transform:none}
+}
+@keyframes adminToastOut{
+  from{opacity:1;transform:none}
+  to{opacity:0;transform:translateY(6px)}
+}
+@media(max-width:560px){
+  .admin-toast-host{
+    right:18px;
+    left:18px;
+    width:auto;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-toast,.admin-toast.leaving{animation:none}
+}

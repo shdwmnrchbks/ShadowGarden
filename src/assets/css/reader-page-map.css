@@ -1,0 +1,6 @@
+/* Shadow Garden v1.2.0 — canonical page-map UI. */
+.toc-row{grid-template-columns:22px minmax(0,1fr) auto}
+.toc-page-number{align-self:center;min-width:2.4em;padding:0 7px;color:#746d7d;font-size:.64rem;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.toc-entry-link.active+.toc-page-number{color:var(--leaf)}
+.progress-wrap span{white-space:nowrap}
+body.reader-flow-scrolled .continuous-seek-text{letter-spacing:-.04em}

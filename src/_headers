@@ -10,6 +10,9 @@
 /reader.html
   Cache-Control: no-store
 
+/assets/js/data-source.js
+  Cache-Control: no-store
+
 /assets/js/book-access.js
   Cache-Control: no-store
 

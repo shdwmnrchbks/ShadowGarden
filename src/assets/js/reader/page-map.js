@@ -267,6 +267,18 @@ async function mapSection({ rendition, frame, section }) {
   return pages;
 }
 
+function fallbackSectionPage(section) {
+  return [{
+    sectionIndex: Number(section?.index),
+    href: section?.href || "",
+    localPage: 1,
+    sectionPages: 1,
+    startCfi: "",
+    endCfi: "",
+    kind: "fallback"
+  }];
+}
+
 function prioritizedIndices(book, anchorCfi) {
   const items = linearSpine(book);
   const allowed = new Set(items.map(item => Number(item.index)));
@@ -376,7 +388,13 @@ export function createPageMapController({
         if (serial !== generationSerial) return null;
         const section = sandboxItems.find(item => Number(item.index) === index);
         if (!section?.href) continue;
-        const pages = await mapSection({ rendition: sandbox.rendition, frame: sandbox.frame, section });
+        let pages;
+        try {
+          pages = await mapSection({ rendition: sandbox.rendition, frame: sandbox.frame, section });
+        } catch (error) {
+          console.warn(`Canonical page fallback for ${section.href}`, error);
+          pages = fallbackSectionPage(section);
+        }
         sectionMap.set(index, pages);
         partialSections.set(index, pages);
         onUpdate?.({ type: "section", sectionIndex: index, pages, completedSections: sectionMap.size, totalSections: order.length });

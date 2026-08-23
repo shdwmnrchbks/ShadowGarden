@@ -93,7 +93,7 @@ export async function issueHumanSession(env, now = Math.floor(Date.now() / 1000)
 }
 
 export function humanSessionCookie(session) {
-  return `${HUMAN_SESSION_COOKIE}=${session.token}; Max-Age=${session.ttlSeconds}; Path=/; HttpOnly; Secure; SameSite=Strict`;
+  return `${HUMAN_SESSION_COOKIE}=${session.token}; Max-Age=${session.ttlSeconds}; Path=/book-access; HttpOnly; Secure; SameSite=Strict`;
 }
 
 export async function verifyHumanSession(env, cookieHeader, now = Math.floor(Date.now() / 1000)) {

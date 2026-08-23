@@ -55,14 +55,15 @@ for(const marker of ["continuePanel","canonicalBookId","crypto.subtle.digest","p
 for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips","compact-card-badge.finished",".catalog-grid.compact .finished-series-badge"]){
   if(!style.includes(marker))fail(`reading-status.css is missing ${marker}`);
 }
-for(const marker of ["--sg-compact-cover-width:68px","--sg-compact-cover-width:74px","grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr)!important","width:var(--sg-compact-cover-width)!important","grid-template-rows:2.5em 1.2em 1.2em","grid-column:2"]){
+for(const marker of ["--sg-compact-cover-width:68px","--sg-compact-cover-width:74px","grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr) auto!important","grid-template-rows:1fr!important","min-height:0!important","grid-column:3!important","justify-self:end!important"]){
   if(!compactStyle.includes(marker))fail(`compact Library alignment CSS is missing ${marker}`);
 }
+if(compactStyle.includes("grid-template-rows:2.5em 1.2em 1.2em"))fail("Compact cards must not reserve a fake two-line title row that separates one-line titles from authors");
 for(const marker of ["libraryVersion","/data/version.json","v${version}","shortCommit"]){
   if(!footerVersion.includes(marker))fail(`Library footer version client is missing ${marker}`);
 }
 if(!indexHtml.includes("library-finished-polish.js?v=1.15.7")||!adultHtml.includes("library-finished-polish.js?v=1.15.7"))fail("Main and Adult Libraries must load the v1.15.7 completion-aware Continue renderer");
-if(!indexHtml.includes("library-compact-alignment.css?v=1.15.9")||!adultHtml.includes("library-compact-alignment.css?v=1.15.9"))fail("Main and Adult Libraries must load the v1.15.9 compact-card alignment stylesheet");
+if(!indexHtml.includes("library-compact-alignment.css?v=1.15.11")||!adultHtml.includes("library-compact-alignment.css?v=1.15.11"))fail("Main and Adult Libraries must load the v1.15.11 compact-card alignment stylesheet");
 if(!indexHtml.includes("library-footer-version.js?v=1.15.9")||!adultHtml.includes("library-footer-version.js?v=1.15.9")||!indexHtml.includes('id="libraryVersion"')||!adultHtml.includes('id="libraryVersion"'))fail("Main and Adult Library footers must load and mount the deployed version client");
 if(indexHtml.includes("library-continue-meta.js")||adultHtml.includes("library-continue-meta.js"))fail("Legacy Continue metadata enrichment must not compete with the authoritative completion-aware renderer");
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
@@ -77,7 +78,7 @@ for(const marker of ["/data/version.json","/assets/js/reading-status.js","/asset
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.10")fail("package version must be 1.15.10");
+if(parsed.version!=="1.15.11")fail("package version must be 1.15.11");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */

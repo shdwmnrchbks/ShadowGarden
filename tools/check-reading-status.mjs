@@ -6,12 +6,13 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [status,readerFinished,readerBootstrap,series,library,style,writeSource,adminBootstrap,headers,pkg]=await Promise.all([
+const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSource,adminBootstrap,headers,pkg]=await Promise.all([
   read("src/assets/js/reading-status.js"),
   read("src/assets/js/reader-finished.js"),
   read("src/assets/js/reader-bootstrap.js"),
   read("src/assets/js/series.js"),
   read("src/assets/js/library.js"),
+  read("src/assets/js/library-series-polish.js"),
   read("src/assets/css/reading-status.css"),
   read("tools/write-source.mjs"),
   read("src/assets/js/admin-bootstrap.js"),
@@ -32,10 +33,11 @@ for(const marker of ["reading-status.js?v=1.15.0","reader-finished.js?v=1.15.0"]
 for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
-for(const marker of ["finished-series-badge","data-reading-status=\"finished\"","data-reading-status=\"unfinished\"","reading=","seriesFinished"]){
+for(const marker of ["finished-series-badge","data-reading-status=\"finished\"","data-reading-status=\"unfinished\"","params.set(\"reading\"","seriesFinished"]){
   if(!library.includes(marker))fail(`Library completion/filter UI is missing ${marker}`);
 }
-for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips"]){
+if(!polish.includes("✓ Finished")||!polish.includes("finished"))fail("Compact Library cards must surface the Finished badge");
+for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips","compact-card-badge.finished"]){
   if(!style.includes(marker))fail(`reading-status.css is missing ${marker}`);
 }
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){

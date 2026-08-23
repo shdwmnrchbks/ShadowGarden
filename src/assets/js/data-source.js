@@ -3,6 +3,14 @@ window.ShadowGardenData=(()=>{
   const encoder=new TextEncoder();
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
   const LEGACY_BOOK=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
+  const STATUS_ALIASES=new Map([
+    ['complete','Complete'],['completed','Complete'],['finished','Complete'],
+    ['ongoing','Ongoing'],['publishing','Ongoing'],['active','Ongoing'],['current','Ongoing'],
+    ['hiatus','Hiatus'],['on hiatus','Hiatus'],['paused','Hiatus'],
+    ['dropped','Dropped'],['cancelled','Dropped'],['canceled','Dropped'],['discontinued','Dropped']
+  ]);
+  const STATUS_TAGS=new Set(['Complete','Ongoing','Hiatus','Dropped']);
+  function normalizeStatus(value){return STATUS_ALIASES.get(String(value||'').trim().toLowerCase())||'Ongoing'}
   function base64Url(bytes){
     let binary='';
     for(const value of bytes)binary+=String.fromCharCode(value);
@@ -57,17 +65,23 @@ window.ShadowGardenData=(()=>{
   async function normalizeCatalog(catalog){
     const value=catalog&&typeof catalog==='object'?catalog:{};
     const bookIds=[];
-    const series=(Array.isArray(value.series)?value.series:[]).map(item=>({
-      ...item,
-      volumes:(Array.isArray(item?.volumes)?item.volumes:[]).map(volume=>{
-        const bookId=String(volume?.bookId||'');
-        if(BOOK_ID.test(bookId)){
-          bookIds.push(bookId);
-          return {...volume,file:bookId};
-        }
-        return volume;
-      })
-    }));
+    const series=(Array.isArray(value.series)?value.series:[]).map(item=>{
+      const status=normalizeStatus(item?.status);
+      const tags=[...new Set([...(Array.isArray(item?.tags)?item.tags:[]).map(String).filter(tag=>!STATUS_TAGS.has(tag)),status])];
+      return {
+        ...item,
+        status,
+        tags,
+        volumes:(Array.isArray(item?.volumes)?item.volumes:[]).map(volume=>{
+          const bookId=String(volume?.bookId||'');
+          if(BOOK_ID.test(bookId)){
+            bookIds.push(bookId);
+            return {...volume,file:bookId};
+          }
+          return volume;
+        })
+      };
+    });
     if(bookIds.length){
       try{
         if(window.ShadowGardenBookAccess?.migrateLegacyState)await window.ShadowGardenBookAccess.migrateLegacyState(bookIds);
@@ -82,5 +96,5 @@ window.ShadowGardenData=(()=>{
     if(!r.ok)throw new Error(`Catalog request failed: ${r.status}`);
     return normalizeCatalog(await r.json());
   }
-  return{getSource,catalogUrl,loadCatalog};
+  return{getSource,catalogUrl,loadCatalog,normalizeStatus,statuses:['Complete','Ongoing','Hiatus','Dropped']};
 })();

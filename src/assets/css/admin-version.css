@@ -1,0 +1,3 @@
+/* Shadow Garden v1.15.0 — deployed version label. */
+.admin-version{margin-left:auto;margin-right:12px;padding:5px 9px;border:1px solid rgba(196,184,225,.11);border-radius:999px;background:rgba(8,6,12,.28);color:#8d8498;font-size:.62rem;line-height:1;letter-spacing:.05em;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.admin-version{order:3;width:100%;margin:3px 0 0;padding:0;border:0;background:none;text-align:center;font-size:.58rem;opacity:.8}.admin-header{flex-wrap:wrap}}

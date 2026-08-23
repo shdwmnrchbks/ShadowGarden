@@ -127,7 +127,7 @@ async function checkWiring(){
   if(!routeConfig.include?.includes("/admin-access"))fail("_routes.json must route /admin-access through Pages Functions");
   if(!robots.includes("Disallow: /admin-access"))fail("robots.txt must exclude /admin-access");
   if(!headers.includes("/assets/js/admin-security.js")||!headers.includes("Cache-Control: no-store"))fail("Garden Keeper security client must be served no-store");
-  if(!roadmap.includes("7. Garden Keeper hardening | 🟨 In progress"))fail("Milestone 7 must be recorded as in progress");
+  if(!roadmap.includes("7. Garden Keeper hardening | ✅ Done"))fail("Milestone 7 must remain recorded as done after acceptance");
   for(const marker of ["server-side","Incognito","CF-Connecting-IP","raw IP","Backblaze B2"]){
     if(!guide.includes(marker))fail(`Milestone 7 guide is missing ${marker}`);
   }

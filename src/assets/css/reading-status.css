@@ -11,4 +11,5 @@
 .reading-status-chips{display:flex;gap:7px;flex-wrap:wrap}
 .reading-status-chips button{border:1px solid rgba(173,162,196,.16);border-radius:999px;background:rgba(255,255,255,.025);color:inherit;padding:7px 10px;cursor:pointer}
 .reading-status-chips button.active{border-color:rgba(97,203,129,.45);background:rgba(41,119,64,.16);color:#a7e7b9}
+.compact-card-badge.finished{border-color:rgba(96,204,129,.35)!important;background:rgba(36,112,58,.18)!important;color:#98dfaa!important}
 @media(max-width:720px){.volume-finished-toggle{min-height:52px;padding:11px 12px}.finished-series-badge{font-size:.54rem}}

@@ -1,4 +1,14 @@
-/* Shadow Garden v1.10.5 — compact cards, living banners, and series action polish. */
+/* Shadow Garden v1.11.0 — compact cards, living banners, and series action polish. */
+
+/* Library banner artwork intentionally bleeds from the centered shell to the viewport
+   edge. On desktop browsers with a classic vertical scrollbar, 100vw includes the
+   scrollbar gutter while the document layout width does not, which can create a tiny
+   horizontal overflow. Clip only the Library pages at the viewport boundary; unlike
+   overflow:hidden, overflow:clip does not create a scroll container or disturb sticky
+   filter/header behavior. Series pages do not need this because their hero clips its
+   own backdrop. */
+body[data-library-scope]{overflow-x:clip}
+@supports not (overflow:clip){body[data-library-scope]{overflow-x:hidden}}
 
 /* Compact mode has a definite card height. The cover fills the card's usable inner
    height, so it tracks the entry exactly without ever being allowed to size the row. */

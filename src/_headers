@@ -47,6 +47,9 @@
 /assets/js/series.js
   Cache-Control: no-store
 
+/assets/js/series-read-again.js
+  Cache-Control: no-store
+
 /assets/js/nav-pinned.js
   Cache-Control: no-store
 
@@ -87,6 +90,9 @@
   Cache-Control: no-store
 
 /assets/css/library-compact-alignment.css
+  Cache-Control: no-store
+
+/assets/css/series-read-again.css
   Cache-Control: no-store
 
 /assets/css/reader-end-page.css

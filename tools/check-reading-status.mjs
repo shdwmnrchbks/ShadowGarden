@@ -7,12 +7,14 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [status,readerFinished,readerBootstrap,continuousCore,series,library,polish,finishedPolish,style,compactStyle,footerVersion,writeSource,adminBootstrap,adminVersion,headers,pkg,readerHtml,indexHtml,adultHtml]=await Promise.all([
+const [status,readerFinished,readerBootstrap,continuousCore,series,readAgain,readAgainStyle,library,polish,finishedPolish,style,compactStyle,footerVersion,writeSource,adminBootstrap,adminVersion,headers,pkg,readerHtml,indexHtml,adultHtml,seriesHtml]=await Promise.all([
   read("src/assets/js/reading-status.js"),
   read("src/assets/js/reader-finished.js"),
   read("src/assets/js/reader-bootstrap.js"),
   read("src/assets/js/reader-continuous-core.js"),
   read("src/assets/js/series.js"),
+  read("src/assets/js/series-read-again.js"),
+  read("src/assets/css/series-read-again.css"),
   read("src/assets/js/library.js"),
   read("src/assets/js/library-series-polish.js"),
   read("src/assets/js/library-finished-polish.js"),
@@ -26,7 +28,8 @@ const [status,readerFinished,readerBootstrap,continuousCore,series,library,polis
   read("package.json"),
   read("src/reader.html"),
   read("src/index.html"),
-  read("src/nsfw.html")
+  read("src/nsfw.html"),
+  read("src/series.html")
 ]);
 
 for(const marker of ["sg-finished-books","sg-finished:","isFinished","setFinished","setAliasesFinished","isAnyFinished","volumeAliases","stableVolumeId","isVolumeFinished","setVolumeFinished","seriesFinished","finishedCount"]){
@@ -38,13 +41,20 @@ for(const marker of ["volume-finished-toggle","data-sg-finished-toggle","Mark as
 }
 if(!continuousCore.includes("cloneNode(true)")||!continuousCore.includes("volume-end-page-continuous"))fail("Continuous Reader must retain its cloned end-page architecture for the delegated completion regression to be meaningful");
 if(readerFinished.includes('toggle.addEventListener("change"'))fail("finished-state persistence must not be attached only to the master checkbox because Continuous mode clones the end page without listeners");
-for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.6","reader-finished.js?v=1.15.7"]){
+for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.6","reader-finished.js?v=1.15.7","restartRequested","resetForReadAgain","localStorage.removeItem(`sg-progress:${identity}`)","clearRestartFlag"]){
   if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
 }
-if(!readerHtml.includes("reader-bootstrap.js?v=1.15.7"))fail("Reader HTML must cache-bust the v1.15.7 bootstrap");
+if(!readerHtml.includes("reader-bootstrap.js?v=1.15.7"))fail("Reader HTML must retain the no-store Reader bootstrap client");
 for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
+for(const marker of ["Read this volume again?","Start from Page 1","restart","setVolumeFinished","localStorage.removeItem(`sg-progress:${bookId}`)","Bookmarks will be kept","read again"]){
+  if(!readAgain.includes(marker))fail(`Read Again reset flow is missing ${marker}`);
+}
+for(const marker of [".read-again-dialog",".read-again-actions",".read-again-confirm","::backdrop"]){
+  if(!readAgainStyle.includes(marker))fail(`Read Again dialog styling is missing ${marker}`);
+}
+if(!seriesHtml.includes("series-read-again.css?v=1.15.12")||!seriesHtml.includes("series-read-again.js?v=1.15.12"))fail("Series page must load the v1.15.12 Read Again warning/reset clients");
 for(const marker of ["finished-series-badge","data-reading-status=\"finished\"","data-reading-status=\"unfinished\"","params.set(\"reading\"","seriesFinished"]){
   if(!library.includes(marker))fail(`Library completion/filter UI is missing ${marker}`);
 }
@@ -74,11 +84,11 @@ for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-ve
 }
 if(adminBootstrap.includes("brandMeta")||adminBootstrap.includes("header.insertBefore(label,back)"))fail("Garden Keeper version must not be mounted in the header");
 if(!adminVersion.includes(".admin-version-footer")||!adminVersion.includes("text-align:center")||adminVersion.includes(".admin-header"))fail("Garden Keeper version styling must be centered in the footer and must not alter the header grid");
-for(const marker of ["/data/version.json","/assets/js/reading-status.js","/assets/js/library.js","/assets/js/library-series-polish.js","/assets/js/library-finished-polish.js","/assets/js/library-footer-version.js","/assets/css/library-compact-alignment.css"]){
+for(const marker of ["/data/version.json","/assets/js/reading-status.js","/assets/js/library.js","/assets/js/library-series-polish.js","/assets/js/library-finished-polish.js","/assets/js/library-footer-version.js","/assets/js/series-read-again.js","/assets/css/library-compact-alignment.css","/assets/css/series-read-again.css"]){
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.11")fail("package version must be 1.15.11");
+if(parsed.version!=="1.15.12")fail("package version must be 1.15.12");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */
@@ -126,4 +136,4 @@ if(failures.length){
   console.error(`Shadow Garden reading-status check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);
   failures.forEach(message=>console.error(`- ${message}`));
   process.exitCode=1;
-}else console.log("Shadow Garden finished-reading, Library alignment, and deployed-version checks passed.");
+}else console.log("Shadow Garden finished-reading, Read Again, Library alignment, and deployed-version checks passed.");

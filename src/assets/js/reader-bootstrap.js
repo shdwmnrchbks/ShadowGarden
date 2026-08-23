@@ -1,10 +1,11 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.7 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.12 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
   const publicParams=new URLSearchParams(publicSearch);
   const requested=publicParams.get("book")||"";
   const seriesId=publicParams.get("series")||"";
+  const restartRequested=publicParams.get("restart")==="1";
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
 
@@ -57,6 +58,43 @@
     }catch{}
   }
 
+  function clearRestartFlag(){
+    if(!restartRequested)return;
+    try{
+      const url=new URL(location.href);
+      url.searchParams.delete("restart");
+      history.replaceState(history.state,"",`${url.pathname}${url.search}${url.hash}`);
+    }catch{}
+  }
+
+  async function resetForReadAgain(ticket,sourcePath){
+    if(!restartRequested)return;
+    const canonical=String(ticket?.bookId||ticket?.identity||window.__sgReaderPublicBookId||"").trim();
+    const identities=new Set([
+      requested,
+      canonical,
+      String(ticket?.requestedIdentity||"").trim(),
+      String(sourcePath||"").trim()
+    ].filter(Boolean));
+    for(const identity of identities){
+      try{localStorage.removeItem(`sg-progress:${identity}`)}catch{}
+    }
+
+    try{
+      await import("/assets/js/reading-status.js?v=1.15.6");
+      const reading=window.ShadowGardenReadingStatus;
+      const adult=String(seriesId||"").startsWith("adult-");
+      const catalog=await window.ShadowGardenData?.loadCatalog?.(adult);
+      const series=(Array.isArray(catalog?.series)?catalog.series:[]).find(item=>String(item?.id||"")===String(seriesId||""));
+      const volumes=Array.isArray(series?.volumes)?series.volumes:[];
+      const index=volumes.findIndex(volume=>identities.has(String(volume?.file||volume?.bookId||"")));
+      if(series&&index>=0)reading?.setVolumeFinished?.(series.id,volumes[index],false,index);
+      else for(const identity of identities)reading?.setFinished?.(identity,false);
+    }catch(error){
+      console.warn("Read Again finished-state reset skipped",error);
+    }
+  }
+
   syncStoredTheme();
 
   try{
@@ -73,6 +111,8 @@
 
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
     window.__sgReaderSourcePath=EPUB_PATH.test(sourcePath)?sourcePath:"";
+    await resetForReadAgain(ticket,sourcePath);
+
     if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
       try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}
 
@@ -91,12 +131,14 @@
         window.URLSearchParams=NativeURLSearchParams;
       }
       await mountReadingStatus();
+      clearRestartFlag();
       return;
     }
 
     await importReader();
     canonicalizeLegacyUrl();
     await mountReadingStatus();
+    clearRestartFlag();
   }catch(error){
     console.error("Reader book authorization failed",error);
     const loading=document.getElementById("readerLoading");

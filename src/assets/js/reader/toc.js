@@ -24,6 +24,31 @@ function flatten(items, depth = 0, output = []) {
   return output;
 }
 
+function readerSpineItems() {
+  const items = window.__sgReaderBook?.spine?.spineItems;
+  return Array.isArray(items) ? items : [];
+}
+
+function spineIndexForHref(href) {
+  if (!href) return null;
+  const items = readerSpineItems();
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    if (!hrefMatches(href, item?.href || item?.url || "")) continue;
+    const explicit = Number(item?.index);
+    return Number.isFinite(explicit) ? explicit : index;
+  }
+  return null;
+}
+
+function locationSpineIndex(location) {
+  for (const value of [location?.start?.index, location?.end?.index]) {
+    const index = Number(value);
+    if (Number.isFinite(index) && index >= 0) return index;
+  }
+  return spineIndexForHref(location?.start?.href || location?.end?.href || "");
+}
+
 export function createTocController({ panel, navigate, closeDrawers }) {
   let items = [];
   let flat = [];
@@ -165,17 +190,33 @@ export function createTocController({ panel, navigate, closeDrawers }) {
 
   function matchForLocation(location) {
     const href = location?.start?.href || location?.end?.href || "";
-    let best = null;
+    let exact = null;
     for (const entry of flat) {
       if (!hrefMatches(href, entry.item?.href)) continue;
-      if (!best || entry.depth > best.depth || cleanHref(entry.item.href).length > cleanHref(best.item.href).length) best = entry;
+      if (!exact || entry.depth > exact.depth || cleanHref(entry.item.href).length > cleanHref(exact.item.href).length) exact = entry;
     }
-    return best?.item || null;
+    if (exact) return exact.item;
+
+    /* A chapter can span several spine documents, and standalone illustration
+       documents commonly have no nav entry of their own. In that case the active
+       chapter is the nearest preceding navigation target in spine order. */
+    const currentIndex = locationSpineIndex(location);
+    if (!Number.isFinite(currentIndex)) return null;
+    let preceding = null;
+    for (let order = 0; order < flat.length; order++) {
+      const entry = flat[order];
+      const navIndex = spineIndexForHref(entry.item?.href);
+      if (!Number.isFinite(navIndex) || navIndex > currentIndex) continue;
+      if (!preceding || navIndex > preceding.navIndex || (navIndex === preceding.navIndex && entry.depth >= preceding.entry.depth)) {
+        preceding = { entry, navIndex, order };
+      }
+    }
+    return preceding?.entry?.item || null;
   }
 
   function chapterForLocation(location) {
     const match = matchForLocation(location);
-    return match?.label?.trim() || (location?.start?.displayed?.page ? `Page ${location.start.displayed.page}` : "");
+    return String(match?.label || "").trim();
   }
 
   function setActiveForLocation(location) {

@@ -123,11 +123,12 @@ export function humanChallenge(env) {
   };
 }
 
-export async function verifyTurnstileToken(env, request, responseToken) {
+export async function verifyTurnstileToken(env, request, responseToken, expectedAction = HUMAN_ACCESS_ACTION) {
   const config = humanAccessConfig(env);
   if (config.mode !== "active") return { valid: false, reason: config.mode };
   const token = String(responseToken || "").trim();
   if (!token || token.length > 4096) return { valid: false, reason: "missing_token" };
+  const action = String(expectedAction || HUMAN_ACCESS_ACTION).trim() || HUMAN_ACCESS_ACTION;
 
   const form = new URLSearchParams();
   form.set("secret", config.secretKey);
@@ -157,7 +158,7 @@ export async function verifyTurnstileToken(env, request, responseToken) {
   if (!response.ok || result?.success !== true) {
     return { valid: false, reason: "challenge_failed", errorCodes: Array.isArray(result?.["error-codes"]) ? result["error-codes"] : [] };
   }
-  if (result?.action !== HUMAN_ACCESS_ACTION) return { valid: false, reason: "action" };
+  if (result?.action !== action) return { valid: false, reason: "action" };
   const expectedHostname = new URL(request.url).hostname.toLowerCase();
   if (String(result?.hostname || "").toLowerCase() !== expectedHostname) return { valid: false, reason: "hostname" };
   return { valid: true, result };

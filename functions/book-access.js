@@ -5,6 +5,7 @@ import {
   ACQUISITION_WINDOW_SECONDS,
   evaluateAcquisition
 } from "./_lib/acquisition-limit.js";
+import { classifyAutomatedClient, crawlerPolicyResponseHeaders } from "./_lib/crawler-policy.js";
 import {
   humanAccessConfig,
   humanChallenge,
@@ -54,6 +55,19 @@ export async function onRequest(context) {
   if (!sameOriginBrowserRequest(request)) {
     return json({ error: "Cross-site book access is not allowed." }, 403, SECURITY_HEADERS);
   }
+
+  /* Known AI crawlers and obvious script/headless clients do not need a Turnstile
+     challenge or catalog lookup. This remains only a cheap first filter because UAs
+     are spoofable; M2–M5 still enforce the actual authorization boundary. */
+  const automation = classifyAutomatedClient(request);
+  if (automation.blocked) {
+    console.warn("Automated book acquisition denied", automation.category, automation.signature || automation.reason);
+    return json({
+      code: "automated_access_denied",
+      error: "Automated access is not permitted at this endpoint."
+    }, 403, { ...SECURITY_HEADERS, ...crawlerPolicyResponseHeaders(automation) });
+  }
+
   if (!ticketingEnabled(env)) {
     return json({ code: "ticketing_not_configured", error: "Signed book access is not configured yet." }, 503, {
       ...SECURITY_HEADERS,
@@ -122,6 +136,7 @@ export async function onRequest(context) {
     }, 200, {
       ...SECURITY_HEADERS,
       ...acquisitionHeaders(acquisition),
+      "X-SG-Automation-Policy": "pass",
       "X-SG-Human-Access": human.mode === "active" ? "active" : "inactive",
       "X-SG-Media-Ticketing": "active"
     }, [ticketCookie(ticket), acquisition.cookie]);

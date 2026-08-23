@@ -1,4 +1,5 @@
 import { AwsClient } from "aws4fetch";
+import { verifyAdminSession } from "./admin-session.js";
 
 export const B2_BUCKET = "shadow-garden-books-01";
 export const B2_ENDPOINT = "https://s3.us-east-005.backblazeb2.com";
@@ -49,16 +50,21 @@ async function digest(value) {
   return new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(String(value || ""))));
 }
 
-export async function adminAuthorized(request, env) {
-  if (!env.SG_ADMIN_TOKEN) return false;
-  const auth = request.headers.get("authorization") || "";
-  const supplied = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!supplied) return false;
+export async function adminTokenMatches(supplied, env) {
+  if (!env.SG_ADMIN_TOKEN || !supplied) return false;
   const [a, b] = await Promise.all([digest(supplied), digest(env.SG_ADMIN_TOKEN)]);
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
   return diff === 0;
+}
+
+export async function adminAuthorized(request, env) {
+  const auth = request.headers.get("authorization") || "";
+  const supplied = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  if (!(await adminTokenMatches(supplied, env))) return false;
+  const session = await verifyAdminSession(env, request.headers.get("cookie"));
+  return session.valid;
 }
 
 export function json(data, status = 200, headers = {}) {

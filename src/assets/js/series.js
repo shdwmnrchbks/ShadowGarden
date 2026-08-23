@@ -17,6 +17,8 @@ async function init(){
   const requestedAdult=String(id||"").startsWith("adult-");
   syncLibraryScope(requestedAdult);
   try{
+    await import("/assets/js/reading-status.js?v=1.15.0");
+    const reading=window.ShadowGardenReadingStatus;
     if(requestedAdult&&localStorage.getItem("sg-adult-ack")!=="1"){
       const ret=`/series.html?id=${encodeURIComponent(id)}`;
       location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`);
@@ -27,9 +29,11 @@ async function init(){
     if(!s)throw new Error("Series not found");
     syncLibraryScope(Boolean(s.nsfw));
     document.title=`${s.title} — Shadow Garden`;
-    const vols=arr(s.volumes),first=vols[0],pinned=pins().includes(s.id);
-    const resumed=vols.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
-    const startVol=resumed?.v||first;
+    const vols=arr(s.volumes),first=vols[0],pinned=pins().includes(s.id),finishedCount=reading?.finishedCount(s)||0,allFinished=vols.length>0&&finishedCount===vols.length;
+    const unfinished=vols.filter(v=>!reading?.isFinished(v.file));
+    const resumed=unfinished.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
+    const startVol=resumed?.v||unfinished[0]||first;
+    const startLabel=allFinished?"Read Again":resumed?"Continue Reading":finishedCount?"Read Next Unfinished":"Start Reading";
     const startHref=startVol?`/reader.html?book=${encodeURIComponent(startVol.file)}&series=${encodeURIComponent(s.id)}`:"#";
     const audioAlignedUrl=s.audioAlignedUrl||vols.find(v=>v.audioAlignedUrl)?.audioAlignedUrl||"";
     const cover=s.cover||first?.cover||s.coverThumb||first?.coverThumb||"";
@@ -42,9 +46,9 @@ async function init(){
           <div class="series-info">
             <p class="kicker">${s.nsfw?"ADULT · ":""}${esc((s.status||"SERIES").toUpperCase())}</p>
             <h1>${esc(s.title)}</h1>
-            <p class="series-byline">${esc(s.author||"Unknown author")} ${s.year?`<span class="series-year">· ${s.year}</span>`:""}</p>
+            <p class="series-byline">${esc(s.author||"Unknown author")} ${s.year?`<span class="series-year">· ${s.year}</span>`:""}${finishedCount?` <span class="series-year">· ${finishedCount}/${vols.length} finished</span>`:""}</p>
             <div class="series-actions">
-              ${startVol?`<a class="primary-button" href="${startHref}">${resumed?"Continue Reading":"Start Reading"}</a>`:""}
+              ${startVol?`<a class="primary-button" href="${startHref}">${startLabel}</a>`:""}
               ${audioAlignedUrl?`<a class="secondary-button audio-series-link" href="${esc(audioAlignedUrl)}" target="_blank" rel="noopener noreferrer">Audio EPUBs ↗</a>`:""}
               <button id="pinButton" class="secondary-button ${pinned?"pinned":""}" type="button">${pinned?"◆ Pinned":"◇ Pin to Garden"}</button>
             </div>
@@ -56,13 +60,13 @@ async function init(){
         ${s.description?`<p class="series-description">${esc(s.description)}</p>`:""}
         <div class="series-section-head"><h2>Volumes</h2><span>${vols.length} ${vols.length===1?"volume":"volumes"}</span></div>
         <div class="volume-grid">${vols.map((v,i)=>{
-          const c=v.coverThumb||v.cover||s.coverThumb||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0;
-          return `<article class="volume-card">
-            <div class="volume-cover">${c?`<img src="${esc(c)}" alt="${esc(v.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:""}</div>
+          const c=v.coverThumb||v.cover||s.coverThumb||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0,finished=reading?.isFinished(v.file);
+          return `<article class="volume-card ${finished?"is-finished":""}">
+            <div class="volume-cover">${c?`<img src="${esc(c)}" alt="${esc(v.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:""}${finished?'<span class="finished-volume-badge" title="Finished" aria-label="Finished">✓</span>':""}</div>
             <h3 class="volume-title">${esc(v.title||`Volume ${i+1}`)}</h3>
-            <p class="volume-meta">${[v.date||"",fmtSize(v.size),p?`${pct}% read`:""].filter(Boolean).join(" · ")}</p>
+            <p class="volume-meta">${[v.date||"",fmtSize(v.size),finished?"Finished":p?`${pct}% read`:""].filter(Boolean).join(" · ")}</p>
             <div class="volume-actions">
-              <a class="read" href="/reader.html?book=${encodeURIComponent(v.file)}&series=${encodeURIComponent(s.id)}">${p?"Continue":"Read"}</a>
+              <a class="read" href="/reader.html?book=${encodeURIComponent(v.file)}&series=${encodeURIComponent(s.id)}">${finished?"Read again":p?"Continue":"Read"}</a>
               <a class="download" href="#book-${esc(v.file)}" data-book-id="${esc(v.file)}" download>Download EPUB</a>
             </div>
           </article>`}).join("")}</div>

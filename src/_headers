@@ -17,6 +17,12 @@
 /assets/js/book-access.js
   Cache-Control: no-store
 
+/assets/js/reading-status.js
+  Cache-Control: no-store
+
+/assets/js/reader-finished.js
+  Cache-Control: no-store
+
 /assets/js/reader-bootstrap.js
   Cache-Control: no-store
 
@@ -71,11 +77,20 @@
 /assets/css/reader-end-page.css
   Cache-Control: no-store
 
+/assets/css/reading-status.css
+  Cache-Control: no-store
+
 /assets/css/admin-current.css
+  Cache-Control: no-store
+
+/assets/css/admin-version.css
   Cache-Control: no-store
 
 /data/source.json
   Cache-Control: public, max-age=60, stale-while-revalidate=300
+
+/data/version.json
+  Cache-Control: no-store
 
 /books/*
   Content-Type: application/epub+zip

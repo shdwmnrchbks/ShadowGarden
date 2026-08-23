@@ -19,9 +19,11 @@ async function checkLimiter(){
   if(ACQUISITION_WINDOW_SECONDS!==600)fail("Milestone 5 session window must remain 10 minutes");
   let cookie="";
   const now=2_000_000;
+  let firstId="";
 
   for(let index=0;index<ACQUISITION_UNIQUE_LIMIT;index++){
     const id=`bk_${String(index).padStart(22,"A")}`;
+    if(index===0)firstId=id;
     const result=await evaluateAcquisition(env,cookie,id,now+index);
     if(!result.allowed)fail(`unique book ${index+1} should be allowed inside the session budget`);
     if(!result.cookie.includes(`${ACQUISITION_COOKIE}=`))fail("allowed acquisitions must refresh the signed acquisition cookie");
@@ -31,7 +33,7 @@ async function checkLimiter(){
     cookie=result.cookie;
   }
 
-  const repeated=await evaluateAcquisition(env,cookie,"bk_AAAAAAAAAAAAAAAAAAAAAA",now+30);
+  const repeated=await evaluateAcquisition(env,cookie,firstId,now+30);
   if(!repeated.allowed||repeated.newBook)fail("re-authorizing the same book must not consume another unique-book slot");
   cookie=repeated.cookie;
 

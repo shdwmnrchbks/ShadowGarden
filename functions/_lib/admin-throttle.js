@@ -1,6 +1,10 @@
+import { deleteObject, getTextObject, putObject, writeClient } from "./b2.js";
+
 const encoder = new TextEncoder();
-const FAILURE_DOMAIN = "sg-admin-failures-v1";
+const FAILURE_DOMAIN = "sg-admin-failures-v2";
+const CLIENT_DOMAIN = "sg-admin-client-v1";
 const STATE_TTL_SECONDS = 1800;
+const STATE_PREFIX = "shadow-garden/security/admin-throttle/";
 
 export const ADMIN_FAILURE_COOKIE = "sg_admin_failures";
 
@@ -19,34 +23,10 @@ function base64Url(bytes) {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-function fromBase64Url(value) {
-  try {
-    const raw = String(value || "");
-    const padded = raw.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((raw.length + 3) % 4);
-    const binary = atob(padded);
-    return Uint8Array.from(binary, char => char.charCodeAt(0));
-  } catch {
-    return null;
-  }
-}
-
-function cookieValue(cookieHeader, name) {
-  const wanted = `${name}=`;
-  for (const part of String(cookieHeader || "").split(";")) {
-    const item = part.trim();
-    if (item.startsWith(wanted)) return item.slice(wanted.length);
-  }
-  return "";
-}
-
 async function hmacKey(env, usages) {
   const secret = signingSecret(env);
   if (!secret) throw new Error("Garden Keeper cooldown signing is unavailable");
   return crypto.subtle.importKey("raw", encoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, usages);
-}
-
-function payload(updatedAt, failures, cooldownUntil) {
-  return `${FAILURE_DOMAIN}\n${updatedAt}\n${failures}\n${cooldownUntil}`;
 }
 
 async function sign(env, text) {
@@ -55,15 +35,42 @@ async function sign(env, text) {
   return base64Url(new Uint8Array(signature));
 }
 
-async function verifySignature(env, text, signature) {
-  const bytes = fromBase64Url(signature);
-  if (!bytes) return false;
-  try {
-    const key = await hmacKey(env, ["verify"]);
-    return crypto.subtle.verify("HMAC", key, bytes, encoder.encode(text));
-  } catch {
-    return false;
-  }
+function payload(updatedAt, failures, cooldownUntil) {
+  return `${FAILURE_DOMAIN}\n${updatedAt}\n${failures}\n${cooldownUntil}`;
+}
+
+function requestIp(requestOrIp) {
+  if (typeof requestOrIp === "string") return requestOrIp.trim() || "unknown";
+  const headers = requestOrIp?.headers;
+  const cf = headers?.get?.("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  const forwarded = headers?.get?.("x-forwarded-for")?.split(",")?.[0]?.trim();
+  return forwarded || "unknown";
+}
+
+export async function adminThrottleClientId(env, requestOrIp) {
+  const ip = requestIp(requestOrIp);
+  const key = await hmacKey(env, ["sign"]);
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${CLIENT_DOMAIN}\n${ip}`));
+  return base64Url(new Uint8Array(signature).slice(0, 24));
+}
+
+function stateKey(clientId) {
+  return `${STATE_PREFIX}${clientId}.json`;
+}
+
+function defaultStore(env) {
+  const aws = writeClient(env);
+  return {
+    get: key => getTextObject(aws, key),
+    async put(key, value) {
+      await putObject(aws, key, value, {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store"
+      });
+    },
+    delete: key => deleteObject(aws, key)
+  };
 }
 
 function cooldownForFailureCount(failures) {
@@ -75,42 +82,74 @@ function cooldownForFailureCount(failures) {
   return 900;
 }
 
-async function verifyState(env, cookieHeader, now = Math.floor(Date.now() / 1000)) {
-  const token = cookieValue(cookieHeader, ADMIN_FAILURE_COOKIE);
-  if (!token) return { valid: false, failures: 0, cooldownUntil: 0, updatedAt: 0 };
-  const match = token.match(/^v1\.(\d{1,12})\.(\d{1,3})\.(\d{1,12})\.([A-Za-z0-9_-]{32,128})$/);
-  if (!match) return { valid: false, failures: 0, cooldownUntil: 0, updatedAt: 0 };
-  const updatedAt = Number(match[1]);
-  const failures = Number(match[2]);
-  const cooldownUntil = Number(match[3]);
+function validState(value, now) {
+  const updatedAt = Number(value?.updatedAt);
+  const failures = Number(value?.failures);
+  const cooldownUntil = Number(value?.cooldownUntil);
   const clock = Math.floor(Number(now) || 0);
-  if (!Number.isSafeInteger(updatedAt) || !Number.isSafeInteger(failures) || !Number.isSafeInteger(cooldownUntil)) return { valid: false, failures: 0, cooldownUntil: 0, updatedAt: 0 };
-  if (updatedAt > clock + 60 || clock - updatedAt > STATE_TTL_SECONDS) return { valid: false, failures: 0, cooldownUntil: 0, updatedAt: 0 };
-  if (failures < 0 || failures > 999 || cooldownUntil < 0) return { valid: false, failures: 0, cooldownUntil: 0, updatedAt: 0 };
-  const valid = await verifySignature(env, payload(updatedAt, failures, cooldownUntil), match[4]);
-  return valid ? { valid: true, failures, cooldownUntil, updatedAt } : { valid: false, failures: 0, cooldownUntil: 0, updatedAt: 0 };
+  if (!Number.isSafeInteger(updatedAt) || !Number.isSafeInteger(failures) || !Number.isSafeInteger(cooldownUntil)) return null;
+  if (updatedAt > clock + 60 || clock - updatedAt > STATE_TTL_SECONDS) return null;
+  if (failures < 0 || failures > 999 || cooldownUntil < 0) return null;
+  return { updatedAt, failures, cooldownUntil };
 }
 
-export async function adminCooldown(env, cookieHeader, now = Math.floor(Date.now() / 1000)) {
-  const state = await verifyState(env, cookieHeader, now);
-  const clock = Math.floor(Number(now) || 0);
-  const retryAfterSeconds = state.valid ? Math.max(0, state.cooldownUntil - clock) : 0;
-  return { ...state, retryAfterSeconds, blocked: retryAfterSeconds > 0 };
+async function readState(env, requestOrIp, now, storeOverride) {
+  const clientId = await adminThrottleClientId(env, requestOrIp);
+  const key = stateKey(clientId);
+  const store = storeOverride || defaultStore(env);
+  const raw = await store.get(key);
+  if (!raw) return { clientId, key, store, state: { updatedAt: 0, failures: 0, cooldownUntil: 0 } };
+  let parsed = null;
+  try { parsed = JSON.parse(raw); } catch {}
+  const state = validState(parsed, now) || { updatedAt: 0, failures: 0, cooldownUntil: 0 };
+  return { clientId, key, store, state };
 }
 
-export async function registerAdminFailure(env, cookieHeader, now = Math.floor(Date.now() / 1000)) {
+function mirrorCookie(env, state) {
+  return sign(env, payload(state.updatedAt, state.failures, state.cooldownUntil)).then(signature => {
+    const token = `v2.${state.updatedAt}.${state.failures}.${state.cooldownUntil}.${signature}`;
+    return `${ADMIN_FAILURE_COOKIE}=${token}; Max-Age=${STATE_TTL_SECONDS}; Path=/admin-access; HttpOnly; Secure; SameSite=Strict`;
+  });
+}
+
+export async function adminCooldown(env, requestOrIp, now = Math.floor(Date.now() / 1000), storeOverride = null) {
   const clock = Math.floor(Number(now) || 0);
-  const prior = await verifyState(env, cookieHeader, clock);
-  const failures = (prior.valid ? prior.failures : 0) + 1;
+  const loaded = await readState(env, requestOrIp, clock, storeOverride);
+  const retryAfterSeconds = Math.max(0, loaded.state.cooldownUntil - clock);
+  return {
+    valid: loaded.state.updatedAt > 0,
+    failures: loaded.state.failures,
+    cooldownUntil: loaded.state.cooldownUntil,
+    updatedAt: loaded.state.updatedAt,
+    retryAfterSeconds,
+    blocked: retryAfterSeconds > 0,
+    clientId: loaded.clientId,
+    storage: "server"
+  };
+}
+
+export async function registerAdminFailure(env, requestOrIp, now = Math.floor(Date.now() / 1000), storeOverride = null) {
+  const clock = Math.floor(Number(now) || 0);
+  const loaded = await readState(env, requestOrIp, clock, storeOverride);
+  const failures = loaded.state.failures + 1;
   const delay = cooldownForFailureCount(failures);
-  const cooldownUntil = clock + delay;
-  const signature = await sign(env, payload(clock, failures, cooldownUntil));
-  const token = `v1.${clock}.${failures}.${cooldownUntil}.${signature}`;
+  const state = { updatedAt: clock, failures, cooldownUntil: clock + delay };
+  await loaded.store.put(loaded.key, JSON.stringify(state));
   return {
     failures,
     retryAfterSeconds: delay,
-    cookie: `${ADMIN_FAILURE_COOKIE}=${token}; Max-Age=${STATE_TTL_SECONDS}; Path=/admin-access; HttpOnly; Secure; SameSite=Strict`
+    cooldownUntil: state.cooldownUntil,
+    clientId: loaded.clientId,
+    storage: "server",
+    cookie: await mirrorCookie(env, state)
   };
+}
+
+export async function clearAdminFailureState(env, requestOrIp, storeOverride = null) {
+  const clientId = await adminThrottleClientId(env, requestOrIp);
+  const store = storeOverride || defaultStore(env);
+  await store.delete(stateKey(clientId));
+  return { clientId, cleared: true };
 }
 
 export function clearAdminFailureCookie() {

@@ -2,6 +2,7 @@ import { adminAuthorized, json, putObject, validObjectKey, writeClient } from ".
 
 const MAX_BYTES = 50 * 1024 * 1024;
 const ALLOWED_PREFIXES = ["shadow-garden/books/", "shadow-garden/covers/"];
+const OPAQUE_COVER_KEY = /^shadow-garden\/covers\/cv_[A-Za-z0-9_-]{20,64}-(?:detail|thumb)\.(?:jpe?g|png|webp|avif|gif)$/i;
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -10,6 +11,9 @@ export async function onRequestPost(context) {
   const url = new URL(request.url);
   const key = url.searchParams.get("key") || "";
   if (!validObjectKey(key, ALLOWED_PREFIXES)) return json({ ok: false, error: "Invalid object key" }, 400);
+  if (key.startsWith("shadow-garden/covers/") && !OPAQUE_COVER_KEY.test(key)) {
+    return json({ ok: false, error: "Cover object keys must use an opaque cv_ identifier" }, 400);
+  }
 
   const declared = Number(request.headers.get("content-length") || 0);
   if (declared > MAX_BYTES) return json({ ok: false, error: "File exceeds the 50 MB mobile upload limit" }, 413);

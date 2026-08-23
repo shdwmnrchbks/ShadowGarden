@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.3 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.4 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -44,7 +44,7 @@
 
   async function mountReadingStatus(){
     await import("/assets/js/reading-status.js?v=1.15.3");
-    await import("/assets/js/reader-finished.js?v=1.15.3");
+    await import("/assets/js/reader-finished.js?v=1.15.4");
   }
 
   function canonicalizeLegacyUrl(){
@@ -60,8 +60,6 @@
   syncStoredTheme();
 
   try{
-    /* Keep the Adult gate return target opaque. reader.js retains the same check as a
-       fallback for legacy/raw Reader URLs. */
     if(BOOK_ID.test(requested)&&String(seriesId).startsWith("adult-")&&localStorage.getItem("sg-adult-ack")!=="1"){
       const ret=`${location.pathname}${location.search}${location.hash}`;
       location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`);
@@ -76,13 +74,8 @@
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
     window.__sgReaderSourcePath=EPUB_PATH.test(sourcePath)?sourcePath:"";
     if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
-      /* The Visual Page Cache starts before this module. Its opaque pseudo-request is
-         resolved by book-access.js; awaiting it here preserves startup ordering. */
       try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}
 
-      /* reader.js historically derives its internal EPUB/cache identity from
-         URLSearchParams(location.search). Give only that module evaluation a source-path
-         view while the real browser URL remains book=bk_... at all times. */
       const NativeURLSearchParams=window.URLSearchParams;
       function ReaderURLSearchParams(init){
         const params=new NativeURLSearchParams(init);
@@ -101,9 +94,6 @@
       return;
     }
 
-    /* Legacy Reader URLs still need the raw media path while reader.js initializes.
-       Once initialization is complete, replace only the visible URL with the canonical
-       opaque id so future reloads/bookmarks use the same identity as Series/Library. */
     await importReader();
     canonicalizeLegacyUrl();
     await mountReadingStatus();

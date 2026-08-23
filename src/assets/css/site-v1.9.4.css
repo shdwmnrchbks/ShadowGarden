@@ -1,10 +1,11 @@
-/* Shadow Garden v1.10.1 — compact cards, living banners, and series action polish. */
+/* Shadow Garden v1.10.2 — compact cards, living banners, and series action polish. */
 
 /* Compact mode gets a dedicated badge rail. The thumbnail stretches to the full
    entry height while keeping its book-cover aspect ratio. */
 .compact-card-badges{display:none}
 .catalog-grid.compact .series-card{grid-template-columns:auto minmax(0,1fr) auto;align-items:stretch}
-.catalog-grid.compact .series-card>.cover{width:auto!important;height:100%!important;min-width:44px;align-self:stretch;aspect-ratio:2/3}
+.catalog-grid.compact .series-card>.cover{width:auto!important;height:auto!important;min-width:44px;align-self:stretch;aspect-ratio:2/3}
+.catalog-grid.compact .series-card>.cover>img{width:100%!important;height:100%!important;object-fit:cover!important}
 .catalog-grid.compact .series-card>.cover .volume-pill,
 .catalog-grid.compact .series-card>.cover .adult-pill,
 .catalog-grid.compact .series-card>.cover .pinned-indicator{display:none!important}
@@ -127,7 +128,7 @@ a.tag:hover,a.tag:focus-visible{color:var(--leaf2);border-color:rgba(145,189,157
 
 @media(max-width:720px){
   .catalog-grid.compact .series-card{grid-template-columns:auto minmax(0,1fr);align-items:stretch;gap:10px;padding-bottom:10px}
-  .catalog-grid.compact .series-card>.cover{grid-row:1 / span 2;min-width:40px;height:100%!important}
+  .catalog-grid.compact .series-card>.cover{grid-row:1 / span 2;min-width:40px;height:auto!important;align-self:stretch}
   .catalog-grid.compact .compact-card-badges{grid-column:2;justify-self:start;max-width:100%;margin-top:2px}
   .compact-card-badge{min-height:20px;padding:3px 6px;font-size:.54rem}
   .continue-mark.continue-cover{height:63px}

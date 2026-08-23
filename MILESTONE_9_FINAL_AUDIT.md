@@ -19,6 +19,7 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 ## Findings fixed during the audit
 
 - **v1.15.1/v1.15.2 finished-reading identity gap:** treating only the Reader URL or signed ticket identity as authoritative was still not enough to guarantee that the completion key exactly matched the `volume.file` identity rendered by Series/Library. v1.15.3 resolves the current volume from the same public catalog used by the Series page, writes every equivalent identity in one verified operation, adds a stable `series + volume` alias, and keeps a redundant per-alias local marker so a finished state survives navigation/reload even if one representation changes.
+- **v1.15.3 Continuous end-page event gap:** Continuous mode does not display the master `#volumeEndPage`; it clones that DOM with `cloneNode(true)`. DOM cloning copies the checkbox markup and checked behavior but never copies JavaScript event listeners. The result was a switch that visibly toggled in Continuous mode while no persistence callback ran. v1.15.4 delegates the completion change handler at document level, installs/synchronizes controls in every Continuous clone, and observes newly created end-page clones. Pages and Continuous now share one persistence path.
 - **Garden Keeper version placement:** version information is no longer mounted in the header. v1.15.3 creates a dedicated centered Garden Keeper footer showing the deployed version and short commit, leaving the header layout untouched.
 - Library/Series completion clients remain explicitly cache-busted/no-store so a prior cached client cannot mask reading-status fixes during the final audit.
 
@@ -41,7 +42,8 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - [ ] Page Map and Visual Page Cache continue to operate.
 - [ ] Bookmark creation/removal/navigation works.
 - [ ] End-page long next-volume titles wrap correctly on mobile.
-- [ ] `Mark as Finished` persists locally and can be toggled back to unfinished.
+- [ ] `Mark as Finished` persists locally and can be toggled back to unfinished in Page mode.
+- [ ] `Mark as Finished` persists locally and can be toggled back to unfinished in the cloned Continuous end page.
 - [ ] Finished state is reflected after returning to Series/Library pages.
 - [ ] Reader completion resolves and stores the exact public catalog volume identity used by the Series page.
 - [ ] Legacy/private-path Reader URLs migrate finished state to the canonical/stable volume aliases.

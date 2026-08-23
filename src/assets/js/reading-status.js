@@ -3,6 +3,14 @@
   const KEY="sg-finished-books";
   const EVENT="sg-reading-status-changed";
 
+  if(!document.querySelector('link[data-reading-status-style]')){
+    const link=document.createElement("link");
+    link.rel="stylesheet";
+    link.href="/assets/css/reading-status.css?v=1.15.0";
+    link.dataset.readingStatusStyle="1";
+    document.head.appendChild(link);
+  }
+
   function load(){
     try{
       const value=JSON.parse(localStorage.getItem(KEY)||"{}");

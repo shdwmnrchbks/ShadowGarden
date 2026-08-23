@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.2 — Garden Keeper security + current workflow bootstrap. */
+/* Shadow Garden v1.15.3 — Garden Keeper security + current workflow bootstrap. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
@@ -56,7 +56,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!document.querySelector('link[data-admin-version]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/admin-version.css?v=1.15.2';
+    link.href='/assets/css/admin-version.css?v=1.15.3';
     link.dataset.adminVersion='1';
     document.head.appendChild(link);
   }
@@ -69,29 +69,27 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 
   const mountVersion=async()=>{
-    const header=document.querySelector('.admin-header');
-    const brandMeta=header?.querySelector('.brand > span:last-child > small');
-    if(!header||!brandMeta)return;
-    let label=document.getElementById('adminVersion');
-    if(label&&!brandMeta.contains(label)){label.remove();label=null}
-    if(!label){
-      label=document.createElement('span');
-      label.id='adminVersion';
-      label.className='admin-version';
-      label.textContent='v…';
-      brandMeta.append(document.createTextNode(' · '),label);
+    let footer=document.querySelector('.admin-version-footer');
+    if(!footer){
+      footer=document.createElement('footer');
+      footer.className='admin-version-footer';
+      footer.setAttribute('aria-label','Deployment version');
+      footer.innerHTML='<span id="adminVersion" class="admin-version">Version …</span>';
+      document.body.appendChild(footer);
     }
+    const label=footer.querySelector('#adminVersion');
+    if(!label)return;
     try{
       const response=await fetch('/data/version.json',{cache:'no-store'});
       if(!response.ok)throw new Error(`version metadata ${response.status}`);
       const info=await response.json();
       const version=String(info?.version||'unknown');
       const commit=String(info?.shortCommit||'');
-      label.textContent=`v${version}${commit?` · ${commit}`:''}`;
+      label.textContent=`Shadow Garden v${version}${commit?` · ${commit}`:''}`;
       label.title=[`Shadow Garden v${version}`,commit?`Commit ${info.commit||commit}`:'',info?.builtAt?`Built ${new Date(info.builtAt).toLocaleString()}`:''].filter(Boolean).join(' · ');
     }catch(error){
       console.warn('Deployment version metadata unavailable',error);
-      label.textContent='version unavailable';
+      label.textContent='Shadow Garden · version unavailable';
     }
   };
   void mountVersion();

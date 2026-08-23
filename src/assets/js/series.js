@@ -17,7 +17,7 @@ async function init(){
   const requestedAdult=String(id||"").startsWith("adult-");
   syncLibraryScope(requestedAdult);
   try{
-    await import("/assets/js/reading-status.js?v=1.15.2");
+    await import("/assets/js/reading-status.js?v=1.15.3");
     const reading=window.ShadowGardenReadingStatus;
     if(requestedAdult&&localStorage.getItem("sg-adult-ack")!=="1"){
       const ret=`/series.html?id=${encodeURIComponent(id)}`;
@@ -30,7 +30,7 @@ async function init(){
     syncLibraryScope(Boolean(s.nsfw));
     document.title=`${s.title} — Shadow Garden`;
     const vols=arr(s.volumes),first=vols[0],pinned=pins().includes(s.id),finishedCount=reading?.finishedCount(s)||0,allFinished=vols.length>0&&finishedCount===vols.length;
-    const unfinished=vols.filter(v=>!reading?.isFinished(v.file));
+    const unfinished=vols.filter((v,i)=>!reading?.isVolumeFinished?.(s.id,v,i)&&!reading?.isFinished(v.file));
     const resumed=unfinished.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
     const startVol=resumed?.v||unfinished[0]||first;
     const startLabel=allFinished?"Read Again":resumed?"Continue Reading":finishedCount?"Read Next Unfinished":"Start Reading";
@@ -60,7 +60,7 @@ async function init(){
         ${s.description?`<p class="series-description">${esc(s.description)}</p>`:""}
         <div class="series-section-head"><h2>Volumes</h2><span>${vols.length} ${vols.length===1?"volume":"volumes"}</span></div>
         <div class="volume-grid">${vols.map((v,i)=>{
-          const c=v.coverThumb||v.cover||s.coverThumb||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0,finished=reading?.isFinished(v.file);
+          const c=v.coverThumb||v.cover||s.coverThumb||cover,p=progressFor(v.file),pct=p?Math.round((p.percentage||0)*100):0,finished=Boolean(reading?.isVolumeFinished?.(s.id,v,i)||reading?.isFinished(v.file));
           return `<article class="volume-card ${finished?"is-finished":""}">
             <div class="volume-cover">${c?`<img src="${esc(c)}" alt="${esc(v.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:""}${finished?'<span class="finished-volume-badge" title="Finished" aria-label="Finished">✓</span>':""}</div>
             <h3 class="volume-title">${esc(v.title||`Volume ${i+1}`)}</h3>

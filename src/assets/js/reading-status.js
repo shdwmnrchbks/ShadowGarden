@@ -1,12 +1,13 @@
-/* Shadow Garden v1.15.2 — browser-local reading completion state. */
+/* Shadow Garden v1.15.3 — browser-local reading completion state. */
 (()=>{
   const KEY="sg-finished-books";
+  const MARKER_PREFIX="sg-finished:";
   const EVENT="sg-reading-status-changed";
 
   if(!document.querySelector('link[data-reading-status-style]')){
     const link=document.createElement("link");
     link.rel="stylesheet";
-    link.href="/assets/css/reading-status.css?v=1.15.2";
+    link.href="/assets/css/reading-status.css?v=1.15.3";
     link.dataset.readingStatusStyle="1";
     document.head.appendChild(link);
   }
@@ -22,29 +23,58 @@
     try{localStorage.setItem(KEY,JSON.stringify(value));return true}catch(error){console.warn("Shadow Garden could not persist reading completion",error);return false}
   }
   function cleanId(value){return String(value||"").trim()}
-  function isFinished(bookId){const id=cleanId(bookId);return Boolean(id&&load()[id])}
-  function setFinished(bookId,finished=true){
-    const id=cleanId(bookId);if(!id)return false;
-    const state=load();
-    if(finished)state[id]=Date.now();else delete state[id];
-    const ok=save(state);
-    if(ok)window.dispatchEvent(new CustomEvent(EVENT,{detail:{bookId:id,finished:Boolean(finished)}}));
-    return ok;
+  function cleanIds(values){return [...new Set((Array.isArray(values)?values:[values]).map(cleanId).filter(Boolean))]}
+  function markerKey(id){return `${MARKER_PREFIX}${id}`}
+  function markerFinished(id){try{return localStorage.getItem(markerKey(id))==="1"}catch{return false}}
+  function isFinished(bookId){const id=cleanId(bookId);return Boolean(id&&(load()[id]||markerFinished(id)))}
+  function isAnyFinished(ids){return cleanIds(ids).some(isFinished)}
+
+  function setAliasesFinished(ids,finished=true){
+    const aliases=cleanIds(ids);if(!aliases.length)return false;
+    const state=load(),stamp=Date.now();
+    try{
+      for(const id of aliases){
+        if(finished){state[id]=stamp;localStorage.setItem(markerKey(id),"1")}
+        else{delete state[id];localStorage.removeItem(markerKey(id))}
+      }
+      if(!save(state))return false;
+      const verified=aliases.every(id=>isFinished(id)===Boolean(finished));
+      if(!verified)return false;
+      window.dispatchEvent(new CustomEvent(EVENT,{detail:{bookId:aliases[0],bookIds:aliases,finished:Boolean(finished)}}));
+      return true;
+    }catch(error){
+      console.warn("Shadow Garden could not persist reading completion aliases",error);
+      return false;
+    }
   }
+
+  function setFinished(bookId,finished=true){return setAliasesFinished([bookId],finished)}
   function migrateFinished(fromId,toId){
     const from=cleanId(fromId),to=cleanId(toId);
-    if(!from||!to||from===to)return false;
-    const state=load();
-    if(!state[from])return false;
-    if(!state[to])state[to]=state[from];
-    delete state[from];
-    const ok=save(state);
-    if(ok)window.dispatchEvent(new CustomEvent(EVENT,{detail:{bookId:to,finished:true,migratedFrom:from}}));
-    return ok;
+    if(!from||!to||from===to||!isFinished(from))return false;
+    const ok=setAliasesFinished([from,to],true);
+    if(!ok)return false;
+    try{
+      const state=load();delete state[from];localStorage.removeItem(markerKey(from));save(state);
+      window.dispatchEvent(new CustomEvent(EVENT,{detail:{bookId:to,bookIds:[to],finished:true,migratedFrom:from}}));
+      return isFinished(to)&&!isFinished(from);
+    }catch{return false}
   }
+
   function volumeId(volume){return cleanId(volume?.file||volume?.bookId)}
-  function finishedCount(series){return (Array.isArray(series?.volumes)?series.volumes:[]).filter(volume=>isFinished(volumeId(volume))).length}
+  function stableVolumeId(seriesId,volume,index=-1){
+    const sid=cleanId(seriesId);if(!sid)return"";
+    const number=Number(volume?.number);
+    if(Number.isFinite(number))return `series:${sid}:volume:${number}`;
+    const title=cleanId(volume?.title);
+    if(title)return `series:${sid}:title:${title}`;
+    return index>=0?`series:${sid}:index:${index}`:"";
+  }
+  function volumeAliases(seriesId,volume,index=-1,extra=[]){return cleanIds([volume?.file,volume?.bookId,stableVolumeId(seriesId,volume,index),...(Array.isArray(extra)?extra:[extra])])}
+  function isVolumeFinished(seriesId,volume,index=-1){return isAnyFinished(volumeAliases(seriesId,volume,index))}
+  function setVolumeFinished(seriesId,volume,finished=true,index=-1,extra=[]){return setAliasesFinished(volumeAliases(seriesId,volume,index,extra),finished)}
+  function finishedCount(series){const volumes=Array.isArray(series?.volumes)?series.volumes:[];return volumes.filter((volume,index)=>isVolumeFinished(series?.id,volume,index)).length}
   function seriesFinished(series){const volumes=Array.isArray(series?.volumes)?series.volumes:[];return volumes.length>0&&finishedCount(series)===volumes.length}
 
-  window.ShadowGardenReadingStatus={KEY,EVENT,load,isFinished,setFinished,migrateFinished,finishedCount,seriesFinished};
+  window.ShadowGardenReadingStatus={KEY,MARKER_PREFIX,EVENT,load,isFinished,isAnyFinished,setFinished,setAliasesFinished,migrateFinished,volumeId,stableVolumeId,volumeAliases,isVolumeFinished,setVolumeFinished,finishedCount,seriesFinished};
 })();

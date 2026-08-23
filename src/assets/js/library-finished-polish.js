@@ -95,9 +95,10 @@
         const current=candidates[0]||null;
         const art=document.querySelector(".library-intro > .intro-banner-art");
         if(!current){
-          panel.classList.add("hidden");
-          panel.replaceChildren();
+          if(!panel.classList.contains("hidden"))panel.classList.add("hidden");
+          if(panel.childNodes.length)panel.replaceChildren();
           panel.dataset.finishedSuppressed="1";
+          delete panel.dataset.continueSignature;
           art?.remove();
           return;
         }
@@ -110,13 +111,16 @@
         const percent=Math.round((Number(item?.percentage)||0)*100);
         const href=`/reader.html?book=${encodeURIComponent(volume.file)}&series=${encodeURIComponent(series.id)}`;
         const signature=[series.id,volume.file,item.updatedAt,percent,cover].join("|");
+        const currentHref=panel.querySelector("a[href*='/reader.html']")?.getAttribute("href")||"";
+        const currentTitle=panel.querySelector("strong")?.textContent||"";
+        const needsRender=panel.dataset.continueSignature!==signature||currentHref!==href||currentTitle!==title;
 
-        if(panel.dataset.continueSignature!==signature){
+        if(needsRender){
           panel.dataset.continueSignature=signature;
           panel.removeAttribute("data-finished-suppressed");
           panel.innerHTML=`<div class="continue-mark${cover?" continue-cover":""}">${cover?`<img src="${esc(cover)}" alt="" loading="eager" decoding="async">`:"✦"}</div><div><strong>${esc(title)}</strong><span>${esc(seriesTitle)} · Volume ${esc(volumeNumber(volume,index))} · ${percent}%</span></div><a href="${href}">Continue</a>`;
         }
-        panel.classList.remove("hidden");
+        if(panel.classList.contains("hidden"))panel.classList.remove("hidden");
 
         const intro=document.querySelector(".library-intro");
         if(intro&&cover){

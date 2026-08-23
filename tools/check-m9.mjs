@@ -47,7 +47,8 @@ for(const marker of ["ShadowGardenOpaqueCoverStorage","crypto.getRandomValues","
   if(!adminBootstrap.includes(marker))fail(`Garden Keeper opaque-cover handoff is missing ${marker}`);
 }
 if(!uploadApi.includes("OPAQUE_COVER_KEY")||!uploadApi.includes("opaque cv_ identifier"))fail("cover uploads must be server-enforced to opaque cv_ object keys");
-if(!/^1\.15\.10$/.test(JSON.parse(pkg).version))fail("Milestone 9 opaque-cover release must be v1.15.10");
+const [major=0,minor=0,patch=0]=String(JSON.parse(pkg).version||"").split(".").map(value=>Number.parseInt(value,10)||0);
+if(major<1||(major===1&&minor<15)||(major===1&&minor===15&&patch<10))fail("Milestone 9 opaque-cover baseline requires v1.15.10 or newer");
 if(!roadmap.includes("9. Final security audit | 🟨 In progress"))fail("Milestone 9 must be recorded as in progress");
 
 if(failures.length){

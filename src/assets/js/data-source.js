@@ -9,8 +9,18 @@ window.ShadowGardenData=(()=>{
     ['hiatus','Hiatus'],['on hiatus','Hiatus'],['paused','Hiatus'],
     ['dropped','Dropped'],['cancelled','Dropped'],['canceled','Dropped'],['discontinued','Dropped']
   ]);
-  const STATUS_TAGS=new Set(['Complete','Ongoing','Hiatus','Dropped']);
+  const STATUS_TAG_KEYS=new Set([...STATUS_ALIASES.keys(),'complete','ongoing','hiatus','dropped']);
   function normalizeStatus(value){return STATUS_ALIASES.get(String(value||'').trim().toLowerCase())||'Ongoing'}
+  function ensureCurrentPublicPolish(){
+    const current=document.querySelector('link[href*="/assets/css/site-v1.9.4.css"]');
+    if(!current||document.querySelector('link[data-sg-public-polish="1"]'))return;
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='/assets/css/site-v1.9.4.css?v=1.10.4';
+    link.dataset.sgPublicPolish='1';
+    document.head.appendChild(link);
+  }
+  ensureCurrentPublicPolish();
   function base64Url(bytes){
     let binary='';
     for(const value of bytes)binary+=String.fromCharCode(value);
@@ -67,7 +77,7 @@ window.ShadowGardenData=(()=>{
     const bookIds=[];
     const series=(Array.isArray(value.series)?value.series:[]).map(item=>{
       const status=normalizeStatus(item?.status);
-      const tags=[...new Set([...(Array.isArray(item?.tags)?item.tags:[]).map(String).filter(tag=>!STATUS_TAGS.has(tag)),status])];
+      const tags=[...new Set([...(Array.isArray(item?.tags)?item.tags:[]).map(String).filter(tag=>!STATUS_TAG_KEYS.has(String(tag).trim().toLowerCase())),status])];
       return {
         ...item,
         status,

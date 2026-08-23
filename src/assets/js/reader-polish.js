@@ -1,13 +1,9 @@
-/* Shadow Garden v0.13.2 — reader polish.
- * Reader polish reuses the core reader controls. EPUB.js forwards touch events through
- * reader-gesture-hook.js so swipe/tap detection remains stable on chapter boundaries.
- */
+/* Shadow Garden v1.10.1 — Reader swipe, completion, and settings polish. */
 (()=>{
   const SETTINGS_KEY="sg-reader-polish-settings";
-  const defaults={swipeTurns:true,tapZones:true};
+  const defaults={swipeTurns:true};
   const state={
     settings:loadSettings(),
-    chromeHidden:false,
     readerReady:false,
     seenBelowEnd:false,
     completionShown:false,
@@ -22,8 +18,10 @@
   const decode=value=>{try{return decodeURIComponent(value)}catch{return value}};
 
   function loadSettings(){
-    try{return{...defaults,...(JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null")||{})}}
-    catch{return{...defaults}}
+    try{
+      const saved=JSON.parse(localStorage.getItem(SETTINGS_KEY)||"null")||{};
+      return{...defaults,swipeTurns:saved.swipeTurns!==false};
+    }catch{return{...defaults}}
   }
   function saveSettings(){
     try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(state.settings))}
@@ -69,12 +67,11 @@
     const params=new URLSearchParams(location.search),seriesId=params.get("series");
     const currentTitle=state.currentVolume?.title||$("#bookTitle")?.textContent||"This volume";
     title.textContent=currentTitle;
-    if(seriesId)back.href=`/series.html?id=${encodeURIComponent(seriesId)}`;
-    else back.href="/";
+    back.href=seriesId?`/series.html?id=${encodeURIComponent(seriesId)}`:"/";
     if(state.nextVolume?.file){
       const nextTitle=state.nextVolume.title||`Volume ${state.nextVolume.number??"next"}`;
       detail.textContent=`${nextTitle} is ready beneath the next branch of the Garden.`;
-      next.textContent=`Read ${nextTitle} →`;
+      next.textContent=`Read ${nextTitle} ▶`;
       next.href=`/reader.html?book=${encodeURIComponent(state.nextVolume.file)}${seriesId?`&series=${encodeURIComponent(seriesId)}`:""}`;
       next.classList.remove("hidden");
     }else{
@@ -93,7 +90,6 @@
     const dialog=$("#volumeComplete");
     if(!dialog||dialog.open||state.completionShown)return;
     state.completionShown=true;
-    setChromeHidden(false);
     closeDrawers();
     syncCompletionCopy();
     try{dialog.showModal()}catch{dialog.setAttribute("open","")}
@@ -127,28 +123,6 @@
     state.seenBelowEnd=progress<.995;
   }
 
-  function syncFocusButton(){
-    const button=$("#focusModeButton");
-    if(!button)return;
-    button.setAttribute("aria-pressed",state.chromeHidden?"true":"false");
-    button.title=state.chromeHidden?"Show reader controls":"Distraction-free mode";
-    button.setAttribute("aria-label",state.chromeHidden?"Show reader controls":"Enter distraction-free mode");
-  }
-
-  function setChromeHidden(hidden){
-    const next=Boolean(hidden);
-    if(state.chromeHidden===next)return;
-    state.chromeHidden=next;
-    document.body.classList.toggle("reader-chrome-hidden",next);
-    syncFocusButton();
-    if(document.body.classList.contains("reader-flow-paginated")){
-      setTimeout(()=>window.dispatchEvent(new Event("resize")),70);
-      setTimeout(()=>window.dispatchEvent(new Event("resize")),240);
-    }
-  }
-
-  function toggleChrome(){setChromeHidden(!state.chromeHidden)}
-
   function interactiveTarget(target){
     return typeof target?.closest==="function"&&Boolean(target.closest("a,button,input,select,textarea,label,[contenteditable=true],[role=button],[role=slider]"));
   }
@@ -181,7 +155,6 @@
     touchGesture={
       x:Number(detail?.x)||0,
       y:Number(detail?.y)||0,
-      width:Math.max(1,Number(detail?.width)||1),
       at:performance.now()
     };
   }
@@ -192,40 +165,12 @@
     touchGesture=null;
     if(detail?.selection)return;
     const x=Number(detail?.x)||0,y=Number(detail?.y)||0;
-    const dx=x-start.x,dy=y-start.y,distance=Math.hypot(dx,dy),elapsed=performance.now()-start.at;
+    const dx=x-start.x,dy=y-start.y,elapsed=performance.now()-start.at;
     const paginated=document.body.classList.contains("reader-flow-paginated");
-
     if(paginated&&state.settings.swipeTurns&&elapsed<1000&&Math.abs(dx)>=48&&Math.abs(dx)>Math.abs(dy)*1.18){
       preventOriginal(detail);
       suppressClickUntil=Date.now()+420;
       pageTurn(dx<0?1:-1);
-      return;
-    }
-
-    if(distance>16||elapsed>520)return;
-    const width=Math.max(1,Number(detail?.width)||start.width||1);
-    const ratio=Math.max(0,Math.min(1,x/width));
-    const center=ratio>.27&&ratio<.73;
-
-    if(state.chromeHidden&&center){
-      preventOriginal(detail);
-      suppressClickUntil=Date.now()+350;
-      setChromeHidden(false);
-      return;
-    }
-    if(!state.settings.tapZones)return;
-    if(paginated&&ratio<=.27){
-      preventOriginal(detail);
-      suppressClickUntil=Date.now()+350;
-      pageTurn(-1);
-    }else if(paginated&&ratio>=.73){
-      preventOriginal(detail);
-      suppressClickUntil=Date.now()+350;
-      pageTurn(1);
-    }else if(center){
-      preventOriginal(detail);
-      suppressClickUntil=Date.now()+350;
-      toggleChrome();
     }
   }
 
@@ -243,7 +188,7 @@
     doc.addEventListener("touchstart",event=>{
       const point=event.touches?.[0];
       if(!point||interactiveTarget(event.target)){fallback=null;return}
-      fallback={x:point.clientX,y:point.clientY,width:doc.documentElement?.clientWidth||doc.defaultView?.innerWidth||1,at:performance.now()};
+      fallback={x:point.clientX,y:point.clientY,at:performance.now()};
     },{capture:true,passive:true});
     doc.addEventListener("touchcancel",()=>{fallback=null},{capture:true,passive:true});
     doc.addEventListener("touchend",event=>{
@@ -251,9 +196,9 @@
       const point=event.changedTouches?.[0];
       const start=fallback;fallback=null;
       if(!point||hasSelection(doc))return;
-      beginTouch({x:start.x,y:start.y,width:start.width});
+      beginTouch({x:start.x,y:start.y});
       if(touchGesture)touchGesture.at=start.at;
-      endTouch({x:point.clientX,y:point.clientY,width:start.width,selection:false,originalEvent:event});
+      endTouch({x:point.clientX,y:point.clientY,selection:false,originalEvent:event});
     },{capture:true,passive:false});
   }
 
@@ -302,24 +247,26 @@
   }
 
   function syncSettingsUi(){
-    const swipe=$("#swipeTurnsToggle"),tap=$("#tapZonesToggle");
+    const swipe=$("#swipeTurnsToggle");
     if(swipe)swipe.checked=state.settings.swipeTurns!==false;
-    if(tap)tap.checked=state.settings.tapZones!==false;
+  }
+
+  function syncTextWidthVisibility(){
+    const setting=$("#textWidthSetting")||$("#widthRange")?.closest("label");
+    const flow=$("#flowSelect");
+    if(!setting||!flow)return;
+    setting.hidden=flow.value==="paginated";
   }
 
   function bindUi(){
-    $("#focusModeButton")?.addEventListener("click",toggleChrome);
     $("#swipeTurnsToggle")?.addEventListener("change",event=>{state.settings.swipeTurns=event.target.checked;saveSettings()});
-    $("#tapZonesToggle")?.addEventListener("change",event=>{state.settings.tapZones=event.target.checked;saveSettings()});
+    $("#flowSelect")?.addEventListener("change",syncTextWidthVisibility);
+    $("#resetReader")?.addEventListener("click",()=>setTimeout(syncTextWidthVisibility,0));
     $("#volumeCompleteClose")?.addEventListener("click",hideCompletion);
     $("#volumeComplete")?.addEventListener("click",event=>{if(event.target===$("#volumeComplete"))hideCompletion()});
     $("#volumeComplete")?.addEventListener("cancel",event=>{event.preventDefault();hideCompletion()});
-    document.addEventListener("keydown",event=>{
-      if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName))return;
-      if(event.key.toLowerCase()==="h"){event.preventDefault();toggleChrome();return}
-      if(event.key==="Escape"&&state.chromeHidden){setChromeHidden(false)}
-    });
-    syncSettingsUi();syncFocusButton();
+    syncSettingsUi();
+    syncTextWidthVisibility();
   }
 
   function watchProgress(){

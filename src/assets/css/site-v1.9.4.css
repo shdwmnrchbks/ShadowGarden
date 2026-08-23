@@ -1,9 +1,10 @@
-/* Shadow Garden v1.9.4 — compact card badges and living archive/series banners. */
+/* Shadow Garden v1.10.1 — compact cards, living banners, and series action polish. */
 
-/* Compact mode gets a dedicated badge rail at the top-right of each entry.
-   Grid mode keeps the existing cover-overlay presentation unchanged. */
+/* Compact mode gets a dedicated badge rail. The thumbnail stretches to the full
+   entry height while keeping its book-cover aspect ratio. */
 .compact-card-badges{display:none}
-.catalog-grid.compact .series-card{grid-template-columns:44px minmax(0,1fr) auto;align-items:start}
+.catalog-grid.compact .series-card{grid-template-columns:auto minmax(0,1fr) auto;align-items:stretch}
+.catalog-grid.compact .series-card>.cover{width:auto!important;height:100%!important;min-width:44px;align-self:stretch;aspect-ratio:2/3}
 .catalog-grid.compact .series-card>.cover .volume-pill,
 .catalog-grid.compact .series-card>.cover .adult-pill,
 .catalog-grid.compact .series-card>.cover .pinned-indicator{display:none!important}
@@ -42,9 +43,13 @@
 .adult-library .compact-card-badge.pinned{color:#d5b878;border-color:rgba(190,161,108,.28)}
 .adult-library .compact-card-badge.adult{color:#e0a8b8;border-color:rgba(225,151,173,.30);background:rgba(112,47,68,.20)}
 
-/* Continue Reading supplies the archive-intro artwork. The artwork now bleeds
-   through the Library shell's top/right gutters, matching the full-width Series
-   hero, while the mask spends more of its fade only on the exposed left edge. */
+/* Continue Reading uses the resumed volume's cover instead of the placeholder mark. */
+.continue-mark.continue-cover{height:72px;overflow:hidden;padding:0;background:#0d110e}
+.continue-mark.continue-cover img{width:100%;height:100%;display:block;object-fit:cover}
+.adult-library .continue-mark.continue-cover{background:#180d12}
+
+/* Continue Reading supplies the archive-intro artwork. The artwork bleeds through
+   the Library shell's top/right gutters while only its left edge dissolves. */
 .library-intro{position:relative;isolation:isolate;overflow:visible}
 .library-intro>.intro-banner-art{
   position:absolute;
@@ -59,7 +64,7 @@
   background-size:cover;
   opacity:.25;
   filter:saturate(.78) contrast(.96) brightness(.72);
-  transform:scale(1.025);
+  transform:scaleY(1.025);
   transform-origin:right center;
   -webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 16%,rgba(0,0,0,.10) 23%,rgba(0,0,0,.62) 39%,#000 50%);
   mask-image:linear-gradient(90deg,transparent 0%,transparent 16%,rgba(0,0,0,.10) 23%,rgba(0,0,0,.62) 39%,#000 50%);
@@ -74,8 +79,7 @@
 .adult-library .library-intro>.intro-banner-art{opacity:.27;filter:saturate(.72) contrast(.98) brightness(.66)}
 .adult-library .library-intro>.intro-banner-art::after{background:linear-gradient(180deg,rgba(16,8,12,.06),rgba(16,8,12,.40) 72%,rgba(14,8,11,.78))}
 
-/* Series artwork follows the same right-side dissolve. The selected volume cover
-   is supplied by the v1.9.4 public polish controller. */
+/* Series artwork follows the same right-side dissolve. */
 .series-backdrop{
   inset:0 0 0 auto!important;
   width:min(62%,980px)!important;
@@ -91,15 +95,42 @@
 .adult-library .series-backdrop{opacity:.31!important;filter:saturate(.73) contrast(.98) brightness(.69)!important}
 .adult-library .series-backdrop:after{background:linear-gradient(180deg,rgba(16,8,12,.04),rgba(16,8,12,.38) 70%,#0e080b 100%)!important}
 
-/* Tags on Series pages are navigation controls now. */
+/* The main Series read action uses the same restrained outlined motif as the site
+   instead of the bright legacy green gradient. */
+.series-actions .primary-button{
+  border:1px solid rgba(154,134,211,.34);
+  color:#cbbdea;
+  background:rgba(154,134,211,.075);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.012);
+  transition:border-color .16s ease,background .16s ease,color .16s ease;
+}
+.series-actions .primary-button:hover,.series-actions .primary-button:focus-visible{
+  color:#f0eafd;
+  border-color:rgba(181,163,229,.52);
+  background:rgba(154,134,211,.13);
+}
+.adult-library .series-actions .primary-button{
+  border-color:rgba(211,142,162,.30);
+  color:#d9a5b4;
+  background:rgba(183,121,139,.075);
+}
+.adult-library .series-actions .primary-button:hover,.adult-library .series-actions .primary-button:focus-visible{
+  color:#f1dce2;
+  border-color:rgba(225,151,173,.48);
+  background:rgba(183,121,139,.14);
+}
+
+/* Tags on Series pages are navigation controls. */
 a.tag{text-decoration:none;cursor:pointer;transition:border-color .16s ease,background .16s ease,color .16s ease,transform .16s ease}
 a.tag:hover,a.tag:focus-visible{color:var(--leaf2);border-color:rgba(145,189,157,.36);background:rgba(145,189,157,.09);transform:translateY(-1px)}
 .adult-library a.tag:hover,.adult-library a.tag:focus-visible{color:#e0a8b8;border-color:rgba(225,151,173,.32);background:rgba(201,130,153,.10)}
 
 @media(max-width:720px){
-  .catalog-grid.compact .series-card{grid-template-columns:40px minmax(0,1fr);gap:10px;padding-bottom:10px}
+  .catalog-grid.compact .series-card{grid-template-columns:auto minmax(0,1fr);align-items:stretch;gap:10px;padding-bottom:10px}
+  .catalog-grid.compact .series-card>.cover{grid-row:1 / span 2;min-width:40px;height:100%!important}
   .catalog-grid.compact .compact-card-badges{grid-column:2;justify-self:start;max-width:100%;margin-top:2px}
   .compact-card-badge{min-height:20px;padding:3px 6px;font-size:.54rem}
+  .continue-mark.continue-cover{height:63px}
   .library-intro>.intro-banner-art{top:-38px;right:calc(50% - 50vw);width:92vw;opacity:.18;-webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 24%,rgba(0,0,0,.10) 32%,rgba(0,0,0,.58) 47%,#000 58%);mask-image:linear-gradient(90deg,transparent 0%,transparent 24%,rgba(0,0,0,.10) 32%,rgba(0,0,0,.58) 47%,#000 58%)}
   .adult-library .library-intro>.intro-banner-art{opacity:.20}
   .mobile-collapsed-tags{margin-top:8px;padding:0 2px}

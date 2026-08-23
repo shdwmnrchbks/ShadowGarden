@@ -1,6 +1,7 @@
 import { adminAuthorized, getTextObject, json, putObject, validObjectKey, writeClient } from "../_lib/b2.js";
 import { bookIdForFile, isBookId } from "../_lib/book-id.js";
 import { snapshotCatalogs } from "../_lib/garden-maintenance.js";
+import { canonicalizeSeriesStatus, normalizeSeriesStatus, withSeriesStatusTag } from "../_lib/series-status.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";
 const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
@@ -11,10 +12,6 @@ const slug = value => String(value || "untitled")
 
 function clean(value, max = 4000) {
   return String(value ?? "").trim().slice(0, max);
-}
-
-function uniqueTags(value) {
-  return [...new Set(arr(value).map(v => clean(v, 80)).filter(Boolean))].slice(0, 40);
 }
 
 function externalUrl(value) {
@@ -99,8 +96,9 @@ export async function onRequestPost({ request, env }) {
   const language = clean(input.language, 40);
   const publisher = clean(input.publisher, 240);
   const date = clean(input.date, 40);
-  const status = clean(input.status, 80);
-  const tags = uniqueTags(input.tags);
+  const rawStatus = clean(input.status, 80);
+  const requestedStatus = normalizeSeriesStatus(rawStatus);
+  const incomingTags = arr(input.tags).map(value => clean(value, 80)).filter(Boolean);
   const size = Math.max(0, Number(input.size) || 0);
   const audioAlignedUrl = externalUrl(input.audioAlignedUrl);
   const sha256 = safeHash(input.sha256);
@@ -174,9 +172,9 @@ export async function onRequestPost({ request, env }) {
         title: seriesName,
         author,
         year,
-        status,
+        status: requestedStatus,
         description,
-        tags,
+        tags: withSeriesStatusTag(incomingTags, requestedStatus),
         cover,
         coverThumb,
         audioAlignedUrl,
@@ -185,18 +183,21 @@ export async function onRequestPost({ request, env }) {
       };
       target.series.push(series);
     } else {
+      canonicalizeSeriesStatus(series);
       if (!targetSeriesId) {
         series.title = seriesName || series.title;
         series.author = author || series.author;
         series.year = year || series.year;
-        series.status = status || series.status;
+        if (rawStatus) series.status = requestedStatus;
         series.description = description || series.description;
-        series.tags = [...new Set([...arr(series.tags), ...tags])];
+        series.tags = withSeriesStatusTag([...arr(series.tags), ...incomingTags], series.status);
       }
       const legacyAudioUrl = arr(series.volumes).find(volume => volume.audioAlignedUrl)?.audioAlignedUrl || "";
       if (!series.audioAlignedUrl && legacyAudioUrl) series.audioAlignedUrl = legacyAudioUrl;
       if (audioAlignedUrl) series.audioAlignedUrl = audioAlignedUrl;
     }
+
+    canonicalizeSeriesStatus(series);
 
     const previous = existing >= 0 ? series.volumes[existing] : null;
     const replacing = duplicatePolicy === "replace" && existing >= 0;

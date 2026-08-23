@@ -31,15 +31,15 @@ for(const marker of ["sg-finished-books","sg-finished:","isFinished","setFinishe
   if(!status.includes(marker))fail(`reading-status.js is missing ${marker}`);
 }
 if(status.includes("fetch("))fail("finished reading state must remain browser-local and must not call a server API");
-for(const marker of ["volume-finished-toggle","data-sg-finished-toggle","Mark as Finished","Marked as unfinished","ShadowGardenBookAccess?.initial","ShadowGardenData?.loadCatalog","volume?.file","status.volumeAliases","setAliasesFinished","Could not save reading status","document.addEventListener(\"change\"","MutationObserver","volume-end-page-continuous"]){
+for(const marker of ["volume-finished-toggle","data-sg-finished-toggle","Mark as Finished","Marked as unfinished","ShadowGardenBookAccess?.initial","ShadowGardenData?.loadCatalog","volume?.file","status.volumeAliases","setAliasesFinished","Could not save reading status","document.addEventListener(\"change\"","document.addEventListener(\"click\"","volume-complete-next","persist(true,{quiet:true})","MutationObserver","volume-end-page-continuous"]){
   if(!readerFinished.includes(marker))fail(`Reader finished control is missing ${marker}`);
 }
 if(!continuousCore.includes("cloneNode(true)")||!continuousCore.includes("volume-end-page-continuous"))fail("Continuous Reader must retain its cloned end-page architecture for the delegated completion regression to be meaningful");
 if(readerFinished.includes('toggle.addEventListener("change"'))fail("finished-state persistence must not be attached only to the master checkbox because Continuous mode clones the end page without listeners");
-for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.3","reader-finished.js?v=1.15.4"]){
+for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.6","reader-finished.js?v=1.15.7"]){
   if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
 }
-if(!readerHtml.includes("reader-bootstrap.js?v=1.15.4"))fail("Reader HTML must cache-bust the v1.15.4 bootstrap");
+if(!readerHtml.includes("reader-bootstrap.js?v=1.15.7"))fail("Reader HTML must cache-bust the v1.15.7 bootstrap");
 for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
@@ -47,13 +47,13 @@ for(const marker of ["finished-series-badge","data-reading-status=\"finished\"",
   if(!library.includes(marker))fail(`Library completion/filter UI is missing ${marker}`);
 }
 if(!polish.includes("✓ Finished")||!polish.includes("finished"))fail("Compact Library cards must surface the Finished badge");
-for(const marker of ["continuePanel","canonicalBookId","crypto.subtle.digest","progressEntries","isVolumeFinished","if(finished)continue","continueSignature","sg-progress:","intro-banner-art"]){
+for(const marker of ["continuePanel","canonicalBookId","crypto.subtle.digest","progressEntries","isVolumeFinished","if(finished)continue","continueSignature","sg-progress:","intro-banner-art","isAtBeginning","page<=1","percentage<=0.01","actionLabel","?\"Read\":\"Continue\""]){
   if(!finishedPolish.includes(marker))fail(`Library authoritative Continue renderer is missing ${marker}`);
 }
 for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips","compact-card-badge.finished",".catalog-grid.compact .finished-series-badge"]){
   if(!style.includes(marker))fail(`reading-status.css is missing ${marker}`);
 }
-if(!indexHtml.includes("library-finished-polish.js?v=1.15.6")||!adultHtml.includes("library-finished-polish.js?v=1.15.6"))fail("Main and Adult Libraries must load the v1.15.6 authoritative Continue renderer");
+if(!indexHtml.includes("library-finished-polish.js?v=1.15.7")||!adultHtml.includes("library-finished-polish.js?v=1.15.7"))fail("Main and Adult Libraries must load the v1.15.7 completion-aware Continue renderer");
 if(indexHtml.includes("library-continue-meta.js")||adultHtml.includes("library-continue-meta.js"))fail("Legacy Continue metadata enrichment must not compete with the authoritative completion-aware renderer");
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
   if(!writeSource.includes(marker))fail(`deployment version generation is missing ${marker}`);
@@ -67,7 +67,7 @@ for(const marker of ["/data/version.json","/assets/js/reading-status.js","/asset
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.6")fail("package version must be 1.15.6");
+if(parsed.version!=="1.15.7")fail("package version must be 1.15.7");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */

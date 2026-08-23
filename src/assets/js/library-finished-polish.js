@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.6 — authoritative Library Continue Reading state. */
+/* Shadow Garden v1.15.7 — authoritative Library Continue Reading state. */
 (async()=>{
   const panel=document.getElementById("continuePanel");
   if(!panel||!window.ShadowGardenData)return;
@@ -45,6 +45,12 @@
 
   function volumeCover(series,volume){return String(volume?.coverThumb||volume?.cover||series?.coverThumb||series?.cover||"")}
   function volumeNumber(volume,index){const raw=String(volume?.number??"").trim();return raw||String(index+1)}
+  function isAtBeginning(item){
+    const page=Number(item?.page);
+    if(Number.isFinite(page)&&page>0)return page<=1;
+    const percentage=Number(item?.percentage);
+    return Number.isFinite(percentage)&&percentage<=0.01;
+  }
 
   try{
     await import("/assets/js/reading-status.js?v=1.15.6");
@@ -109,16 +115,18 @@
         const title=String(volume?.title||`Volume ${volumeNumber(volume,index)}`);
         const seriesTitle=String(series?.title||"Untitled series");
         const percent=Math.round((Number(item?.percentage)||0)*100);
+        const actionLabel=isAtBeginning(item)?"Read":"Continue";
         const href=`/reader.html?book=${encodeURIComponent(volume.file)}&series=${encodeURIComponent(series.id)}`;
-        const signature=[series.id,volume.file,item.updatedAt,percent,cover].join("|");
+        const signature=[series.id,volume.file,item.updatedAt,percent,cover,actionLabel].join("|");
         const currentHref=panel.querySelector("a[href*='/reader.html']")?.getAttribute("href")||"";
         const currentTitle=panel.querySelector("strong")?.textContent||"";
-        const needsRender=panel.dataset.continueSignature!==signature||currentHref!==href||currentTitle!==title;
+        const currentAction=panel.querySelector("a[href*='/reader.html']")?.textContent||"";
+        const needsRender=panel.dataset.continueSignature!==signature||currentHref!==href||currentTitle!==title||currentAction!==actionLabel;
 
         if(needsRender){
           panel.dataset.continueSignature=signature;
           panel.removeAttribute("data-finished-suppressed");
-          panel.innerHTML=`<div class="continue-mark${cover?" continue-cover":""}">${cover?`<img src="${esc(cover)}" alt="" loading="eager" decoding="async">`:"✦"}</div><div><strong>${esc(title)}</strong><span>${esc(seriesTitle)} · Volume ${esc(volumeNumber(volume,index))} · ${percent}%</span></div><a href="${href}">Continue</a>`;
+          panel.innerHTML=`<div class="continue-mark${cover?" continue-cover":""}">${cover?`<img src="${esc(cover)}" alt="" loading="eager" decoding="async">`:"✦"}</div><div><strong>${esc(title)}</strong><span>${esc(seriesTitle)} · Volume ${esc(volumeNumber(volume,index))} · ${percent}%</span></div><a href="${href}">${actionLabel}</a>`;
         }
         if(panel.classList.contains("hidden"))panel.classList.remove("hidden");
 

@@ -29,9 +29,11 @@ async function init(){
     if(!s)throw new Error("Series not found");
     syncLibraryScope(Boolean(s.nsfw));
     document.title=`${s.title} — Shadow Garden`;
-    const vols=arr(s.volumes),first=vols[0],pinned=pins().includes(s.id),finishedCount=reading?.finishedCount(s)||0;
-    const resumed=vols.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
-    const startVol=resumed?.v||first;
+    const vols=arr(s.volumes),first=vols[0],pinned=pins().includes(s.id),finishedCount=reading?.finishedCount(s)||0,allFinished=vols.length>0&&finishedCount===vols.length;
+    const unfinished=vols.filter(v=>!reading?.isFinished(v.file));
+    const resumed=unfinished.map(v=>({v,p:progressFor(v.file)})).filter(x=>x.p?.updatedAt).sort((a,b)=>b.p.updatedAt-a.p.updatedAt)[0];
+    const startVol=resumed?.v||unfinished[0]||first;
+    const startLabel=allFinished?"Read Again":resumed?"Continue Reading":finishedCount?"Read Next Unfinished":"Start Reading";
     const startHref=startVol?`/reader.html?book=${encodeURIComponent(startVol.file)}&series=${encodeURIComponent(s.id)}`:"#";
     const audioAlignedUrl=s.audioAlignedUrl||vols.find(v=>v.audioAlignedUrl)?.audioAlignedUrl||"";
     const cover=s.cover||first?.cover||s.coverThumb||first?.coverThumb||"";
@@ -46,7 +48,7 @@ async function init(){
             <h1>${esc(s.title)}</h1>
             <p class="series-byline">${esc(s.author||"Unknown author")} ${s.year?`<span class="series-year">· ${s.year}</span>`:""}${finishedCount?` <span class="series-year">· ${finishedCount}/${vols.length} finished</span>`:""}</p>
             <div class="series-actions">
-              ${startVol?`<a class="primary-button" href="${startHref}">${resumed?"Continue Reading":"Start Reading"}</a>`:""}
+              ${startVol?`<a class="primary-button" href="${startHref}">${startLabel}</a>`:""}
               ${audioAlignedUrl?`<a class="secondary-button audio-series-link" href="${esc(audioAlignedUrl)}" target="_blank" rel="noopener noreferrer">Audio EPUBs ↗</a>`:""}
               <button id="pinButton" class="secondary-button ${pinned?"pinned":""}" type="button">${pinned?"◆ Pinned":"◇ Pin to Garden"}</button>
             </div>

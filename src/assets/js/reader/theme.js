@@ -83,7 +83,7 @@ function forceColor(element, color) {
 
 export function createThemeController({ getSettings, isAdult }) {
   function themeBase(theme) {
-    if (theme === "paper") return solid("#eee9dc");
+    if (theme === "paper") return solid("#ffffff");
     if (theme === "night") return solid("#0c1020");
     if (theme === "black") return solid("#000000");
     return solid(isAdult ? "#140d10" : "#120e19");
@@ -173,7 +173,7 @@ export function createThemeController({ getSettings, isAdult }) {
         : { bg: "#120e19", text: "#e8e1f1", link: "#b9a8e3" },
       night: { bg: "#0c1020", text: "#e1e7f5", link: "#9db0ea" },
       black: { bg: "#000000", text: "#d7d7d7", link: isAdult ? "#d29aa9" : "#b9a8e3" },
-      paper: { bg: "#eee9dc", text: "#292a25", link: "#536e55" }
+      paper: { bg: "#ffffff", text: "#292a25", link: "#536e55" }
     };
     const fonts = {
       book: 'Georgia, "Times New Roman", serif',

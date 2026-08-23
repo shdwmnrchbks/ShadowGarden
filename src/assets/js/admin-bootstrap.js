@@ -1,4 +1,4 @@
-/* Shadow Garden v1.10.4 — Garden Keeper backup actions + current workflow bootstrap. */
+/* Shadow Garden v1.13.0 — Garden Keeper security + current workflow bootstrap. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
@@ -80,6 +80,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   });
 
   const boot=async()=>{
+    await loadScript('script[data-admin-security]','/assets/js/admin-security.js?v=1.13.0','adminSecurity');
     await loadScript('script[data-admin-series-status]','/assets/js/admin-series-status.js?v=1.10.4','adminSeriesStatus');
     await loadScript('script[data-admin-upload-workflow]','/assets/js/admin-upload-workflow.js?v=1.8.0','adminUploadWorkflow');
     await loadScript('script[data-admin-upload-completion]','/assets/js/admin-upload-completion.js?v=1.8.0','adminUploadCompletion');

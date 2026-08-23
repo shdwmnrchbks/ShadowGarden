@@ -16,7 +16,7 @@ window.ShadowGardenData=(()=>{
     if(!current||document.querySelector('link[data-sg-public-polish="1"]'))return;
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/site-v1.9.4.css?v=1.10.4';
+    link.href='/assets/css/site-v1.9.4.css?v=1.10.5';
     link.dataset.sgPublicPolish='1';
     document.head.appendChild(link);
   }

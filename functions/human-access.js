@@ -1,4 +1,5 @@
 import { json } from "./_lib/b2.js";
+import { classifyAutomatedClient, crawlerPolicyResponseHeaders } from "./_lib/crawler-policy.js";
 import {
   humanAccessConfig,
   humanSessionCookie,
@@ -29,6 +30,15 @@ export async function onRequest({ request, env }) {
   }
   if (!sameOriginBrowserRequest(request)) {
     return json({ error: "Cross-site human verification is not allowed." }, 403, SECURITY_HEADERS);
+  }
+
+  const automation = classifyAutomatedClient(request);
+  if (automation.blocked) {
+    console.warn("Automated human verification denied", automation.category, automation.signature || automation.reason);
+    return json({
+      code: "automated_access_denied",
+      error: "Automated access is not permitted at this endpoint."
+    }, 403, { ...SECURITY_HEADERS, ...crawlerPolicyResponseHeaders(automation) });
   }
 
   const config = humanAccessConfig(env);
@@ -67,6 +77,7 @@ export async function onRequest({ request, env }) {
     return json({ ok: true, expiresAt: session.expiresAt, ttlSeconds: session.ttlSeconds }, 200, {
       ...SECURITY_HEADERS,
       "Set-Cookie": humanSessionCookie(session),
+      "X-SG-Automation-Policy": "pass",
       "X-SG-Human-Access": "active"
     });
   } catch (error) {

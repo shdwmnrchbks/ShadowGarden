@@ -1,0 +1,46 @@
+/* Shadow Garden v1.15.8 — stable compact-card detail alignment. */
+
+/* Compact cards must reserve the same vertical slots for title, author, and metadata.
+   A one-line title should not pull the author/status/badge rail upward compared with a
+   neighboring two-line title. */
+.catalog-grid.compact .series-card>.card-copy{
+  min-width:0;
+  align-self:start;
+  display:grid;
+  grid-template-rows:2.5em 1.2em 1.2em;
+  align-content:start;
+}
+.catalog-grid.compact .series-card>.card-copy h2{
+  min-height:2.5em!important;
+  max-height:2.5em;
+  margin:0;
+  line-height:1.25;
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+.catalog-grid.compact .series-card>.card-copy p{
+  min-height:1.2em;
+  margin:4px 0 0;
+  line-height:1.2;
+}
+.catalog-grid.compact .series-card>.card-copy .card-meta{
+  min-height:1.2em;
+  margin-top:4px;
+  line-height:1.2;
+  align-items:center;
+}
+
+@media(max-width:720px){
+  .catalog-grid.compact .series-card>.card-copy{
+    grid-column:2;
+    grid-row:1;
+  }
+  .catalog-grid.compact .compact-card-badges{
+    grid-column:2;
+    grid-row:2;
+    align-self:end;
+    margin-top:0;
+  }
+}

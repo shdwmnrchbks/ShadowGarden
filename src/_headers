@@ -83,6 +83,9 @@
 /assets/css/site-v1.9.4.css
   Cache-Control: no-store
 
+/assets/css/library-compact-alignment.css
+  Cache-Control: no-store
+
 /assets/css/reader-end-page.css
   Cache-Control: no-store
 

@@ -47,13 +47,14 @@ for(const marker of ["finished-series-badge","data-reading-status=\"finished\"",
   if(!library.includes(marker))fail(`Library completion/filter UI is missing ${marker}`);
 }
 if(!polish.includes("✓ Finished")||!polish.includes("finished"))fail("Compact Library cards must surface the Finished badge");
-for(const marker of ["continuePanel","isVolumeFinished","finishedSuppressed","replaceChildren","MutationObserver"]){
-  if(!finishedPolish.includes(marker))fail(`Library finished-state polish is missing ${marker}`);
+for(const marker of ["continuePanel","canonicalBookId","crypto.subtle.digest","progressEntries","isVolumeFinished","if(finished)continue","continueSignature","sg-progress:","intro-banner-art"]){
+  if(!finishedPolish.includes(marker))fail(`Library authoritative Continue renderer is missing ${marker}`);
 }
 for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips","compact-card-badge.finished",".catalog-grid.compact .finished-series-badge"]){
   if(!style.includes(marker))fail(`reading-status.css is missing ${marker}`);
 }
-if(!indexHtml.includes("library-finished-polish.js?v=1.15.5")||!adultHtml.includes("library-finished-polish.js?v=1.15.5"))fail("Main and Adult Libraries must load the v1.15.5 finished-state presentation fix");
+if(!indexHtml.includes("library-finished-polish.js?v=1.15.6")||!adultHtml.includes("library-finished-polish.js?v=1.15.6"))fail("Main and Adult Libraries must load the v1.15.6 authoritative Continue renderer");
+if(indexHtml.includes("library-continue-meta.js")||adultHtml.includes("library-continue-meta.js"))fail("Legacy Continue metadata enrichment must not compete with the authoritative completion-aware renderer");
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
   if(!writeSource.includes(marker))fail(`deployment version generation is missing ${marker}`);
 }
@@ -66,7 +67,7 @@ for(const marker of ["/data/version.json","/assets/js/reading-status.js","/asset
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.5")fail("package version must be 1.15.5");
+if(parsed.version!=="1.15.6")fail("package version must be 1.15.6");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */

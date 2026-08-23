@@ -102,6 +102,9 @@ a.tag:hover,a.tag:focus-visible{color:var(--leaf2);border-color:rgba(145,189,157
   .compact-card-badge{min-height:20px;padding:3px 6px;font-size:.54rem}
   .library-intro>.intro-banner-art{top:-38px;right:calc(50% - 50vw);width:92vw;opacity:.18;-webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 24%,rgba(0,0,0,.10) 32%,rgba(0,0,0,.58) 47%,#000 58%);mask-image:linear-gradient(90deg,transparent 0%,transparent 24%,rgba(0,0,0,.10) 32%,rgba(0,0,0,.58) 47%,#000 58%)}
   .adult-library .library-intro>.intro-banner-art{opacity:.20}
+  .mobile-collapsed-tags{margin-top:8px;padding:0 2px}
+  .mobile-collapsed-tags button{min-height:28px}
+  .mobile-collapsed-tags button span{font-weight:800}
   .series-backdrop{width:88%!important;right:-14%!important;opacity:.20!important}
   .adult-library .series-backdrop{opacity:.22!important}
 }

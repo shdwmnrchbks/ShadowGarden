@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import vm from "node:vm";
 
 const ROOT=process.cwd();
 const failures=[];
@@ -20,16 +21,17 @@ const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSo
   read("package.json")
 ]);
 
-for(const marker of ["sg-finished-books","isFinished","setFinished","seriesFinished","finishedCount"]){
+for(const marker of ["sg-finished-books","isFinished","setFinished","migrateFinished","seriesFinished","finishedCount"]){
   if(!status.includes(marker))fail(`reading-status.js is missing ${marker}`);
 }
 if(status.includes("fetch("))fail("finished reading state must remain browser-local and must not call a server API");
-for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished"]){
+for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished","__sgReaderPublicBookId","__sgReaderSourcePath","migrateFinished"]){
   if(!readerFinished.includes(marker))fail(`Reader finished control is missing ${marker}`);
 }
-for(const marker of ["reading-status.js?v=1.15.0","reader-finished.js?v=1.15.0"]){
+for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","reading-status.js?v=1.15.1","reader-finished.js?v=1.15.1"]){
   if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
 }
+if(!readerFinished.includes("window.__sgReaderPublicBookId||queryBookId"))fail("Reader completion must prefer the canonical public bk_ identity over a transient Reader URL view");
 for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
@@ -48,7 +50,40 @@ for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-ve
 }
 if(!headers.includes("/data/version.json")||!headers.includes("/assets/js/reading-status.js"))fail("fresh-cache headers must cover version metadata and reading-status.js");
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.0")fail("package version must be 1.15.0");
+if(parsed.version!=="1.15.1")fail("package version must be 1.15.1");
+
+/* Behavioral regression: completion must survive a canonical-id migration from the
+   private media path that Reader internals temporarily use during startup. */
+{
+  const values=new Map();
+  const localStorage={
+    getItem:key=>values.has(key)?values.get(key):null,
+    setItem:(key,value)=>values.set(key,String(value)),
+    removeItem:key=>values.delete(key)
+  };
+  const window={dispatchEvent(){}};
+  const context={
+    window,
+    localStorage,
+    document:{querySelector:()=>({})},
+    CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail}},
+    Date,
+    console
+  };
+  try{
+    vm.runInNewContext(status,context,{filename:"reading-status.js"});
+    const api=window.ShadowGardenReadingStatus;
+    const legacy="/media/shadow-garden/books/example.epub";
+    const canonical="bk_1234567890123456789012";
+    if(!api?.setFinished(legacy,true)||!api.isFinished(legacy))fail("reading-status storage must persist a finished value");
+    if(!api.migrateFinished(legacy,canonical))fail("legacy/private completion state must migrate to the canonical book id");
+    if(api.isFinished(legacy)||!api.isFinished(canonical))fail("completion migration must remove the private-path key and keep the canonical bk_ key");
+    const sample={volumes:[{file:canonical},{file:"bk_abcdefghijklmnopqrstuv"}]};
+    if(api.finishedCount(sample)!==1||api.seriesFinished(sample))fail("series completion must count canonical volume ids correctly");
+    api.setFinished(sample.volumes[1].file,true);
+    if(!api.seriesFinished(sample))fail("series must become finished when all canonical volume ids are marked finished");
+  }catch(error){fail(`reading-status behavioral regression threw: ${error.message}`)}
+}
 
 if(failures.length){
   console.error(`Shadow Garden reading-status check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);

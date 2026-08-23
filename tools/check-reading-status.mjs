@@ -77,7 +77,7 @@ for(const marker of ["/data/version.json","/assets/js/reading-status.js","/asset
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.9")fail("package version must be 1.15.9");
+if(parsed.version!=="1.15.10")fail("package version must be 1.15.10");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */

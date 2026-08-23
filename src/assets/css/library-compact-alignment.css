@@ -1,11 +1,30 @@
-/* Shadow Garden v1.15.8 — stable compact-card detail alignment. */
+/* Shadow Garden v1.15.9 — stable compact-card detail alignment. */
 
-/* Compact cards must reserve the same vertical slots for title, author, and metadata.
-   A one-line title should not pull the author/status/badge rail upward compared with a
-   neighboring two-line title. */
+/* Compact cards need a fixed thumbnail column. Using an auto-sized first column lets
+   different cover/intrinsic image ratios shift the text column horizontally from one
+   series entry to the next. Reserve one shared cover width so every title, author,
+   status and badge rail begins on the exact same vertical guide. */
+.catalog-grid.compact .series-card{
+  --sg-compact-cover-width:68px;
+  grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr)!important;
+  column-gap:12px;
+}
+.catalog-grid.compact .series-card>.cover{
+  width:var(--sg-compact-cover-width)!important;
+  min-width:var(--sg-compact-cover-width)!important;
+  max-width:var(--sg-compact-cover-width)!important;
+  justify-self:start;
+}
+
+/* Reserve the same vertical slots for title, author, and metadata. A one-line title
+   must not pull the author/status/badge rail upward compared with a two-line title. */
 .catalog-grid.compact .series-card>.card-copy{
   min-width:0;
+  width:100%;
+  margin:0!important;
+  padding:0!important;
   align-self:start;
+  justify-self:stretch;
   display:grid;
   grid-template-rows:2.5em 1.2em 1.2em;
   align-content:start;
@@ -31,8 +50,24 @@
   line-height:1.2;
   align-items:center;
 }
+.catalog-grid.compact .compact-card-badges{
+  margin-left:0!important;
+  padding-left:0!important;
+}
 
 @media(max-width:720px){
+  .catalog-grid.compact .series-card{
+    --sg-compact-cover-width:74px;
+    grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr)!important;
+    column-gap:12px!important;
+  }
+  .catalog-grid.compact .series-card>.cover{
+    grid-column:1;
+    grid-row:1 / span 2;
+    width:var(--sg-compact-cover-width)!important;
+    min-width:var(--sg-compact-cover-width)!important;
+    max-width:var(--sg-compact-cover-width)!important;
+  }
   .catalog-grid.compact .series-card>.card-copy{
     grid-column:2;
     grid-row:1;
@@ -40,7 +75,8 @@
   .catalog-grid.compact .compact-card-badges{
     grid-column:2;
     grid-row:2;
+    justify-self:start;
     align-self:end;
-    margin-top:0;
+    margin:0!important;
   }
 }

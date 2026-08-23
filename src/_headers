@@ -19,6 +19,12 @@
 /assets/js/reader-bootstrap.js
   Cache-Control: no-store
 
+/assets/js/reader/theme.js
+  Cache-Control: no-store
+
+/assets/js/reader/toc.js
+  Cache-Control: no-store
+
 /assets/js/series.js
   Cache-Control: no-store
 

@@ -24,8 +24,8 @@ const [media,bookAccess,humanAccess,adminAccess,b2,routes,headers,readerBootstra
 ]);
 
 if(!media.includes("incomingRange")||!media.includes("authorizedEpub"))fail("media proxy must preserve Range handling and signed-ticket authorization");
-if(media.includes("checkPublicAbuseCooldown"))fail("Milestone 8 cooldown enforcement must remain outside /media/*");
-if(!bookAccess.includes("checkPublicAbuseCooldown")||!humanAccess.includes("checkPublicAbuseCooldown"))fail("public abuse cooldown must remain on /book-access and /human-access");
+if(media.includes("abuseCooldown(env"))fail("Milestone 8 cooldown enforcement must remain outside /media/*");
+if(!bookAccess.includes("abuseCooldown")||!humanAccess.includes("abuseCooldown"))fail("public abuse cooldown must remain on /book-access and /human-access");
 if(!adminAccess.includes("adminCooldown(env, request)"))fail("Garden Keeper must retain server-side cooldown enforcement");
 if(!b2.includes("verifyAdminSession")||!b2.includes("adminTokenMatches"))fail("admin API authorization must retain token + signed session checks");
 const routeConfig=JSON.parse(routes);

@@ -18,7 +18,7 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB delivered to 
 | 1. Baseline media hardening | ✅ Done | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
 | 2. Signed book access tickets | ✅ Done | HMAC tickets, expiring download URLs, path-scoped Reader authorization, fail-closed enforcement |
 | 3. Opaque public book identifiers | ✅ Done | Public `bk_...` identities, catalog redaction, opaque Reader/download URLs, private media boundary, stable replacement identity |
-| 4. Human access sessions | 🟨 In progress | Free Cloudflare Turnstile session verification before protected book acquisition |
+| 4. Human access sessions | 🟨 In progress | Turnstile + signed 12-hour `/book-access` session implemented and CI-passed; Production activation/validation pending |
 | 5. Bulk-download throttling | ⬜ Planned | Free Cloudflare rate-limiting rule and unique-book acquisition policy |
 | 6. Bot and crawler controls | ⬜ Planned | Bot Fight Mode, AI bot controls, AI Labyrinth, crawler policy |
 | 7. Garden Keeper hardening | ⬜ Planned | Turnstile/rate-limit admin unlock and reduce authentication probing |
@@ -122,39 +122,56 @@ Implemented through the v1.9.x hardening series and production-validated on v1.9
 
 ## Milestone 4 — Human access sessions
 
-**Status:** 🟨 In progress — design review before implementation
+**Status:** 🟨 In progress — implementation and CI complete; Production activation/validation pending
 
-Use Cloudflare Turnstile Free as an occasional human verification layer rather than placing a challenge in front of every book request.
+Use Cloudflare Turnstile Free as an occasional human verification layer at the protected book-acquisition boundary, not inside the reading/rendering path.
 
-### Proposed design to review
+### Implemented
 
-- First protected book acquisition requests verification when no valid access session exists.
-- Successful verification creates a signed same-site access-session cookie/token.
-- Proposed normal session lifetime: 8–12 hours.
-- Ordinary browsing/catalog viewing remains challenge-free.
-- Reader ticket renewal during an active access session must remain challenge-free.
-- Opening another ordinary volume during the same valid session must remain challenge-free.
-- Suspicious bulk behavior can require re-verification later, coordinated with Milestone 5.
-- Fail closed for protected acquisition if Turnstile is configured but server verification cannot be completed.
-- Keep all Turnstile secret material server-side and out of the public catalog/client code.
+- [x] Keep ordinary Main/Adult Library browsing, catalogs, covers, filters, and Series browsing challenge-free.
+- [x] Gate protected acquisition at `/book-access` before catalog book resolution when Turnstile is active.
+- [x] Return a `428 human_verification_required` response containing only the public Turnstile site key/action when no valid human session exists.
+- [x] Load Cloudflare Turnstile on demand in the browser only after the server requests verification.
+- [x] Add same-origin `/human-access` server verification using Cloudflare Siteverify.
+- [x] Validate Siteverify success, expected `book_access` action, and exact request hostname.
+- [x] Create a signed 12-hour human-access session after successful verification.
+- [x] Sign the human session with `SG_MEDIA_SIGNING_SECRET` under a separate `sg-human-session-v1` HMAC domain.
+- [x] Scope the session cookie to `/book-access` only with HttpOnly, Secure, SameSite=Strict, and 12-hour Max-Age.
+- [x] Keep the human-session cookie off EPUB Range requests, media responses, covers, catalogs, and ordinary navigation.
+- [x] Retry the original Reader/download authorization automatically after successful verification.
+- [x] Share one in-page verification flow across simultaneous Reader startup authorization requests.
+- [x] Keep Reader ticket renewals challenge-free for the lifetime of the 12-hour session.
+- [x] Keep `/media/*`, HTTP Range, Page Map, Visual Page Cache, Pages, Continuous, seeking, bookmarks, and Reader core untouched.
+- [x] Keep M4 dormant when both Turnstile variables are absent so deploying v1.10.0 alone does not lock readers out.
+- [x] Fail protected acquisition closed as misconfigured when only one Turnstile variable is present.
+- [x] Fail closed if configured Turnstile server verification times out or is unavailable.
+- [x] Add regression tests for activation state, cookie security flags, 12-hour lifetime, tamper/expiry rejection, gate ordering, client/server Turnstile wiring, and absence of human-session logic from the media proxy.
+- [x] Pass GitHub Actions verification for the implementation branch.
 
-### UX constraints
+### Production activation — pending
 
-- Do not challenge every chapter, page turn, Range request, seek, or Reader ticket renewal.
-- Do not put Turnstile in front of ordinary library browsing, cover loading, or catalog viewing.
-- The challenge should appear only at a natural protected-acquisition boundary and should disappear after the session is established.
-- Preserve direct Download EPUB and Start/Continue Reading flows after successful verification.
+- [ ] Create/configure the Cloudflare Turnstile widget for the production Shadow Garden hostname.
+- [ ] Add Production `SG_TURNSTILE_SITE_KEY`.
+- [ ] Add Production secret `SG_TURNSTILE_SECRET_KEY`.
+- [ ] Redeploy after both values are present.
+- [ ] Production-test the first Read action in a fresh private/incognito session.
+- [ ] Production-test the first Download EPUB action in a fresh private/incognito session.
+- [ ] Verify subsequent books/downloads during the same session do not re-challenge.
+- [ ] Verify Main/Adult browsing remains challenge-free.
+- [ ] Verify Pages, Continuous, seeking, Page Map, Visual Page Cache, bookmarks, progress restore, and Range behavior remain normal.
+- [ ] Verify Milestone 2 bare-media denial and Milestone 3 opaque URLs remain intact.
 
-### Acceptance criteria — pending implementation
+### Acceptance criteria
 
 1. First protected acquisition without a valid human session requires Turnstile verification.
-2. Successful verification establishes a signed same-site session for the configured lifetime.
+2. Successful verification establishes a signed 12-hour `/book-access` session.
 3. Subsequent ordinary Reader opens/downloads during that session do not re-challenge.
 4. Reader renewal, Range requests, seeking, Pages, Continuous, Page Map, and Visual Page Cache remain unaffected.
 5. Invalid/expired human sessions cannot mint new book tickets without re-verification.
 6. Existing Milestone 2 signed-ticket and Milestone 3 opaque-ID protections remain intact.
 7. Main/Adult catalog browsing stays challenge-free.
 8. No Turnstile secret is exposed to the browser or repository.
+9. Milestone 5 must not begin until these Production checks pass.
 
 ---
 

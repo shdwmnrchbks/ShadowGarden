@@ -4,3 +4,5 @@ Disallow: /admin.html
 Disallow: /admin-api/
 Disallow: /book-access
 Disallow: /book-access/
+Disallow: /human-access
+Disallow: /human-access/

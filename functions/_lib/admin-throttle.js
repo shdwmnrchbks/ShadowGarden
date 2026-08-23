@@ -1,4 +1,4 @@
-import { deleteObject, getTextObject, putObject, writeClient } from "./b2.js";
+import { deleteObject, getTextObject, putObject, readClient, writeClient } from "./b2.js";
 
 const encoder = new TextEncoder();
 const FAILURE_DOMAIN = "sg-admin-failures-v2";
@@ -60,16 +60,17 @@ function stateKey(clientId) {
 }
 
 function defaultStore(env) {
-  const aws = writeClient(env);
+  const reader = readClient(env);
+  const writer = writeClient(env);
   return {
-    get: key => getTextObject(aws, key),
+    get: key => getTextObject(reader, key),
     async put(key, value) {
-      await putObject(aws, key, value, {
+      await putObject(writer, key, value, {
         "content-type": "application/json; charset=utf-8",
         "cache-control": "no-store"
       });
     },
-    delete: key => deleteObject(aws, key)
+    delete: key => deleteObject(writer, key)
   };
 }
 

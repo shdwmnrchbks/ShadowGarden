@@ -23,8 +23,8 @@ Shadow Garden intentionally remains on the free `shadowgarden-bon.pages.dev` hos
 | 4. Human access sessions | ✅ Done | Turnstile + signed 12-hour `/book-access` human session, production accepted 2026-08-23 |
 | 5. Bulk-download throttling | ✅ Done | Signed 20-unique-book/10-minute acquisition budget; zone WAF burst rule deferred on `pages.dev` |
 | 6. Bot and crawler controls | 🟨 In progress | Repository crawler policy, protected-endpoint automation screening, Reader noindex policy; zone-only controls deferred |
-| 7. Garden Keeper hardening | 🟨 In progress | Turnstile-gated unlock, signed admin session, generic failures, server-side cross-session cooldowns, server-enforced admin APIs |
-| 8. Abuse telemetry and response | ⬜ Planned | Lightweight logging/review procedure, tripwires, temporary cooldown policy |
+| 7. Garden Keeper hardening | ✅ Done | Turnstile-gated unlock, signed admin session, generic failures, server-side cross-session cooldowns, server-enforced admin APIs; accepted 2026-08-24 |
+| 8. Abuse telemetry and response | 🟨 In progress | HMAC network tripwires, temporary public cooldowns, persistent Abuse Watch ledger, Garden Keeper review/release |
 | 9. Final security audit | ⬜ Planned | Delivery paths, cache behavior, Reader compatibility, admin flows, and documentation |
 
 ---
@@ -71,7 +71,7 @@ Shadow Garden intentionally remains on the free `shadowgarden-bon.pages.dev` hos
 
 **Status:** 🟨 In progress
 
-Repository-side protection is implemented; final production acceptance is still open while Milestone 7 proceeds at the owner's request.
+Repository-side protection is implemented; final production acceptance remains open and will be rechecked during Milestone 9.
 
 ### Implemented
 
@@ -103,7 +103,7 @@ These are not required while Shadow Garden stays on `pages.dev`.
 
 ## Milestone 7 — Garden Keeper hardening
 
-**Status:** 🟨 In progress
+**Status:** ✅ Done — production accepted 2026-08-24
 
 The concealed ✦ shortcut remains convenience/camouflage only. Garden Keeper authorization is server enforced.
 
@@ -141,30 +141,70 @@ The unlock flow has three independent requirements:
 
 Failed token attempts are tracked server-side by an HMAC-derived identifier based on Cloudflare's connecting-IP header. Browser cookies are not authoritative, so opening Incognito or clearing site data does not reset the same-network cooldown. The raw IP is never persisted. A successful unlock removes that throttle record and issues a short signed admin session. Admin API requests still require the original bearer token **and** that signed session.
 
-### Production acceptance — pending
+### Production acceptance
 
-- [ ] Correct token + successful Turnstile unlocks Garden Keeper.
-- [ ] Wrong token returns only the generic denial and does not reveal which check failed.
-- [ ] Repeated failed unlocks show the escalating cooldown and `Retry-After` behavior.
-- [ ] Incognito or cleared cookies on the same network do not bypass an active cooldown.
-- [ ] A different public network does not inherit another network's cooldown.
-- [ ] Successful authentication clears the server-side failure state.
-- [ ] Locking Garden Keeper clears the admin session and requires a new unlock flow.
-- [ ] Direct `/admin-api/*` requests with only the bearer token are rejected without the signed admin session.
-- [ ] Upload, metadata edit, series status, banner, Catalog History, maintenance, Trash restore/purge, and other Garden Keeper operations still work after a valid unlock.
-- [ ] Main/Adult Library, Series pages, Reader, and protected book acquisition remain unaffected.
-
-Milestone 8 begins after these production checks pass.
+- [x] Correct token + successful Turnstile unlocks Garden Keeper.
+- [x] Wrong token returns only the generic denial and does not reveal which check failed.
+- [x] Repeated failed unlocks show the escalating cooldown and `Retry-After` behavior.
+- [x] Incognito or cleared cookies on the same network do not bypass an active cooldown.
+- [x] Successful authentication clears the server-side failure state.
+- [x] Locking Garden Keeper clears the admin session and requires a new unlock flow.
+- [x] Direct `/admin-api/*` requests with only the bearer token are rejected without the signed admin session.
+- [x] Garden Keeper remains usable after valid authentication.
+- [x] Public Library and Reader behavior remained healthy during the accepted deployment.
 
 ---
 
 ## Milestone 8 — Abuse telemetry and response
 
-**Status:** ⬜ Planned
+**Status:** 🟨 In progress
 
-Create a lightweight operational playbook using Pages/Functions logs and free analytics available on the current deployment.
+### Repository implementation — v1.14.0
 
-Track patterns such as unusual unique-book acquisition, repeated ticket/signature failures, cross-site media attempts, repeated automation-policy denials, and Garden Keeper unlock denials/cooldowns. Prefer temporary challenges/cooldowns over broad blocks.
+- [x] Add `functions/_lib/abuse-telemetry.js` with HMAC-derived network identities based on `CF-Connecting-IP`; raw IP addresses are never persisted.
+- [x] Keep the public tripwire server-side so Incognito and cleared cookies do not reset the same-network state.
+- [x] Use a rolling 15-minute suspicious-signal window and score threshold of 12.
+- [x] Apply a 10-minute temporary cooldown to `/book-access` and `/human-access` after the threshold is reached.
+- [x] Weight signals for automation denials, rejected Turnstile responses, M5 acquisition-limit activation, cross-site EPUB attempts, and invalid non-Range ticket requests.
+- [x] Make reaching the M5 unique-book limit an immediate M8 tripwire activation.
+- [x] Keep M8 cooldown enforcement entirely outside `/media/*`.
+- [x] Treat stale/invalid Reader Range ticket requests as log-only so ticket renewal cannot accidentally trip the persistent score.
+- [x] Persist tripwire state privately under `shadow-garden/security/abuse-state/`.
+- [x] Maintain a bounded seven-day/100-event `shadow-garden/security/abuse-ledger.json` containing only significant activations/events.
+- [x] Record Garden Keeper cooldowns of 60 seconds or longer in the same private ledger.
+- [x] Add authenticated `/admin-api/abuse` review/release operations behind `adminAuthorized`.
+- [x] Add a self-mounted Garden Maintenance **Abuse Watch** card showing active cooldowns, recent events, policy timing, and opaque network IDs.
+- [x] Allow the owner to release a public cooldown manually without deleting its historical event.
+- [x] Serve the Abuse Watch client with `Cache-Control: no-store`.
+- [x] Keep individual denied-request detail in Pages/Functions console logs while persisting only threshold/significant events to avoid turning every nuisance request into durable storage.
+- [x] Add dedicated Milestone 8 regression checks to the normal build/check pipeline.
+
+### Response policy
+
+M8 favors temporary cooldowns over broad or permanent blocks. The public abuse score currently uses:
+
+- automation denied: +4
+- Turnstile rejected: +2
+- M5 acquisition limit reached: +12
+- cross-site EPUB request: +4
+- invalid non-Range EPUB ticket request: +1
+
+At score 12 inside 15 minutes, the network receives a 10-minute `/book-access` + `/human-access` cooldown. After the cooldown expires, a later signal starts a fresh scoring window.
+
+### Remaining production acceptance
+
+- [ ] Confirm normal book opening and Turnstile flow remain smooth.
+- [ ] Confirm Pages and Continuous Reader modes plus EPUB Range/seek behavior are unaffected.
+- [ ] Confirm repeated suspicious public-access signals eventually produce `429 abuse_cooldown`.
+- [ ] Confirm Incognito/cleared cookies on the same network do not reset an active M8 cooldown.
+- [ ] Confirm another public network does not inherit the cooldown.
+- [ ] Confirm the M5 unique-book limiter creates an M8 tripwire event.
+- [ ] Confirm Garden Keeper → Maintenance displays Abuse Watch and recent events.
+- [ ] Confirm Abuse Watch never displays a raw IP address.
+- [ ] Confirm manual release ends an active public cooldown while retaining its history entry.
+- [ ] Confirm significant Garden Keeper cooldowns appear in Abuse Watch.
+
+See `MILESTONE_8_ABUSE_RESPONSE.md` for the detailed policy and acceptance procedure.
 
 ---
 
@@ -173,6 +213,8 @@ Track patterns such as unusual unique-book acquisition, repeated ticket/signatur
 **Status:** ⬜ Planned
 
 Final regression pass across Main/Adult Library, Series pages, Reader Pages/Continuous, Range/seek behavior, Page Map, Visual Page Cache, Continue Reading/bookmarks, Garden Keeper uploads/maintenance/history/trash, cache behavior, expired/tampered tickets, cross-origin attempts, and all anti-automation/admin-hardening layers.
+
+Milestone 9 will also close any remaining Milestone 6 production-acceptance items so the final audit ends with one coherent security baseline.
 
 ---
 

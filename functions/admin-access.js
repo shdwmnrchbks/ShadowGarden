@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "./_lib/abuse-telemetry.js";
 import { adminTokenMatches, json } from "./_lib/b2.js";
 import {
   ADMIN_SESSION_TTL_SECONDS,
@@ -66,7 +67,14 @@ function activeTurnstile(env) {
   return config;
 }
 
-export async function onRequest({ request, env }) {
+function deferTelemetry(context, promise, label) {
+  const guarded = Promise.resolve(promise).catch(error => console.warn(label, error));
+  try { context.waitUntil(guarded); }
+  catch { void guarded; }
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
   if (!sameOriginBrowserRequest(request)) return genericDenied();
   const automated = automationResponse(request);
   if (automated) return automated;
@@ -128,6 +136,12 @@ export async function onRequest({ request, env }) {
     } catch (error) {
       console.error("Garden Keeper throttle update failed", error);
       return unavailable();
+    }
+    if (failure.retryAfterSeconds >= 60) {
+      deferTelemetry(context, recordSecurityEvent(env, request, "admin_cooldown", {
+        failures: failure.failures,
+        retryAfterSeconds: failure.retryAfterSeconds
+      }), "Garden Keeper abuse telemetry failed");
     }
     const headers = {
       "X-SG-Admin-Throttle": "server",

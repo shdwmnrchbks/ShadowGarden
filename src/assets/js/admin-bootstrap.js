@@ -1,4 +1,4 @@
-/* Shadow Garden v1.13.0 — Garden Keeper security + current workflow bootstrap. */
+/* Shadow Garden v1.14.0 — Garden Keeper security + current workflow bootstrap. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
@@ -87,6 +87,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     await loadScript('script[data-admin-upload-polish]','/assets/js/admin-upload-polish.js?v=1.8.0','adminUploadPolish');
     await loadScript('script[data-admin-backup-history]','/assets/js/admin-backup-history.js?v=1.8.0','adminBackupHistory');
     await loadScript('script[data-admin-series-banner]','/assets/js/admin-series-banner.js?v=1.9.4','adminSeriesBanner');
+    await loadScript('script[data-admin-abuse]','/assets/js/admin-abuse.js?v=1.14.0','adminAbuse');
     await loadScript('script[data-ui-direction-triangles]','/assets/js/ui-direction-triangles.js?v=1.8.0','uiDirectionTriangles');
   };
   void boot().catch(error=>console.error('Garden Keeper bootstrap failed',error));

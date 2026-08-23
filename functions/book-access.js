@@ -5,6 +5,7 @@ import {
   ACQUISITION_WINDOW_SECONDS,
   evaluateAcquisition
 } from "./_lib/acquisition-limit.js";
+import { abuseCooldown, registerAbuseSignal } from "./_lib/abuse-telemetry.js";
 import { classifyAutomatedClient, crawlerPolicyResponseHeaders } from "./_lib/crawler-policy.js";
 import {
   humanAccessConfig,
@@ -44,6 +45,33 @@ function acquisitionHeaders(result) {
   };
 }
 
+function deferTelemetry(context, promise, label) {
+  const guarded = Promise.resolve(promise).catch(error => console.warn(label, error));
+  try { context.waitUntil(guarded); }
+  catch { void guarded; }
+}
+
+async function currentAbuseCooldown(env, request) {
+  try { return await abuseCooldown(env, request); }
+  catch (error) {
+    console.warn("Abuse cooldown lookup skipped", error);
+    return null;
+  }
+}
+
+function abuseCooldownResponse(cooldown) {
+  const retryAfter = Math.max(1, Number(cooldown?.retryAfterSeconds) || 1);
+  return json({
+    code: "abuse_cooldown",
+    error: "Too many suspicious access attempts were detected from this network. Please try again later.",
+    retryAfterSeconds: retryAfter
+  }, 429, {
+    ...SECURITY_HEADERS,
+    "Retry-After": String(retryAfter),
+    "X-SG-Abuse-Cooldown": "active"
+  });
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   if (request.method === "OPTIONS") {
@@ -56,12 +84,16 @@ export async function onRequest(context) {
     return json({ error: "Cross-site book access is not allowed." }, 403, SECURITY_HEADERS);
   }
 
+  const networkCooldown = await currentAbuseCooldown(env, request);
+  if (networkCooldown?.blocked) return abuseCooldownResponse(networkCooldown);
+
   /* Known AI crawlers and obvious script/headless clients do not need a Turnstile
      challenge or catalog lookup. This remains only a cheap first filter because UAs
-     are spoofable; M2–M5 still enforce the actual authorization boundary. */
+     are spoofable; the signed authorization layers still enforce actual access. */
   const automation = classifyAutomatedClient(request);
   if (automation.blocked) {
     console.warn("Automated book acquisition denied", automation.category, automation.signature || automation.reason);
+    deferTelemetry(context, registerAbuseSignal(env, request, "automation_denied"), "Automation abuse telemetry failed");
     return json({
       code: "automated_access_denied",
       error: "Automated access is not permitted at this endpoint."
@@ -111,6 +143,7 @@ export async function onRequest(context) {
     if (!acquisition.allowed) {
       const retryAfter = Math.max(1, Number(acquisition.retryAfterSeconds) || ACQUISITION_WINDOW_SECONDS);
       const minutes = Math.max(1, Math.ceil(retryAfter / 60));
+      deferTelemetry(context, registerAbuseSignal(env, request, "acquisition_limited"), "Acquisition-limit telemetry failed");
       return json({
         code: "acquisition_rate_limited",
         error: `Too many different books were opened recently. Please try another new book in about ${minutes} minute${minutes === 1 ? "" : "s"}.`,

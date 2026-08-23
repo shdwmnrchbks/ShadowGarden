@@ -1,3 +1,4 @@
+import { abuseCooldown, registerAbuseSignal } from "./_lib/abuse-telemetry.js";
 import { json } from "./_lib/b2.js";
 import { classifyAutomatedClient, crawlerPolicyResponseHeaders } from "./_lib/crawler-policy.js";
 import {
@@ -21,7 +22,22 @@ function sameOriginBrowserRequest(request) {
   catch { return false; }
 }
 
-export async function onRequest({ request, env }) {
+function deferTelemetry(context, promise, label) {
+  const guarded = Promise.resolve(promise).catch(error => console.warn(label, error));
+  try { context.waitUntil(guarded); }
+  catch { void guarded; }
+}
+
+async function currentAbuseCooldown(env, request) {
+  try { return await abuseCooldown(env, request); }
+  catch (error) {
+    console.warn("Human-access abuse cooldown lookup skipped", error);
+    return null;
+  }
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: { ...SECURITY_HEADERS, Allow: "POST, OPTIONS" } });
   }
@@ -32,9 +48,24 @@ export async function onRequest({ request, env }) {
     return json({ error: "Cross-site human verification is not allowed." }, 403, SECURITY_HEADERS);
   }
 
+  const networkCooldown = await currentAbuseCooldown(env, request);
+  if (networkCooldown?.blocked) {
+    const retryAfter = Math.max(1, Number(networkCooldown.retryAfterSeconds) || 1);
+    return json({
+      code: "abuse_cooldown",
+      error: "Too many suspicious access attempts were detected from this network. Please try again later.",
+      retryAfterSeconds: retryAfter
+    }, 429, {
+      ...SECURITY_HEADERS,
+      "Retry-After": String(retryAfter),
+      "X-SG-Abuse-Cooldown": "active"
+    });
+  }
+
   const automation = classifyAutomatedClient(request);
   if (automation.blocked) {
     console.warn("Automated human verification denied", automation.category, automation.signature || automation.reason);
+    deferTelemetry(context, registerAbuseSignal(env, request, "automation_denied"), "Human automation telemetry failed");
     return json({
       code: "automated_access_denied",
       error: "Automated access is not permitted at this endpoint."
@@ -64,6 +95,7 @@ export async function onRequest({ request, env }) {
     if (!verification.valid) {
       console.warn("Turnstile verification rejected", verification.reason, verification.errorCodes || []);
       const unavailable = ["timeout", "network", "invalid_response"].includes(verification.reason);
+      if (!unavailable) deferTelemetry(context, registerAbuseSignal(env, request, "turnstile_rejected"), "Turnstile rejection telemetry failed");
       return json({
         code: unavailable ? "human_verification_unavailable" : "human_verification_failed",
         error: unavailable ? "Human verification is temporarily unavailable." : "Human verification was not accepted. Please try again."

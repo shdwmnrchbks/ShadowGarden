@@ -1,42 +1,48 @@
-# Milestone 5 — Cloudflare Free rate-limit setup
+# Milestone 5 — pages.dev deployment notes
 
-Shadow Garden v1.11.0 adds the application-side part of Milestone 5: a signed, HttpOnly rolling budget of **20 different books per 10 minutes** on `/book-access`. Re-authorizing the same book does not consume another unique-book slot, and EPUB `/media/*` Range requests are never counted by this application limiter.
+Shadow Garden v1.11.0 adds the application-side Milestone 5 protection: a signed, HttpOnly rolling budget of **20 different books per 10 minutes** on `/book-access`. Re-authorizing the same book does not consume another unique-book slot, and EPUB `/media/*` Range requests are never counted.
 
-Cloudflare Free should provide the independent IP-level burst layer.
+## Current hosting constraint
 
-## Why the Cloudflare rule is a burst rule
+Shadow Garden is intentionally staying on the Cloudflare Pages hostname `shadowgarden-bon.pages.dev` and does not use a custom domain/zone.
 
-As of August 2026, Cloudflare Free provides one WAF rate-limiting rule, exposes `Path` and `Verified Bot` in the Free rule expression, and supports a **10-second** counting period. A 10-minute Cloudflare counting window is not available on Free. Therefore Shadow Garden splits Milestone 5 into two complementary controls:
+Cloudflare zone-level WAF rate-limiting rules therefore cannot be attached to this deployment. A custom domain is **not required** for Shadow Garden, and Milestone 5 will not require purchasing one.
 
-- **Application/session:** 20 unique books per 10 minutes, signed with `SG_MEDIA_SIGNING_SECRET`.
-- **Cloudflare/IP burst:** 8 requests to `/book-access` per 10 seconds, then Managed Challenge.
+The previously planned IP-level Cloudflare burst rule is consequently **deferred by hosting/platform constraint**, not treated as an incomplete mandatory step.
 
-This keeps ordinary Reader ticket renewal and EPUB Range requests out of the hot path while making fast authorization scraping expensive.
+## Active Milestone 5 protection
 
-## Dashboard configuration
+The repository implementation remains active on `pages.dev`:
 
-In the Cloudflare dashboard for the Shadow Garden zone:
+- **20 unique books per rolling 10 minutes** at `/book-access`.
+- State is signed with `SG_MEDIA_SIGNING_SECRET`.
+- The state cookie is HttpOnly, Secure, SameSite=Strict and scoped to `/book-access`.
+- Re-authorizing the same `bookId` does not consume another slot.
+- The next different book after the budget is exhausted returns HTTP `429` with `Retry-After`.
+- `/media/*`, HTTP Range requests, page turns, seeking, Page Map, Visual Page Cache, covers, catalogs and ordinary Library/Series browsing are not counted.
 
-1. Open **Security → Security rules** and create a **Rate limiting rule**.
-2. Name it `Shadow Garden book-access burst`.
-3. Match **URI Path equals `/book-access`**.
-4. Set the rate to **8 requests** per **10 seconds**.
-5. Use the default per-IP counting characteristic supplied by the dashboard.
-6. Choose **Managed Challenge** as the action.
-7. Save/deploy the rule.
+This is a deterrence layer rather than DRM. Because the unique-book budget is browser/session state, a determined client that deliberately discards browser state can eventually force a new human-verification flow. Milestone 4 Turnstile still raises the cost of doing so.
 
-Do **not** target `/media/*`, EPUB files, Range requests, covers, catalogs, Reader assets, `/human-access`, or ordinary Library/Series navigation.
+## Deferred optional layer
+
+If Shadow Garden ever moves to a custom Cloudflare zone in the future, an optional independent IP burst rule can be added:
+
+- URI Path equals `/book-access`
+- 8 requests per 10 seconds
+- Managed Challenge
+- never target `/media/*`
+
+This is **optional future hardening** and is not part of current Milestone 5 acceptance.
 
 ## Production acceptance
 
-After v1.11.0 is deployed and the Cloudflare rule is enabled:
+For the current `pages.dev` deployment:
 
-- [ ] A normal first Read/Download succeeds after the existing Garden Pass behavior.
-- [ ] Opening or renewing the same book repeatedly does not consume extra unique-book slots.
-- [ ] Normal Pages/Continuous reading, seeking, Page Map, Visual Page Cache, bookmarks, and Range requests remain unaffected.
-- [ ] Opening 20 different books within 10 minutes is allowed; the next different book returns HTTP 429 with `Retry-After`.
-- [ ] The 429 clears after the rolling window expires.
-- [ ] A burst above 8 `/book-access` requests in 10 seconds from one IP triggers Cloudflare Managed Challenge.
+- [ ] A normal first Read/Download still succeeds after the existing Garden Pass behavior.
+- [ ] Opening or renewing the same book repeatedly does not consume additional unique-book slots.
+- [ ] Normal Pages/Continuous reading, seeking, Page Map, Visual Page Cache, bookmarks, progress restore, and Range requests remain unaffected.
+- [ ] Repository regression tests confirm that 20 distinct books inside 10 minutes are allowed and the 21st different book receives `429` with `Retry-After`.
+- [ ] Repository regression tests confirm the rolling budget recovers after the 10-minute window.
 - [ ] Main/Adult Library browsing, Series pages, covers, and catalogs remain challenge-free.
 - [ ] Milestone 2 bare-media denial, Milestone 3 opaque IDs, and Milestone 4 Turnstile sessions remain intact.
 

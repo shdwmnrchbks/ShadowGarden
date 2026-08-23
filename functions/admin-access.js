@@ -8,6 +8,7 @@ import {
 import {
   adminCooldown,
   clearAdminFailureCookie,
+  clearAdminFailureState,
   registerAdminFailure
 } from "./_lib/admin-throttle.js";
 import { classifyAutomatedClient, crawlerPolicyResponseHeaders } from "./_lib/crawler-policy.js";
@@ -44,6 +45,10 @@ function genericDenied(status = 403, headers = {}, cookies = []) {
     ...SECURITY_HEADERS,
     ...headers
   }, cookies);
+}
+
+function unavailable() {
+  return json({ code: "admin_access_unavailable", error: "Garden Keeper verification is temporarily unavailable." }, 503, SECURITY_HEADERS);
 }
 
 function automationResponse(request) {
@@ -92,10 +97,16 @@ export async function onRequest({ request, env }) {
     return json({ code: "admin_access_unavailable", error: "Garden Keeper verification is unavailable." }, 503, SECURITY_HEADERS);
   }
 
-  const cooldown = await adminCooldown(env, request.headers.get("cookie"));
+  let cooldown;
+  try {
+    cooldown = await adminCooldown(env, request);
+  } catch (error) {
+    console.error("Garden Keeper throttle lookup failed", error);
+    return unavailable();
+  }
   if (cooldown.blocked) {
     const retryAfter = Math.max(1, cooldown.retryAfterSeconds);
-    return genericDenied(429, { "Retry-After": String(retryAfter) });
+    return genericDenied(429, { "Retry-After": String(retryAfter), "X-SG-Admin-Throttle": "server" });
   }
 
   let payload;
@@ -104,18 +115,32 @@ export async function onRequest({ request, env }) {
 
   const verification = await verifyTurnstileToken(env, request, payload?.turnstileToken, ADMIN_ACCESS_ACTION);
   if (!verification.valid) {
-    const unavailable = ["timeout", "network", "invalid_response"].includes(verification.reason);
-    if (unavailable) {
-      return json({ code: "admin_access_unavailable", error: "Garden Keeper verification is temporarily unavailable." }, 503, SECURITY_HEADERS);
-    }
+    const isUnavailable = ["timeout", "network", "invalid_response"].includes(verification.reason);
+    if (isUnavailable) return unavailable();
     return genericDenied();
   }
 
   const tokenOk = await adminTokenMatches(String(payload?.adminToken || "").trim(), env);
   if (!tokenOk) {
-    const failure = await registerAdminFailure(env, request.headers.get("cookie"));
-    const headers = failure.retryAfterSeconds > 0 ? { "Retry-After": String(failure.retryAfterSeconds) } : {};
+    let failure;
+    try {
+      failure = await registerAdminFailure(env, request);
+    } catch (error) {
+      console.error("Garden Keeper throttle update failed", error);
+      return unavailable();
+    }
+    const headers = {
+      "X-SG-Admin-Throttle": "server",
+      ...(failure.retryAfterSeconds > 0 ? { "Retry-After": String(failure.retryAfterSeconds) } : {})
+    };
     return genericDenied(403, headers, [failure.cookie]);
+  }
+
+  try {
+    await clearAdminFailureState(env, request);
+  } catch (error) {
+    console.error("Garden Keeper throttle reset failed", error);
+    return unavailable();
   }
 
   const session = await issueAdminSession(env);
@@ -123,5 +148,5 @@ export async function onRequest({ request, env }) {
     ok: true,
     expiresAt: session.expiresAt,
     ttlSeconds: session.ttlSeconds
-  }, 200, SECURITY_HEADERS, [adminSessionCookie(session), clearAdminFailureCookie()]);
+  }, 200, { ...SECURITY_HEADERS, "X-SG-Admin-Throttle": "server" }, [adminSessionCookie(session), clearAdminFailureCookie()]);
 }

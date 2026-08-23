@@ -44,6 +44,9 @@
 /assets/js/admin-bootstrap.js
   Cache-Control: no-store
 
+/assets/js/admin-security.js
+  Cache-Control: no-store
+
 /assets/js/admin-series-status.js
   Cache-Control: no-store
 

@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.4 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.7 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -43,8 +43,8 @@
   }
 
   async function mountReadingStatus(){
-    await import("/assets/js/reading-status.js?v=1.15.3");
-    await import("/assets/js/reader-finished.js?v=1.15.4");
+    await import("/assets/js/reading-status.js?v=1.15.6");
+    await import("/assets/js/reader-finished.js?v=1.15.7");
   }
 
   function canonicalizeLegacyUrl(){

@@ -1,7 +1,6 @@
-/* Shadow Garden v1.5.0 — full reader-interface theme palettes.
- * Theme classes already follow the reader setting, so keep EPUB layout logic untouched and
- * make the surrounding chrome consume the same motif: header, footer, drawers, controls,
- * progress/seek UI, loading/end pages, toast, and overlays.
+/* Shadow Garden v1.10.3 — full reader-interface theme palettes.
+ * Theme classes follow the reader setting. The surrounding chrome consumes the same motif:
+ * header, footer, drawers, controls, progress/seek UI, loading/end pages, toast, and overlays.
  */
 
 body.reader-theme-garden{
@@ -39,7 +38,6 @@ body.reader-theme-garden.adult-reader{
   --sg-ui-overlay:rgba(8,2,5,.60);
 }
 
-/* Night is now a true midnight-blue motif instead of the old green/teal-black variation. */
 body.reader-theme-night{
   color-scheme:dark;
   --text:#e7ebf7;
@@ -94,7 +92,7 @@ body.reader-theme-paper{
   --sg-ui-chrome:rgba(238,233,220,.97);
   --sg-ui-panel:#e2dbce;
   --sg-ui-panel-2:#f4efe5;
-  --sg-ui-page:#eee9dc;
+  --sg-ui-page:#fff;
   --sg-ui-control:#f7f2e8;
   --sg-ui-hover:rgba(75,93,68,.09);
   --sg-ui-accent:#667b60;
@@ -120,11 +118,6 @@ body,
   background:var(--sg-ui-hover)!important;
 }
 .reader-icon.bookmarked{color:var(--gold)!important}
-#focusModeButton[aria-pressed="true"]{
-  color:var(--leaf)!important;
-  border-color:var(--sg-ui-accent-line)!important;
-  background:var(--sg-ui-hover)!important;
-}
 
 .viewer-shell,.reader-loading,.volume-end-page{background:var(--sg-ui-page)!important;color:var(--text)!important}
 .reader-loading span,.volume-complete-mark,.volume-complete-kicker{color:var(--leaf)!important}

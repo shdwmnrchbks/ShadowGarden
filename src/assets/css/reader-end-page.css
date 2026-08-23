@@ -21,7 +21,35 @@
   color:#f0edf5;
 }
 body.reader-theme-paper .volume-end-page h2{color:#292a25}
-.volume-end-page .volume-complete-actions{justify-content:center;flex-wrap:wrap}
+
+/* Completion actions are content-sized. Long next-volume titles wrap instead of
+   forcing the CTA into a single overflowing line on narrow/mobile screens. */
+.volume-end-page .volume-complete-actions{
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  justify-content:stretch;
+  gap:9px;
+  width:100%;
+  max-width:100%;
+}
+.volume-end-page .volume-complete-actions a{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:46px;
+  height:auto;
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  line-height:1.35;
+  white-space:normal!important;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.volume-end-page .volume-complete-next{text-wrap:pretty}
+
 body.reader-theme-night .volume-end-page{background:#11171a}
 body.reader-theme-black .volume-end-page{background:#000}
 body.reader-theme-paper .volume-end-page{background:#eee9dc;color:#292a25}
@@ -44,4 +72,13 @@ body.reader-flow-scrolled .volume-end-page.continuous-end{
   margin:0;
   z-index:0;
   flex:0 0 auto;
+}
+
+@media(max-width:700px){
+  .volume-end-page{padding:clamp(22px,5vw,36px)}
+  .volume-end-page .volume-complete-actions a{
+    min-height:58px;
+    padding:14px 15px;
+    font-size:.82rem;
+  }
 }

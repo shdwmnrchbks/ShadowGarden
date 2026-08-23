@@ -1,4 +1,4 @@
-/* Shadow Garden v1.5.1 — enrich Continue metadata with the resumed volume number. */
+/* Shadow Garden v1.10.1 — enrich Continue Reading with resumed-volume metadata and artwork. */
 (()=>{
   const panel=document.querySelector("#continuePanel");
   if(!panel||!window.ShadowGardenData)return;
@@ -35,25 +35,49 @@
     if(!match)return null;
     return {
       seriesTitle:String(match.series.title||"Untitled series"),
+      volumeTitle:String(match.volume.title||`Volume ${match.index+1}`),
       volumeNumber:cleanVolumeNumber(match.volume.number,match.index+1),
-      percent:Math.round((Number(saved.percentage)||0)*100)
+      percent:Math.round((Number(saved.percentage)||0)*100),
+      cover:String(match.volume.coverThumb||match.volume.cover||match.series.coverThumb||match.series.cover||"")
     };
   }).catch(error=>{
     console.warn("Continue metadata enrichment skipped",error);
     return null;
   });
 
+  function installCover(mark,metadata){
+    if(!mark||!metadata.cover||mark.dataset.cover===metadata.cover)return;
+    mark.dataset.cover=metadata.cover;
+    mark.classList.add("continue-cover");
+    const image=document.createElement("img");
+    image.src=metadata.cover;
+    image.alt="";
+    image.loading="eager";
+    image.decoding="async";
+    image.addEventListener("error",()=>{
+      if(mark.dataset.cover!==metadata.cover)return;
+      mark.classList.remove("continue-cover");
+      delete mark.dataset.cover;
+      mark.replaceChildren("✦");
+    },{once:true});
+    mark.replaceChildren(image);
+  }
+
   let applying=false;
   async function enrich(){
     if(applying||panel.classList.contains("hidden"))return;
     const span=panel.querySelector("span");
-    if(!span)return;
+    const mark=panel.querySelector(".continue-mark");
+    if(!span&&!mark)return;
     const metadata=await metadataPromise;
     if(!metadata)return;
     const next=`${metadata.seriesTitle} · Volume ${metadata.volumeNumber} · ${metadata.percent}%`;
-    if(span.textContent===next)return;
+    const needsText=Boolean(span&&span.textContent!==next);
+    const needsCover=Boolean(mark&&metadata.cover&&mark.dataset.cover!==metadata.cover);
+    if(!needsText&&!needsCover)return;
     applying=true;
-    span.textContent=next;
+    if(needsText)span.textContent=next;
+    if(needsCover)installCover(mark,metadata);
     applying=false;
   }
 

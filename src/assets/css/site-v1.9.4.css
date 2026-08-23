@@ -1,10 +1,10 @@
-/* Shadow Garden v1.10.4 — compact cards, living banners, and series action polish. */
+/* Shadow Garden v1.10.5 — compact cards, living banners, and series action polish. */
 
-/* Compact mode uses a definite card/thumbnail geometry so the cover fills the
-   card's usable height without being allowed to determine (and explode) row height. */
+/* Compact mode has a definite card height. The cover fills the card's usable inner
+   height, so it tracks the entry exactly without ever being allowed to size the row. */
 .compact-card-badges{display:none}
-.catalog-grid.compact .series-card{height:120px;grid-template-columns:66px minmax(0,1fr) auto;align-items:center}
-.catalog-grid.compact .series-card>.cover{width:66px!important;height:99px!important;min-width:66px;align-self:center;aspect-ratio:2/3}
+.catalog-grid.compact .series-card{height:120px;grid-template-columns:auto minmax(0,1fr) auto;align-items:stretch}
+.catalog-grid.compact .series-card>.cover{width:auto!important;height:100%!important;min-width:0;max-height:100%;align-self:stretch;aspect-ratio:2/3}
 .catalog-grid.compact .series-card>.cover>img{width:100%!important;height:100%!important;object-fit:cover!important}
 .catalog-grid.compact .series-card>.cover .volume-pill,
 .catalog-grid.compact .series-card>.cover .adult-pill,
@@ -127,8 +127,8 @@ a.tag:hover,a.tag:focus-visible{color:var(--leaf2);border-color:rgba(145,189,157
 .adult-library a.tag:hover,.adult-library a.tag:focus-visible{color:#e0a8b8;border-color:rgba(225,151,173,.32);background:rgba(201,130,153,.10)}
 
 @media(max-width:720px){
-  .catalog-grid.compact .series-card{height:128px;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px}
-  .catalog-grid.compact .series-card>.cover{grid-row:1 / span 2;width:72px!important;height:108px!important;min-width:72px;align-self:center}
+  .catalog-grid.compact .series-card{height:128px;grid-template-columns:auto minmax(0,1fr);align-items:stretch;gap:10px}
+  .catalog-grid.compact .series-card>.cover{grid-row:1 / span 2;width:auto!important;height:100%!important;min-width:0;max-height:100%;align-self:stretch}
   .catalog-grid.compact .compact-card-badges{grid-column:2;justify-self:start;max-width:100%;margin-top:2px}
   .compact-card-badge{min-height:20px;padding:3px 6px;font-size:.54rem}
   .continue-mark.continue-cover{height:63px}

@@ -7,7 +7,7 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSource,adminBootstrap,headers,pkg]=await Promise.all([
+const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSource,adminBootstrap,adminVersion,headers,pkg]=await Promise.all([
   read("src/assets/js/reading-status.js"),
   read("src/assets/js/reader-finished.js"),
   read("src/assets/js/reader-bootstrap.js"),
@@ -17,6 +17,7 @@ const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSo
   read("src/assets/css/reading-status.css"),
   read("tools/write-source.mjs"),
   read("src/assets/js/admin-bootstrap.js"),
+  read("src/assets/css/admin-version.css"),
   read("src/_headers"),
   read("package.json")
 ]);
@@ -25,14 +26,14 @@ for(const marker of ["sg-finished-books","isFinished","setFinished","migrateFini
   if(!status.includes(marker))fail(`reading-status.js is missing ${marker}`);
 }
 if(status.includes("fetch("))fail("finished reading state must remain browser-local and must not call a server API");
-for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished","__sgReaderPublicBookId","__sgReaderSourcePath","migrateFinished"]){
+for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished","__sgReaderPublicBookId","__sgReaderSourcePath","migrateFinished","ShadowGardenBookAccess?.initial","ticket?.bookId||ticket?.identity"]){
   if(!readerFinished.includes(marker))fail(`Reader finished control is missing ${marker}`);
 }
-for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","reading-status.js?v=1.15.1","reader-finished.js?v=1.15.1"]){
+for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.2","reader-finished.js?v=1.15.2"]){
   if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
 }
-if(!readerFinished.includes("window.__sgReaderPublicBookId||queryBookId"))fail("Reader completion must prefer the canonical public bk_ identity over a transient Reader URL view");
-for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
+if(!readerFinished.includes("window.__sgReaderPublicBookId||ticketBookId||queryBookId"))fail("Reader completion must prefer the canonical ticket/public bk_ identity over a legacy Reader URL");
+for(const marker of ["finished-volume-badge","Read again","finishedCount","reading-status.js?v=1.15.2"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
 for(const marker of ["finished-series-badge","data-reading-status=\"finished\"","data-reading-status=\"unfinished\"","params.set(\"reading\"","seriesFinished"]){
@@ -45,12 +46,16 @@ for(const marker of ["finished-volume-badge","finished-series-badge","reading-st
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
   if(!writeSource.includes(marker))fail(`deployment version generation is missing ${marker}`);
 }
-for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-version.css?v=1.15.0"]){
+for(const marker of ["adminVersion","/data/version.json","shortCommit","brandMeta","admin-version.css?v=1.15.2"]){
   if(!adminBootstrap.includes(marker))fail(`Garden Keeper version UI is missing ${marker}`);
 }
-if(!headers.includes("/data/version.json")||!headers.includes("/assets/js/reading-status.js"))fail("fresh-cache headers must cover version metadata and reading-status.js");
+if(adminBootstrap.includes("header.insertBefore(label,back)"))fail("Garden Keeper version must not occupy a standalone header grid column");
+if(!adminVersion.includes(".admin-header .brand")||adminVersion.includes("margin-left:auto"))fail("Garden Keeper version styling must stay inside the brand metadata line");
+for(const marker of ["/data/version.json","/assets/js/reading-status.js","/assets/js/library.js","/assets/js/library-series-polish.js"]){
+  if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
+}
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.1")fail("package version must be 1.15.1");
+if(parsed.version!=="1.15.2")fail("package version must be 1.15.2");
 
 /* Behavioral regression: completion must survive a canonical-id migration from the
    private media path that Reader internals temporarily use during startup. */

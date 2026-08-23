@@ -6,6 +6,8 @@ User-agent: *
 Disallow: /media/
 Disallow: /reader.html
 Disallow: /admin.html
+Disallow: /admin-access
+Disallow: /admin-access/
 Disallow: /admin-api/
 Disallow: /book-access
 Disallow: /book-access/

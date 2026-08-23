@@ -24,6 +24,13 @@ function flatten(items, depth = 0, output = []) {
   return output;
 }
 
+function genericVisualLabel(item) {
+  const label = String(item?.label || "").trim();
+  if (!label) return true;
+  return /^(?:page|pg\.?)\s*\d+(?:\s*[-–—]\s*\d+)?$/i.test(label) ||
+    /^(?:cover|cover page|illustration|illustration page|image|image page|plate|frontispiece)(?:\s+\d+)?$/i.test(label);
+}
+
 function readerSpineItems() {
   const items = window.__sgReaderBook?.spine?.spineItems;
   return Array.isArray(items) ? items : [];
@@ -188,30 +195,43 @@ export function createTocController({ panel, navigate, closeDrawers }) {
     syncPageNumbers();
   }
 
+  function bestEntry(entries) {
+    let best = null;
+    for (const entry of entries) {
+      if (!best || entry.depth > best.depth || cleanHref(entry.item?.href).length > cleanHref(best.item?.href).length) best = entry;
+    }
+    return best;
+  }
+
   function matchForLocation(location) {
     const href = location?.start?.href || location?.end?.href || "";
-    let exact = null;
-    for (const entry of flat) {
-      if (!hrefMatches(href, entry.item?.href)) continue;
-      if (!exact || entry.depth > exact.depth || cleanHref(entry.item.href).length > cleanHref(exact.item.href).length) exact = entry;
-    }
-    if (exact) return exact.item;
+    const exactEntries = flat.filter(entry => hrefMatches(href, entry.item?.href));
+    const exactMeaningful = bestEntry(exactEntries.filter(entry => !genericVisualLabel(entry.item)));
+    if (exactMeaningful) return exactMeaningful.item;
 
-    /* A chapter can span several spine documents, and standalone illustration
-       documents commonly have no nav entry of their own. In that case the active
-       chapter is the nearest preceding navigation target in spine order. */
+    /* Chapter titles are derived from navigation order plus spine position, not from
+       visual-only document names. This keeps a chapter active across split XHTML parts
+       and standalone illustration pages whose nav labels are only "Page 1", etc. */
     const currentIndex = locationSpineIndex(location);
-    if (!Number.isFinite(currentIndex)) return null;
-    let preceding = null;
-    for (let order = 0; order < flat.length; order++) {
-      const entry = flat[order];
-      const navIndex = spineIndexForHref(entry.item?.href);
-      if (!Number.isFinite(navIndex) || navIndex > currentIndex) continue;
-      if (!preceding || navIndex > preceding.navIndex || (navIndex === preceding.navIndex && entry.depth >= preceding.entry.depth)) {
-        preceding = { entry, navIndex, order };
+    if (Number.isFinite(currentIndex)) {
+      let preceding = null;
+      for (let order = 0; order < flat.length; order++) {
+        const entry = flat[order];
+        if (genericVisualLabel(entry.item)) continue;
+        const navIndex = spineIndexForHref(entry.item?.href);
+        if (!Number.isFinite(navIndex) || navIndex > currentIndex) continue;
+        if (!preceding || navIndex > preceding.navIndex || (navIndex === preceding.navIndex && entry.depth >= preceding.entry.depth)) {
+          preceding = { entry, navIndex, order };
+        }
       }
+      if (preceding) return preceding.entry.item;
     }
-    return preceding?.entry?.item || null;
+
+    /* If a publication contains nothing more descriptive, retain its own generic nav
+       label rather than displaying an empty chapter title. */
+    const exactFallback = bestEntry(exactEntries);
+    if (exactFallback) return exactFallback.item;
+    return null;
   }
 
   function chapterForLocation(location) {

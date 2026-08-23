@@ -1,38 +1,48 @@
-/* Shadow Garden v1.15.9 — stable compact-card detail alignment. */
+/* Shadow Garden v1.15.11 — stable compact-card columns and badge rail. */
 
-/* Compact cards need a fixed thumbnail column. Using an auto-sized first column lets
-   different cover/intrinsic image ratios shift the text column horizontally from one
-   series entry to the next. Reserve one shared cover width so every title, author,
-   status and badge rail begins on the exact same vertical guide. */
+/* Keep one fixed thumbnail column so every details block begins on the same guide.
+   The badge rail is its own third grid column; it must stay inside the card at the
+   upper-right rather than being pushed into a second row below the content. */
 .catalog-grid.compact .series-card{
   --sg-compact-cover-width:68px;
-  grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr)!important;
-  column-gap:12px;
+  position:relative;
+  overflow:hidden;
+  grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr) auto!important;
+  grid-template-rows:1fr!important;
+  column-gap:12px!important;
+  row-gap:0!important;
+  align-items:start!important;
 }
 .catalog-grid.compact .series-card>.cover{
+  grid-column:1;
+  grid-row:1;
   width:var(--sg-compact-cover-width)!important;
   min-width:var(--sg-compact-cover-width)!important;
   max-width:var(--sg-compact-cover-width)!important;
+  height:100%!important;
+  max-height:100%;
   justify-self:start;
+  align-self:stretch;
 }
 
-/* Reserve the same vertical slots for title, author, and metadata. A one-line title
-   must not pull the author/status/badge rail upward compared with a two-line title. */
+/* Do not reserve a fake two-line title slot. That was creating a visible blank line
+   between one-line titles and their authors. Titles may still wrap to two lines, but
+   the author follows immediately after the title's real rendered height. */
 .catalog-grid.compact .series-card>.card-copy{
+  grid-column:2;
+  grid-row:1;
   min-width:0;
   width:100%;
   margin:0!important;
   padding:0!important;
   align-self:start;
   justify-self:stretch;
-  display:grid;
-  grid-template-rows:2.5em 1.2em 1.2em;
-  align-content:start;
+  display:block!important;
 }
 .catalog-grid.compact .series-card>.card-copy h2{
-  min-height:2.5em!important;
+  min-height:0!important;
   max-height:2.5em;
-  margin:0;
+  margin:0!important;
   line-height:1.25;
   display:-webkit-box;
   overflow:hidden;
@@ -40,30 +50,46 @@
   -webkit-line-clamp:2;
 }
 .catalog-grid.compact .series-card>.card-copy p{
-  min-height:1.2em;
-  margin:4px 0 0;
+  min-height:0!important;
+  margin:4px 0 0!important;
   line-height:1.2;
 }
 .catalog-grid.compact .series-card>.card-copy .card-meta{
-  min-height:1.2em;
-  margin-top:4px;
+  min-height:0!important;
+  margin-top:4px!important;
   line-height:1.2;
   align-items:center;
 }
+
 .catalog-grid.compact .compact-card-badges{
-  margin-left:0!important;
-  padding-left:0!important;
+  grid-column:3!important;
+  grid-row:1!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-end!important;
+  align-self:start!important;
+  justify-self:end!important;
+  flex-wrap:wrap;
+  gap:5px;
+  width:max-content;
+  max-width:min(34vw,230px)!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible;
 }
 
 @media(max-width:720px){
   .catalog-grid.compact .series-card{
     --sg-compact-cover-width:74px;
-    grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr)!important;
+    grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr) auto!important;
+    grid-template-rows:1fr!important;
     column-gap:12px!important;
+    row-gap:0!important;
+    align-items:start!important;
   }
   .catalog-grid.compact .series-card>.cover{
     grid-column:1;
-    grid-row:1 / span 2;
+    grid-row:1;
     width:var(--sg-compact-cover-width)!important;
     min-width:var(--sg-compact-cover-width)!important;
     max-width:var(--sg-compact-cover-width)!important;
@@ -71,12 +97,33 @@
   .catalog-grid.compact .series-card>.card-copy{
     grid-column:2;
     grid-row:1;
+    align-self:start;
   }
   .catalog-grid.compact .compact-card-badges{
-    grid-column:2;
-    grid-row:2;
-    justify-self:start;
-    align-self:end;
+    grid-column:3!important;
+    grid-row:1!important;
+    align-self:start!important;
+    justify-self:end!important;
+    justify-content:flex-end!important;
+    width:max-content;
+    max-width:min(31vw,132px)!important;
     margin:0!important;
+    padding:0!important;
+  }
+}
+
+@media(max-width:430px){
+  .catalog-grid.compact .series-card{
+    --sg-compact-cover-width:70px;
+    column-gap:10px!important;
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+  .catalog-grid.compact .compact-card-badges{
+    max-width:112px!important;
+    gap:4px;
+  }
+  .catalog-grid.compact .compact-card-badge{
+    padding-inline:5px;
   }
 }

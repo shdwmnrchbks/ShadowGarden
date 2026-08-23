@@ -11,6 +11,14 @@
   const slug=value=>String(value||"untitled").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,90)||"untitled";
   const arr=value=>Array.isArray(value)?value:[];
 
+  function installStyles(){
+    if(document.getElementById("sg-series-status-style"))return;
+    const style=document.createElement("style");
+    style.id="sg-series-status-style";
+    style.textContent="#manageStatus{width:100%;box-sizing:border-box;border:1px solid rgba(196,184,225,.15);border-radius:12px;background:#100c16;color:#f0edf5;padding:13px 14px;font:inherit;outline:none;transition:border-color .15s,box-shadow .15s}#manageStatus:focus{border-color:rgba(195,180,238,.38);box-shadow:0 0 0 3px rgba(154,134,211,.08)}#manageStatus option{background:#100c16;color:#f0edf5}";
+    document.head.appendChild(style);
+  }
+
   function installStatusSelect(){
     const current=document.getElementById("manageStatus");
     if(!current)return null;
@@ -32,6 +40,7 @@
     if(select.value!==canonical)select.value=canonical;
   }
 
+  installStyles();
   installStatusSelect();
   const dialog=document.getElementById("seriesEditor");
   if(dialog){

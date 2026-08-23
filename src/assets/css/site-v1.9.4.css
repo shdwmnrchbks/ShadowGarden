@@ -1,4 +1,4 @@
-/* Shadow Garden v1.11.0 — compact cards, living banners, and series action polish. */
+/* Shadow Garden v1.12.1 — compact cards, living banners, and series action polish. */
 
 /* Library banner artwork intentionally bleeds from the centered shell to the viewport
    edge. On desktop browsers with a classic vertical scrollbar, 100vw includes the
@@ -106,29 +106,35 @@ body[data-library-scope]{overflow-x:clip}
 .adult-library .series-backdrop{opacity:.31!important;filter:saturate(.73) contrast(.98) brightness(.69)!important}
 .adult-library .series-backdrop:after{background:linear-gradient(180deg,rgba(16,8,12,.04),rgba(16,8,12,.38) 70%,#0e080b 100%)!important}
 
-/* The main Series read action uses the same restrained outlined motif as the site
-   instead of the bright legacy green gradient. */
-.series-actions .primary-button{
-  border:1px solid rgba(154,134,211,.34);
-  color:#cbbdea;
-  background:rgba(154,134,211,.075);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.012);
+/* Series read actions use restrained outlined treatments. Keep Main and Adult rules
+   explicit so an older cached/base .primary-button gradient can never reappear. */
+body:not(.adult-library) .series-actions .primary-button{
+  border:1px solid rgba(154,134,211,.34)!important;
+  color:#cbbdea!important;
+  background:rgba(154,134,211,.075)!important;
+  background-image:none!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.012)!important;
   transition:border-color .16s ease,background .16s ease,color .16s ease;
 }
-.series-actions .primary-button:hover,.series-actions .primary-button:focus-visible{
-  color:#f0eafd;
-  border-color:rgba(181,163,229,.52);
-  background:rgba(154,134,211,.13);
+body:not(.adult-library) .series-actions .primary-button:hover,
+body:not(.adult-library) .series-actions .primary-button:focus-visible{
+  color:#f0eafd!important;
+  border-color:rgba(181,163,229,.52)!important;
+  background:rgba(154,134,211,.13)!important;
+  background-image:none!important;
 }
 .adult-library .series-actions .primary-button{
-  border-color:rgba(211,142,162,.30);
-  color:#d9a5b4;
-  background:rgba(183,121,139,.075);
+  border:1px solid rgba(211,142,162,.30)!important;
+  color:#d9a5b4!important;
+  background:rgba(183,121,139,.075)!important;
+  background-image:none!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.012)!important;
 }
 .adult-library .series-actions .primary-button:hover,.adult-library .series-actions .primary-button:focus-visible{
-  color:#f1dce2;
-  border-color:rgba(225,151,173,.48);
-  background:rgba(183,121,139,.14);
+  color:#f1dce2!important;
+  border-color:rgba(225,151,173,.48)!important;
+  background:rgba(183,121,139,.14)!important;
+  background-image:none!important;
 }
 
 /* Tags on Series pages are navigation controls. */

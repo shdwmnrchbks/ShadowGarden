@@ -1,5 +1,5 @@
 {
   "version": 1,
-  "include": ["/media/*", "/book-access", "/human-access", "/admin-api/*"],
+  "include": ["/media/*", "/book-access", "/human-access", "/admin-access", "/admin-api/*"],
   "exclude": []
 }

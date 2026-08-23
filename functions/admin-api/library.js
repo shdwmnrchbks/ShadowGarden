@@ -1,5 +1,6 @@
 import { adminAuthorized, getTextObject, json, putObject, validObjectKey, writeClient } from "../_lib/b2.js";
 import { appendTrashItem, snapshotCatalogs } from "../_lib/garden-maintenance.js";
+import { canonicalizeSeriesStatus, normalizeSeriesStatus, withSeriesStatusTag } from "../_lib/series-status.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";
 const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
@@ -8,10 +9,6 @@ const clone = value => JSON.parse(JSON.stringify(value));
 
 function clean(value, max = 4000) {
   return String(value ?? "").trim().slice(0, max);
-}
-
-function tags(value) {
-  return [...new Set(arr(value).map(v => clean(v, 80)).filter(Boolean))].slice(0, 40);
 }
 
 function externalUrl(value) {
@@ -120,12 +117,13 @@ export async function onRequestPost({ request, env }) {
       if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB folder URL must use http:// or https://" }, 400);
       await snapshotCatalogs(aws, data.main, data.adult, "update-series");
 
+      const status = normalizeSeriesStatus(input.status);
       series.title = clean(input.title, 300) || series.title;
       series.author = clean(input.author, 240);
       series.year = Number(input.year) || "";
-      series.status = clean(input.status, 80);
+      series.status = status;
       series.description = clean(input.description, 12000);
-      series.tags = tags(input.tags);
+      series.tags = withSeriesStatusTag(input.tags, status);
       series.audioAlignedUrl = audioAlignedUrl;
       for (const volume of arr(series.volumes)) delete volume.audioAlignedUrl;
 
@@ -150,6 +148,7 @@ export async function onRequestPost({ request, env }) {
       const number = Number(input.number);
       await snapshotCatalogs(aws, data.main, data.adult, "update-volume");
 
+      canonicalizeSeriesStatus(series);
       if (!series.audioAlignedUrl) {
         series.audioAlignedUrl = arr(series.volumes).find(v => v.audioAlignedUrl)?.audioAlignedUrl || "";
       }
@@ -176,6 +175,7 @@ export async function onRequestPost({ request, env }) {
       if (!series.volumes.length) {
         found.catalog.series.splice(found.index, 1);
       } else {
+        canonicalizeSeriesStatus(series);
         if (series.cover === volume.cover) series.cover = series.volumes.find(v => v.cover)?.cover || "";
         if (series.coverThumb === volume.coverThumb) series.coverThumb = series.volumes.find(v => v.coverThumb)?.coverThumb || "";
       }

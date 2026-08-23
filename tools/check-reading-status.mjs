@@ -7,7 +7,7 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [status,readerFinished,readerBootstrap,continuousCore,series,library,polish,style,writeSource,adminBootstrap,adminVersion,headers,pkg,readerHtml]=await Promise.all([
+const [status,readerFinished,readerBootstrap,continuousCore,series,library,polish,finishedPolish,style,writeSource,adminBootstrap,adminVersion,headers,pkg,readerHtml,indexHtml,adultHtml]=await Promise.all([
   read("src/assets/js/reading-status.js"),
   read("src/assets/js/reader-finished.js"),
   read("src/assets/js/reader-bootstrap.js"),
@@ -15,13 +15,16 @@ const [status,readerFinished,readerBootstrap,continuousCore,series,library,polis
   read("src/assets/js/series.js"),
   read("src/assets/js/library.js"),
   read("src/assets/js/library-series-polish.js"),
+  read("src/assets/js/library-finished-polish.js"),
   read("src/assets/css/reading-status.css"),
   read("tools/write-source.mjs"),
   read("src/assets/js/admin-bootstrap.js"),
   read("src/assets/css/admin-version.css"),
   read("src/_headers"),
   read("package.json"),
-  read("src/reader.html")
+  read("src/reader.html"),
+  read("src/index.html"),
+  read("src/nsfw.html")
 ]);
 
 for(const marker of ["sg-finished-books","sg-finished:","isFinished","setFinished","setAliasesFinished","isAnyFinished","volumeAliases","stableVolumeId","isVolumeFinished","setVolumeFinished","seriesFinished","finishedCount"]){
@@ -44,9 +47,13 @@ for(const marker of ["finished-series-badge","data-reading-status=\"finished\"",
   if(!library.includes(marker))fail(`Library completion/filter UI is missing ${marker}`);
 }
 if(!polish.includes("✓ Finished")||!polish.includes("finished"))fail("Compact Library cards must surface the Finished badge");
-for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips","compact-card-badge.finished"]){
+for(const marker of ["continuePanel","isVolumeFinished","finishedSuppressed","replaceChildren","MutationObserver"]){
+  if(!finishedPolish.includes(marker))fail(`Library finished-state polish is missing ${marker}`);
+}
+for(const marker of ["finished-volume-badge","finished-series-badge","reading-status-chips","compact-card-badge.finished",".catalog-grid.compact .finished-series-badge"]){
   if(!style.includes(marker))fail(`reading-status.css is missing ${marker}`);
 }
+if(!indexHtml.includes("library-finished-polish.js?v=1.15.5")||!adultHtml.includes("library-finished-polish.js?v=1.15.5"))fail("Main and Adult Libraries must load the v1.15.5 finished-state presentation fix");
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
   if(!writeSource.includes(marker))fail(`deployment version generation is missing ${marker}`);
 }
@@ -55,11 +62,11 @@ for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-ve
 }
 if(adminBootstrap.includes("brandMeta")||adminBootstrap.includes("header.insertBefore(label,back)"))fail("Garden Keeper version must not be mounted in the header");
 if(!adminVersion.includes(".admin-version-footer")||!adminVersion.includes("text-align:center")||adminVersion.includes(".admin-header"))fail("Garden Keeper version styling must be centered in the footer and must not alter the header grid");
-for(const marker of ["/data/version.json","/assets/js/reading-status.js","/assets/js/library.js","/assets/js/library-series-polish.js"]){
+for(const marker of ["/data/version.json","/assets/js/reading-status.js","/assets/js/library.js","/assets/js/library-series-polish.js","/assets/js/library-finished-polish.js"]){
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.4")fail("package version must be 1.15.4");
+if(parsed.version!=="1.15.5")fail("package version must be 1.15.5");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */

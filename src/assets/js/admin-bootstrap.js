@@ -53,6 +53,13 @@ window.addEventListener('DOMContentLoaded',()=>{
     link.dataset.adminCurrent='1';
     document.head.appendChild(link);
   }
+  if(!document.querySelector('link[data-admin-version]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='/assets/css/admin-version.css?v=1.15.0';
+    link.dataset.adminVersion='1';
+    document.head.appendChild(link);
+  }
   if(!document.querySelector('link[data-admin-series-banner]')){
     const link=document.createElement('link');
     link.rel='stylesheet';

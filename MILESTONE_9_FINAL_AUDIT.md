@@ -18,9 +18,9 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 
 ## Findings fixed during the audit
 
-- **v1.15.1 finished-reading identity gap:** legacy Reader URLs could still use a private `/media/...epub` identity even after authorization resolved the canonical public `bk_...` identity. The end-page toggle could therefore persist under a key that Series/Library pages never use. v1.15.2 makes the signed book-access result authoritative, migrates old private-path completion entries, and rewrites legacy Reader URLs to the opaque id after Reader initialization.
-- **Garden Keeper version layout:** inserting version metadata as a separate `.site-header` child consumed the center grid column and displaced the Library link. v1.15.2 keeps version + short commit inside the existing `GARDEN KEEPER` brand metadata and explicitly keeps the admin header to one row.
-- Library/Series completion clients are now explicitly cache-busted/no-store so a prior cached client cannot mask reading-status fixes during the final audit.
+- **v1.15.1/v1.15.2 finished-reading identity gap:** treating only the Reader URL or signed ticket identity as authoritative was still not enough to guarantee that the completion key exactly matched the `volume.file` identity rendered by Series/Library. v1.15.3 resolves the current volume from the same public catalog used by the Series page, writes every equivalent identity in one verified operation, adds a stable `series + volume` alias, and keeps a redundant per-alias local marker so a finished state survives navigation/reload even if one representation changes.
+- **Garden Keeper version placement:** version information is no longer mounted in the header. v1.15.3 creates a dedicated centered Garden Keeper footer showing the deployed version and short commit, leaving the header layout untouched.
+- Library/Series completion clients remain explicitly cache-busted/no-store so a prior cached client cannot mask reading-status fixes during the final audit.
 
 ## Production audit matrix
 
@@ -43,7 +43,8 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - [ ] End-page long next-volume titles wrap correctly on mobile.
 - [ ] `Mark as Finished` persists locally and can be toggled back to unfinished.
 - [ ] Finished state is reflected after returning to Series/Library pages.
-- [ ] Legacy/private-path Reader URLs migrate finished state to the canonical opaque `bk_...` identity.
+- [ ] Reader completion resolves and stores the exact public catalog volume identity used by the Series page.
+- [ ] Legacy/private-path Reader URLs migrate finished state to the canonical/stable volume aliases.
 - [ ] Theme, typography, fullscreen, swipe controls, and mobile chrome remain functional.
 
 ### Signed media and anti-abuse
@@ -61,7 +62,8 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 
 ### Garden Keeper
 
-- [ ] Current deployed version and short commit are visible beside `GARDEN KEEPER` without moving the Library link out of the header row.
+- [ ] Current deployed version and short commit are visible in the centered Garden Keeper footer.
+- [ ] Garden Keeper header remains unchanged with the Library link at the far right.
 - [ ] Correct token + Turnstile unlocks Garden Keeper.
 - [ ] Wrong-token cooldown survives Incognito on the same public network.
 - [ ] Locking requires a fresh unlock before admin APIs can be used again.

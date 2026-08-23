@@ -53,6 +53,13 @@ window.addEventListener('DOMContentLoaded',()=>{
     link.dataset.adminCurrent='1';
     document.head.appendChild(link);
   }
+  if(!document.querySelector('link[data-admin-series-banner]')){
+    const link=document.createElement('link');
+    link.rel='stylesheet';
+    link.href='/assets/css/admin-v1.9.4.css?v=1.9.4';
+    link.dataset.adminSeriesBanner='1';
+    document.head.appendChild(link);
+  }
 
   const loadScript=(selector,src,datasetKey)=>new Promise((resolve,reject)=>{
     const existing=document.querySelector(selector);
@@ -77,6 +84,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     await loadScript('script[data-admin-upload-completion]','/assets/js/admin-upload-completion.js?v=1.8.0','adminUploadCompletion');
     await loadScript('script[data-admin-upload-polish]','/assets/js/admin-upload-polish.js?v=1.8.0','adminUploadPolish');
     await loadScript('script[data-admin-backup-history]','/assets/js/admin-backup-history.js?v=1.8.0','adminBackupHistory');
+    await loadScript('script[data-admin-series-banner]','/assets/js/admin-series-banner.js?v=1.9.4','adminSeriesBanner');
     await loadScript('script[data-ui-direction-triangles]','/assets/js/ui-direction-triangles.js?v=1.8.0','uiDirectionTriangles');
   };
   void boot().catch(error=>console.error('Garden Keeper bootstrap failed',error));

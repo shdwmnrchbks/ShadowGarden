@@ -1,17 +1,4 @@
-/* Shadow Garden v0.13 — reader polish */
-.reader-app{transition:grid-template-rows .18s ease}
-.reader-topbar,.reader-bottombar,.continuous-seek{transition:opacity .16s ease,border-color .16s ease}
-
-/* Distraction-free mode deliberately changes only chrome geometry. The paginated reader
- * receives the normal window resize event from reader-polish.js so EPUB.js keeps its CFI. */
-body.reader-chrome-hidden .reader-app,
-body.reader-flow-scrolled.reader-chrome-hidden .reader-app{grid-template-rows:0 minmax(0,1fr) 0}
-body.reader-chrome-hidden .reader-topbar,
-body.reader-chrome-hidden .reader-bottombar{min-height:0;height:0;overflow:hidden;opacity:0;pointer-events:none;border-color:transparent}
-body.reader-flow-scrolled.reader-chrome-hidden .continuous-seek{opacity:0;pointer-events:none}
-
-#focusModeButton[aria-pressed="true"]{color:var(--leaf);border-color:rgba(181,163,229,.25);background:rgba(154,134,211,.07)}
-body.adult-reader #focusModeButton[aria-pressed="true"]{border-color:rgba(210,160,173,.25);background:rgba(183,121,139,.07)}
+/* Shadow Garden v1.10.1 — Reader gesture/settings and completion polish. */
 
 .settings-panel .reader-toggle-setting{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding-top:4px}
 .settings-panel .reader-toggle-setting>span{display:grid;justify-content:initial;gap:3px}
@@ -41,8 +28,4 @@ body.adult-reader .volume-complete-return{background:rgba(183,121,139,.05);color
   .volume-complete-card{padding:30px 20px 22px}
   .volume-complete-mark{width:52px;height:52px;margin-bottom:14px}
   .settings-panel .reader-toggle-setting{gap:10px}
-}
-
-@media(prefers-reduced-motion:reduce){
-  .reader-app,.reader-topbar,.reader-bottombar,.continuous-seek{transition:none}
 }

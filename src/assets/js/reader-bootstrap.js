@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.0 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.1 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -7,6 +7,11 @@
   const seriesId=publicParams.get("series")||"";
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
+
+  /* Reader internals temporarily see the private media path while they initialize.
+     Public reading state must never key itself from that temporary view. */
+  window.__sgReaderPublicBookId=BOOK_ID.test(requested)?requested:"";
+  window.__sgReaderSourcePath="";
 
   function syncStoredTheme(){
     const body=document.body;
@@ -37,8 +42,8 @@
   }
 
   async function mountReadingStatus(){
-    await import("/assets/js/reading-status.js?v=1.15.0");
-    await import("/assets/js/reader-finished.js?v=1.15.0");
+    await import("/assets/js/reading-status.js?v=1.15.1");
+    await import("/assets/js/reader-finished.js?v=1.15.1");
   }
 
   syncStoredTheme();
@@ -56,6 +61,7 @@
     if(ticket?.identity&&access?.migrateLegacyState)await access.migrateLegacyState([ticket.identity]);
 
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
+    window.__sgReaderSourcePath=EPUB_PATH.test(sourcePath)?sourcePath:"";
     if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
       /* The Visual Page Cache starts before this module. Its opaque pseudo-request is
          resolved by book-access.js; awaiting it here preserves startup ordering. */

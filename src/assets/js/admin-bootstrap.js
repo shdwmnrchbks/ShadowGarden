@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.3 — Garden Keeper security + current workflow bootstrap. */
+/* Shadow Garden v1.15.10 — Garden Keeper security + current workflow bootstrap. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
@@ -46,6 +46,78 @@
 })();
 
 window.addEventListener('DOMContentLoaded',()=>{
+  /* Milestone 9: public cover URLs must not disclose series slugs, volume numbers, or
+     source-image fingerprints. Existing catalog URLs are intentionally left untouched;
+     every new Garden Keeper cover upload is rewritten to an opaque cv_ identifier. */
+  const installOpaqueCoverStorage=()=>{
+    if(window.ShadowGardenOpaqueCoverStorage?.installed)return;
+    if(typeof api!=='function'||typeof uploadObject!=='function'){
+      console.warn('Opaque cover storage could not initialize');
+      return;
+    }
+    const originalApi=api;
+    const originalUploadObject=uploadObject;
+    const prefix='shadow-garden/covers/';
+    const opaquePattern=/^shadow-garden\/covers\/cv_[A-Za-z0-9_-]{20,64}-(?:detail|thumb)\.[A-Za-z0-9]+$/i;
+    const mappedKeys=new Map();
+    const rootIds=new Map();
+
+    const randomCoverId=()=>{
+      if(globalThis.crypto?.getRandomValues){
+        const bytes=new Uint8Array(16);
+        crypto.getRandomValues(bytes);
+        let binary='';
+        for(const value of bytes)binary+=String.fromCharCode(value);
+        return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/g,'');
+      }
+      if(globalThis.crypto?.randomUUID)return crypto.randomUUID().replace(/-/g,'');
+      throw new Error('Secure random cover identifiers are unavailable in this browser.');
+    };
+
+    const opaqueCoverKey=key=>{
+      const raw=String(key||'');
+      if(!raw.startsWith(prefix)||opaquePattern.test(raw))return raw;
+      const extension=(raw.match(/(\.[A-Za-z0-9]+)$/)||[])[1]?.toLowerCase();
+      if(!extension)throw new Error('Cover upload is missing a file extension.');
+      const stem=raw.slice(prefix.length,-extension.length);
+      const variant=stem.match(/^(.*)-(detail|thumb)$/i);
+      const root=variant?variant[1]:stem;
+      const kind=(variant?.[2]||'detail').toLowerCase();
+      let id=rootIds.get(root);
+      if(!id){id=randomCoverId();rootIds.set(root,id)}
+      const opaque=`${prefix}cv_${id}-${kind}${extension}`;
+      mappedKeys.set(raw,opaque);
+      return opaque;
+    };
+
+    const rewriteCoverKeys=value=>{
+      if(Array.isArray(value))return value.map(rewriteCoverKeys);
+      if(!value||typeof value!=='object')return value;
+      const copy={};
+      for(const [key,item] of Object.entries(value)){
+        if((key==='coverKey'||key==='coverThumbKey')&&typeof item==='string')copy[key]=mappedKeys.get(item)||item;
+        else copy[key]=rewriteCoverKeys(item);
+      }
+      return copy;
+    };
+
+    uploadObject=async function(key,blob,type){
+      return originalUploadObject(opaqueCoverKey(key),blob,type);
+    };
+    api=async function(path,options={}){
+      let next=options;
+      if(typeof options?.body==='string'&&String(path||'').startsWith('/admin-api/')){
+        try{
+          const parsed=JSON.parse(options.body);
+          next={...options,body:JSON.stringify(rewriteCoverKeys(parsed))};
+        }catch{}
+      }
+      return originalApi(path,next);
+    };
+    window.ShadowGardenOpaqueCoverStorage={installed:true,opaqueCoverKey,mappedKeys};
+  };
+  installOpaqueCoverStorage();
+
   if(!document.querySelector('link[data-admin-current]')){
     const link=document.createElement('link');
     link.rel='stylesheet';

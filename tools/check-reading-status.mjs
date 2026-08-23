@@ -22,18 +22,17 @@ const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSo
   read("package.json")
 ]);
 
-for(const marker of ["sg-finished-books","isFinished","setFinished","migrateFinished","seriesFinished","finishedCount"]){
+for(const marker of ["sg-finished-books","sg-finished:","isFinished","setFinished","setAliasesFinished","isAnyFinished","volumeAliases","stableVolumeId","isVolumeFinished","setVolumeFinished","seriesFinished","finishedCount"]){
   if(!status.includes(marker))fail(`reading-status.js is missing ${marker}`);
 }
 if(status.includes("fetch("))fail("finished reading state must remain browser-local and must not call a server API");
-for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished","__sgReaderPublicBookId","__sgReaderSourcePath","migrateFinished","ShadowGardenBookAccess?.initial","ticket?.bookId||ticket?.identity"]){
+for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished","ShadowGardenBookAccess?.initial","ShadowGardenData?.loadCatalog","volume?.file","status.volumeAliases","setAliasesFinished","Could not save reading status"]){
   if(!readerFinished.includes(marker))fail(`Reader finished control is missing ${marker}`);
 }
-for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.2","reader-finished.js?v=1.15.2"]){
+for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.3","reader-finished.js?v=1.15.3"]){
   if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
 }
-if(!readerFinished.includes("window.__sgReaderPublicBookId||ticketBookId||queryBookId"))fail("Reader completion must prefer the canonical ticket/public bk_ identity over a legacy Reader URL");
-for(const marker of ["finished-volume-badge","Read again","finishedCount","reading-status.js?v=1.15.2"]){
+for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
 for(const marker of ["finished-series-badge","data-reading-status=\"finished\"","data-reading-status=\"unfinished\"","params.set(\"reading\"","seriesFinished"]){
@@ -46,19 +45,19 @@ for(const marker of ["finished-volume-badge","finished-series-badge","reading-st
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
   if(!writeSource.includes(marker))fail(`deployment version generation is missing ${marker}`);
 }
-for(const marker of ["adminVersion","/data/version.json","shortCommit","brandMeta","admin-version.css?v=1.15.2"]){
-  if(!adminBootstrap.includes(marker))fail(`Garden Keeper version UI is missing ${marker}`);
+for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-version-footer","document.body.appendChild(footer)","admin-version.css?v=1.15.3"]){
+  if(!adminBootstrap.includes(marker))fail(`Garden Keeper footer version UI is missing ${marker}`);
 }
-if(adminBootstrap.includes("header.insertBefore(label,back)"))fail("Garden Keeper version must not occupy a standalone header grid column");
-if(!adminVersion.includes(".admin-header .brand")||adminVersion.includes("margin-left:auto"))fail("Garden Keeper version styling must stay inside the brand metadata line");
+if(adminBootstrap.includes("brandMeta")||adminBootstrap.includes("header.insertBefore(label,back)"))fail("Garden Keeper version must not be mounted in the header");
+if(!adminVersion.includes(".admin-version-footer")||!adminVersion.includes("text-align:center")||adminVersion.includes(".admin-header"))fail("Garden Keeper version styling must be centered in the footer and must not alter the header grid");
 for(const marker of ["/data/version.json","/assets/js/reading-status.js","/assets/js/library.js","/assets/js/library-series-polish.js"]){
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.2")fail("package version must be 1.15.2");
+if(parsed.version!=="1.15.3")fail("package version must be 1.15.3");
 
-/* Behavioral regression: completion must survive a canonical-id migration from the
-   private media path that Reader internals temporarily use during startup. */
+/* Behavioral regression: one finished volume must be readable through every alias used
+   by Reader, Series and Library, survive a fresh API instance, and clear atomically. */
 {
   const values=new Map();
   const localStorage={
@@ -66,7 +65,8 @@ if(parsed.version!=="1.15.2")fail("package version must be 1.15.2");
     setItem:(key,value)=>values.set(key,String(value)),
     removeItem:key=>values.delete(key)
   };
-  const window={dispatchEvent(){}};
+  const events=[];
+  const window={dispatchEvent:event=>events.push(event)};
   const context={
     window,
     localStorage,
@@ -77,16 +77,25 @@ if(parsed.version!=="1.15.2")fail("package version must be 1.15.2");
   };
   try{
     vm.runInNewContext(status,context,{filename:"reading-status.js"});
-    const api=window.ShadowGardenReadingStatus;
-    const legacy="/media/shadow-garden/books/example.epub";
-    const canonical="bk_1234567890123456789012";
-    if(!api?.setFinished(legacy,true)||!api.isFinished(legacy))fail("reading-status storage must persist a finished value");
-    if(!api.migrateFinished(legacy,canonical))fail("legacy/private completion state must migrate to the canonical book id");
-    if(api.isFinished(legacy)||!api.isFinished(canonical))fail("completion migration must remove the private-path key and keep the canonical bk_ key");
-    const sample={volumes:[{file:canonical},{file:"bk_abcdefghijklmnopqrstuv"}]};
-    if(api.finishedCount(sample)!==1||api.seriesFinished(sample))fail("series completion must count canonical volume ids correctly");
-    api.setFinished(sample.volumes[1].file,true);
-    if(!api.seriesFinished(sample))fail("series must become finished when all canonical volume ids are marked finished");
+    let api=window.ShadowGardenReadingStatus;
+    const seriesId="example-series";
+    const volume={file:"bk_1234567890123456789012",bookId:"bk_1234567890123456789012",number:2,title:"Volume 2"};
+    const privatePath="/media/shadow-garden/books/example/volume-2.epub";
+    const aliases=api.volumeAliases(seriesId,volume,1,[privatePath]);
+    if(!aliases.includes(volume.file)||!aliases.some(id=>id.startsWith(`series:${seriesId}:volume:`)))fail("volume aliases must include both the public catalog id and stable series-volume id");
+    if(!api.setAliasesFinished(aliases,true))fail("alias-safe completion write must succeed");
+    if(!aliases.every(id=>api.isFinished(id)))fail("all aliases must read as finished immediately after saving");
+
+    /* Re-evaluate the module to simulate navigating away and reopening the Reader. */
+    delete window.ShadowGardenReadingStatus;
+    vm.runInNewContext(status,context,{filename:"reading-status-reload.js"});
+    api=window.ShadowGardenReadingStatus;
+    if(!api.isFinished(volume.file)||!api.isVolumeFinished(seriesId,volume,1))fail("finished state must survive a fresh Reader/Series page load");
+    const sample={id:seriesId,volumes:[volume,{file:"bk_abcdefghijklmnopqrstuv",number:3,title:"Volume 3"}]};
+    if(api.finishedCount(sample)!==1||api.seriesFinished(sample))fail("series completion must count only the finished volume");
+    if(!api.setVolumeFinished(seriesId,sample.volumes[1],true,1))fail("second volume completion write must succeed");
+    if(!api.seriesFinished(sample))fail("series must become finished when every current volume is marked finished");
+    if(!api.setAliasesFinished(aliases,false)||aliases.some(id=>api.isFinished(id)))fail("unfinishing must clear every alias atomically");
   }catch(error){fail(`reading-status behavioral regression threw: ${error.message}`)}
 }
 

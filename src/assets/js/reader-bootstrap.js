@@ -1,23 +1,52 @@
 /* Shadow Garden Security Milestones 2–3 — authorize and resolve the selected book before Reader startup. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
-  const requested=new URLSearchParams(location.search).get("book")||"";
+  const publicSearch=location.search;
+  const publicParams=new URLSearchParams(publicSearch);
+  const requested=publicParams.get("book")||"";
+  const seriesId=publicParams.get("series")||"";
+  const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
+  const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
+
   try{
+    /* Keep the Adult gate return target opaque. reader.js retains the same check as a
+       fallback for legacy/raw Reader URLs. */
+    if(BOOK_ID.test(requested)&&String(seriesId).startsWith("adult-")&&localStorage.getItem("sg-adult-ack")!=="1"){
+      const ret=`${location.pathname}${location.search}${location.hash}`;
+      location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`);
+      return;
+    }
+
     const ticket=access?.initial?await access.initial:null;
     if(ticket?.identity&&access?.migrateLegacyState)await access.migrateLegacyState([ticket.identity]);
 
-    if(/^bk_[A-Za-z0-9_-]{22}$/.test(requested)&&ticket?.url){
-      const sourcePath=new URL(ticket.url,location.href).pathname;
-      if(/^\/media\/shadow-garden\/books\/.+\.epub$/i.test(sourcePath)){
-        const next=new URL(location.href);
-        next.searchParams.set("book",sourcePath);
-        history.replaceState(history.state,"",`${next.pathname}${next.search}${next.hash}`);
-        location.reload();
-        return;
+    const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
+    if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
+      /* The Visual Page Cache starts before this module. Its opaque pseudo-request is
+         resolved by book-access.js; awaiting it here preserves the old startup ordering. */
+      try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}
+
+      /* reader.js historically derives its internal EPUB/cache identity from
+         URLSearchParams(location.search). Give only that module evaluation a source-path
+         view while the real browser URL remains book=bk_... at all times. */
+      const NativeURLSearchParams=window.URLSearchParams;
+      function ReaderURLSearchParams(init){
+        const params=new NativeURLSearchParams(init);
+        if(String(init??"")===publicSearch&&params.get("book")===requested)params.set("book",sourcePath);
+        return params;
       }
+      ReaderURLSearchParams.prototype=NativeURLSearchParams.prototype;
+      try{Object.setPrototypeOf(ReaderURLSearchParams,NativeURLSearchParams)}catch{}
+      window.URLSearchParams=ReaderURLSearchParams;
+      try{
+        await import("/assets/js/reader.js?v=1.9.3");
+      }finally{
+        window.URLSearchParams=NativeURLSearchParams;
+      }
+      return;
     }
 
-    await import("/assets/js/reader.js?v=1.9.0");
+    await import("/assets/js/reader.js?v=1.9.3");
   }catch(error){
     console.error("Reader book authorization failed",error);
     const loading=document.getElementById("readerLoading");

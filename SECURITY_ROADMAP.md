@@ -17,8 +17,8 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB delivered to 
 | --- | --- | --- |
 | 1. Baseline media hardening | ✅ Done | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
 | 2. Signed book access tickets | ✅ Done | HMAC tickets, expiring download URLs, path-scoped Reader authorization, fail-closed enforcement |
-| 3. Opaque public book identifiers | 🟨 In progress | Hide durable EPUB object paths from public catalog/download UI; code implementation complete, CI + production validation pending |
-| 4. Human access sessions | ⬜ Planned | Free Cloudflare Turnstile session verification before protected book acquisition |
+| 3. Opaque public book identifiers | ✅ Done | Public `bk_...` identities, catalog redaction, opaque Reader/download URLs, private media boundary, stable replacement identity |
+| 4. Human access sessions | 🟨 In progress | Free Cloudflare Turnstile session verification before protected book acquisition |
 | 5. Bulk-download throttling | ⬜ Planned | Free Cloudflare rate-limiting rule and unique-book acquisition policy |
 | 6. Bot and crawler controls | ⬜ Planned | Bot Fight Mode, AI bot controls, AI Labyrinth, crawler policy |
 | 7. Garden Keeper hardening | ⬜ Planned | Turnstile/rate-limit admin unlock and reduce authentication probing |
@@ -72,11 +72,11 @@ Short-lived authorization is active in Production and was validated before Miles
 
 ## Milestone 3 — Opaque public book identifiers
 
-**Status:** 🟨 In progress — implementation complete; CI and production validation pending
+**Status:** ✅ Done
 
-Remove durable EPUB/B2 object names from data exposed to unauthenticated clients while retaining the private B2 catalogs as Garden Keeper's source of truth.
+Implemented through the v1.9.x hardening series and production-validated on v1.9.3.
 
-### Implementation
+### Completed
 
 - [x] Add stable opaque identifiers in the form `bk_<opaque-id>`.
 - [x] Make IDs non-sequential using SHA-256-derived opaque values for legacy migration.
@@ -90,18 +90,19 @@ Remove durable EPUB/B2 object names from data exposed to unauthenticated clients
 - [x] Normalize public volume data so existing Library/Series code receives `volume.file = bookId`, never the storage path.
 - [x] Migrate existing path-keyed Continue Reading progress to opaque-ID aliases without deleting the old local data.
 - [x] Migrate Reader bookmark/progress aliases when an affected book is opened.
-- [x] Resolve an opaque Reader URL before EPUB initialization while leaving the stabilized Reader core, Continuous Core, Page Map, and Visual Page Cache unchanged.
+- [x] Keep the visible Reader URL on `book=bk_...` while resolving the protected media source internally.
 - [x] Make Download EPUB links expose only an opaque ID before authorization.
 - [x] Reject stale pre-Milestone-3 raw catalog cache entries unless they carry `X-SG-Catalog-View: opaque-v1`.
 - [x] Preserve existing Garden Keeper catalog cache invalidation behavior.
+- [x] Restrict the public `/media/*` proxy to redacted public catalogs, covers, and ticket-protected EPUBs; private Trash/backups return 404.
 - [x] Persist `bookId` on new Garden Keeper uploads.
 - [x] Preserve the prior `bookId` when an existing volume's EPUB object is replaced.
 - [x] Refresh the resolver once on a cache miss so a just-uploaded book can be authorized immediately.
-- [x] Extend security regression tests for public redaction, opaque-ID determinism, resolver wiring, and legacy fallback restrictions.
-- [ ] Pass GitHub Actions CI on the Milestone 3 PR.
-- [ ] Production smoke-test Main/Adult Library, Reader, downloads, Continue Reading, and Garden Keeper upload/replace behavior.
+- [x] Extend security regression tests for public redaction, opaque-ID determinism, resolver wiring, Reader URL privacy, private-media boundaries, and legacy fallback restrictions.
+- [x] Pass GitHub Actions CI on all Milestone 3 implementation/hotfix PRs.
+- [x] Production smoke-test Main/Adult Library, Reader, downloads, Continue Reading, private-media boundaries, and Garden Keeper upload/replace behavior.
 
-### Acceptance criteria
+### Production acceptance — passed
 
 1. Public Main and Adult catalog responses contain `bookId` for each EPUB volume and do **not** expose the volume's `/media/...epub` path.
 2. Public catalog responses do not expose EPUB SHA-256 hashes or original upload filenames.
@@ -112,26 +113,48 @@ Remove durable EPUB/B2 object names from data exposed to unauthenticated clients
 7. Pages, Continuous, seeking, bookmarks, Page Map, and Visual Page Cache remain functional.
 8. A known bare `/media/...epub` URL still returns a denial in a fresh incognito session.
 9. `/book-access` with a valid current `bookId` succeeds; a random/unknown `bookId` returns 404.
-10. A newly uploaded volume receives a stable `bookId`; replacing its EPUB file preserves that ID.
-11. Garden Keeper management, Trash, Catalog History, backup/restore, and maintenance continue to operate against the private full catalogs.
-
-Milestone 4 must not begin until these production checks pass.
+10. Public access to `trash.json`, backup indexes, and other private B2 namespaces returns 404.
+11. Reader URLs remain opaque (`book=bk_...`) rather than exposing the resolved media object path.
+12. A newly uploaded volume receives a stable `bookId`; replacing its EPUB file preserves that ID and the replacement still reads/downloads correctly.
+13. Garden Keeper management remains functional against the private full catalogs.
 
 ---
 
 ## Milestone 4 — Human access sessions
 
-**Status:** ⬜ Planned
+**Status:** 🟨 In progress — design review before implementation
 
 Use Cloudflare Turnstile Free as an occasional human verification layer rather than placing a challenge in front of every book request.
 
-### Planned design
+### Proposed design to review
 
 - First protected book acquisition requests verification when no valid access session exists.
 - Successful verification creates a signed same-site access-session cookie/token.
 - Proposed normal session lifetime: 8–12 hours.
 - Ordinary browsing/catalog viewing remains challenge-free.
-- Suspicious bulk behavior can require re-verification.
+- Reader ticket renewal during an active access session must remain challenge-free.
+- Opening another ordinary volume during the same valid session must remain challenge-free.
+- Suspicious bulk behavior can require re-verification later, coordinated with Milestone 5.
+- Fail closed for protected acquisition if Turnstile is configured but server verification cannot be completed.
+- Keep all Turnstile secret material server-side and out of the public catalog/client code.
+
+### UX constraints
+
+- Do not challenge every chapter, page turn, Range request, seek, or Reader ticket renewal.
+- Do not put Turnstile in front of ordinary library browsing, cover loading, or catalog viewing.
+- The challenge should appear only at a natural protected-acquisition boundary and should disappear after the session is established.
+- Preserve direct Download EPUB and Start/Continue Reading flows after successful verification.
+
+### Acceptance criteria — pending implementation
+
+1. First protected acquisition without a valid human session requires Turnstile verification.
+2. Successful verification establishes a signed same-site session for the configured lifetime.
+3. Subsequent ordinary Reader opens/downloads during that session do not re-challenge.
+4. Reader renewal, Range requests, seeking, Pages, Continuous, Page Map, and Visual Page Cache remain unaffected.
+5. Invalid/expired human sessions cannot mint new book tickets without re-verification.
+6. Existing Milestone 2 signed-ticket and Milestone 3 opaque-ID protections remain intact.
+7. Main/Adult catalog browsing stays challenge-free.
+8. No Turnstile secret is exposed to the browser or repository.
 
 ---
 

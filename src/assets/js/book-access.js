@@ -32,6 +32,12 @@
     const url=requestUrl(value);
     return Boolean(url&&url.origin===location.origin&&LEGACY_BOOK.test(url.pathname)&&!url.searchParams.has("sig"));
   }
+  function opaquePseudoRequest(value){
+    const url=requestUrl(value);
+    if(!url||url.origin!==location.origin)return"";
+    const match=url.pathname.match(/^\/(bk_[A-Za-z0-9_-]{22})$/);
+    return match?.[1]||"";
+  }
   async function bookIdForLegacyPath(value){
     const path=legacyPath(value);
     if(!path)return"";
@@ -76,6 +82,7 @@
     const canonicalId=BOOK_ID.test(payload?.bookId||"")?payload.bookId:(BOOK_ID.test(identity)?identity:await bookIdForLegacyPath(identity));
     const result={
       url:resolved.pathname+resolved.search,
+      sourcePath:resolved.pathname,
       identity:canonicalId||identity,
       requestedIdentity:identity,
       bookId:canonicalId||"",
@@ -137,6 +144,12 @@
   }
 
   window.fetch=async(input,init)=>{
+    const opaque=opaquePseudoRequest(input);
+    if(opaque){
+      const ticket=await resolve(opaque);
+      if(!ticket?.sourcePath)throw new Error("Authorized EPUB source is unavailable.");
+      return nativeFetch(ticket.sourcePath,init);
+    }
     if(!isRawEpubRequest(input))return nativeFetch(input,init);
     const identity=normalizeIdentity(input instanceof Request?input.url:input);
     await resolve(identity);

@@ -21,6 +21,8 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - **v1.15.1/v1.15.2 finished-reading identity gap:** treating only the Reader URL or signed ticket identity as authoritative was still not enough to guarantee that the completion key exactly matched the `volume.file` identity rendered by Series/Library. v1.15.3 resolves the current volume from the same public catalog used by the Series page, writes every equivalent identity in one verified operation, adds a stable `series + volume` alias, and keeps a redundant per-alias local marker so a finished state survives navigation/reload even if one representation changes.
 - **v1.15.3 Continuous end-page event gap:** Continuous mode does not display the master `#volumeEndPage`; it clones that DOM with `cloneNode(true)`. DOM cloning copies the checkbox markup and checked behavior but never copies JavaScript event listeners. The result was a switch that visibly toggled in Continuous mode while no persistence callback ran. v1.15.4 delegates the completion change handler at document level, installs/synchronizes controls in every Continuous clone, and observes newly created end-page clones. Pages and Continuous now share one persistence path.
 - **v1.15.4 Library completion presentation gap:** the Library Continue Reading card could still remain visible for a volume already marked finished, while Compact view rendered both the cover-overlay Finished badge and the compact badge rail. v1.15.5 adds a catalog-aware Library finished-state observer that suppresses a Continue card targeting a finished volume and hides only the redundant cover-overlay Finished badge in Compact view; Grid view keeps its cover badge and Compact keeps the badge rail.
+- **v1.15.5 Continue Reading source conflict:** the old metadata enrichment client could independently select the latest progress entry without checking Finished state, producing a mixed card or resurfacing a completed volume. v1.15.6 removes the competing client and makes one catalog-aware completion-aware renderer authoritative for Continue Reading and banner artwork.
+- **v1.15.6 completion semantics:** v1.15.7 treats selecting `Read next volume` as an explicit completion action and persists the current volume as Finished before navigation. The Library CTA also inspects saved page progress: a volume still on page 1/cover (or at most 1% when page-map data is unavailable) says `Read`; only progressed books say `Continue`.
 - **Garden Keeper version placement:** version information is no longer mounted in the header. v1.15.3 creates a dedicated centered Garden Keeper footer showing the deployed version and short commit, leaving the header layout untouched.
 - Library/Series completion clients remain explicitly cache-busted/no-store so a prior cached client cannot mask reading-status fixes during the final audit.
 
@@ -34,6 +36,7 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - [ ] Finished series badges appear only when every current volume is marked finished.
 - [ ] Series pages show green checks only on volumes marked finished.
 - [ ] Continue Reading does not surface a volume marked finished.
+- [ ] A saved volume still on page 1/cover uses `Read`, while genuinely progressed volumes use `Continue`.
 - [ ] Compact view shows only the badge-rail Finished badge, not a second Finished overlay on the thumbnail cover.
 - [ ] Series banners, status tags, clickable tags, cover links, and mobile layouts remain intact.
 
@@ -46,6 +49,7 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - [ ] End-page long next-volume titles wrap correctly on mobile.
 - [ ] `Mark as Finished` persists locally and can be toggled back to unfinished in Page mode.
 - [ ] `Mark as Finished` persists locally and can be toggled back to unfinished in the cloned Continuous end page.
+- [ ] Selecting `Read next volume` automatically marks the current volume Finished before navigation.
 - [ ] Finished state is reflected after returning to Series/Library pages.
 - [ ] Reader completion resolves and stores the exact public catalog volume identity used by the Series page.
 - [ ] Legacy/private-path Reader URLs migrate finished state to the canonical/stable volume aliases.

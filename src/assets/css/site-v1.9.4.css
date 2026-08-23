@@ -42,16 +42,17 @@
 .adult-library .compact-card-badge.pinned{color:#d5b878;border-color:rgba(190,161,108,.28)}
 .adult-library .compact-card-badge.adult{color:#e0a8b8;border-color:rgba(225,151,173,.30);background:rgba(112,47,68,.20)}
 
-/* Continue Reading supplies the archive-intro artwork. The art occupies the right
-   half and dissolves into the page instead of presenting a hard image edge. */
-.library-intro{position:relative;isolation:isolate;overflow:hidden}
+/* Continue Reading supplies the archive-intro artwork. The artwork now bleeds
+   through the Library shell's top/right gutters, matching the full-width Series
+   hero, while the mask spends more of its fade only on the exposed left edge. */
+.library-intro{position:relative;isolation:isolate;overflow:visible}
 .library-intro>.intro-banner-art{
   position:absolute;
   z-index:0;
-  top:-18px;
-  right:-1px;
+  top:-58px;
+  right:calc(50% - 50vw);
   bottom:0;
-  width:min(60%,820px);
+  width:min(64vw,920px);
   pointer-events:none;
   background-position:center 27%;
   background-repeat:no-repeat;
@@ -60,8 +61,8 @@
   filter:saturate(.78) contrast(.96) brightness(.72);
   transform:scale(1.025);
   transform-origin:right center;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.04) 8%,rgba(0,0,0,.42) 30%,#000 58%);
-  mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.04) 8%,rgba(0,0,0,.42) 30%,#000 58%);
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 16%,rgba(0,0,0,.10) 23%,rgba(0,0,0,.62) 39%,#000 50%);
+  mask-image:linear-gradient(90deg,transparent 0%,transparent 16%,rgba(0,0,0,.10) 23%,rgba(0,0,0,.62) 39%,#000 50%);
 }
 .library-intro>.intro-banner-art::after{
   content:"";
@@ -99,7 +100,7 @@ a.tag:hover,a.tag:focus-visible{color:var(--leaf2);border-color:rgba(145,189,157
   .catalog-grid.compact .series-card{grid-template-columns:40px minmax(0,1fr);gap:10px;padding-bottom:10px}
   .catalog-grid.compact .compact-card-badges{grid-column:2;justify-self:start;max-width:100%;margin-top:2px}
   .compact-card-badge{min-height:20px;padding:3px 6px;font-size:.54rem}
-  .library-intro>.intro-banner-art{width:82%;right:-14%;opacity:.18}
+  .library-intro>.intro-banner-art{top:-38px;right:calc(50% - 50vw);width:92vw;opacity:.18;-webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 24%,rgba(0,0,0,.10) 32%,rgba(0,0,0,.58) 47%,#000 58%);mask-image:linear-gradient(90deg,transparent 0%,transparent 24%,rgba(0,0,0,.10) 32%,rgba(0,0,0,.58) 47%,#000 58%)}
   .adult-library .library-intro>.intro-banner-art{opacity:.20}
   .series-backdrop{width:88%!important;right:-14%!important;opacity:.20!important}
   .adult-library .series-backdrop{opacity:.22!important}

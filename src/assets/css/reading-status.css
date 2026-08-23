@@ -1,0 +1,14 @@
+/* Shadow Garden v1.15.0 — finished reading indicators. */
+.volume-finished-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;padding:10px 14px;border:1px solid rgba(137,205,156,.25);border-radius:12px;background:rgba(61,116,78,.08);color:inherit;cursor:pointer;box-sizing:border-box}
+.volume-finished-toggle input{width:18px;height:18px;margin:0;accent-color:#4fa56b}
+.volume-finished-toggle span{font-weight:700;line-height:1.25}
+.volume-finished-toggle.is-finished{border-color:rgba(106,211,137,.45);background:rgba(47,132,72,.14)}
+.volume-finished-toggle.is-finished span{color:#86d99d}
+.finished-volume-badge,.finished-series-badge{display:inline-flex;align-items:center;justify-content:center;gap:5px;border:1px solid rgba(96,204,129,.44);border-radius:999px;background:rgba(27,96,49,.88);color:#d8ffe1;font-weight:800;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 5px 18px rgba(0,0,0,.22)}
+.finished-volume-badge{position:absolute;top:8px;right:8px;z-index:2;min-width:28px;height:28px;padding:0 7px;font-size:.7rem}
+.finished-series-badge{position:absolute;left:8px;bottom:8px;z-index:2;padding:6px 9px;font-size:.58rem}
+.volume-cover,.series-card .cover{position:relative}
+.reading-status-chips{display:flex;gap:7px;flex-wrap:wrap}
+.reading-status-chips button{border:1px solid rgba(173,162,196,.16);border-radius:999px;background:rgba(255,255,255,.025);color:inherit;padding:7px 10px;cursor:pointer}
+.reading-status-chips button.active{border-color:rgba(97,203,129,.45);background:rgba(41,119,64,.16);color:#a7e7b9}
+@media(max-width:720px){.volume-finished-toggle{min-height:52px;padding:11px 12px}.finished-series-badge{font-size:.54rem}}

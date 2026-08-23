@@ -1,7 +1,26 @@
 /* Shadow Garden v1.14 — Milestone 8 Abuse Watch */
 (()=>{
-  const card=$("#abuseWatchCard");
-  if(!card)return;
+  const maintenanceView=$("#maintenanceView");
+  if(!maintenanceView)return;
+
+  let card=$("#abuseWatchCard");
+  if(!card){
+    card=document.createElement("section");
+    card.id="abuseWatchCard";
+    card.className="admin-card maintenance-card";
+    card.innerHTML=`
+      <div class="admin-card-head">
+        <div><span>WATCH</span><h2>Abuse Watch</h2></div>
+        <strong id="abuseWatchState" class="state-pill">LOADING</strong>
+      </div>
+      <p class="maintenance-copy">Review persistent tripwire activations and significant Garden Keeper cooldowns. Network identities are HMAC-derived; raw IP addresses are never stored.</p>
+      <div id="abuseWatchMetrics" class="maintenance-metrics"></div>
+      <div class="maintenance-actions"><button id="refreshAbuseWatch" class="admin-secondary compact-button" type="button">Refresh Abuse Watch</button></div>
+      <div id="abuseWatchList" class="maintenance-list"><div class="maintenance-empty">Loading security telemetry…</div></div>`;
+    const anchor=$("#gardenHealthCard");
+    if(anchor?.parentNode)anchor.insertAdjacentElement("afterend",card);
+    else maintenanceView.prepend(card);
+  }
 
   let loading=false;
   let snapshot=null;

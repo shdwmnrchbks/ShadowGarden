@@ -105,6 +105,7 @@
         stopCooldown();
         unlockButton.disabled=false;
         setAuthState("LOCKED");
+        try{if(widgetId!==null)window.turnstile?.reset(widgetId)}catch{}
         setPanelStatus("Complete the verification to try again.");
       }
     };
@@ -120,7 +121,7 @@
   }
 
   async function establishSession(turnstileToken){
-    if(submitting)return;
+    if(submitting||cooldownTimer)return;
     submitting=true;
     unlockButton.disabled=true;
     setAuthState("VERIFYING");
@@ -187,7 +188,7 @@
           callback:token=>void establishSession(token),
           "expired-callback":()=>setPanelStatus("Verification expired. Complete it again.",true),
           "error-callback":()=>{setPanelStatus("Verification could not complete. Please try again.",true);return true},
-          "timeout-callback":()=>setPanelStatus("Verification timed out. Please try again.",true)
+          "timeout-callback":()=>setPanelStatus("Verification timed out. Please try again.")
         });
       }
       setPanelStatus("Complete the verification to unlock Garden Keeper.");

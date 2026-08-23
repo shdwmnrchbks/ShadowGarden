@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.4 — Reader end-page finished toggle. */
+/* Shadow Garden v1.15.7 — Reader end-page finished toggle. */
 (async()=>{
   const status=window.ShadowGardenReadingStatus;
   const masterActions=document.querySelector("#volumeEndPage .volume-complete-actions");
@@ -79,7 +79,7 @@
       if(text)text.textContent=primary?(finished?"Finished":"Mark as Finished"):"Reading status unavailable";
     }
   }
-  function persist(wanted){
+  function persist(wanted,{quiet=false}={}){
     const ok=aliases.length
       ?(status.setAliasesFinished?.(aliases,wanted)??status.setFinished(primary,wanted))
       :false;
@@ -89,18 +89,30 @@
       return false;
     }
     sync();
-    notify(wanted?"Marked as finished":"Marked as unfinished");
+    if(!quiet)notify(wanted?"Marked as finished":"Marked as unfinished");
     return true;
   }
 
   /* Continuous mode clones #volumeEndPage with cloneNode(true). Native listeners are not
-     copied by cloneNode, so the old master-only `change` listener made the cloned switch
-     look interactive without ever persisting anything. Delegate at document level so the
-     master Pages control and every Continuous clone share the exact same persistence path. */
+     copied by cloneNode, so completion controls use delegated document-level handlers. */
   document.addEventListener("change",event=>{
     const toggle=event.target?.closest?.('[data-sg-finished-toggle="1"],.volume-finished-toggle input[type="checkbox"]');
     if(!toggle)return;
     persist(Boolean(toggle.checked));
+  },true);
+
+  /* Choosing Read next volume is an explicit completion action. Mark the current volume
+     finished before navigation so Series/Library state is already correct when the next
+     Reader opens. If persistence fails, keep the user on the end page instead of silently
+     moving on without recording completion. Works for Pages and cloned Continuous pages. */
+  document.addEventListener("click",event=>{
+    const next=event.target?.closest?.(".volume-end-page .volume-complete-next");
+    if(!next)return;
+    if(finishedNow())return;
+    if(!persist(true,{quiet:true})){
+      event.preventDefault();
+      event.stopPropagation();
+    }
   },true);
 
   window.addEventListener(status.EVENT,event=>{

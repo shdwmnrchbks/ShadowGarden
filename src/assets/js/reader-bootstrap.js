@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.10.2 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.0 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -34,6 +34,11 @@
     window.ePub=capturedEpub;
     try{return await import("/assets/js/reader.js?v=1.10.2")}
     finally{window.ePub=originalEpub}
+  }
+
+  async function mountReadingStatus(){
+    await import("/assets/js/reading-status.js?v=1.15.0");
+    await import("/assets/js/reader-finished.js?v=1.15.0");
   }
 
   syncStoredTheme();
@@ -73,10 +78,12 @@
       }finally{
         window.URLSearchParams=NativeURLSearchParams;
       }
+      await mountReadingStatus();
       return;
     }
 
     await importReader();
+    await mountReadingStatus();
   }catch(error){
     console.error("Reader book authorization failed",error);
     const loading=document.getElementById("readerLoading");

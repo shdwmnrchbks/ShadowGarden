@@ -111,7 +111,7 @@ export async function onRequest({ request, env }) {
     return genericDenied();
   }
 
-  const tokenOk = await adminTokenMatches(String(payload?.adminToken || ""), env);
+  const tokenOk = await adminTokenMatches(String(payload?.adminToken || "").trim(), env);
   if (!tokenOk) {
     const failure = await registerAdminFailure(env, request.headers.get("cookie"));
     const headers = failure.retryAfterSeconds > 0 ? { "Retry-After": String(failure.retryAfterSeconds) } : {};

@@ -127,9 +127,10 @@ async function checkWiring(){
   if(!client.includes("return nativeFetch(ticket.sourcePath,init)"))fail("opaque Reader pseudo-fetches must resolve to the authorized EPUB source internally");
   if(!client.includes('response.status===428&&payload?.code==="human_verification_required"'))fail("book-access client must pause and request human verification on a 428 challenge");
 
-  for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.9.3")',"NativeURLSearchParams","ReaderURLSearchParams","__sgVisualPageCache","sourcePath","publicSearch"]){
+  for(const marker of ["await access.initial","NativeURLSearchParams","ReaderURLSearchParams","__sgVisualPageCache","sourcePath","publicSearch"]){
     if(!bootstrap.includes(marker))fail(`reader-bootstrap.js is missing ${marker}`);
   }
+  if(!/import\(["']\/assets\/js\/reader\.js\?v=\d+\.\d+\.\d+["']\)/.test(bootstrap))fail("reader-bootstrap.js must cache-bust the Reader module import with a semantic version");
   if(bootstrap.includes("location.reload()")||bootstrap.includes("history.replaceState"))fail("opaque Reader startup must not rewrite/reload the address bar to a durable media path");
   if(!bootstrap.includes('location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`)'))fail("Adult Reader gate must preserve the opaque return URL");
 

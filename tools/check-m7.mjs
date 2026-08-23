@@ -46,19 +46,22 @@ function client(ip,cookie=""){
 
 async function checkAdminSession(){
   if(ADMIN_SESSION_TTL_SECONDS!==3600)fail("Garden Keeper session TTL must remain one hour");
-  const session=await issueAdminSession(env,1_000_000);
-  const cookie=adminSessionCookie(session);
-  for(const marker of ["HttpOnly","Secure","SameSite=Strict","Path=/admin-api","Max-Age=3600"]){
-    if(!cookie.includes(marker))fail(`admin session cookie is missing ${marker}`);
-  }
-  if(!(await verifyAdminSession(env,cookie,1_000_060)).valid)fail("fresh Garden Keeper session did not verify");
-  if((await verifyAdminSession(env,cookie,session.expiresAt+1)).valid)fail("expired Garden Keeper session must not verify");
 
-  const validRequest=new Request("https://shadow.example/admin-api/status",{headers:{authorization:`Bearer ${env.SG_ADMIN_TOKEN}`,cookie}});
+  const fixedSession=await issueAdminSession(env,1_000_000);
+  const fixedCookie=adminSessionCookie(fixedSession);
+  for(const marker of ["HttpOnly","Secure","SameSite=Strict","Path=/admin-api","Max-Age=3600"]){
+    if(!fixedCookie.includes(marker))fail(`admin session cookie is missing ${marker}`);
+  }
+  if(!(await verifyAdminSession(env,fixedCookie,1_000_060)).valid)fail("fresh Garden Keeper session did not verify");
+  if((await verifyAdminSession(env,fixedCookie,fixedSession.expiresAt+1)).valid)fail("expired Garden Keeper session must not verify");
+
+  const liveSession=await issueAdminSession(env);
+  const liveCookie=adminSessionCookie(liveSession);
+  const validRequest=new Request("https://shadow.example/admin-api/status",{headers:{authorization:`Bearer ${env.SG_ADMIN_TOKEN}`,cookie:liveCookie}});
   if(!(await adminAuthorized(validRequest,env)))fail("admin API must accept the correct token plus a valid Garden Keeper session");
   const noSession=new Request("https://shadow.example/admin-api/status",{headers:{authorization:`Bearer ${env.SG_ADMIN_TOKEN}`}});
   if(await adminAuthorized(noSession,env))fail("admin API must reject a correct token without the Garden Keeper session");
-  const wrongToken=new Request("https://shadow.example/admin-api/status",{headers:{authorization:"Bearer wrong",cookie}});
+  const wrongToken=new Request("https://shadow.example/admin-api/status",{headers:{authorization:"Bearer wrong",cookie:liveCookie}});
   if(await adminAuthorized(wrongToken,env))fail("admin API must reject an invalid token even with a valid Garden Keeper session");
 }
 

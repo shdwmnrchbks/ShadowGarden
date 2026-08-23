@@ -1,12 +1,4 @@
-/* Shadow Garden v1.15.2 — deployed version label. */
-.admin-header{grid-template-columns:minmax(0,1fr) auto!important}
-.admin-header .brand{grid-column:1;grid-row:1;min-width:0}
-.admin-header .header-back{grid-column:2;grid-row:1;align-self:center;justify-self:end}
-.admin-header .brand>span:last-child{min-width:0}
-.admin-header .brand>span:last-child>small{display:flex;align-items:center;gap:0;white-space:nowrap}
-.admin-version{display:inline;font-size:.56rem;line-height:1;letter-spacing:.06em;color:#80788a;font-variant-numeric:tabular-nums;text-transform:none}
-@media(max-width:720px){
-  .admin-header .brand>span:last-child>small{display:flex!important;font-size:.52rem;letter-spacing:.12em}
-  .admin-version{font-size:.5rem;letter-spacing:.04em}
-}
-@media(max-width:430px){.admin-version{display:none}.admin-header .brand>span:last-child>small{white-space:normal}}
+/* Shadow Garden v1.15.3 — deployed version footer. */
+.admin-version-footer{width:min(920px,calc(100% - 28px));margin:0 auto;padding:22px 0 28px;border-top:1px solid rgba(196,184,225,.09);text-align:center;color:#746d7d}
+.admin-version{display:inline-block;font-size:.62rem;line-height:1.4;letter-spacing:.07em;font-variant-numeric:tabular-nums}
+@media(max-width:640px){.admin-version-footer{width:calc(100% - 24px);padding:18px 0 22px}.admin-version{font-size:.58rem}}

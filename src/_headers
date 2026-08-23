@@ -9,6 +9,7 @@
 
 /reader.html
   Cache-Control: no-store
+  X-Robots-Tag: noindex, nofollow, noarchive
 
 /assets/js/data-source.js
   Cache-Control: no-store
@@ -59,6 +60,9 @@
   Cache-Control: no-store
 
 /assets/css/site-v1.9.4.css
+  Cache-Control: no-store
+
+/assets/css/reader-end-page.css
   Cache-Control: no-store
 
 /assets/css/admin-current.css

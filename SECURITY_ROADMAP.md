@@ -18,8 +18,8 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB delivered to 
 | 1. Baseline media hardening | ✅ Done | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
 | 2. Signed book access tickets | ✅ Done | HMAC tickets, expiring download URLs, path-scoped Reader authorization, fail-closed enforcement |
 | 3. Opaque public book identifiers | ✅ Done | Public `bk_...` identities, catalog redaction, opaque Reader/download URLs, private media boundary, stable replacement identity |
-| 4. Human access sessions | 🟨 In progress | Turnstile + signed 12-hour `/book-access` session are live in Production; activation is confirmed and the final acceptance sweep remains |
-| 5. Bulk-download throttling | ⬜ Planned | Free Cloudflare rate-limiting rule and unique-book acquisition policy |
+| 4. Human access sessions | ✅ Done | Turnstile + signed 12-hour `/book-access` human session, production accepted 2026-08-23 |
+| 5. Bulk-download throttling | 🟨 In progress | Signed 20-unique-book/10-minute session budget + one Cloudflare Free burst rule on `/book-access` |
 | 6. Bot and crawler controls | ⬜ Planned | Bot Fight Mode, AI bot controls, AI Labyrinth, crawler policy |
 | 7. Garden Keeper hardening | ⬜ Planned | Turnstile/rate-limit admin unlock and reduce authentication probing |
 | 8. Abuse telemetry and response | ⬜ Planned | Security Analytics review procedure, tripwires, temporary cooldown policy |
@@ -31,18 +31,12 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB delivered to 
 
 **Status:** ✅ Done
 
-Implemented and production-validated.
+Completed and production-validated.
 
-### Completed
-
-- [x] Reject browser EPUB requests when `Sec-Fetch-Site: cross-site`.
-- [x] Add `Cross-Origin-Resource-Policy: same-origin` to protected media/catalog responses.
-- [x] Strip upstream CORS exposure headers from protected responses.
-- [x] Add `X-Robots-Tag` anti-index/archive headers.
-- [x] Add crawler exclusions for `/media/`, `/admin.html`, `/admin-api/`, and `/book-access`.
-- [x] Preserve Reader Range requests and Cloudflare caching.
-- [x] Add repository regression checks.
-- [x] Pass CI and production Reader/catalog smoke tests.
+- Reject cross-site browser EPUB requests.
+- Same-origin protected-media policy and anti-index/archive headers.
+- Preserve Reader Range requests and Cloudflare caching.
+- Regression checks cover the public media boundary.
 
 ---
 
@@ -50,23 +44,13 @@ Implemented and production-validated.
 
 **Status:** ✅ Done
 
-Short-lived authorization is active in Production and was validated before Milestone 3 work began.
+Completed and production-validated.
 
-### Completed
-
-- [x] Add same-origin `/book-access` ticket issuance.
-- [x] Sign EPUB authorization with HMAC-SHA256.
-- [x] Default signed URLs to roughly 10 minutes.
-- [x] Bind signatures to the exact EPUB path and expiry.
-- [x] Use an HttpOnly, Secure, SameSite=Strict cookie scoped to the exact EPUB path for Reader requests.
-- [x] Automatically renew Reader authorization during long reading sessions.
-- [x] Preserve HTTP Range requests and canonical Cloudflare EPUB cache keys.
-- [x] Intercept Series-page downloads and issue fresh signed URLs.
-- [x] Configure Production `SG_MEDIA_SIGNING_SECRET`.
-- [x] Verify `/book-access` returns `200`, `active`, `protected: true`, and an expiring signed URL.
-- [x] Verify bare EPUB URLs are denied in a fresh private/incognito session.
-- [x] Deploy v1.8.2 fail-closed behavior: a missing/invalid signing secret produces unavailable media instead of public EPUB fallback.
-- [x] Pass repository CI and production Reader/download validation.
+- `/book-access` mints HMAC-SHA256 tickets for the exact EPUB path.
+- Signed URLs expire after roughly 10 minutes.
+- Reader receives a short-lived HttpOnly, Secure, SameSite=Strict ticket cookie scoped to the exact EPUB path.
+- Reader automatically renews authorization without placing auth logic inside EPUB Range requests.
+- Missing/invalid signing configuration fails closed.
 
 ---
 
@@ -74,123 +58,101 @@ Short-lived authorization is active in Production and was validated before Miles
 
 **Status:** ✅ Done
 
-Implemented through the v1.9.x hardening series and production-validated on v1.9.3.
+Completed and production-validated.
 
-### Completed
-
-- [x] Add stable opaque identifiers in the form `bk_<opaque-id>`.
-- [x] Make IDs non-sequential using SHA-256-derived opaque values for legacy migration.
-- [x] Redact EPUB `file` paths from the public Main and Adult catalog responses.
-- [x] Redact private `sha256` and `originalFilename` fields from public catalog responses.
-- [x] Keep the unredacted B2 catalogs private and available to authenticated Garden Keeper workflows.
-- [x] Add a server-side `bookId` → cataloged EPUB path resolver.
-- [x] Restrict legacy raw-path authorization to EPUBs that actually exist in a current private catalog.
-- [x] Make `/book-access` accept opaque `bookId` values and return signed Milestone 2 delivery URLs.
-- [x] Keep direct EPUB delivery protected by Milestone 2 tickets/cookies.
-- [x] Normalize public volume data so existing Library/Series code receives `volume.file = bookId`, never the storage path.
-- [x] Migrate existing path-keyed Continue Reading progress to opaque-ID aliases without deleting the old local data.
-- [x] Migrate Reader bookmark/progress aliases when an affected book is opened.
-- [x] Keep the visible Reader URL on `book=bk_...` while resolving the protected media source internally.
-- [x] Make Download EPUB links expose only an opaque ID before authorization.
-- [x] Reject stale pre-Milestone-3 raw catalog cache entries unless they carry `X-SG-Catalog-View: opaque-v1`.
-- [x] Preserve existing Garden Keeper catalog cache invalidation behavior.
-- [x] Restrict the public `/media/*` proxy to redacted public catalogs, covers, and ticket-protected EPUBs; private Trash/backups return 404.
-- [x] Persist `bookId` on new Garden Keeper uploads.
-- [x] Preserve the prior `bookId` when an existing volume's EPUB object is replaced.
-- [x] Refresh the resolver once on a cache miss so a just-uploaded book can be authorized immediately.
-- [x] Extend security regression tests for public redaction, opaque-ID determinism, resolver wiring, Reader URL privacy, private-media boundaries, and legacy fallback restrictions.
-- [x] Pass GitHub Actions CI on all Milestone 3 implementation/hotfix PRs.
-- [x] Production smoke-test Main/Adult Library, Reader, downloads, Continue Reading, private-media boundaries, and Garden Keeper upload/replace behavior.
-
-### Production acceptance — passed
-
-1. Public Main and Adult catalog responses contain `bookId` for each EPUB volume and do **not** expose the volume's `/media/...epub` path.
-2. Public catalog responses do not expose EPUB SHA-256 hashes or original upload filenames.
-3. Copying the visible **Download EPUB** link exposes an opaque `bk_...` identifier rather than the storage path.
-4. Clicking **Download EPUB** still downloads the EPUB through a fresh Milestone 2 signed URL.
-5. Start Reading, Recently Added, and Continue Reading open the correct volume.
-6. Existing reading progress survives the migration.
-7. Pages, Continuous, seeking, bookmarks, Page Map, and Visual Page Cache remain functional.
-8. A known bare `/media/...epub` URL still returns a denial in a fresh incognito session.
-9. `/book-access` with a valid current `bookId` succeeds; a random/unknown `bookId` returns 404.
-10. Public access to `trash.json`, backup indexes, and other private B2 namespaces returns 404.
-11. Reader URLs remain opaque (`book=bk_...`) rather than exposing the resolved media object path.
-12. A newly uploaded volume receives a stable `bookId`; replacing its EPUB file preserves that ID and the replacement still reads/downloads correctly.
-13. Garden Keeper management remains functional against the private full catalogs.
+- Public catalogs expose stable non-sequential `bk_...` IDs instead of EPUB storage paths.
+- Public catalogs redact EPUB hashes/original filenames and private B2 namespaces remain inaccessible.
+- Server resolves opaque IDs to cataloged EPUB paths only.
+- Reader and Download EPUB URLs remain opaque until authorization.
+- Existing Continue Reading/bookmark state migrates to opaque IDs.
+- Replacing an EPUB preserves its stable book ID.
 
 ---
 
 ## Milestone 4 — Human access sessions
 
-**Status:** 🟨 In progress — implementation, CI, and Production activation complete; final Production acceptance sweep pending
+**Status:** ✅ Done — production accepted 2026-08-23
 
-Use Cloudflare Turnstile Free as an occasional human verification layer at the protected book-acquisition boundary, not inside the reading/rendering path.
+Cloudflare Turnstile Free is used only at the protected acquisition boundary, not in the reading/rendering path.
 
-### Implemented
+### Completed
 
-- [x] Keep ordinary Main/Adult Library browsing, catalogs, covers, filters, and Series browsing challenge-free.
-- [x] Gate protected acquisition at `/book-access` before catalog book resolution when Turnstile is active.
-- [x] Return a `428 human_verification_required` response containing only the public Turnstile site key/action when no valid human session exists.
-- [x] Load Cloudflare Turnstile on demand in the browser only after the server requests verification.
-- [x] Add same-origin `/human-access` server verification using Cloudflare Siteverify.
-- [x] Validate Siteverify success, expected `book_access` action, and exact request hostname.
-- [x] Create a signed 12-hour human-access session after successful verification.
-- [x] Sign the human session with `SG_MEDIA_SIGNING_SECRET` under a separate `sg-human-session-v1` HMAC domain.
-- [x] Scope the session cookie to `/book-access` only with HttpOnly, Secure, SameSite=Strict, and 12-hour Max-Age.
-- [x] Keep the human-session cookie off EPUB Range requests, media responses, covers, catalogs, and ordinary navigation.
+- [x] Keep Main/Adult Library browsing, catalogs, covers, filters, and Series browsing challenge-free.
+- [x] Gate protected acquisition at `/book-access` when Turnstile is active.
+- [x] Return `428 human_verification_required` when no valid human session exists.
+- [x] Load Turnstile on demand and verify it server-side at `/human-access`.
+- [x] Validate Siteverify success, expected `book_access` action, and exact hostname.
+- [x] Create a signed 12-hour human-access session.
+- [x] Scope the human cookie to `/book-access` with HttpOnly, Secure, SameSite=Strict.
+- [x] Keep human-session logic out of `/media/*` and EPUB Range requests.
 - [x] Retry the original Reader/download authorization automatically after successful verification.
-- [x] Share one in-page verification flow across simultaneous Reader startup authorization requests.
-- [x] Keep Reader ticket renewals challenge-free for the lifetime of the 12-hour session.
-- [x] Keep `/media/*`, HTTP Range, Page Map, Visual Page Cache, Pages, Continuous, seeking, bookmarks, and Reader core untouched.
-- [x] Keep M4 dormant when both Turnstile variables are absent so deploying v1.10.0 alone does not lock readers out.
-- [x] Fail protected acquisition closed as misconfigured when only one Turnstile variable is present.
-- [x] Fail closed if configured Turnstile server verification times out or is unavailable.
-- [x] Add regression tests for activation state, cookie security flags, 12-hour lifetime, tamper/expiry rejection, gate ordering, client/server Turnstile wiring, and absence of human-session logic from the media proxy.
-- [x] Pass GitHub Actions verification for the implementation branch.
+- [x] Preserve Pages, Continuous, seeking, Page Map, Visual Page Cache, bookmarks, progress restore, and ticket renewal.
+- [x] Keep Milestone 4 dormant when both Turnstile variables are absent and fail closed on partial/misconfigured activation.
+- [x] Production-test first Read and Download in a fresh session.
+- [x] Verify subsequent protected acquisitions in the same human session do not re-challenge normally.
+- [x] Verify ordinary Main/Adult browsing remains challenge-free.
+- [x] Verify Milestone 2 bare-media denial and Milestone 3 opaque URLs remain intact.
 
-### Production activation — live; final acceptance pending
+### Acceptance
 
-Production Turnstile activation has been confirmed working. The remaining unchecked items below are the final acceptance/regression sweep before Milestone 4 is closed.
-
-- [x] Create/configure the Cloudflare Turnstile widget for the production Shadow Garden hostname.
-- [x] Add Production `SG_TURNSTILE_SITE_KEY`.
-- [x] Add Production secret `SG_TURNSTILE_SECRET_KEY`.
-- [x] Redeploy after both values are present.
-- [ ] Production-test the first Read action in a fresh private/incognito session.
-- [ ] Production-test the first Download EPUB action in a fresh private/incognito session.
-- [ ] Verify subsequent books/downloads during the same session do not re-challenge.
-- [ ] Verify Main/Adult browsing remains challenge-free.
-- [ ] Verify Pages, Continuous, seeking, Page Map, Visual Page Cache, bookmarks, progress restore, and Range behavior remain normal.
-- [ ] Verify Milestone 2 bare-media denial and Milestone 3 opaque URLs remain intact.
-
-### Acceptance criteria
-
-1. First protected acquisition without a valid human session requires Turnstile verification.
-2. Successful verification establishes a signed 12-hour `/book-access` session.
-3. Subsequent ordinary Reader opens/downloads during that session do not re-challenge.
-4. Reader renewal, Range requests, seeking, Pages, Continuous, Page Map, and Visual Page Cache remain unaffected.
-5. Invalid/expired human sessions cannot mint new book tickets without re-verification.
-6. Existing Milestone 2 signed-ticket and Milestone 3 opaque-ID protections remain intact.
-7. Main/Adult catalog browsing stays challenge-free.
-8. No Turnstile secret is exposed to the browser or repository.
-9. Milestone 5 must not begin until these Production checks pass.
+Milestone 4 was explicitly accepted after production Turnstile behavior and Reader regressions were verified. Milestone 5 is now allowed to proceed.
 
 ---
 
 ## Milestone 5 — Bulk-download throttling
 
-**Status:** ⬜ Planned
+**Status:** 🟨 In progress
 
-Use the Cloudflare Free rate-limiting allowance on **new book authorizations**, not EPUB Range requests.
+Milestone 5 protects **book authorization**, not EPUB delivery. Individual `/media/*` Range requests, page turns, seeking, Page Map, Visual Page Cache, covers, catalogs, and ordinary browsing must not consume the acquisition budget.
 
-### Initial policy to test
+### Current design
 
-- Normal use: no interruption.
-- Approximately 15–25 different book authorization attempts per IP/session in 10 minutes: Managed Challenge or temporary denial.
-- Do not count individual Range requests as separate books.
-- Later add session-level unique-book tripwires if needed.
+Cloudflare Free currently allows only a 10-second counting period for its single WAF rate-limiting rule, so the earlier idea of a native Cloudflare 10-minute IP counter is not available on the Free plan. Shadow Garden therefore uses two complementary layers:
 
-Cloudflare dashboard changes will be documented here because they are not stored in the GitHub repository.
+1. **Application/session unique-book budget** — signed 20 different books per rolling 10 minutes.
+2. **Cloudflare/IP burst rule** — 8 requests to `/book-access` per 10 seconds, followed by Managed Challenge.
+
+The application layer handles the useful 10-minute unique-book policy; the Cloudflare rule independently catches high-speed clients even if they manipulate browser state.
+
+### Repository implementation — v1.11.0
+
+- [x] Add signed `sg_acquisition_window` state using `SG_MEDIA_SIGNING_SECRET` under a separate HMAC domain.
+- [x] Keep the acquisition cookie HttpOnly, Secure, SameSite=Strict and scoped only to `/book-access`.
+- [x] Track opaque `bookId` values rather than storage paths.
+- [x] Allow **20 different books per rolling 600 seconds**.
+- [x] Re-authorizing the same book does not consume another unique-book slot.
+- [x] Return HTTP `429` with `Retry-After` when the next different book exceeds the budget.
+- [x] Return diagnostic `X-SG-Acquisition-Limit`, `X-SG-Acquisition-Window`, and `X-SG-Acquisition-Remaining` headers.
+- [x] Keep acquisition throttling entirely out of `/media/*`, so Range requests and Reader rendering are unaffected.
+- [x] Add dedicated Milestone 5 regression tests to the normal build/check pipeline.
+- [x] Document the Cloudflare Free rule in `MILESTONE_5_CLOUDFLARE.md`.
+
+### Cloudflare dashboard — pending
+
+- [ ] Create the single Free rate-limiting rule for URI Path equals `/book-access`.
+- [ ] Set **8 requests / 10 seconds** using the default per-IP characteristic.
+- [ ] Use **Managed Challenge**.
+- [ ] Do not include `/media/*`, `/human-access`, catalogs, covers, or static Reader assets.
+
+### Production acceptance — pending
+
+- [ ] Normal Read/Download remains smooth under typical use.
+- [ ] Same-book ticket renewal does not consume unique-book slots.
+- [ ] 20 distinct books inside 10 minutes are allowed and the next distinct book receives `429` plus `Retry-After`.
+- [ ] The signed session budget recovers after the rolling window expires.
+- [ ] A burst over 8 `/book-access` requests in 10 seconds triggers Cloudflare Managed Challenge.
+- [ ] Main/Adult browsing and Series pages remain challenge-free.
+- [ ] Pages, Continuous, seeking, Page Map, Visual Page Cache, bookmarks, progress restore, and Range behavior remain normal.
+- [ ] Milestones 2–4 protections remain intact.
+
+### Acceptance criteria
+
+1. Bulk authorization is slowed before EPUB transfer begins.
+2. Ordinary readers are not penalized for Range requests or same-book ticket renewal.
+3. A normal browser session cannot walk more than 20 different books in a 10-minute rolling window without temporary throttling.
+4. Fast IP-level bursts are independently challenged by Cloudflare.
+5. No state or limiter is placed in the EPUB media proxy.
+6. Milestone 6 begins only after the production checks above pass.
 
 ---
 
@@ -214,7 +176,7 @@ Free Cloudflare configuration pass:
 
 The concealed ✦ shortcut remains convenience/camouflage only; authentication remains server enforced.
 
-### Planned work
+Planned work:
 
 - Turnstile verification for Garden Keeper unlock.
 - Rate-limit repeated unlock failures.
@@ -249,8 +211,7 @@ Prefer temporary challenges/cooldowns over broad country blocks.
 
 Regression checklist after all protection layers are present:
 
-- Main Library catalog and covers.
-- Adult Library catalog and covers.
+- Main and Adult Library catalogs/covers.
 - Series pages.
 - Reader Pages and Continuous modes.
 - Range requests and seeking.

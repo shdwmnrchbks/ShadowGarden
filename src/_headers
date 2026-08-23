@@ -32,6 +32,9 @@
 /assets/js/library-series-polish.js
   Cache-Control: no-store
 
+/assets/js/library-finished-polish.js
+  Cache-Control: no-store
+
 /assets/js/reader/theme.js
   Cache-Control: no-store
 

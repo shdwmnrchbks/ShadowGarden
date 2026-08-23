@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.0 — finished reading indicators. */
+/* Shadow Garden v1.15.5 — finished reading indicators. */
 .volume-finished-toggle{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;padding:10px 14px;border:1px solid rgba(137,205,156,.25);border-radius:12px;background:rgba(61,116,78,.08);color:inherit;cursor:pointer;box-sizing:border-box}
 .volume-finished-toggle input{width:18px;height:18px;margin:0;accent-color:#4fa56b}
 .volume-finished-toggle span{font-weight:700;line-height:1.25}
@@ -12,4 +12,5 @@
 .reading-status-chips button{border:1px solid rgba(173,162,196,.16);border-radius:999px;background:rgba(255,255,255,.025);color:inherit;padding:7px 10px;cursor:pointer}
 .reading-status-chips button.active{border-color:rgba(97,203,129,.45);background:rgba(41,119,64,.16);color:#a7e7b9}
 .compact-card-badge.finished{border-color:rgba(96,204,129,.35)!important;background:rgba(36,112,58,.18)!important;color:#98dfaa!important}
+.catalog-grid.compact .finished-series-badge{display:none!important}
 @media(max-width:720px){.volume-finished-toggle{min-height:52px;padding:11px 12px}.finished-series-badge{font-size:.54rem}}

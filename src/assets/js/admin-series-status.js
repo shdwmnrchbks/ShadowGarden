@@ -11,13 +11,28 @@
   const slug=value=>String(value||"untitled").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,90)||"untitled";
   const arr=value=>Array.isArray(value)?value:[];
 
+  function installStatusSelect(){
+    const current=document.getElementById("manageStatus");
+    if(!current)return null;
+    if(current.tagName==="SELECT")return current;
+    const select=document.createElement("select");
+    select.id="manageStatus";
+    select.name=current.name||"series-status";
+    select.setAttribute("aria-label","Series status");
+    select.innerHTML=STATUSES.map(status=>`<option value="${status}">${status}</option>`).join("");
+    select.value=normalize(current.value);
+    current.replaceWith(select);
+    return select;
+  }
+
   function canonicalizeEditor(){
-    const select=document.getElementById("manageStatus");
+    const select=installStatusSelect();
     if(!select)return;
     const canonical=normalize(select.value);
     if(select.value!==canonical)select.value=canonical;
   }
 
+  installStatusSelect();
   const dialog=document.getElementById("seriesEditor");
   if(dialog){
     new MutationObserver(()=>{if(dialog.open)canonicalizeEditor()}).observe(dialog,{attributes:true,attributeFilter:["open"]});

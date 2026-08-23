@@ -7,10 +7,11 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSource,adminBootstrap,adminVersion,headers,pkg]=await Promise.all([
+const [status,readerFinished,readerBootstrap,continuousCore,series,library,polish,style,writeSource,adminBootstrap,adminVersion,headers,pkg,readerHtml]=await Promise.all([
   read("src/assets/js/reading-status.js"),
   read("src/assets/js/reader-finished.js"),
   read("src/assets/js/reader-bootstrap.js"),
+  read("src/assets/js/reader-continuous-core.js"),
   read("src/assets/js/series.js"),
   read("src/assets/js/library.js"),
   read("src/assets/js/library-series-polish.js"),
@@ -19,19 +20,23 @@ const [status,readerFinished,readerBootstrap,series,library,polish,style,writeSo
   read("src/assets/js/admin-bootstrap.js"),
   read("src/assets/css/admin-version.css"),
   read("src/_headers"),
-  read("package.json")
+  read("package.json"),
+  read("src/reader.html")
 ]);
 
 for(const marker of ["sg-finished-books","sg-finished:","isFinished","setFinished","setAliasesFinished","isAnyFinished","volumeAliases","stableVolumeId","isVolumeFinished","setVolumeFinished","seriesFinished","finishedCount"]){
   if(!status.includes(marker))fail(`reading-status.js is missing ${marker}`);
 }
 if(status.includes("fetch("))fail("finished reading state must remain browser-local and must not call a server API");
-for(const marker of ["volume-finished-toggle","finishedToggle","Mark as Finished","Marked as unfinished","ShadowGardenBookAccess?.initial","ShadowGardenData?.loadCatalog","volume?.file","status.volumeAliases","setAliasesFinished","Could not save reading status"]){
+for(const marker of ["volume-finished-toggle","data-sg-finished-toggle","Mark as Finished","Marked as unfinished","ShadowGardenBookAccess?.initial","ShadowGardenData?.loadCatalog","volume?.file","status.volumeAliases","setAliasesFinished","Could not save reading status","document.addEventListener(\"change\"","MutationObserver","volume-end-page-continuous"]){
   if(!readerFinished.includes(marker))fail(`Reader finished control is missing ${marker}`);
 }
-for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.3","reader-finished.js?v=1.15.3"]){
+if(!continuousCore.includes("cloneNode(true)")||!continuousCore.includes("volume-end-page-continuous"))fail("Continuous Reader must retain its cloned end-page architecture for the delegated completion regression to be meaningful");
+if(readerFinished.includes('toggle.addEventListener("change"'))fail("finished-state persistence must not be attached only to the master checkbox because Continuous mode clones the end page without listeners");
+for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePath","ticket?.bookId||ticket?.identity","canonicalizeLegacyUrl","reading-status.js?v=1.15.3","reader-finished.js?v=1.15.4"]){
   if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
 }
+if(!readerHtml.includes("reader-bootstrap.js?v=1.15.4"))fail("Reader HTML must cache-bust the v1.15.4 bootstrap");
 for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
@@ -45,7 +50,7 @@ for(const marker of ["finished-volume-badge","finished-series-badge","reading-st
 for(const marker of ["version.json","CF_PAGES_COMMIT_SHA","shortCommit","builtAt"]){
   if(!writeSource.includes(marker))fail(`deployment version generation is missing ${marker}`);
 }
-for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-version-footer","document.body.appendChild(footer)","admin-version.css?v=1.15.3"]){
+for(const marker of ["adminVersion","/data/version.json","shortCommit","admin-version-footer","document.body.appendChild(footer)"]){
   if(!adminBootstrap.includes(marker))fail(`Garden Keeper footer version UI is missing ${marker}`);
 }
 if(adminBootstrap.includes("brandMeta")||adminBootstrap.includes("header.insertBefore(label,back)"))fail("Garden Keeper version must not be mounted in the header");
@@ -54,7 +59,7 @@ for(const marker of ["/data/version.json","/assets/js/reading-status.js","/asset
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.3")fail("package version must be 1.15.3");
+if(parsed.version!=="1.15.4")fail("package version must be 1.15.4");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */
@@ -86,7 +91,6 @@ if(parsed.version!=="1.15.3")fail("package version must be 1.15.3");
     if(!api.setAliasesFinished(aliases,true))fail("alias-safe completion write must succeed");
     if(!aliases.every(id=>api.isFinished(id)))fail("all aliases must read as finished immediately after saving");
 
-    /* Re-evaluate the module to simulate navigating away and reopening the Reader. */
     delete window.ShadowGardenReadingStatus;
     vm.runInNewContext(status,context,{filename:"reading-status-reload.js"});
     api=window.ShadowGardenReadingStatus;

@@ -1,19 +1,35 @@
-/* Shadow Garden v1.10.1 — enrich Continue Reading with resumed-volume metadata and artwork. */
+/* Shadow Garden v1.10.2 — enrich Continue Reading with resumed-volume metadata and artwork. */
 (()=>{
   const panel=document.querySelector("#continuePanel");
   if(!panel||!window.ShadowGardenData)return;
   const adult=(document.body.dataset.libraryScope||"main")==="nsfw";
   const arr=value=>Array.isArray(value)?value:[];
 
-  function latestSavedProgress(files){
-    const allowed=new Set(files);
+  function normalizeFile(value){
+    const raw=String(value||"").trim();
+    if(!raw)return"";
+    try{
+      const url=new URL(raw,location.origin);
+      let path=url.pathname;
+      try{path=decodeURIComponent(path)}catch{}
+      return path.replace(/\/+$/g,"");
+    }catch{
+      let path=raw.split(/[?#]/)[0];
+      try{path=decodeURIComponent(path)}catch{}
+      return path.replace(/\/+$/g,"");
+    }
+  }
+
+  function latestSavedProgress(entries){
+    const byFile=new Map(entries.map(entry=>[normalizeFile(entry.volume?.file),entry]).filter(([file])=>file));
     const saved=[];
     for(let i=0;i<localStorage.length;i++){
       const key=localStorage.key(i);
       if(!key?.startsWith("sg-progress:"))continue;
       try{
         const item=JSON.parse(localStorage.getItem(key)||"null");
-        if(item?.updatedAt&&allowed.has(item.file))saved.push(item);
+        const file=normalizeFile(item?.file);
+        if(item?.updatedAt&&file&&byFile.has(file))saved.push({...item,__match:byFile.get(file)});
       }catch{}
     }
     saved.sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
@@ -29,10 +45,9 @@
   const metadataPromise=window.ShadowGardenData.loadCatalog(adult).then(catalog=>{
     const series=arr(catalog?.series);
     const entries=series.flatMap(item=>arr(item.volumes).map((volume,index)=>({series:item,volume,index})));
-    const saved=latestSavedProgress(entries.map(entry=>entry.volume.file));
-    if(!saved)return null;
-    const match=entries.find(entry=>entry.volume.file===saved.file);
-    if(!match)return null;
+    const saved=latestSavedProgress(entries);
+    const match=saved?.__match;
+    if(!saved||!match)return null;
     return {
       seriesTitle:String(match.series.title||"Untitled series"),
       volumeTitle:String(match.volume.title||`Volume ${match.index+1}`),

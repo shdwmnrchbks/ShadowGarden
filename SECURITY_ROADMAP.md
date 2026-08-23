@@ -23,7 +23,7 @@ Shadow Garden intentionally remains on the free `shadowgarden-bon.pages.dev` hos
 | 4. Human access sessions | ✅ Done | Turnstile + signed 12-hour `/book-access` human session, production accepted 2026-08-23 |
 | 5. Bulk-download throttling | ✅ Done | Signed 20-unique-book/10-minute acquisition budget; zone WAF burst rule deferred on `pages.dev` |
 | 6. Bot and crawler controls | 🟨 In progress | Repository crawler policy, protected-endpoint automation screening, Reader noindex policy; zone-only controls deferred |
-| 7. Garden Keeper hardening | 🟨 In progress | Turnstile-gated unlock, signed admin session, generic failures, escalating cooldowns, server-enforced admin APIs |
+| 7. Garden Keeper hardening | 🟨 In progress | Turnstile-gated unlock, signed admin session, generic failures, server-side cross-session cooldowns, server-enforced admin APIs |
 | 8. Abuse telemetry and response | ⬜ Planned | Lightweight logging/review procedure, tripwires, temporary cooldown policy |
 | 9. Final security audit | ⬜ Planned | Delivery paths, cache behavior, Reader compatibility, admin flows, and documentation |
 
@@ -107,40 +107,48 @@ These are not required while Shadow Garden stays on `pages.dev`.
 
 The concealed ✦ shortcut remains convenience/camouflage only. Garden Keeper authorization is server enforced.
 
-### Repository implementation — v1.13.0
+### Repository implementation — v1.13.1
 
 - [x] Add `/admin-access` as the dedicated Garden Keeper unlock boundary.
 - [x] Reuse the existing Turnstile site/secret configuration with a separate `admin_access` action.
-- [x] Fail closed when Turnstile, `SG_ADMIN_TOKEN`, or signing configuration is unavailable.
+- [x] Fail closed when Turnstile, `SG_ADMIN_TOKEN`, signing configuration, or the private throttle store is unavailable.
 - [x] Compare the submitted admin token in constant time.
 - [x] Create a signed one-hour `sg_admin_session` after successful Turnstile + token verification.
 - [x] Scope the admin session cookie to `/admin-api`, with HttpOnly, Secure, SameSite=Strict.
 - [x] Require **both** the bearer admin token and a valid signed Garden Keeper session on `/admin-api/*`.
 - [x] Keep every existing mutation/read API behind the shared `adminAuthorized` boundary.
-- [x] Add signed failed-unlock state and escalating cooldowns: first failure no wait, then 5s, 15s, 60s, 5m, then 15m.
+- [x] Add escalating cooldowns: first failure no wait, then 5s, 15s, 60s, 5m, then 15m.
+- [x] Move failed-unlock authority server-side so normal, Incognito, and cleared-cookie sessions from the same public IP share the same cooldown.
+- [x] Derive the stored throttle key from `CF-Connecting-IP` using HMAC; raw client IP addresses are never written to storage.
+- [x] Store only the opaque throttle state under the existing private Backblaze B2 namespace; no KV/custom domain is required.
+- [x] Keep the signed failed-unlock cookie only as a compatibility/UI mirror, not as the authorization source of truth.
+- [x] Clear the server-side failure record after successful authentication.
 - [x] Return generic `Access denied. Please try again.` responses rather than revealing whether Turnstile or the admin token was the failing factor.
 - [x] Return `Retry-After` during an active cooldown and show a client-side countdown.
 - [x] Clear the signed admin session when Garden Keeper is explicitly locked.
 - [x] Apply Milestone 6 automation screening to `/admin-access` as an additive deterrent.
 - [x] Route `/admin-access` through Pages Functions and exclude it from crawling.
 - [x] Serve the Garden Keeper security client with `Cache-Control: no-store`.
-- [x] Add dedicated Milestone 7 regression checks to the normal build/check pipeline.
+- [x] Add dedicated Milestone 7 regression checks, including same-IP Incognito behavior, to the normal build/check pipeline.
 
 ### Security model
 
-The unlock flow now has three independent requirements:
+The unlock flow has three independent requirements:
 
 1. a normal browser-shaped request that passes the low-cost automation policy;
 2. a valid Turnstile response bound to the `admin_access` action and current hostname;
 3. the correct `SG_ADMIN_TOKEN`.
 
-A successful unlock then issues a short signed admin session. Admin API requests still require the original bearer token **and** that signed session. Deleting browser state can reset the signed cooldown, so the cooldown is a deterrence layer rather than an IP-global lockout; Turnstile remains the independent cost against repeated resets.
+Failed token attempts are tracked server-side by an HMAC-derived identifier based on Cloudflare's connecting-IP header. Browser cookies are not authoritative, so opening Incognito or clearing site data does not reset the same-network cooldown. The raw IP is never persisted. A successful unlock removes that throttle record and issues a short signed admin session. Admin API requests still require the original bearer token **and** that signed session.
 
 ### Production acceptance — pending
 
 - [ ] Correct token + successful Turnstile unlocks Garden Keeper.
 - [ ] Wrong token returns only the generic denial and does not reveal which check failed.
 - [ ] Repeated failed unlocks show the escalating cooldown and `Retry-After` behavior.
+- [ ] Incognito or cleared cookies on the same network do not bypass an active cooldown.
+- [ ] A different public network does not inherit another network's cooldown.
+- [ ] Successful authentication clears the server-side failure state.
 - [ ] Locking Garden Keeper clears the admin session and requires a new unlock flow.
 - [ ] Direct `/admin-api/*` requests with only the bearer token are rejected without the signed admin session.
 - [ ] Upload, metadata edit, series status, banner, Catalog History, maintenance, Trash restore/purge, and other Garden Keeper operations still work after a valid unlock.

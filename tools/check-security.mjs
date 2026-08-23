@@ -81,7 +81,7 @@ async function checkWiring(){
   if(!seriesSource.includes('data-book-id="${esc(v.file)}"'))fail("Series download controls must hand the opaque book ID to book-access.js");
   if(seriesSource.includes('<a class="download" href="${esc(v.file)}" download>'))fail("Series download controls must not use volume.file as a direct href");
 
-  for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass","bookId","migrateLegacyState"]){
+  for(const marker of ["ShadowGardenBookAccess","/book-access","a[download]","ticketing_not_configured","renewalTimer","ACCESS_TIMEOUT_MS","AbortController","sgBookAccessBypass","bookId","migrateLegacyState","opaquePseudoRequest","sourcePath"]){
     if(!client.includes(marker))fail(`book-access.js is missing ${marker}`);
   }
   if(client.includes("const legacy=")||client.includes("protected:false"))fail("book-access.js must not fall back to an unsigned EPUB URL when ticketing is unavailable");
@@ -90,10 +90,14 @@ async function checkWiring(){
   const bypassGuard=client.indexOf('link.dataset.sgBookAccessBypass==="1"');
   if(bypassAssignment<0||syntheticClick<0||bypassAssignment>syntheticClick)fail("synthetic EPUB download links must be marked before click()");
   if(bypassGuard<0)fail("download interceptor must ignore internally authorized download links");
+  if(!client.includes("return nativeFetch(ticket.sourcePath,init)"))fail("opaque Reader pseudo-fetches must resolve to the authorized EPUB source internally");
 
-  for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.9.0")',"history.replaceState","location.reload()","sourcePath"]){
+  for(const marker of ["await access.initial",'import("/assets/js/reader.js?v=1.9.3")',"NativeURLSearchParams","ReaderURLSearchParams","__sgVisualPageCache","sourcePath","publicSearch"]){
     if(!bootstrap.includes(marker))fail(`reader-bootstrap.js is missing ${marker}`);
   }
+  if(bootstrap.includes("location.reload()")||bootstrap.includes("history.replaceState"))fail("opaque Reader startup must not rewrite/reload the address bar to a durable media path");
+  if(!bootstrap.includes('location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`)'))fail("Adult Reader gate must preserve the opaque return URL");
+
   for(const marker of ["issueMediaTicket","ticketCookie","Set-Cookie","ticketing_not_configured","resolveBookReference","payload?.bookId","bookId: resolved.bookId"]){
     if(!endpoint.includes(marker))fail(`book-access endpoint is missing ${marker}`);
   }
@@ -126,5 +130,5 @@ if(failures.length){
   failures.forEach(message=>console.error(`- ${message}`));
   process.exitCode=1;
 }else{
-  console.log("Shadow Garden signed-media, opaque-catalog, and private-media security checks passed.");
+  console.log("Shadow Garden signed-media, opaque-catalog, private-media, and opaque-reader security checks passed.");
 }

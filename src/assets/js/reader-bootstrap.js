@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 — authorize and resolve the selected book before Reader startup. */
+/* Shadow Garden Security Milestones 2–3 + v1.10.1 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -7,6 +7,36 @@
   const seriesId=publicParams.get("series")||"";
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
+
+  function syncStoredTheme(){
+    const body=document.body;
+    if(!body)return;
+    let settings={};
+    try{settings=JSON.parse(localStorage.getItem("sg-reader-settings")||"{}")||{}}catch{}
+    const theme=["garden","night","black","paper"].includes(settings.theme)?settings.theme:"garden";
+    body.classList.remove("reader-theme-garden","reader-theme-night","reader-theme-black","reader-theme-paper","reader-flow-paginated","reader-flow-scrolled");
+    body.classList.add(`reader-theme-${theme}`,settings.flow==="scrolled-doc"?"reader-flow-scrolled":"reader-flow-paginated");
+    body.classList.toggle("adult-reader",String(seriesId).startsWith("adult-"));
+  }
+
+  async function importReader(){
+    const originalEpub=window.ePub;
+    if(typeof originalEpub!=="function")return import("/assets/js/reader.js?v=1.10.1");
+    function capturedEpub(...args){
+      const book=Reflect.apply(originalEpub,this,args);
+      if(!window.__sgReaderBook)window.__sgReaderBook=book;
+      return book;
+    }
+    try{
+      capturedEpub.prototype=originalEpub.prototype;
+      Object.setPrototypeOf(capturedEpub,originalEpub);
+    }catch{}
+    window.ePub=capturedEpub;
+    try{return await import("/assets/js/reader.js?v=1.10.1")}
+    finally{window.ePub=originalEpub}
+  }
+
+  syncStoredTheme();
 
   try{
     /* Keep the Adult gate return target opaque. reader.js retains the same check as a
@@ -23,7 +53,7 @@
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
     if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
       /* The Visual Page Cache starts before this module. Its opaque pseudo-request is
-         resolved by book-access.js; awaiting it here preserves the old startup ordering. */
+         resolved by book-access.js; awaiting it here preserves startup ordering. */
       try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}
 
       /* reader.js historically derives its internal EPUB/cache identity from
@@ -39,14 +69,14 @@
       try{Object.setPrototypeOf(ReaderURLSearchParams,NativeURLSearchParams)}catch{}
       window.URLSearchParams=ReaderURLSearchParams;
       try{
-        await import("/assets/js/reader.js?v=1.9.3");
+        await importReader();
       }finally{
         window.URLSearchParams=NativeURLSearchParams;
       }
       return;
     }
 
-    await import("/assets/js/reader.js?v=1.9.3");
+    await importReader();
   }catch(error){
     console.error("Reader book authorization failed",error);
     const loading=document.getElementById("readerLoading");

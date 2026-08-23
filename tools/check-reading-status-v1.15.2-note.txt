@@ -1,0 +1,1 @@
+v1.15.2 verifies canonical Reader book identity resolution from the signed book-access result, legacy completion migration, fresh Library/Series reading-status clients, and Garden Keeper brand-inline deployment version placement.

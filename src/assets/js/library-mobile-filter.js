@@ -5,7 +5,10 @@
   const head=panel?.querySelector('.filter-head');
   const clear=document.getElementById('clearFilters');
   const searchField=panel?.querySelector('.search-field');
-  if(!panel||!toggle||!head||!clear||!searchField)return;
+  const searchStack=panel?.querySelector('.search-stack');
+  const activeTags=document.getElementById('activeTags');
+  const tagPicker=activeTags?.parentElement;
+  if(!panel||!toggle||!head||!clear||!searchField||!searchStack)return;
 
   const scope=document.body.dataset.libraryScope||'main';
   const storageKey=`sg-mobile-filters-collapsed:${scope}`;
@@ -29,6 +32,17 @@
     else headActions.appendChild(toggle);
   }
 
+  function placeActiveTags(collapsed){
+    if(!activeTags||!tagPicker)return;
+    if(mobileQuery.matches&&collapsed){
+      searchField.insertAdjacentElement('afterend',activeTags);
+      activeTags.classList.add('mobile-collapsed-tags');
+    }else{
+      tagPicker.appendChild(activeTags);
+      activeTags.classList.remove('mobile-collapsed-tags');
+    }
+  }
+
   function syncToggle(collapsed){
     toggle.hidden=false;
     toggle.setAttribute('aria-expanded',collapsed?'false':'true');
@@ -36,6 +50,7 @@
     toggle.title=collapsed?'Expand filters':'Collapse filters';
     toggle.textContent=collapsed?'▼':'▲';
     placeToggle(collapsed);
+    placeActiveTags(collapsed);
   }
 
   function apply(){
@@ -44,6 +59,7 @@
       toggle.hidden=true;
       toggle.setAttribute('aria-expanded','true');
       headActions.appendChild(toggle);
+      placeActiveTags(false);
       return;
     }
     const collapsed=readCollapsed();

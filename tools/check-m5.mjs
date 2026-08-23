@@ -61,11 +61,11 @@ async function checkWiring(){
     if(!endpoint.includes(marker))fail(`book-access endpoint is missing Milestone 5 marker ${marker}`);
   }
   if(media.includes("sg_acquisition_window")||media.includes("evaluateAcquisition"))fail("Milestone 5 must not rate-limit EPUB Range/media requests");
-  for(const marker of ["/book-access","8 requests","10 seconds","Managed Challenge"]){
-    if(!guide.includes(marker))fail(`Cloudflare Milestone 5 guide is missing ${marker}`);
+  for(const marker of ["/book-access","8 requests","10 seconds","Managed Challenge","optional future hardening"]){
+    if(!guide.includes(marker))fail(`Milestone 5 deployment note is missing ${marker}`);
   }
   if(!roadmap.includes("4. Human access sessions | ✅ Done"))fail("Milestone 4 must be recorded as accepted");
-  if(!roadmap.includes("5. Bulk-download throttling | 🟨 In progress"))fail("Milestone 5 must be recorded as in progress");
+  if(!roadmap.includes("5. Bulk-download throttling | ✅ Done"))fail("Milestone 5 must be recorded as complete");
 }
 
 await checkLimiter();

@@ -19,7 +19,7 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB delivered to 
 | 2. Signed book access tickets | ✅ Done | HMAC tickets, expiring download URLs, path-scoped Reader authorization, fail-closed enforcement |
 | 3. Opaque public book identifiers | ✅ Done | Public `bk_...` identities, catalog redaction, opaque Reader/download URLs, private media boundary, stable replacement identity |
 | 4. Human access sessions | ✅ Done | Turnstile + signed 12-hour `/book-access` human session, production accepted 2026-08-23 |
-| 5. Bulk-download throttling | 🟨 In progress | Signed 20-unique-book/10-minute session budget + one Cloudflare Free burst rule on `/book-access` |
+| 5. Bulk-download throttling | 🟨 In progress | Signed 20-unique-book/10-minute `/book-access` budget; optional zone-level IP burst rule deferred while hosted on `pages.dev` |
 | 6. Bot and crawler controls | ⬜ Planned | Bot Fight Mode, AI bot controls, AI Labyrinth, crawler policy |
 | 7. Garden Keeper hardening | ⬜ Planned | Turnstile/rate-limit admin unlock and reduce authentication probing |
 | 8. Abuse telemetry and response | ⬜ Planned | Security Analytics review procedure, tripwires, temporary cooldown policy |
@@ -105,14 +105,23 @@ Milestone 4 was explicitly accepted after production Turnstile behavior and Read
 
 Milestone 5 protects **book authorization**, not EPUB delivery. Individual `/media/*` Range requests, page turns, seeking, Page Map, Visual Page Cache, covers, catalogs, and ordinary browsing must not consume the acquisition budget.
 
-### Current design
+### Current hosting constraint
 
-Cloudflare Free currently allows only a 10-second counting period for its single WAF rate-limiting rule, so the earlier idea of a native Cloudflare 10-minute IP counter is not available on the Free plan. Shadow Garden therefore uses two complementary layers:
+Shadow Garden is staying on `shadowgarden-bon.pages.dev` and does not use a custom domain/Cloudflare zone. Zone-level WAF rate-limiting rules therefore cannot be attached to the site in its current configuration.
 
-1. **Application/session unique-book budget** — signed 20 different books per rolling 10 minutes.
-2. **Cloudflare/IP burst rule** — 8 requests to `/book-access` per 10 seconds, followed by Managed Challenge.
+Buying a domain is **not** a Milestone 5 requirement. The previously planned Cloudflare IP burst rule is recorded as optional future hardening and deferred by the current hosting model.
 
-The application layer handles the useful 10-minute unique-book policy; the Cloudflare rule independently catches high-speed clients even if they manipulate browser state.
+### Active design
+
+Shadow Garden uses an application/session unique-book budget at the protected acquisition boundary:
+
+- **20 different books per rolling 10 minutes**.
+- State is signed with `SG_MEDIA_SIGNING_SECRET`.
+- Re-authorizing the same book does not consume another unique-book slot.
+- The 21st different book inside the window returns `429` plus `Retry-After`.
+- The limiter is kept completely out of `/media/*` and EPUB Range delivery.
+
+This is a deterrence layer, not an IP-global DRM mechanism. Deliberately discarding browser state can eventually force a new Milestone 4 human-verification flow, which remains the intended free-hosting fallback against automated resets.
 
 ### Repository implementation — v1.11.0
 
@@ -125,22 +134,23 @@ The application layer handles the useful 10-minute unique-book policy; the Cloud
 - [x] Return diagnostic `X-SG-Acquisition-Limit`, `X-SG-Acquisition-Window`, and `X-SG-Acquisition-Remaining` headers.
 - [x] Keep acquisition throttling entirely out of `/media/*`, so Range requests and Reader rendering are unaffected.
 - [x] Add dedicated Milestone 5 regression tests to the normal build/check pipeline.
-- [x] Document the Cloudflare Free rule in `MILESTONE_5_CLOUDFLARE.md`.
+- [x] Document the `pages.dev` hosting constraint and optional future zone rule in `MILESTONE_5_CLOUDFLARE.md`.
 
-### Cloudflare dashboard — pending
+### Optional Cloudflare zone layer — ⏸ Deferred
 
-- [ ] Create the single Free rate-limiting rule for URI Path equals `/book-access`.
-- [ ] Set **8 requests / 10 seconds** using the default per-IP characteristic.
-- [ ] Use **Managed Challenge**.
-- [ ] Do not include `/media/*`, `/human-access`, catalogs, covers, or static Reader assets.
+This is not available while Shadow Garden remains solely on `pages.dev`:
+
+- [ ] If a custom Cloudflare zone is ever adopted, optionally create an IP burst rule for `/book-access`.
+- [ ] Keep `/media/*`, `/human-access`, catalogs, covers, and static Reader assets outside that rule.
+
+No custom domain purchase is planned or required.
 
 ### Production acceptance — pending
 
 - [ ] Normal Read/Download remains smooth under typical use.
 - [ ] Same-book ticket renewal does not consume unique-book slots.
-- [ ] 20 distinct books inside 10 minutes are allowed and the next distinct book receives `429` plus `Retry-After`.
-- [ ] The signed session budget recovers after the rolling window expires.
-- [ ] A burst over 8 `/book-access` requests in 10 seconds triggers Cloudflare Managed Challenge.
+- [ ] Repository regression tests verify that 20 distinct books inside 10 minutes are allowed and the next distinct book receives `429` plus `Retry-After`.
+- [ ] Repository regression tests verify that the signed rolling budget recovers after the window expires.
 - [ ] Main/Adult browsing and Series pages remain challenge-free.
 - [ ] Pages, Continuous, seeking, Page Map, Visual Page Cache, bookmarks, progress restore, and Range behavior remain normal.
 - [ ] Milestones 2–4 protections remain intact.
@@ -150,8 +160,8 @@ The application layer handles the useful 10-minute unique-book policy; the Cloud
 1. Bulk authorization is slowed before EPUB transfer begins.
 2. Ordinary readers are not penalized for Range requests or same-book ticket renewal.
 3. A normal browser session cannot walk more than 20 different books in a 10-minute rolling window without temporary throttling.
-4. Fast IP-level bursts are independently challenged by Cloudflare.
-5. No state or limiter is placed in the EPUB media proxy.
+4. No state or limiter is placed in the EPUB media proxy.
+5. The absence of a custom Cloudflare zone does not block Milestone 5 completion.
 6. Milestone 6 begins only after the production checks above pass.
 
 ---
@@ -162,11 +172,13 @@ The application layer handles the useful 10-minute unique-book policy; the Cloud
 
 Free Cloudflare configuration pass:
 
-- Bot Fight Mode.
-- Block/limit AI crawler policies available on the Free plan.
-- AI Labyrinth where appropriate.
+- Bot Fight Mode where available to the `pages.dev` deployment/account.
+- Block/limit AI crawler policies available without requiring a purchased custom domain.
+- AI Labyrinth where available and appropriate.
 - Review known-good crawler impact before leaving controls enabled.
 - Keep `robots.txt` as the compliant-crawler baseline even though malicious bots can ignore it.
+
+If a control requires a custom zone/domain, record it as unavailable/deferred rather than making domain purchase a project requirement.
 
 ---
 
@@ -179,7 +191,7 @@ The concealed ✦ shortcut remains convenience/camouflage only; authentication r
 Planned work:
 
 - Turnstile verification for Garden Keeper unlock.
-- Rate-limit repeated unlock failures.
+- Rate-limit repeated unlock failures using mechanisms available on the current free `pages.dev` deployment.
 - Generic authentication failure responses.
 - Optional short escalating client/server cooldown without revealing which check failed.
 - Preserve token-only server authorization for every mutation API.
@@ -190,7 +202,7 @@ Planned work:
 
 **Status:** ⬜ Planned
 
-Create a lightweight operational playbook using free Cloudflare Security Analytics and existing logs.
+Create a lightweight operational playbook using free Cloudflare analytics/logging that is actually available to the current Pages deployment, plus existing application logs.
 
 Track patterns such as:
 

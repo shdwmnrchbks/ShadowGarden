@@ -22,4 +22,18 @@ try{
 }
 await fs.mkdir(path.join(DIST,'data'),{recursive:true});
 await fs.writeFile(path.join(DIST,'data','source.json'),JSON.stringify(source,null,2));
+
+const pkg=JSON.parse(await fs.readFile(path.join(ROOT,'package.json'),'utf8'));
+const commit=String(process.env.CF_PAGES_COMMIT_SHA||process.env.GITHUB_SHA||'').trim();
+const branch=String(process.env.CF_PAGES_BRANCH||process.env.GITHUB_REF_NAME||'').trim();
+const versionInfo={
+  name:'Shadow Garden',
+  version:String(pkg.version||'0.0.0'),
+  commit:commit||null,
+  shortCommit:commit?commit.slice(0,7):null,
+  branch:branch||null,
+  builtAt:new Date().toISOString()
+};
+await fs.writeFile(path.join(DIST,'data','version.json'),JSON.stringify(versionInfo,null,2));
 console.log(`Catalog source: ${source.mode}`);
+console.log(`Deployment version: v${versionInfo.version}${versionInfo.shortCommit?` · ${versionInfo.shortCommit}`:''}`);

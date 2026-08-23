@@ -18,7 +18,7 @@ The goal is **deterrence and abuse resistance**, not DRM. Any EPUB delivered to 
 | 1. Baseline media hardening | ✅ Done | Same-origin browser policy, cross-site EPUB rejection, crawler controls, anti-indexing headers |
 | 2. Signed book access tickets | ✅ Done | HMAC tickets, expiring download URLs, path-scoped Reader authorization, fail-closed enforcement |
 | 3. Opaque public book identifiers | ✅ Done | Public `bk_...` identities, catalog redaction, opaque Reader/download URLs, private media boundary, stable replacement identity |
-| 4. Human access sessions | 🟨 In progress | Turnstile + signed 12-hour `/book-access` session implemented and CI-passed; Production activation/validation pending |
+| 4. Human access sessions | 🟨 In progress | Turnstile + signed 12-hour `/book-access` session are live in Production; activation is confirmed and the final acceptance sweep remains |
 | 5. Bulk-download throttling | ⬜ Planned | Free Cloudflare rate-limiting rule and unique-book acquisition policy |
 | 6. Bot and crawler controls | ⬜ Planned | Bot Fight Mode, AI bot controls, AI Labyrinth, crawler policy |
 | 7. Garden Keeper hardening | ⬜ Planned | Turnstile/rate-limit admin unlock and reduce authentication probing |
@@ -122,7 +122,7 @@ Implemented through the v1.9.x hardening series and production-validated on v1.9
 
 ## Milestone 4 — Human access sessions
 
-**Status:** 🟨 In progress — implementation and CI complete; Production activation/validation pending
+**Status:** 🟨 In progress — implementation, CI, and Production activation complete; final Production acceptance sweep pending
 
 Use Cloudflare Turnstile Free as an occasional human verification layer at the protected book-acquisition boundary, not inside the reading/rendering path.
 
@@ -148,12 +148,14 @@ Use Cloudflare Turnstile Free as an occasional human verification layer at the p
 - [x] Add regression tests for activation state, cookie security flags, 12-hour lifetime, tamper/expiry rejection, gate ordering, client/server Turnstile wiring, and absence of human-session logic from the media proxy.
 - [x] Pass GitHub Actions verification for the implementation branch.
 
-### Production activation — pending
+### Production activation — live; final acceptance pending
 
-- [ ] Create/configure the Cloudflare Turnstile widget for the production Shadow Garden hostname.
-- [ ] Add Production `SG_TURNSTILE_SITE_KEY`.
-- [ ] Add Production secret `SG_TURNSTILE_SECRET_KEY`.
-- [ ] Redeploy after both values are present.
+Production Turnstile activation has been confirmed working. The remaining unchecked items below are the final acceptance/regression sweep before Milestone 4 is closed.
+
+- [x] Create/configure the Cloudflare Turnstile widget for the production Shadow Garden hostname.
+- [x] Add Production `SG_TURNSTILE_SITE_KEY`.
+- [x] Add Production secret `SG_TURNSTILE_SECRET_KEY`.
+- [x] Redeploy after both values are present.
 - [ ] Production-test the first Read action in a fresh private/incognito session.
 - [ ] Production-test the first Download EPUB action in a fresh private/incognito session.
 - [ ] Verify subsequent books/downloads during the same session do not re-challenge.

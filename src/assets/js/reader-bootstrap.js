@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.1 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.2 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -9,7 +9,8 @@
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
 
   /* Reader internals temporarily see the private media path while they initialize.
-     Public reading state must never key itself from that temporary view. */
+     Public reading state must never key itself from that temporary view. The initial
+     URL can itself still be a legacy media URL, so the access ticket is authoritative. */
   window.__sgReaderPublicBookId=BOOK_ID.test(requested)?requested:"";
   window.__sgReaderSourcePath="";
 
@@ -42,8 +43,18 @@
   }
 
   async function mountReadingStatus(){
-    await import("/assets/js/reading-status.js?v=1.15.1");
-    await import("/assets/js/reader-finished.js?v=1.15.1");
+    await import("/assets/js/reading-status.js?v=1.15.2");
+    await import("/assets/js/reader-finished.js?v=1.15.2");
+  }
+
+  function canonicalizeLegacyUrl(){
+    const canonical=String(window.__sgReaderPublicBookId||"");
+    if(!BOOK_ID.test(canonical)||requested===canonical)return;
+    try{
+      const url=new URL(location.href);
+      url.searchParams.set("book",canonical);
+      history.replaceState(history.state,"",`${url.pathname}${url.search}${url.hash}`);
+    }catch{}
   }
 
   syncStoredTheme();
@@ -58,6 +69,8 @@
     }
 
     const ticket=access?.initial?await access.initial:null;
+    const ticketBookId=String(ticket?.bookId||ticket?.identity||"").trim();
+    if(BOOK_ID.test(ticketBookId))window.__sgReaderPublicBookId=ticketBookId;
     if(ticket?.identity&&access?.migrateLegacyState)await access.migrateLegacyState([ticket.identity]);
 
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
@@ -88,7 +101,11 @@
       return;
     }
 
+    /* Legacy Reader URLs still need the raw media path while reader.js initializes.
+       Once initialization is complete, replace only the visible URL with the canonical
+       opaque id so future reloads/bookmarks use the same identity as Series/Library. */
     await importReader();
+    canonicalizeLegacyUrl();
     await mountReadingStatus();
   }catch(error){
     console.error("Reader book authorization failed",error);

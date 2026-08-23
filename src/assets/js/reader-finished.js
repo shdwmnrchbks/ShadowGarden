@@ -1,5 +1,5 @@
-/* Shadow Garden v1.15.1 — Reader end-page finished toggle. */
-(()=>{
+/* Shadow Garden v1.15.2 — Reader end-page finished toggle. */
+(async()=>{
   const status=window.ShadowGardenReadingStatus;
   const actions=document.querySelector("#volumeEndPage .volume-complete-actions");
   if(!status||!actions)return;
@@ -7,7 +7,7 @@
   if(!document.querySelector('link[data-reading-status-style]')){
     const link=document.createElement("link");
     link.rel="stylesheet";
-    link.href="/assets/css/reading-status.css?v=1.15.1";
+    link.href="/assets/css/reading-status.css?v=1.15.2";
     link.dataset.readingStatusStyle="1";
     document.head.appendChild(link);
   }
@@ -24,14 +24,18 @@
   }
 
   const queryBookId=new URLSearchParams(location.search).get("book")||"";
-  const bookId=String(window.__sgReaderPublicBookId||queryBookId||"").trim();
-  const sourcePath=String(window.__sgReaderSourcePath||"").trim();
+  let ticket=null;
+  try{ticket=await window.ShadowGardenBookAccess?.initial}catch{}
+  const ticketBookId=String(ticket?.bookId||ticket?.identity||"").trim();
+  const bookId=String(window.__sgReaderPublicBookId||ticketBookId||queryBookId||"").trim();
+  const sourcePath=String(window.__sgReaderSourcePath||ticket?.sourcePath||"").trim();
 
-  /* v1.15.0 could key the toggle against the Reader's temporary private media path
-     in some startup timings. Recover that state once and move it to the public bk_ id
-     used by Series/Library pages. */
-  if(bookId&&sourcePath&&bookId!==sourcePath&&status.isFinished(sourcePath)&&!status.isFinished(bookId)){
-    status.migrateFinished?.(sourcePath,bookId);
+  /* Migrate every known legacy alias into the canonical public identity. This covers
+     old Reader tabs/bookmarks whose URL still contains the private media path as well
+     as v1.15.0/v1.15.1 completion values created from that path. */
+  for(const alias of new Set([sourcePath,queryBookId].filter(Boolean))){
+    if(alias!==bookId&&status.isFinished(alias)&&!status.isFinished(bookId))status.migrateFinished?.(alias,bookId);
+    else if(alias!==bookId&&status.isFinished(alias)&&status.isFinished(bookId))status.setFinished(alias,false);
   }
 
   function notify(message){

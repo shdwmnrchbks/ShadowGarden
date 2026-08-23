@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.1 — browser-local reading completion state. */
+/* Shadow Garden v1.15.2 — browser-local reading completion state. */
 (()=>{
   const KEY="sg-finished-books";
   const EVENT="sg-reading-status-changed";
@@ -6,7 +6,7 @@
   if(!document.querySelector('link[data-reading-status-style]')){
     const link=document.createElement("link");
     link.rel="stylesheet";
-    link.href="/assets/css/reading-status.css?v=1.15.1";
+    link.href="/assets/css/reading-status.css?v=1.15.2";
     link.dataset.readingStatusStyle="1";
     document.head.appendChild(link);
   }

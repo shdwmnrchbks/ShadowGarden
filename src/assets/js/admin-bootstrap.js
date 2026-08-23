@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.0 — Garden Keeper security + current workflow bootstrap. */
+/* Shadow Garden v1.15.2 — Garden Keeper security + current workflow bootstrap. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
@@ -56,7 +56,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!document.querySelector('link[data-admin-version]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/admin-version.css?v=1.15.0';
+    link.href='/assets/css/admin-version.css?v=1.15.2';
     link.dataset.adminVersion='1';
     document.head.appendChild(link);
   }
@@ -70,15 +70,16 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   const mountVersion=async()=>{
     const header=document.querySelector('.admin-header');
-    if(!header)return;
+    const brandMeta=header?.querySelector('.brand > span:last-child > small');
+    if(!header||!brandMeta)return;
     let label=document.getElementById('adminVersion');
+    if(label&&!brandMeta.contains(label)){label.remove();label=null}
     if(!label){
       label=document.createElement('span');
       label.id='adminVersion';
       label.className='admin-version';
-      label.textContent='Version …';
-      const back=header.querySelector('.header-back');
-      if(back)header.insertBefore(label,back);else header.appendChild(label);
+      label.textContent='v…';
+      brandMeta.append(document.createTextNode(' · '),label);
     }
     try{
       const response=await fetch('/data/version.json',{cache:'no-store'});
@@ -90,7 +91,7 @@ window.addEventListener('DOMContentLoaded',()=>{
       label.title=[`Shadow Garden v${version}`,commit?`Commit ${info.commit||commit}`:'',info?.builtAt?`Built ${new Date(info.builtAt).toLocaleString()}`:''].filter(Boolean).join(' · ');
     }catch(error){
       console.warn('Deployment version metadata unavailable',error);
-      label.textContent='Version unavailable';
+      label.textContent='version unavailable';
     }
   };
   void mountVersion();

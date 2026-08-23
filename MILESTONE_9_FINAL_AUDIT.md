@@ -16,6 +16,12 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - Reader startup retains opaque `bk_...` authorization handoff.
 - browser-local finished-reading state does not introduce a new server/API tracking surface.
 
+## Findings fixed during the audit
+
+- **v1.15.1 finished-reading identity gap:** legacy Reader URLs could still use a private `/media/...epub` identity even after authorization resolved the canonical public `bk_...` identity. The end-page toggle could therefore persist under a key that Series/Library pages never use. v1.15.2 makes the signed book-access result authoritative, migrates old private-path completion entries, and rewrites legacy Reader URLs to the opaque id after Reader initialization.
+- **Garden Keeper version layout:** inserting version metadata as a separate `.site-header` child consumed the center grid column and displaced the Library link. v1.15.2 keeps version + short commit inside the existing `GARDEN KEEPER` brand metadata and explicitly keeps the admin header to one row.
+- Library/Series completion clients are now explicitly cache-busted/no-store so a prior cached client cannot mask reading-status fixes during the final audit.
+
 ## Production audit matrix
 
 ### Library and Series
@@ -37,6 +43,7 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 - [ ] End-page long next-volume titles wrap correctly on mobile.
 - [ ] `Mark as Finished` persists locally and can be toggled back to unfinished.
 - [ ] Finished state is reflected after returning to Series/Library pages.
+- [ ] Legacy/private-path Reader URLs migrate finished state to the canonical opaque `bk_...` identity.
 - [ ] Theme, typography, fullscreen, swipe controls, and mobile chrome remain functional.
 
 ### Signed media and anti-abuse
@@ -54,7 +61,7 @@ Milestone 9 is the final end-to-end verification of Shadow Garden's security and
 
 ### Garden Keeper
 
-- [ ] Current deployed version and short commit are visible in the Garden Keeper header.
+- [ ] Current deployed version and short commit are visible beside `GARDEN KEEPER` without moving the Library link out of the header row.
 - [ ] Correct token + Turnstile unlocks Garden Keeper.
 - [ ] Wrong-token cooldown survives Incognito on the same public network.
 - [ ] Locking requires a fresh unlock before admin APIs can be used again.

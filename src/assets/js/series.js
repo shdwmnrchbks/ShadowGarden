@@ -17,7 +17,7 @@ async function init(){
   const requestedAdult=String(id||"").startsWith("adult-");
   syncLibraryScope(requestedAdult);
   try{
-    await import("/assets/js/reading-status.js?v=1.15.0");
+    await import("/assets/js/reading-status.js?v=1.15.2");
     const reading=window.ShadowGardenReadingStatus;
     if(requestedAdult&&localStorage.getItem("sg-adult-ack")!=="1"){
       const ret=`/series.html?id=${encodeURIComponent(id)}`;

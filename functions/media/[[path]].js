@@ -1,3 +1,4 @@
+import { registerAbuseSignal } from "../_lib/abuse-telemetry.js";
 import { ROOT_PREFIX, objectUrl, readClient } from "../_lib/b2.js";
 import { publicCatalogShape } from "../_lib/book-id.js";
 import { canonicalMediaCacheUrl, ticketingEnabled, verifyMediaTicket, verifyMediaTicketCookie } from "../_lib/media-ticket.js";
@@ -89,6 +90,12 @@ async function authorizedEpub(request, env) {
   return cookieTicket.valid;
 }
 
+function deferTelemetry(context, promise, label) {
+  const guarded = Promise.resolve(promise).catch(error => console.warn(label, error));
+  try { context.waitUntil(guarded); }
+  catch { void guarded; }
+}
+
 export async function onRequest(context) {
   const { request, env, params } = context;
   const method = request.method.toUpperCase();
@@ -98,13 +105,23 @@ export async function onRequest(context) {
 
   const key = getObjectKey(params.path);
   if (!key || !publicMediaKey(key)) return privateObjectResponse();
-  if (crossSiteEpubRequest(request, key)) return deniedEpub(key, "Cross-site EPUB access is not allowed.");
+  const incomingRange = request.headers.get("range");
+  if (crossSiteEpubRequest(request, key)) {
+    console.warn("Cross-site EPUB request denied");
+    deferTelemetry(context, registerAbuseSignal(env, request, "media_cross_site"), "Cross-site media telemetry failed");
+    return deniedEpub(key, "Cross-site EPUB access is not allowed.");
+  }
   if (key.endsWith(".epub")) {
     if (!ticketingEnabled(env)) return unavailableEpub(key);
-    if (!(await authorizedEpub(request, env))) return deniedEpub(key);
+    if (!(await authorizedEpub(request, env))) {
+      console.warn("EPUB request denied for missing or invalid ticket", incomingRange ? "range" : "full");
+      /* Reader recovery can legitimately issue a stale Range request after a ticket expires.
+         Preserve that path: only non-Range ticket failures contribute to the persistent tripwire. */
+      if (!incomingRange) deferTelemetry(context, registerAbuseSignal(env, request, "media_ticket_invalid"), "Invalid-ticket telemetry failed");
+      return deniedEpub(key);
+    }
   }
 
-  const incomingRange = request.headers.get("range");
   const canCache = method === "GET" && !incomingRange && cacheableKey(key);
   const cache = caches.default;
   const cacheUrl = key.endsWith(".epub") ? canonicalMediaCacheUrl(request.url) : request.url;

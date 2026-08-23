@@ -1,4 +1,4 @@
-/* Shadow Garden v1.14.0 — Garden Keeper security + current workflow bootstrap. */
+/* Shadow Garden v1.15.0 — Garden Keeper security + current workflow bootstrap. */
 (()=>{
   const list=document.getElementById('backupList');
   if(!list)return;
@@ -49,7 +49,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!document.querySelector('link[data-admin-current]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/admin-current.css?v=1.8.0';
+    link.href='/assets/css/admin-current.css?v=1.15.0';
     link.dataset.adminCurrent='1';
     document.head.appendChild(link);
   }
@@ -60,6 +60,33 @@ window.addEventListener('DOMContentLoaded',()=>{
     link.dataset.adminSeriesBanner='1';
     document.head.appendChild(link);
   }
+
+  const mountVersion=async()=>{
+    const header=document.querySelector('.admin-header');
+    if(!header)return;
+    let label=document.getElementById('adminVersion');
+    if(!label){
+      label=document.createElement('span');
+      label.id='adminVersion';
+      label.className='admin-version';
+      label.textContent='Version …';
+      const back=header.querySelector('.header-back');
+      if(back)header.insertBefore(label,back);else header.appendChild(label);
+    }
+    try{
+      const response=await fetch('/data/version.json',{cache:'no-store'});
+      if(!response.ok)throw new Error(`version metadata ${response.status}`);
+      const info=await response.json();
+      const version=String(info?.version||'unknown');
+      const commit=String(info?.shortCommit||'');
+      label.textContent=`v${version}${commit?` · ${commit}`:''}`;
+      label.title=[`Shadow Garden v${version}`,commit?`Commit ${info.commit||commit}`:'',info?.builtAt?`Built ${new Date(info.builtAt).toLocaleString()}`:''].filter(Boolean).join(' · ');
+    }catch(error){
+      console.warn('Deployment version metadata unavailable',error);
+      label.textContent='Version unavailable';
+    }
+  };
+  void mountVersion();
 
   const loadScript=(selector,src,datasetKey)=>new Promise((resolve,reject)=>{
     const existing=document.querySelector(selector);

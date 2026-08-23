@@ -6,13 +6,14 @@
   <meta name="theme-color" content="#0b0910">
   <title>Reader — Shadow Garden</title>
   <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/css/reader.css">
+  <link rel="stylesheet" href="/assets/css/reader.css?v=1.10.1">
   <link rel="stylesheet" href="/assets/css/reader-continuous-rail.css?v=1.3.0">
   <link rel="stylesheet" href="/assets/css/reader-page-map.css?v=1.2.0">
-  <link rel="stylesheet" href="/assets/css/reader-polish.css">
+  <link rel="stylesheet" href="/assets/css/reader-polish.css?v=1.10.1">
   <link rel="stylesheet" href="/assets/css/reader-end-page.css?v=1.8.0">
   <link rel="stylesheet" href="/assets/css/reader-a11y.css">
-  <link rel="stylesheet" href="/assets/css/reader-interface-themes.css?v=1.5.0">
+  <link rel="stylesheet" href="/assets/css/reader-interface-themes.css?v=1.10.1">
+  <link rel="stylesheet" href="/assets/css/reader-v1.10.1.css?v=1.10.1">
   <link rel="stylesheet" href="/assets/css/ui-symbols.css?v=1.6.0">
   <script src="/assets/vendor/jszip.min.js"></script>
   <script src="/assets/vendor/epub.min.js"></script>
@@ -24,13 +25,22 @@
   <script src="/assets/js/reader-paginated-visual-fit.js?v=1.4.3"></script>
   <script src="/assets/js/reader-continuous-core.js?v=1.4.1"></script>
   <script src="/assets/js/reader-gesture-hook.js"></script>
-  <script src="/assets/js/reader-polish.js" defer></script>
+  <script src="/assets/js/reader-polish.js?v=1.10.1" defer></script>
   <script src="/assets/js/reader-a11y.js" defer></script>
   <script src="/assets/js/ui-direction-triangles.js?v=1.8.0" defer></script>
   <script src="/assets/js/reader-wheel-pages.js?v=1.6.0" defer></script>
-  <script type="module" src="/assets/js/reader-bootstrap.js?v=2"></script>
+  <script type="module" src="/assets/js/reader-bootstrap.js?v=1.10.1"></script>
 </head>
 <body class="reader-theme-garden reader-flow-paginated">
+  <script>
+    (()=>{try{
+      const saved=JSON.parse(localStorage.getItem("sg-reader-settings")||"{}")||{};
+      const theme=["garden","night","black","paper"].includes(saved.theme)?saved.theme:"garden";
+      document.body.className=`reader-theme-${theme} ${saved.flow==="scrolled-doc"?"reader-flow-scrolled":"reader-flow-paginated"}`;
+      const seriesId=new URLSearchParams(location.search).get("series")||"";
+      if(seriesId.startsWith("adult-"))document.body.classList.add("adult-reader");
+    }catch{}})();
+  </script>
   <a class="reader-skip-link" href="#viewerShell">Skip to book content</a>
   <div id="readerApp" class="reader-app">
     <header class="reader-topbar" aria-label="Reader controls">
@@ -45,7 +55,6 @@
       <div class="reader-actions">
         <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location" aria-pressed="false">◇</button>
         <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings" aria-controls="settingsDrawer" aria-expanded="false">Aa</button>
-        <button id="focusModeButton" class="reader-icon" type="button" title="Distraction-free mode" aria-label="Enter distraction-free mode" aria-pressed="false">◐</button>
         <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen" aria-pressed="false">⛶</button>
         <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">◀</a>
       </div>
@@ -73,10 +82,9 @@
         <label><span>Typeface</span><select id="fontSelect"><option value="book">Book serif</option><option value="system">System sans</option><option value="classic">Classic serif</option></select></label>
         <label><span>Font size <output id="fontSizeValue">100%</output></span><input id="fontSizeRange" type="range" min="75" max="160" step="5" value="100"></label>
         <label><span>Line height <output id="lineHeightValue">1.6</output></span><input id="lineHeightRange" type="range" min="1.25" max="2.1" step="0.05" value="1.6"></label>
-        <label><span>Text width <output id="widthValue">760px</output></span><input id="widthRange" type="range" min="560" max="1050" step="10" value="760"></label>
+        <label id="textWidthSetting" hidden><span>Text width <output id="widthValue">760px</output></span><input id="widthRange" type="range" min="560" max="1050" step="10" value="760"></label>
         <label><span>Reading flow</span><select id="flowSelect"><option value="paginated">Pages</option><option value="scrolled-doc">Continuous scroll</option></select></label>
         <label class="reader-toggle-setting"><span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span><input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns"></label>
-        <label class="reader-toggle-setting"><span><b>Tap zones & focus</b><small>Tap left/right to turn pages; tap the center to hide or show reader controls.</small></span><input id="tapZonesToggle" type="checkbox" checked aria-label="Tap zones and focus mode"></label>
         <button id="resetReader" class="reader-reset" type="button">Reset reader settings</button>
       </div>
     </aside>

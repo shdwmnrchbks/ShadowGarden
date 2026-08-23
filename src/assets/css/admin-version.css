@@ -1,4 +1,7 @@
 /* Shadow Garden v1.15.2 — deployed version label. */
+.admin-header{grid-template-columns:minmax(0,1fr) auto!important}
+.admin-header .brand{grid-column:1;grid-row:1;min-width:0}
+.admin-header .header-back{grid-column:2;grid-row:1;align-self:center;justify-self:end}
 .admin-header .brand>span:last-child{min-width:0}
 .admin-header .brand>span:last-child>small{display:flex;align-items:center;gap:0;white-space:nowrap}
 .admin-version{display:inline;font-size:.56rem;line-height:1;letter-spacing:.06em;color:#80788a;font-variant-numeric:tabular-nums;text-transform:none}

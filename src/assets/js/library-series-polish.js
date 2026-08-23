@@ -1,4 +1,4 @@
-/* Shadow Garden v1.9.4 — public archive/series presentation polish. */
+/* Shadow Garden v1.15.0 — public archive/series presentation polish. */
 (()=>{
   const arr=value=>Array.isArray(value)?value:[];
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
@@ -35,10 +35,12 @@
     const id=cardSeriesId(card);
     const volumeText=card.querySelector(".cover .volume-pill")?.textContent?.trim()||"";
     const adult=Boolean(card.querySelector(".cover .adult-pill"));
-    const signature=`${pins.has(id)?"1":"0"}|${volumeText}|${adult?"1":"0"}`;
+    const finished=Boolean(card.querySelector(".cover .finished-series-badge"));
+    const signature=`${pins.has(id)?"1":"0"}|${volumeText}|${adult?"1":"0"}|${finished?"1":"0"}`;
     if(rail.dataset.signature===signature)return;
     rail.dataset.signature=signature;
     rail.replaceChildren();
+    if(finished)rail.appendChild(makeBadge("✓ Finished","finished"));
     if(pins.has(id))rail.appendChild(makeBadge("◆ Pinned","pinned"));
     if(volumeText)rail.appendChild(makeBadge(volumeText,"volumes"));
     if(adult)rail.appendChild(makeBadge("18+","adult"));
@@ -87,7 +89,8 @@
     if(!grid||!window.ShadowGardenData)return;
     syncCompactCards();
     new MutationObserver(syncCompactCards).observe(grid,{childList:true});
-    window.addEventListener("storage",event=>{if(event.key==="sg-pinned")syncCompactCards()});
+    window.addEventListener("storage",event=>{if(event.key==="sg-pinned"||event.key==="sg-finished-books")syncCompactCards()});
+    window.addEventListener("sg-reading-status-changed",syncCompactCards);
 
     const adult=scope==="nsfw";
     try{

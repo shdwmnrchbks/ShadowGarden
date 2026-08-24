@@ -92,10 +92,16 @@
 /assets/js/admin-backup-history.js
   Cache-Control: no-store
 
-/assets/css/site-v1.9.4.css
+/assets/css/library-features.css
   Cache-Control: no-store
 
-/assets/css/library-compact-alignment.css
+/assets/css/public-components.css
+  Cache-Control: no-store
+
+/assets/css/public-artwork.css
+  Cache-Control: no-store
+
+/assets/css/library-layout.css
   Cache-Control: no-store
 
 /assets/css/volume-actions.css
@@ -110,10 +116,31 @@
 /assets/css/reader-image-focus.css
   Cache-Control: no-store
 
-/assets/css/admin-current.css
+/assets/css/reader-completion.css
+  Cache-Control: no-store
+
+/assets/css/reader-presentation.css
+  Cache-Control: no-store
+
+/assets/css/admin-series-editor-polish.css
+  Cache-Control: no-store
+
+/assets/css/admin-overhaul.css
+  Cache-Control: no-store
+
+/assets/css/admin-series-editor.css
+  Cache-Control: no-store
+
+/assets/css/admin-layout.css
+  Cache-Control: no-store
+
+/assets/css/admin-components.css
   Cache-Control: no-store
 
 /assets/css/admin-version.css
+  Cache-Control: no-store
+
+/assets/css/admin-presentation.css
   Cache-Control: no-store
 
 /data/source.json

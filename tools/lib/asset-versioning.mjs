@@ -2,12 +2,12 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const TEXT_EXTENSIONS=new Set([".html",".js",".css"]);
-const LOCAL_ASSET=/\/assets\/[^"'`\s?#]+\.(?:js|css)(?:\?v=[^"'`\s&#]*)?/gi;
+const LOCAL_ASSET=/(^|["'`(=\s])(\/assets\/[^"'`\s?#]+\.(?:js|css))(?:\?v=[^"'`\s&#]*)?/gim;
 
 export function versionLocalAssets(text,version){
   const stamp=String(version||"").trim();
   if(!stamp)throw new Error("Asset version is required");
-  return String(text||"").replace(LOCAL_ASSET,match=>`${match.split("?")[0]}?v=${stamp}`);
+  return String(text||"").replace(LOCAL_ASSET,(_match,prefix,asset)=>`${prefix}${asset}?v=${stamp}`);
 }
 
 async function walkTextFiles(root){

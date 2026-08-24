@@ -1,8 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R5 complete; R6 next  
+**Status:** 🟨 Active — R0–R6 complete; R7 next  
 **Starting baseline:** v1.15.14  
-**Current refactor release:** v1.20.0  
+**Current refactor release:** v1.21.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with `shadowgarden-bon.pages.dev` and private Backblaze B2.
 
@@ -39,7 +39,7 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 | R4. Reader architecture refactor | ✅ Done | Explicit Reader session/orchestrator/controllers and removal of the old monolith |
 | R4.1. Reader stabilization and consolidation | ✅ Done | Split Pages input from image focus, restore native Continuous touch, fold v1.18.x hotfix lessons into permanent architecture |
 | R5. Garden Keeper decomposition | ✅ Done | Thin Keeper shell, single admin client/session boundary, isolated workflows, explicit lifecycle events |
-| R6. Pages Functions service layer | ⬜ Planned | Thin routes over explicit auth, catalog, B2, validation, media, and abuse services |
+| R6. Pages Functions service layer | ✅ Done | Thin routes over explicit auth, catalog, storage, validation, media, abuse, HTTP, and admin services |
 | R7. CSS and design-system consolidation | ⬜ Planned | Tokens/components/layout layers; remove stacked override stylesheets |
 | R8. Test architecture and fixtures | ⬜ Planned | Unit/integration/DOM/browser coverage around high-risk contracts |
 | R9. Build and deployment cleanup | ⬜ Planned | Dependency audit, lockfile, deterministic assets, optional bundler decision |
@@ -276,9 +276,40 @@ See [`../architecture/KEEPER_LAYER.md`](../architecture/KEEPER_LAYER.md).
 
 ## R6 — Cloudflare Pages Functions service layer
 
+**Status:** ✅ Done — accepted 2026-08-25  
+**Release:** v1.21.0  
 **Goal:** make endpoint files thin and move reusable backend logic into explicit `auth`, `media`, `catalog`, `storage`, `abuse`, `validation`, and `http` services.
 
-Security acceptance remains strict: `/media/*` keeps Range + signed authorization; M8 cooldown stays outside `/media/*`; admin APIs retain token + signed session; raw IPs remain unpersisted; direct B2 credentials/URLs stay private.
+See [`../architecture/FUNCTIONS_LAYER.md`](../architecture/FUNCTIONS_LAYER.md).
+
+### Final ownership
+
+- `functions/services/http.js` — JSON/cookie responses, same-origin request checks, method errors, parsing, and deferred `waitUntil` work.
+- `functions/services/storage.js` — Backblaze B2 clients, object URLs/key validation, GET/HEAD/PUT/DELETE, and storage configuration.
+- `functions/services/auth.js` — Garden Keeper bearer + signed-session authorization, Turnstile/session establishment, admin cooldown orchestration, and public human verification.
+- `functions/services/media.js` — book acquisition authorization plus signed `/media/*` proxy/Range/cache/catalog-redaction behavior.
+- `functions/services/catalog.js` — Main/Adult catalogs, upload mutation, Series/Library editing, banner choice, backups, Trash/recovery/purge, and Maintenance orchestration.
+- `functions/services/validation.js` — upload namespace/type/size checks, opaque cover enforcement, catalog input normalization, Garden Health, and bounded object checks.
+- `functions/services/abuse.js` — M8 cooldown response/telemetry orchestration and authenticated Abuse Watch review/release.
+- `functions/services/admin.js` — small authenticated status/upload composition over auth/storage/validation.
+- `_lib/admin-session.js`, `_lib/human-session.js`, `_lib/media-ticket.js`, `_lib/admin-throttle.js`, `_lib/abuse-telemetry.js`, crawler policy, acquisition limiter, and book identity/resolution remain low-level accepted primitives.
+
+### Relevant flaws eliminated during decomposition
+
+- **Catalog persistence existed in several routes.** Main/Adult load/save/sort/cache invalidation now have one Catalog service owner.
+- **`b2.js` mixed storage transport, admin authentication and HTTP responses.** Those responsibilities now live in Storage, Authentication and HTTP services; `b2.js` is only a compatibility facade.
+- **Maintenance was both a route and a persistence utility.** `garden-maintenance.js` is now a compatibility facade over Catalog/Validation rather than a second implementation.
+- **Security tests were coupled to route-file internals.** M5–M9 and R0 now assert the same contracts at the service owners while route thinness is separately guarded by R6.
+- **Service extraction risked changing M8 persistent state.** The accepted HMAC abuse-state/ledger implementation was retained exactly apart from its Storage-service dependency.
+
+### Security acceptance
+
+- [x] `/media/*` keeps signed ticket authorization, HTTP Range forwarding, same-origin protected-media headers, and public catalog redaction.
+- [x] M8 public cooldown enforcement stays outside `/media/*`; stale Range invalid-ticket retries remain excluded from persistent scoring.
+- [x] `/admin-api/*` still requires both the Keeper bearer token and signed admin session.
+- [x] Server-side Keeper cooldown and HMAC-derived abuse identities retain their accepted formats and behavior; raw IPs are not persisted.
+- [x] Opaque `cv_...` cover object names remain server-enforced and private B2 transport remains server-only.
+- [x] Every endpoint is a thin service adapter and `tools/check-r6.mjs` protects the boundary.
 
 ---
 
@@ -320,6 +351,6 @@ Priority browser flow remains **Read → Continue → Finished → Read Again**,
 
 ## Recommended execution order
 
-With **R0–R5 complete**, proceed to **R6 Pages Functions service layer**. Public browsing, Reader, and Garden Keeper now have explicit application/domain boundaries. Follow with CSS/design system (R7), broader tests (R8), build cleanup (R9), and final cutover (R10).
+With **R0–R6 complete**, proceed to **R7 CSS and design-system consolidation**. Public browsing, Reader, Garden Keeper, and Pages Functions now have explicit application/domain/service boundaries. Follow with broader tests (R8), build cleanup (R9), and final cutover (R10).
 
-Do not mix the backend service rewrite and design-system consolidation in one PR.
+Do not mix design-system consolidation, test-architecture expansion, and build/deployment cleanup in one PR.

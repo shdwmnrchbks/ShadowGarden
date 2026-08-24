@@ -40,7 +40,14 @@ R4.1 permanently separates `page-navigation-input.js` from `image-focus.js`. EPU
 - First-class workflow owners: Authentication/session, shell, Library/Series, Maintenance, Catalog History, Trash & Recovery, Abuse Watch, and deployed version.
 - Upload remains internally composed because local EPUB validation/batch processing is substantial, but those internals are contained behind the R5 application root and no longer replace the shared API/session or Library/Series owners.
 
-R5 is deliberately browser-side only. Pages Functions route/service extraction begins in R6 so the existing token + signed-session authorization, server-side cooldown, opaque cover identity, and private B2 boundaries remain unchanged while Keeper ownership moves.
+## R6 Pages Functions service layer
+
+- [`FUNCTIONS_LAYER.md`](./FUNCTIONS_LAYER.md) — thin Cloudflare Pages Function routes over explicit Authentication, Media, Catalog, Storage, Validation, Abuse, HTTP, and small Admin services introduced in v1.21.0.
+- Implementation: `functions/services/`.
+- Routes retain the established URLs and response/security contracts but no longer own B2 operations, ticket/session verification, catalog persistence, or abuse policy.
+- `_lib/b2.js` and `_lib/garden-maintenance.js` are compatibility facades; the accepted cryptographic/throttle/identity primitives remain in `_lib/` beneath the service layer.
+
+R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs on acquisition/human-verification endpoints, not `/media/*`. Range requests continue through signed-ticket authorization without persistent cooldown enforcement, and invalid-ticket scoring remains suppressed for stale Range retries.
 
 ## Permanent guardrails
 
@@ -50,6 +57,7 @@ R5 is deliberately browser-side only. Pages Functions route/service extraction b
 - `tools/check-r3.mjs` protects single-owner Library/Series rendering and parity across all volume entry points.
 - `tools/check-r4.mjs` protects the core R4 Reader session/application/state boundaries.
 - `tools/check-r4-1.mjs` protects post-R4 stabilization: Reader startup wiring, split input ownership, native Continuous touch behavior, isolated image zoom, focus/chrome behavior, and removal of Reader-wide zoom remnants.
-- `tools/check-r5.mjs` protects the Garden Keeper shell/client/session ownership, isolated workflows, and frontend-only R5 boundary.
+- `tools/check-r5.mjs` protects the Garden Keeper shell/client/session ownership and isolated workflows.
+- `tools/check-r6.mjs` protects thin Functions routes, explicit service ownership, storage/validation boundaries, and the signed Range/M8 security separation.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

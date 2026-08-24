@@ -165,7 +165,8 @@ async function checkRuntimeAssetRefs() {
 
 async function checkSecurityBaseline() {
   const robotsPath = path.join(SRC, "robots.txt");
-  const mediaPath = path.join(ROOT, "functions", "media", "[[path]].js");
+  const mediaRoutePath = path.join(ROOT, "functions", "media", "[[path]].js");
+  const mediaServicePath = path.join(ROOT, "functions", "services", "media.js");
 
   if (!fssync.existsSync(robotsPath)) {
     fail("security baseline requires src/robots.txt");
@@ -176,12 +177,17 @@ async function checkSecurityBaseline() {
     }
   }
 
-  if (!fssync.existsSync(mediaPath)) {
-    fail("security baseline requires functions/media/[[path]].js");
+  if (!fssync.existsSync(mediaRoutePath)) fail("security baseline requires functions/media/[[path]].js");
+  else {
+    const route = await fs.readFile(mediaRoutePath, "utf8");
+    if (!route.includes("handleMediaRequest") || !route.includes("../services/media.js")) fail("media route must delegate to the R6 Media service");
+  }
+  if (!fssync.existsSync(mediaServicePath)) {
+    fail("security baseline requires functions/services/media.js");
     return;
   }
 
-  const media = await fs.readFile(mediaPath, "utf8");
+  const media = await fs.readFile(mediaServicePath, "utf8");
   const requiredMarkers = [
     '"sec-fetch-site"',
     '"cross-site"',

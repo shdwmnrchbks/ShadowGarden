@@ -1,4 +1,4 @@
-import { deleteObject, getTextObject, putObject, readClient, writeClient } from "./b2.js";
+import { deleteObject, getTextObject, putObject, readClient, writeClient } from "../services/storage.js";
 
 const encoder = new TextEncoder();
 const CLIENT_DOMAIN = "sg-abuse-client-v1";

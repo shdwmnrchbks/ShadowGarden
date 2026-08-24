@@ -1,6 +1,6 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0 complete; R1 next  
+**Status:** 🟨 Active — R0–R1 complete; R2 next  
 **Starting baseline:** v1.15.14  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with the free `shadowgarden-bon.pages.dev` deployment and private Backblaze B2.
@@ -32,7 +32,7 @@ The intended end state is a clean major-version architecture baseline (provision
 | Refactor milestone | Status | Primary outcome |
 | --- | --- | --- |
 | R0. Freeze the v1 baseline | ✅ Done | Map runtime contracts, dependencies, persistent keys, APIs, and security invariants before moving code |
-| R1. Repository and tooling hygiene | ⬜ Planned | Clean directory structure, deterministic tooling, documentation organization, and ownership conventions |
+| R1. Repository and tooling hygiene | ✅ Done | Clean directory structure, deterministic tooling, documentation organization, and ownership conventions |
 | R2. Shared domain and state layer | ⬜ Planned | Canonical catalog, book identity, reading-state, URL, storage, and formatting services |
 | R3. Library + Series decomposition | ⬜ Planned | Replace overlapping Library/Series patch scripts with explicit controllers/renderers/components |
 | R4. Reader architecture refactor | ⬜ Planned | One Reader orchestrator with clean Page/Continuous adapters and canonical progress/completion state |
@@ -82,6 +82,7 @@ R0 deliberately leaves the application at **v1.15.14**. It adds documentation an
 
 ## R1 — Repository and tooling hygiene
 
+**Status:** ✅ Done — accepted 2026-08-24  
 **Goal:** make the repository structure communicate ownership before deeper code movement.
 
 ### Proposed documentation structure
@@ -99,21 +100,27 @@ docs/
    └─ SITE_VOICE.md
 ```
 
-### Code/tooling work
+### Completed work
 
-- Establish naming rules for source modules: no new `*-polish.js`, `*-fix.js`, or version-specific patch files unless explicitly temporary.
-- Separate generated build artifacts from authored source clearly.
-- Add/maintain a dependency lockfile once dependency strategy is finalized.
-- Introduce formatting/lint rules only after they can be applied without obscuring functional diffs.
-- Remove abandoned scripts/configuration and document what remains intentionally at repository root.
-- Standardize version/cache-busting strategy so source files do not need manual version query changes scattered across HTML.
+- Established post-R1 naming/ownership rules in [`../architecture/MODULE_CONVENTIONS.md`](../architecture/MODULE_CONVENTIONS.md). New permanent `*-polish`, `*-fix`, `*-patch`, `*-current`, and version-named source files are prohibited unless explicitly temporary.
+- Added [`../architecture/r1-legacy-source-exceptions.json`](../architecture/r1-legacy-source-exceptions.json) so CI can distinguish frozen v1 debt from newly introduced patch-style files.
+- Documented authored/generated boundaries, root policy, Node/CI policy, dependency strategy, and asset cache-busting in [`../architecture/BUILD_CONTRACT.md`](../architecture/BUILD_CONTRACT.md).
+- Pinned local development to Node 22 via `.nvmrc` and pinned GitHub Actions to immutable action commit SHAs.
+- Removed the abandoned `src/assets/js/library-continue-meta.js`; the authoritative completion-aware Library banner remains owned by the current v1 Library completion layer until R3 replaces it cleanly.
+- Added `tools/lib/asset-versioning.mjs`: `package.json#version` is now the single deploy-time cache-busting stamp for local JS/CSS references in copied `dist/` source. Historical source query strings no longer require manual bumps for deployment.
+- Added `tools/check-r1.mjs` to permanently enforce root layout, documentation indexing, naming exceptions, dead-file removal, Node/CI pinning, and asset-version behavior.
+- Kept `dist/` and `node_modules/` generated/ignored; vendor EPUB.js/JSZip assets remain generated from installed packages by the build.
+- Formatting/linting remains intentionally deferred until module moves settle so refactor diffs stay reviewable.
+- A committed npm lockfile remains intentionally deferred to R9, where the dependency audit will finalize the dependency set before freezing transitive resolution. R1 does not combine dependency upgrades with structural cleanup.
 
 ### Acceptance
 
-- [ ] Root directory contains only normal project entry/configuration files.
-- [ ] Documentation has a single index.
-- [ ] New code naming/ownership rules are documented.
-- [ ] `npm run check` remains green.
+- [x] Root directory contains only normal project entry/configuration files.
+- [x] Documentation has a single index.
+- [x] New code naming/ownership rules are documented.
+- [x] `npm run check` remains green.
+
+R1 keeps the application version at **v1.15.14**. The only deployed-output change is deterministic cache-query stamping for local JS/CSS assets; Library, Series, Reader, Garden Keeper, security, and storage behavior remain unchanged.
 
 ---
 

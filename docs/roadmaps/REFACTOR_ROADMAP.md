@@ -1,6 +1,6 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active planning  
+**Status:** 🟨 Active — R0 complete; R1 next  
 **Starting baseline:** v1.15.14  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with the free `shadowgarden-bon.pages.dev` deployment and private Backblaze B2.
@@ -31,7 +31,7 @@ The intended end state is a clean major-version architecture baseline (provision
 
 | Refactor milestone | Status | Primary outcome |
 | --- | --- | --- |
-| R0. Freeze the v1 baseline | ⬜ Planned | Map runtime contracts, dependencies, persistent keys, APIs, and security invariants before moving code |
+| R0. Freeze the v1 baseline | ✅ Done | Map runtime contracts, dependencies, persistent keys, APIs, and security invariants before moving code |
 | R1. Repository and tooling hygiene | ⬜ Planned | Clean directory structure, deterministic tooling, documentation organization, and ownership conventions |
 | R2. Shared domain and state layer | ⬜ Planned | Canonical catalog, book identity, reading-state, URL, storage, and formatting services |
 | R3. Library + Series decomposition | ⬜ Planned | Replace overlapping Library/Series patch scripts with explicit controllers/renderers/components |
@@ -47,6 +47,7 @@ The intended end state is a clean major-version architecture baseline (provision
 
 ## R0 — Freeze the v1 baseline
 
+**Status:** ✅ Done — accepted 2026-08-24  
 **Goal:** document what the current application does before changing how it is organized.
 
 ### Work
@@ -60,12 +61,22 @@ The intended end state is a clean major-version architecture baseline (provision
 - Turn the completed Milestone 9 security assertions into permanent refactor guardrails rather than milestone-only checks.
 - Identify duplicate/competing modules and "polish" layers that currently mutate another module's output.
 
+### R0 artifacts
+
+- [`../architecture/V1_BASELINE.md`](../architecture/V1_BASELINE.md) — runtime surfaces, current ownership, dependency direction, Reader invariants, and known competing owners.
+- [`../architecture/PERSISTENCE_CONTRACTS.md`](../architecture/PERSISTENCE_CONTRACTS.md) — localStorage, IndexedDB, cookies, migration and sensitive-state contracts.
+- [`../architecture/HTTP_STORAGE_CONTRACTS.md`](../architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions route/auth policy and private B2 namespace/read-write-delete contracts.
+- [`../architecture/v1-entrypoints.json`](../architecture/v1-entrypoints.json) — machine-readable frozen direct/runtime-loaded JS/CSS entrypoint manifest.
+- `tools/check-r0.mjs` — permanent CI guardrail for the frozen architecture/security/state contracts.
+
 ### Acceptance
 
-- [ ] Architecture map exists under `docs/architecture/`.
-- [ ] Persistent state/API/storage contracts are documented.
-- [ ] High-risk behaviors have automated baseline tests.
-- [ ] No production behavior has changed.
+- [x] Architecture map exists under `docs/architecture/`.
+- [x] Persistent state/API/storage contracts are documented.
+- [x] High-risk behaviors have automated baseline tests.
+- [x] No production behavior has changed.
+
+R0 deliberately leaves the application at **v1.15.14**. It adds documentation and regression assertions only; no Library, Series, Reader, Garden Keeper, Pages Function, storage, or visual behavior is changed.
 
 ---
 

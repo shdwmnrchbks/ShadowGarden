@@ -28,3 +28,5 @@ jobs:
         run: npm install --no-audit --no-fund --progress=false
       - name: Check repository
         run: npm run check
+      - name: Build production output
+        run: npm run build

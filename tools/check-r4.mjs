@@ -49,6 +49,8 @@ if(!session.includes('throw new Error("Shadow Garden could not reset this volume
 for(const marker of ["createReaderStorage","createThemeController","createTocController","createPageMapController","createSettingsController","createProgressController","createBookmarksController","createGestureController","createCompletionController","createPaginatedController","createContinuousController","createRendition","window.ePub(session.sourcePath)","session.publicBookId||session.storageIdentity","switchFlow"]){if(!app.includes(marker))fail(`Reader app orchestrator is missing ${marker}`)}
 if(app.includes("localStorage."))fail("Reader app must not bypass canonical storage/domain owners");
 if(!app.includes("bookUrl:session.publicBookId||session.storageIdentity"))fail("Page Map must prefer the opaque public book identity rather than the private media path");
+if(!app.includes("wire:wireRendition"))fail("Reader rendition creation must pass the declared wireRendition callback explicitly");
+if(/createRendition\(\{[^}]*\bwire\s*,/s.test(app))fail("Reader rendition creation must not reference an undeclared shorthand wire variable");
 
 for(const marker of ['../domain/progress.js','../domain/bookmarks.js','publicIdentity','canonicalIdentity','READER_SETTINGS_KEY = "sg-reader-settings"','LEGACY_GESTURE_SETTINGS_KEY = "sg-reader-polish-settings"'])if(!storage.includes(marker))fail(`Reader storage is missing ${marker}`);
 if(storage.includes("__sgReaderPublicBookId")||storage.includes("localStorage."))fail("Reader storage must receive explicit identities and delegate persistence to R2 services");
@@ -105,7 +107,8 @@ try{
   if(sanitized.fontSize!==160||sanitized.lineHeight!==1.25||sanitized.width!==560||sanitized.flow!=="paginated"||sanitized.theme!=="garden"||sanitized.swipeTurns!==false)fail("Reader settings sanitizer contract drifted");
 }catch(error){fail(`R4 Reader storage/settings regression threw: ${error.message}`)}
 
-if(pkg.version!=="1.18.0")fail(`R4 release version must be 1.18.0, found ${pkg.version}`);
+const [major=0,minor=0,patch=0]=String(pkg.version||"").split(".").map(value=>Number.parseInt(value,10)||0);
+if(major<1||(major===1&&minor<18))fail(`R4 release baseline requires v1.18.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r4.mjs"))fail("tools/check-r4.mjs must remain in npm run check");
 
 if(failures.length){

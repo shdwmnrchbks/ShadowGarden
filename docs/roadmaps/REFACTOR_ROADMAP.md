@@ -1,8 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R4.1 complete; R5 next  
+**Status:** 🟨 Active — R0–R5 complete; R6 next  
 **Starting baseline:** v1.15.14  
-**Current refactor release:** v1.19.0  
+**Current refactor release:** v1.20.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with `shadowgarden-bon.pages.dev` and private Backblaze B2.
 
@@ -38,7 +38,7 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 | R3. Library + Series decomposition | ✅ Done | Single-owner Library/Series controllers/renderers plus one canonical volume-action pipeline |
 | R4. Reader architecture refactor | ✅ Done | Explicit Reader session/orchestrator/controllers and removal of the old monolith |
 | R4.1. Reader stabilization and consolidation | ✅ Done | Split Pages input from image focus, restore native Continuous touch, fold v1.18.x hotfix lessons into permanent architecture |
-| R5. Garden Keeper decomposition | ⬜ Planned | Thin Keeper shell, shared admin client, isolated workflows, reusable UI primitives |
+| R5. Garden Keeper decomposition | ✅ Done | Thin Keeper shell, single admin client/session boundary, isolated workflows, explicit lifecycle events |
 | R6. Pages Functions service layer | ⬜ Planned | Thin routes over explicit auth, catalog, B2, validation, media, and abuse services |
 | R7. CSS and design-system consolidation | ⬜ Planned | Tokens/components/layout layers; remove stacked override stylesheets |
 | R8. Test architecture and fixtures | ⬜ Planned | Unit/integration/DOM/browser coverage around high-risk contracts |
@@ -236,14 +236,41 @@ The combined `reader/gestures.js` and misleading `reader-zoom.css` names are ret
 
 ## R5 — Garden Keeper decomposition
 
-**Goal:** replace the large Keeper bootstrap/enhancement stack with an app shell, authentication/session client, shared admin API client, isolated Library/Series/Upload/Maintenance/History/Trash/Abuse workflows, version component, and reusable dialog/toast/form primitives.
+**Status:** ✅ Done — accepted 2026-08-24  
+**Release:** v1.20.0  
+**Goal:** replace the large Keeper bootstrap/enhancement stack with an app shell, authentication/session client, shared admin API client, isolated Library/Series/Upload/Maintenance/History/Trash/Abuse workflows, version component, and reusable UI primitives.
+
+See [`../architecture/KEEPER_LAYER.md`](../architecture/KEEPER_LAYER.md).
+
+### Final ownership
+
+- `admin/core.js` — Garden Keeper runtime, state/events, reusable UI primitives, cover utilities, and the sole `AdminClient`.
+- `admin/app.js` — composition root and explicit workflow startup.
+- `admin/auth-session.js` — Turnstile Gate, signed-session establishment, client authorization latch, and Lock.
+- `admin/shell.js` — New Books/Maintenance dialogs and targeted-upload context.
+- `admin/library-workflow.js` — Library cards, Series Editor, canonical status/audio/banner editing, and soft-delete entry points.
+- Upload internal stack — batch validation/queue engine, replacement guard, editor selector, stateful progress/completion presentation, and lifecycle event bridge, contained to the Upload workflow.
+- `admin/maintenance-workflow.js` — Garden Health, deep B2 verification, and cover optimization.
+- `admin/history-workflow.js` — Catalog History create/restore/delete.
+- `admin/trash-workflow.js` — Trash restore/purge.
+- `admin/abuse-workflow.js` — Abuse Watch and cooldown release.
+- `admin/version.js` — deployed version component.
+
+### Relevant flaws eliminated during decomposition
+
+- **UI unlock used to re-enter the legacy button handler after Turnstile.** R5 performs server session establishment and protected `/admin-api/status` verification directly before opening the private client latch.
+- **Bearer/API behavior was repeatedly wrapped by later scripts.** One `AdminClient` now owns bearer headers, same-origin session cookies, timeouts, normalized errors, and opaque cover upload mapping.
+- **Series editing had competing owners.** Status normalization, audio URL, banner choice, Adult scope, save flow, and Move to Trash now live in the Library/Series workflow.
+- **Maintenance modified Library deletion handlers.** Library owns the move-to-Trash action; Trash owns recovery/purge; Maintenance owns health/cover work only.
+- **Bootstrap dynamically accumulated unrelated enhancements.** `admin/app.js` now declares the complete runtime composition and workflows register explicitly.
 
 ### Acceptance
 
-- [ ] Workflows initialize independently through the shell.
-- [ ] One admin API client owns bearer/session/error behavior.
-- [ ] Lock/unlock cannot be bypassed through UI state.
-- [ ] Upload/edit/backup/trash/abuse regression flows pass.
+- [x] Workflows initialize independently through the shell.
+- [x] One admin API client owns bearer/session/error behavior.
+- [x] Lock/unlock cannot be bypassed through UI state.
+- [x] Upload/edit/backup/trash/abuse regression ownership is guarded by `tools/check-r5.mjs`.
+- [x] R5 does not refactor Pages Functions or weaken the Milestone 7 server authorization boundary.
 
 ---
 
@@ -293,6 +320,6 @@ Priority browser flow remains **Read → Continue → Finished → Read Again**,
 
 ## Recommended execution order
 
-With **R0–R4.1 complete**, proceed to **R5 Garden Keeper decomposition**. The public browsing and Reader sides now have explicit application/domain boundaries and the post-R4 Reader corrections have been consolidated before moving on. Follow with Functions (R6), CSS/design system (R7), broader tests (R8), build cleanup (R9), and final cutover (R10).
+With **R0–R5 complete**, proceed to **R6 Pages Functions service layer**. Public browsing, Reader, and Garden Keeper now have explicit application/domain boundaries. Follow with CSS/design system (R7), broader tests (R8), build cleanup (R9), and final cutover (R10).
 
-Do not mix the Keeper rewrite, backend service rewrite, and design-system consolidation in one PR.
+Do not mix the backend service rewrite and design-system consolidation in one PR.

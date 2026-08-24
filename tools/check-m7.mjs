@@ -106,8 +106,8 @@ async function checkWiring(){
     read("src/_routes.json"),
     read("src/robots.txt"),
     read("src/_headers"),
-    read("SECURITY_ROADMAP.md"),
-    read("MILESTONE_7_GARDEN_KEEPER.md")
+    read("docs/roadmaps/SECURITY_ROADMAP.md"),
+    read("docs/security/MILESTONE_7_GARDEN_KEEPER.md")
   ]);
   for(const marker of ["ADMIN_ACCESS_ACTION","verifyTurnstileToken","adminTokenMatches","adminCooldown(env, request)","registerAdminFailure(env, request)","clearAdminFailureState(env, request)","issueAdminSession","Retry-After","X-SG-Admin-Throttle","Access denied. Please try again."]){
     if(!endpoint.includes(marker))fail(`admin-access endpoint is missing ${marker}`);

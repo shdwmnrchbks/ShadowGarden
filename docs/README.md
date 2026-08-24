@@ -1,10 +1,18 @@
 # Shadow Garden Documentation
 
-This directory contains project planning, security history, and design guidance that should not live at the repository root.
+This directory contains architecture contracts, project planning, security history, and design guidance that should not live at the repository root.
+
+## Architecture baseline
+
+- [`architecture/README.md`](./architecture/README.md) — architecture documentation index.
+- [`architecture/V1_BASELINE.md`](./architecture/V1_BASELINE.md) — frozen v1.15.14 runtime/ownership/dependency baseline.
+- [`architecture/PERSISTENCE_CONTRACTS.md`](./architecture/PERSISTENCE_CONTRACTS.md) — browser persistence, IndexedDB, cookie, and migration contracts.
+- [`architecture/HTTP_STORAGE_CONTRACTS.md`](./architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and Backblaze B2 namespace contracts.
+- [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable R0 JS/CSS entrypoint manifest.
 
 ## Active roadmap
 
-- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline.
+- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0 is complete; R1 is next.
 
 ## Completed roadmaps
 

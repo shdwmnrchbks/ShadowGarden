@@ -75,7 +75,7 @@ for (const marker of ["tampered signatures", "expired signed media tickets", "ve
 const adminTest = await read("tests/service/admin-auth.test.mjs");
 for (const marker of ["both bearer token and signed session", "adminAuthorized", "issueAdminSession"]) if (!adminTest.includes(marker)) fail(`Keeper authorization integration coverage is missing ${marker}`);
 const keeperSmoke = await read("tests/browser/keeper-smoke.test.mjs");
-for (const marker of ["admin/auth-session.js", "/admin-api/status", "admin/core.js", "admin/app.js"]) if (!keeperSmoke.includes(marker)) fail(`Keeper browser smoke is missing ${marker}`);
+for (const marker of ["admin/auth-session.js", "verifySession", "admin-api", "admin/core.js", "admin/app.js"]) if (!keeperSmoke.includes(marker)) fail(`Keeper browser smoke is missing ${marker}`);
 
 for (const marker of ["Shadow Garden Test Architecture", "Unit", "Service / integration", "DOM", "Browser smoke", "Shared fixtures", "Read → Continue → Finished → Read Again", "Permanent R8 guard"]) if (!architecture.includes(marker)) fail(`TEST_ARCHITECTURE.md is missing ${marker}`);
 if (!docsIndex.includes("TEST_ARCHITECTURE.md") || !architectureIndex.includes("TEST_ARCHITECTURE.md")) fail("documentation indexes must include TEST_ARCHITECTURE.md");

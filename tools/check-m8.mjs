@@ -88,8 +88,8 @@ async function checkWiring(){
     read("src/assets/js/admin-abuse.js"),
     read("src/_headers"),
     read("src/_routes.json"),
-    read("SECURITY_ROADMAP.md"),
-    read("MILESTONE_8_ABUSE_RESPONSE.md"),
+    read("docs/roadmaps/SECURITY_ROADMAP.md"),
+    read("docs/security/MILESTONE_8_ABUSE_RESPONSE.md"),
     read("package.json")
   ]);
 

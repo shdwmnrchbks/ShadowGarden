@@ -6,7 +6,7 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [media,bookAccess,humanAccess,adminAccess,b2,uploadApi,routes,headers,readerBootstrap,readerHtml,indexHtml,adultHtml,seriesHtml,status,adminBootstrap,roadmap,pkg]=await Promise.all([
+const [media,bookAccess,humanAccess,adminAccess,b2,uploadApi,routes,headers,readerBootstrap,readerHtml,indexHtml,adultHtml,seriesHtml,status,adminBootstrap,roadmap,audit,pkg]=await Promise.all([
   read("functions/media/[[path]].js"),
   read("functions/book-access.js"),
   read("functions/human-access.js"),
@@ -22,7 +22,8 @@ const [media,bookAccess,humanAccess,adminAccess,b2,uploadApi,routes,headers,read
   read("src/series.html"),
   read("src/assets/js/reading-status.js"),
   read("src/assets/js/admin-bootstrap.js"),
-  read("SECURITY_ROADMAP.md"),
+  read("docs/roadmaps/SECURITY_ROADMAP.md"),
+  read("docs/security/MILESTONE_9_FINAL_AUDIT.md"),
   read("package.json")
 ]);
 
@@ -49,10 +50,12 @@ for(const marker of ["ShadowGardenOpaqueCoverStorage","crypto.getRandomValues","
 if(!uploadApi.includes("OPAQUE_COVER_KEY")||!uploadApi.includes("opaque cv_ identifier"))fail("cover uploads must be server-enforced to opaque cv_ object keys");
 const [major=0,minor=0,patch=0]=String(JSON.parse(pkg).version||"").split(".").map(value=>Number.parseInt(value,10)||0);
 if(major<1||(major===1&&minor<15)||(major===1&&minor===15&&patch<10))fail("Milestone 9 opaque-cover baseline requires v1.15.10 or newer");
-if(!roadmap.includes("9. Final security audit | 🟨 In progress"))fail("Milestone 9 must be recorded as in progress");
+if(!roadmap.includes("6. Bot and crawler controls | ✅ Done"))fail("Milestone 6 must be recorded as complete with Milestone 9 acceptance");
+if(!roadmap.includes("9. Final security audit | ✅ Done"))fail("Milestone 9 must be recorded as complete");
+if(!audit.includes("Status:** ✅ Complete")||!audit.includes("Accepted baseline:** Shadow Garden v1.15.14"))fail("Milestone 9 audit record must document production acceptance");
 
 if(failures.length){
   console.error(`Shadow Garden Milestone 9 baseline check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);
   failures.forEach(message=>console.error(`- ${message}`));
   process.exitCode=1;
-}else console.log("Shadow Garden Milestone 9 final-audit baseline checks passed.");
+}else console.log("Shadow Garden Milestone 9 completed security baseline checks passed.");

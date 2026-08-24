@@ -1,6 +1,8 @@
 # Milestone 5 — pages.dev deployment notes
 
-Shadow Garden v1.11.0 adds the application-side Milestone 5 protection: a signed, HttpOnly rolling budget of **20 different books per 10 minutes** on `/book-access`. Re-authorizing the same book does not consume another unique-book slot, and EPUB `/media/*` Range requests are never counted.
+**Status:** ✅ Complete
+
+Shadow Garden v1.11.0 added the application-side Milestone 5 protection: a signed, HttpOnly rolling budget of **20 different books per 10 minutes** on `/book-access`. Re-authorizing the same book does not consume another unique-book slot, and EPUB `/media/*` Range requests are never counted.
 
 ## Current hosting constraint
 
@@ -11,8 +13,6 @@ Cloudflare zone-level WAF rate-limiting rules therefore cannot be attached to th
 The previously planned IP-level Cloudflare burst rule is consequently **deferred by hosting/platform constraint**, not treated as an incomplete mandatory step.
 
 ## Active Milestone 5 protection
-
-The repository implementation remains active on `pages.dev`:
 
 - **20 unique books per rolling 10 minutes** at `/book-access`.
 - State is signed with `SG_MEDIA_SIGNING_SECRET`.

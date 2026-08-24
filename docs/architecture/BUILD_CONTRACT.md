@@ -11,7 +11,8 @@ Authored and committed:
 
 - `src/` — static Library, Series, Reader, and Garden Keeper source.
 - `functions/` — Cloudflare Pages Functions and shared server helpers.
-- `tools/` — build, upload, validation, and refactor guardrails.
+- `tests/` — deterministic R8 unit, service/integration, DOM, browser-smoke fixtures and test helpers.
+- `tools/` — build, upload, validation, test runner, and refactor guardrails.
 - `library/` — local EPUB/build input and non-secret library configuration/placeholder files.
 - `docs/` — architecture, roadmap, security history, and style guidance.
 - root project/config files such as `package.json`, `.gitignore`, `.nvmrc`, README, and CHANGELOG.
@@ -36,6 +37,8 @@ R1 standardizes the development/verification Node major on **Node 22**:
 - CI action revisions are pinned to immutable commit SHAs rather than floating `@v4` tags.
 
 Formatting/linting is intentionally not introduced during R1 because a repository-wide reformat would obscure functional refactor diffs. It can be added after module boundaries settle.
+
+R8 keeps the same Node boundary for tests: `tools/run-tests.mjs` uses the built-in Node test runner, so the new test architecture does not introduce a second runtime or a test-only framework dependency.
 
 ## Dependency policy during the refactor
 
@@ -80,15 +83,16 @@ functions/
 library/
 package.json
 src/
+tests/
 tools/
 ```
 
 A future `package-lock.json` is also an allowed root file once R9 finalizes dependencies.
 
-Project planning/history belongs under `docs/`; generated output belongs under ignored directories; temporary scratch files do not belong in the repository.
+Project planning/history belongs under `docs/`; deterministic test source belongs under `tests/`; generated output belongs under ignored directories; temporary scratch files do not belong in the repository.
 
 ## Dead-file rule
 
-A source file that is not a documented entrypoint, runtime import, tool input, or intentionally retained migration artifact should be removed rather than left as an ambiguous alternate implementation.
+A source file that is not a documented entrypoint, runtime import, tool input, test fixture/helper, or intentionally retained migration artifact should be removed rather than left as an ambiguous alternate implementation.
 
 R1 removes `src/assets/js/library-continue-meta.js`, which had already been removed from Main/Adult HTML after `library-finished-polish.js` became authoritative and had no remaining runtime owner.

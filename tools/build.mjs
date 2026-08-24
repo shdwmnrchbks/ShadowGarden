@@ -5,8 +5,12 @@ import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { XMLParser } from "fast-xml-parser";
+import { stampAssetVersions } from "./lib/asset-versioning.mjs";
 
 const ROOT=process.cwd(), SRC=path.join(ROOT,"src"), LIB=path.join(ROOT,"library"), DIST=path.join(ROOT,"dist");
+const packageData=JSON.parse(await fs.readFile(path.join(ROOT,"package.json"),"utf8"));
+const ASSET_VERSION=String(packageData.version||"").trim();
+if(!ASSET_VERSION)throw new Error("package.json version is required for asset cache-busting");
 const parser=new XMLParser({ignoreAttributes:false,attributeNamePrefix:"@_",removeNSPrefix:true,trimValues:true});
 const arr=v=>v==null?[]:Array.isArray(v)?v:[v];
 const txt=v=>typeof v==="string"||typeof v==="number"?String(v):v?.["#text"]?String(v["#text"]):"";
@@ -77,6 +81,8 @@ async function copyTree(src,dst){await fs.mkdir(dst,{recursive:true});for(const 
 async function loadOverrides(){try{return JSON.parse(await fs.readFile(path.join(LIB,"series-overrides.json"),"utf8"))}catch{return{}}}
 
 await fs.rm(DIST,{recursive:true,force:true});await copyTree(SRC,DIST);
+const stampedAssets=await stampAssetVersions(DIST,ASSET_VERSION);
+console.log(`Stamped ${stampedAssets} copied source file${stampedAssets===1?"":"s"} with asset version ${ASSET_VERSION}.`);
 await fs.mkdir(path.join(DIST,"assets","vendor"),{recursive:true});
 await fs.copyFile(path.join(ROOT,"node_modules","epubjs","dist","epub.min.js"),path.join(DIST,"assets","vendor","epub.min.js"));
 await fs.copyFile(path.join(ROOT,"node_modules","jszip","dist","jszip.min.js"),path.join(DIST,"assets","vendor","jszip.min.js"));

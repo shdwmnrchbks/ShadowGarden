@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.14 Reader startup handoff. */
+/* Shadow Garden R2 — protected Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -6,26 +6,26 @@
   const requested=publicParams.get("book")||"";
   const seriesId=publicParams.get("series")||"";
   const restartRequested=publicParams.get("restart")==="1";
-  const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
+  const domain=await import("/assets/js/domain/index.js");
+  const {identity,preferences,readingState,storage,catalog}=domain;
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
 
-  window.__sgReaderPublicBookId=BOOK_ID.test(requested)?requested:"";
+  window.__sgReaderPublicBookId=identity.isBookId(requested)?requested:"";
   window.__sgReaderSourcePath="";
 
   function syncStoredTheme(){
     const body=document.body;
     if(!body)return;
-    let settings={};
-    try{settings=JSON.parse(localStorage.getItem("sg-reader-settings")||"{}")||{}}catch{}
+    const settings=storage.readJson("sg-reader-settings",{})||{};
     const theme=["garden","night","black","paper"].includes(settings.theme)?settings.theme:"garden";
     body.classList.remove("reader-theme-garden","reader-theme-night","reader-theme-black","reader-theme-paper","reader-flow-paginated","reader-flow-scrolled");
     body.classList.add(`reader-theme-${theme}`,settings.flow==="scrolled-doc"?"reader-flow-scrolled":"reader-flow-paginated");
-    body.classList.toggle("adult-reader",String(seriesId).startsWith("adult-"));
+    body.classList.toggle("adult-reader",catalog.isAdultSeriesId(seriesId));
   }
 
   async function importReader(){
     const originalEpub=window.ePub;
-    if(typeof originalEpub!=="function")return import("/assets/js/reader.js?v=1.15.14");
+    if(typeof originalEpub!=="function")return import("/assets/js/reader.js");
     function capturedEpub(...args){
       const book=Reflect.apply(originalEpub,this,args);
       if(!window.__sgReaderBook)window.__sgReaderBook=book;
@@ -36,18 +36,18 @@
       Object.setPrototypeOf(capturedEpub,originalEpub);
     }catch{}
     window.ePub=capturedEpub;
-    try{return await import("/assets/js/reader.js?v=1.15.14")}
+    try{return await import("/assets/js/reader.js")}
     finally{window.ePub=originalEpub}
   }
 
   async function mountReadingStatus(){
-    await import("/assets/js/reading-status.js?v=1.15.14");
-    await import("/assets/js/reader-finished.js?v=1.15.14");
+    await import("/assets/js/reading-status.js");
+    await import("/assets/js/reader-finished.js");
   }
 
   function canonicalizeLegacyUrl(){
     const canonical=String(window.__sgReaderPublicBookId||"");
-    if(!BOOK_ID.test(canonical)||requested===canonical)return;
+    if(!identity.isBookId(canonical)||requested===canonical)return;
     try{
       const url=new URL(location.href);
       url.searchParams.set("book",canonical);
@@ -64,95 +64,48 @@
     }catch{}
   }
 
-  function installCanonicalReaderMirror(sourcePath){
-    const canonical=String(window.__sgReaderPublicBookId||"").trim();
-    if(!BOOK_ID.test(canonical)||!EPUB_PATH.test(sourcePath))return;
-    const progressSource=`sg-progress:${sourcePath}`,progressPublic=`sg-progress:${canonical}`;
-    const bookmarksSource=`sg-bookmarks:${sourcePath}`,bookmarksPublic=`sg-bookmarks:${canonical}`;
-
-    const parse=raw=>{try{return JSON.parse(raw||"null")}catch{return null}};
-    const progressRaw=(raw,file)=>{
-      const value=parse(raw);
-      if(!value||typeof value!=="object")return raw;
-      value.file=file;
-      return JSON.stringify(value);
-    };
-    const updated=raw=>Number(parse(raw)?.updatedAt)||0;
-    const sync=()=>{
-      try{
-        const sourceRaw=localStorage.getItem(progressSource),publicRaw=localStorage.getItem(progressPublic);
-        if(sourceRaw!==null||publicRaw!==null){
-          if(sourceRaw===null&&publicRaw!==null)localStorage.setItem(progressSource,progressRaw(publicRaw,sourcePath));
-          else if(publicRaw===null&&sourceRaw!==null)localStorage.setItem(progressPublic,progressRaw(sourceRaw,canonical));
-          else if(updated(sourceRaw)>=updated(publicRaw))localStorage.setItem(progressPublic,progressRaw(sourceRaw,canonical));
-          else localStorage.setItem(progressSource,progressRaw(publicRaw,sourcePath));
-        }
-        const sourceMarks=localStorage.getItem(bookmarksSource),publicMarks=localStorage.getItem(bookmarksPublic);
-        if(sourceMarks!==null&&sourceMarks!==publicMarks)localStorage.setItem(bookmarksPublic,sourceMarks);
-        else if(sourceMarks===null&&publicMarks!==null)localStorage.setItem(bookmarksSource,publicMarks);
-      }catch(error){console.warn("Canonical Reader state mirror skipped",error)}
-    };
-    sync();
-    const timer=setInterval(sync,500);
-    window.addEventListener("pagehide",sync);
-    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")sync()});
-    window.__sgCanonicalReaderMirror={sourcePath,canonical,sync,stop:()=>clearInterval(timer)};
-  }
-
   async function resetForReadAgain(ticket,sourcePath){
     if(!restartRequested)return;
     const canonical=String(ticket?.bookId||ticket?.identity||window.__sgReaderPublicBookId||"").trim();
-    const identities=[
+    const identities=identity.cleanIdentities([
       requested,
       canonical,
-      String(ticket?.requestedIdentity||"").trim(),
-      String(sourcePath||"").trim()
-    ].filter(Boolean);
+      ticket?.requestedIdentity,
+      sourcePath
+    ]);
 
     try{
-      await import("/assets/js/reading-status.js?v=1.15.14");
-      const reading=window.ShadowGardenReadingStatus;
-      const aliases=new Set(identities);
-      const adult=String(seriesId||"").startsWith("adult-");
-      const catalog=await window.ShadowGardenData?.loadCatalog?.(adult);
-      const series=(Array.isArray(catalog?.series)?catalog.series:[]).find(item=>String(item?.id||"")===String(seriesId||""));
-      const volumes=Array.isArray(series?.volumes)?series.volumes:[];
-      const index=volumes.findIndex(volume=>identities.includes(String(volume?.file||volume?.bookId||"")));
-      if(series&&index>=0){
-        const volume=volumes[index];
-        for(const alias of reading?.volumeAliases?.(series.id,volume,index,identities)||[])aliases.add(alias);
-      }
-      const all=[...aliases].filter(Boolean);
-      reading?.setAliasesFinished?.(all,false);
-      reading?.clearProgressAliases?.(all);
+      const shelf=await window.ShadowGardenData?.loadCatalog?.(catalog.isAdultSeriesId(seriesId));
+      const entry=catalog.findVolumeEntry(shelf,seriesId,canonical||requested,identities);
+      const aliases=entry?readingState.volumeAliases(entry.series.id,entry.volume,entry.index,identities):identities;
+      readingState.setAliasesFinished(aliases,false);
+      readingState.clearProgressAliases(aliases);
     }catch(error){
       console.warn("Read Again state reset skipped",error);
-      for(const identity of identities){
-        try{localStorage.removeItem(`sg-progress:${identity}`)}catch{}
-      }
+      readingState.setAliasesFinished(identities,false);
+      readingState.clearProgressAliases(identities);
     }
   }
 
   syncStoredTheme();
 
   try{
-    if(BOOK_ID.test(requested)&&String(seriesId).startsWith("adult-")&&localStorage.getItem("sg-adult-ack")!=="1"){
+    if(identity.isBookId(requested)&&catalog.isAdultSeriesId(seriesId)&&!preferences.adultAcknowledged()){
       const ret=`${location.pathname}${location.search}${location.hash}`;
-      location.replace(`/nsfw.html?return=${encodeURIComponent(ret)}`);
+      location.replace(domain.urls.adultGateReturnUrl(ret));
       return;
     }
 
     const ticket=access?.initial?await access.initial:null;
     const ticketBookId=String(ticket?.bookId||ticket?.identity||"").trim();
-    if(BOOK_ID.test(ticketBookId))window.__sgReaderPublicBookId=ticketBookId;
+    if(identity.isBookId(ticketBookId))window.__sgReaderPublicBookId=ticketBookId;
     if(ticket?.identity&&access?.migrateLegacyState)await access.migrateLegacyState([ticket.identity]);
 
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
     window.__sgReaderSourcePath=EPUB_PATH.test(sourcePath)?sourcePath:"";
     await resetForReadAgain(ticket,sourcePath);
-    installCanonicalReaderMirror(sourcePath);
 
-    if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
+    if(identity.isBookId(requested)&&EPUB_PATH.test(sourcePath)){
       try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}
 
       const NativeURLSearchParams=window.URLSearchParams;

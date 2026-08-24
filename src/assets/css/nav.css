@@ -1,6 +1,6 @@
 .site-header{grid-template-columns:1fr auto!important}
 .brand-mark{cursor:pointer;user-select:none;transition:transform .18s ease,border-color .18s ease,background .18s ease}.brand-mark:hover,.brand-mark:focus-visible{outline:none;border-color:rgba(190,173,229,.40);background:#171020}.brand-mark.menu-open{transform:rotate(45deg);color:var(--leaf2)}
-.site-header nav{position:absolute!important;top:100%;left:0;width:min(360px,calc(100vw - 24px));height:calc(100dvh - 72px);padding:22px 18px;display:flex!important;flex-direction:column;align-items:stretch!important;gap:7px!important;border-right:1px solid var(--line2);border-top:1px solid var(--line);background:rgba(11,8,16,.98);backdrop-filter:blur(22px);box-shadow:24px 0 70px rgba(0,0,0,.44);transform:translateX(-104%);opacity:0;visibility:hidden;pointer-events:none;transition:transform .22s ease,opacity .18s ease,visibility .22s;z-index:60}
+.site-header nav{position:fixed!important;top:72px;bottom:0;left:0;width:min(360px,calc(100vw - 24px));height:auto;padding:22px 18px max(22px,env(safe-area-inset-bottom));display:flex!important;flex-direction:column;align-items:stretch!important;gap:7px!important;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border-right:1px solid var(--line2);border-top:1px solid var(--line);background:rgba(11,8,16,.98);backdrop-filter:blur(22px);box-shadow:24px 0 70px rgba(0,0,0,.44);transform:translateX(-104%);opacity:0;visibility:hidden;pointer-events:none;transition:transform .22s ease,opacity .18s ease,visibility .22s;z-index:60}
 .site-header nav.nav-open{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto}
 .site-header nav:before{content:"SHADOW GARDEN";display:block;margin:3px 10px 13px;color:var(--dim);font-size:.62rem;font-weight:750;letter-spacing:.22em}
 .site-header nav a,.site-header nav .nav-button{width:100%;min-height:44px;padding:11px 12px!important;display:flex;align-items:center;justify-content:space-between;text-align:left;border:1px solid transparent!important;border-radius:10px!important}
@@ -38,5 +38,5 @@ body:not(.adult-library) .volume-actions a.read{border-color:rgba(154,134,211,.2
 .adult-library .volume-actions a.read{border-color:rgba(190,119,139,.28)}
 
 @media(max-width:980px){.site-header nav{display:flex!important}}
-@media(max-width:720px){.site-header nav{height:calc(100dvh - 62px);width:min(330px,calc(100vw - 18px));padding:18px 14px}.site-nav-backdrop{inset:62px 0 0}.brand-mark{width:38px;height:38px}}
+@media(max-width:720px){.site-header nav{top:62px;bottom:0;height:auto;width:min(330px,calc(100vw - 18px));padding:18px 14px max(18px,env(safe-area-inset-bottom))}.site-nav-backdrop{inset:62px 0 0}.brand-mark{width:38px;height:38px}}
 @media(prefers-reduced-motion:reduce){.site-header nav,.brand-mark,.site-nav-backdrop{transition:none}}

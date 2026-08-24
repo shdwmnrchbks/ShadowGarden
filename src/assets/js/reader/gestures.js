@@ -156,7 +156,7 @@ export function createGestureController({
       event.preventDefault();return;
     }
     const touch=touches[0];if(!touch)return;
-    if(state.focus.scale>1.001)state.focus.gesture={mode:"pan",clientX:Number(touch.clientX)||0,clientY:Number(touch.clientY)||0,x:state.focus.x,y:state.focus.y};
+    if(state.focus.scale>1.001)state.focus.gesture={mode:"pan",clientX:Number(touch.clientX)||0,clientY:Number(touch.clientY)||0,x:state.focus.x,y:state.focus.y,moved:false};
     else state.focus.gesture={mode:"tap",clientX:Number(touch.clientX)||0,clientY:Number(touch.clientY)||0};
     event.preventDefault();
   }
@@ -168,7 +168,7 @@ export function createGestureController({
       setFocusTransform(next,current.x-contentX*next,current.y-contentY*next);event.preventDefault();return;
     }
     if(gesture.mode==="pan"&&touches.length){
-      const touch=touches[0];setFocusTransform(state.focus.scale,gesture.x+(Number(touch.clientX)||0)-gesture.clientX,gesture.y+(Number(touch.clientY)||0)-gesture.clientY);event.preventDefault();return;
+      const touch=touches[0],dx=(Number(touch.clientX)||0)-gesture.clientX,dy=(Number(touch.clientY)||0)-gesture.clientY;if(Math.hypot(dx,dy)>6)gesture.moved=true;setFocusTransform(state.focus.scale,gesture.x+dx,gesture.y+dy);event.preventDefault();return;
     }
     if(gesture.mode==="tap"&&touches.length){
       const touch=touches[0];if(Math.hypot((Number(touch.clientX)||0)-gesture.clientX,(Number(touch.clientY)||0)-gesture.clientY)>12)gesture.mode="moved";
@@ -178,10 +178,10 @@ export function createGestureController({
   function endFocusTouch(event){
     const gesture=state.focus.gesture;if(!gesture)return;
     if(gesture.mode==="pinch"&&event.touches?.length===1){
-      const touch=event.touches[0];state.focus.gesture={mode:"pan",clientX:Number(touch.clientX)||0,clientY:Number(touch.clientY)||0,x:state.focus.x,y:state.focus.y};event.preventDefault();return;
+      const touch=event.touches[0];state.focus.gesture={mode:"pan",clientX:Number(touch.clientX)||0,clientY:Number(touch.clientY)||0,x:state.focus.x,y:state.focus.y,moved:true};event.preventDefault();return;
     }
     state.focus.gesture=null;
-    if(gesture.mode==="tap"){
+    if(gesture.mode==="tap"||(gesture.mode==="pan"&&!gesture.moved)){
       state.suppressClickUntil=Date.now()+400;event.preventDefault();closeImageFocus();return;
     }
     if(gesture.mode==="pinch"||gesture.mode==="pan"||gesture.mode==="moved"){

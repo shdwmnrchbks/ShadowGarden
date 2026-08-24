@@ -55,7 +55,7 @@ for(const marker of ["window.__sgReaderPublicBookId","window.__sgReaderSourcePat
 if(readerBootstrap.includes("installCanonicalReaderMirror")||readerBootstrap.includes("setInterval(sync,500)"))fail("Reader bootstrap must not restore the obsolete polling progress mirror after R2");
 if(!readerHtml.includes("reader-bootstrap.js"))fail("Reader HTML must load the Reader bootstrap");
 
-for(const marker of ["finished-volume-badge","data-volume-state","data-reading-state","reading.volumeEntries","reading.preferredSeriesEntry","actionLabelForState","Read Again","Continue","Unread"]){
+for(const marker of ["finished-volume-badge","data-volume-state","data-reading-state","reading.volumeEntries","reading.preferredSeriesEntry","actionLabelForState","reading.STATES.FINISHED","reading.STATES.IN_PROGRESS","Unread"]){
   if(!series.includes(marker))fail(`Series three-state UI is missing ${marker}`);
 }
 for(const marker of ["RETURN TO THE FIRST PAGE","Walk this volume from the beginning?","restart:true","clearVolumeProgress","dataset.volumeState",".volume-cover-link","Keep My Place","Begin Again"]){

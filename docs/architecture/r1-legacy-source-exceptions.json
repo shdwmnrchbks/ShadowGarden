@@ -4,12 +4,6 @@
   "grandfatheredPatchStyleFiles": [
     "src/assets/js/admin-series-editor-polish.js",
     "src/assets/js/admin-upload-polish.js",
-    "src/assets/css/site-current.css",
-    "src/assets/css/site-v1.9.4.css",
-    "src/assets/css/reader-polish.css",
-    "src/assets/css/reader-v1.10.1.css",
-    "src/assets/css/admin-current.css",
-    "src/assets/css/admin-v1.9.4.css",
     "src/assets/css/admin-series-editor-polish.css"
   ],
   "removedDeadFiles": [
@@ -26,6 +20,14 @@
     "src/assets/js/reader-wheel-pages.js",
     "src/assets/js/reader-finished.js",
     "src/assets/js/reader/gestures.js",
-    "src/assets/css/reader-zoom.css"
+    "src/assets/css/reader-zoom.css",
+    "src/assets/css/site-current.css",
+    "src/assets/css/site-v1.9.4.css",
+    "src/assets/css/library-scale.css",
+    "src/assets/css/library-compact-alignment.css",
+    "src/assets/css/reader-polish.css",
+    "src/assets/css/reader-v1.10.1.css",
+    "src/assets/css/admin-current.css",
+    "src/assets/css/admin-v1.9.4.css"
   ]
 }

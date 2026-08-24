@@ -54,8 +54,8 @@ async function checkWiring(){
   const [endpoint,media,guide,roadmap]=await Promise.all([
     read("functions/book-access.js"),
     read("functions/media/[[path]].js"),
-    read("MILESTONE_5_CLOUDFLARE.md"),
-    read("SECURITY_ROADMAP.md")
+    read("docs/security/MILESTONE_5_CLOUDFLARE.md"),
+    read("docs/roadmaps/SECURITY_ROADMAP.md")
   ]);
   for(const marker of ["evaluateAcquisition","ACQUISITION_UNIQUE_LIMIT","acquisition_rate_limited","Retry-After","X-SG-Acquisition-Remaining","acquisition.cookie"]){
     if(!endpoint.includes(marker))fail(`book-access endpoint is missing Milestone 5 marker ${marker}`);

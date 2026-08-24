@@ -20,6 +20,9 @@
 /assets/js/reading-status.js
   Cache-Control: no-store
 
+/assets/js/reader.js
+  Cache-Control: no-store
+
 /assets/js/reader-finished.js
   Cache-Control: no-store
 
@@ -51,6 +54,9 @@
   Cache-Control: no-store
 
 /assets/js/series-read-again.js
+  Cache-Control: no-store
+
+/assets/js/series-cover-links.js
   Cache-Control: no-store
 
 /assets/js/nav-pinned.js

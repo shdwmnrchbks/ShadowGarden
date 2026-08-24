@@ -1,6 +1,5 @@
-/* Shadow Garden v1.8.0 — consolidated current Garden Keeper UI layers. */
+/* Shadow Garden R7 — Garden Keeper Upload, preflight, completion, backup-history, and shared component presentation. */
 
-/* Upload queue: trash is the normal removal action; duplicate policy appears only for duplicates. */
 .batch-actions{display:flex!important;align-items:center;gap:7px;flex-wrap:nowrap}
 .batch-remove{
   width:36px!important;
@@ -20,7 +19,6 @@
 .batch-remove svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .batch-item:not(.has-duplicate) .batch-duplicate{display:none!important}
 
-/* Preflight: concise by default while preserving the lead result sentence. */
 .preflight-card{position:relative}
 .preflight-collapse-toggle{
   width:auto!important;
@@ -43,7 +41,6 @@
 .preflight-card.sg-preflight-collapsed #preflightDetails{display:none!important}
 .preflight-card.sg-preflight-collapsed .preflight-lead{margin-bottom:0!important}
 
-/* Stateful New Books workflow. */
 .upload-workflow-stage{min-height:clamp(430px,66vh,680px);display:grid;place-items:center;padding:22px 8px}
 .upload-workflow-stage.hidden{display:none!important}
 .upload-state-card{
@@ -81,7 +78,6 @@
 #addBooksDialog.sg-workflow-stage .dialog-scroll{overflow-y:auto}
 #openSeries.sg-legacy-open-series{display:none!important}
 
-/* Uploaded-series selection mirrors the public library cover-card language. */
 .upload-series-grid{margin-top:24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr))!important;gap:14px!important;align-items:stretch!important;text-align:left}
 .upload-series-choice{min-width:0;border:1px solid rgba(196,184,225,.11)!important;background:rgba(8,6,12,.28)!important;color:#c9c0d5!important;cursor:pointer}
 .upload-series-choice:hover,.upload-series-choice:focus-visible{border-color:rgba(180,151,225,.3)!important;background:rgba(123,91,177,.08)!important}
@@ -93,7 +89,6 @@
 .upload-series-card-copy strong{display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important;white-space:normal!important;line-height:1.35!important;font-size:.78rem!important;color:#d5cddd!important}
 .upload-series-card-copy small{display:block!important;margin-top:6px!important;color:#81778d!important;font-size:.62rem!important;line-height:1.35!important}
 
-/* Catalog History: one authoritative component. Cards never shrink to fit the scroll viewport. */
 #backupList{
   display:flex!important;
   flex-direction:column!important;

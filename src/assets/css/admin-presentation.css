@@ -1,4 +1,4 @@
-/* Shadow Garden v1.9.4 — Manage Series banner chooser. */
+/* Shadow Garden R7 — Manage Series banner chooser and preview presentation. */
 .manage-banner-field{align-self:start}
 .manage-banner-field select{width:100%;min-height:42px;padding:0 11px;border:1px solid var(--line);border-radius:9px;color:var(--text);background:#0d110e}
 .manage-banner-field select:focus-visible{outline:2px solid var(--leaf2);outline-offset:2px}

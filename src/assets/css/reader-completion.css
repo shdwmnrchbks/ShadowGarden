@@ -1,4 +1,4 @@
-/* Shadow Garden v1.10.1 — Reader gesture/settings and completion polish. */
+/* Shadow Garden R7 — Reader settings toggle and volume-completion presentation. */
 
 .settings-panel .reader-toggle-setting{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:14px;padding-top:4px}
 .settings-panel .reader-toggle-setting>span{display:grid;justify-content:initial;gap:3px}

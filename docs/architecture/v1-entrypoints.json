@@ -7,10 +7,10 @@
       "styles": [
         "/assets/css/site.css",
         "/assets/css/nav.css",
-        "/assets/css/library-scale.css",
-        "/assets/css/site-current.css",
-        "/assets/css/site-v1.9.4.css",
-        "/assets/css/library-compact-alignment.css",
+        "/assets/css/library-features.css",
+        "/assets/css/public-components.css",
+        "/assets/css/public-artwork.css",
+        "/assets/css/library-layout.css",
         "/assets/css/reading-status.css",
         "/assets/css/volume-actions.css",
         "/assets/css/ui-symbols.css"
@@ -38,10 +38,10 @@
         "/assets/css/site.css",
         "/assets/css/nav.css",
         "/assets/css/adult.css",
-        "/assets/css/library-scale.css",
-        "/assets/css/site-current.css",
-        "/assets/css/site-v1.9.4.css",
-        "/assets/css/library-compact-alignment.css",
+        "/assets/css/library-features.css",
+        "/assets/css/public-components.css",
+        "/assets/css/public-artwork.css",
+        "/assets/css/library-layout.css",
         "/assets/css/reading-status.css",
         "/assets/css/volume-actions.css",
         "/assets/css/ui-symbols.css"
@@ -70,8 +70,8 @@
         "/assets/css/nav.css",
         "/assets/css/adult.css",
         "/assets/css/series-extra.css",
-        "/assets/css/site-current.css",
-        "/assets/css/site-v1.9.4.css",
+        "/assets/css/public-components.css",
+        "/assets/css/public-artwork.css",
         "/assets/css/reading-status.css",
         "/assets/css/volume-actions.css",
         "/assets/css/ui-symbols.css"
@@ -97,13 +97,13 @@
         "/assets/css/reader.css",
         "/assets/css/reader-continuous-rail.css",
         "/assets/css/reader-page-map.css",
-        "/assets/css/reader-polish.css",
+        "/assets/css/reader-completion.css",
         "/assets/css/reader-end-page.css",
         "/assets/css/reading-status.css",
         "/assets/css/reader-image-focus.css",
         "/assets/css/reader-a11y.css",
         "/assets/css/reader-interface-themes.css",
-        "/assets/css/reader-v1.10.1.css",
+        "/assets/css/reader-presentation.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -158,9 +158,9 @@
         "/assets/js/admin/app.js"
       ],
       "runtimeLoaded": [
-        "/assets/css/admin-current.css",
+        "/assets/css/admin-components.css",
         "/assets/css/admin-version.css",
-        "/assets/css/admin-v1.9.4.css",
+        "/assets/css/admin-presentation.css",
         "/assets/js/admin/upload-fields.js",
         "/assets/js/admin/auth-session.js",
         "/assets/js/admin/library-workflow.js",

@@ -121,21 +121,21 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(!document.querySelector('link[data-admin-current]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/admin-current.css?v=1.15.0';
+    link.href='/assets/css/admin-components.css?v=1.22.0';
     link.dataset.adminCurrent='1';
     document.head.appendChild(link);
   }
   if(!document.querySelector('link[data-admin-version]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/admin-version.css?v=1.15.3';
+    link.href='/assets/css/admin-version.css?v=1.22.0';
     link.dataset.adminVersion='1';
     document.head.appendChild(link);
   }
   if(!document.querySelector('link[data-admin-series-banner]')){
     const link=document.createElement('link');
     link.rel='stylesheet';
-    link.href='/assets/css/admin-v1.9.4.css?v=1.9.4';
+    link.href='/assets/css/admin-presentation.css?v=1.22.0';
     link.dataset.adminSeriesBanner='1';
     document.head.appendChild(link);
   }

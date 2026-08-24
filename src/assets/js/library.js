@@ -1,11 +1,11 @@
 const $=s=>document.querySelector(s);
 const scope=document.body.dataset.libraryScope||"main";
 const arr=v=>Array.isArray(v)?v:[];
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fallbackEsc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const validSorts=new Set(["recent","title","author","year","volumes"]);
 const validVolumeRanges=new Set(["","1","2-5","6-10","11+"]);
 const validReadingStatuses=new Set(["","finished","unfinished"]);
-const storedView=localStorage.getItem(`sg-view:${scope}`);
+let domain=null;
 let readingStatus=null;
 const state={
   catalog:null,
@@ -19,7 +19,7 @@ const state={
   readingStatus:"",
   sort:"recent",
   pinnedOnly:false,
-  view:storedView==="compact"?"compact":"grid",
+  view:"grid",
   renderedCount:0,
   tagCounts:new Map(),
   observer:null,
@@ -27,9 +27,10 @@ const state={
 };
 let searchTimer=0;
 
+function esc(value){return domain?.format?.escapeHtml?.(value)??fallbackEsc(value)}
 function normalize(value){return String(value??"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase()}
 function queryTokens(value){const matches=String(value||"").match(/"[^"]+"|\S+/g)||[];return matches.map(token=>normalize(token.replace(/^"|"$/g,""))).filter(Boolean)}
-function pinnedIds(){try{return new Set(JSON.parse(localStorage.getItem("sg-pinned")||"[]"))}catch{return new Set()}}
+function pinnedIds(){return domain?.preferences?.pinnedIds?.()||new Set()}
 function addedTime(value){return Date.parse(value||"")||0}
 function latest(series){return Math.max(0,...arr(series.volumes).map(v=>addedTime(v.added)))}
 function cover(series){return series.coverThumb||series.cover||series.volumes?.find(v=>v.coverThumb)?.coverThumb||series.volumes?.find(v=>v.cover)?.cover||""}
@@ -38,8 +39,8 @@ function volumeCountMatches(count,range){if(!range)return true;if(range==="1")re
 function seriesHaystack(series){return normalize([series.title,series.author,series.description,...arr(series.tags),...arr(series.volumes).flatMap(volume=>[volume.title,volume.number,volume.year])].filter(Boolean).join(" "))}
 function finishedSeries(series){return Boolean(readingStatus?.seriesFinished(series))}
 function card(series,index=0){
-  const c=cover(series),vols=arr(series.volumes).length,aboveFold=index<6,finished=finishedSeries(series);
-  return `<a class="series-card ${finished?"is-finished":""}" href="/series.html?id=${encodeURIComponent(series.id)}">
+  const c=cover(series),vols=arr(series.volumes).length,aboveFold=index<6,finished=finishedSeries(series),href=domain?.urls?.seriesUrl?.(series.id)||`/series.html?id=${encodeURIComponent(series.id)}`;
+  return `<a class="series-card ${finished?"is-finished":""}" href="${href}">
     <div class="cover">
       ${c?`<img src="${esc(c)}" alt="${esc(series.title)} cover" loading="${aboveFold?"eager":"lazy"}" decoding="async" fetchpriority="${index<2?"high":"low"}" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">`:""}
       <div class="cover-fallback ${c?"hidden":""}">${esc(series.title)}</div>
@@ -54,16 +55,16 @@ function card(series,index=0){
     </div>
   </a>`;
 }
-function formatDate(value){const time=addedTime(value);if(!time)return"Date unknown";try{return new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",year:"numeric"}).format(new Date(time))}catch{return String(value||"")}}
+function formatDate(value){return domain?.format?.formatDate?.(value)||(()=>{const time=addedTime(value);if(!time)return"Date unknown";try{return new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",year:"numeric"}).format(new Date(time))}catch{return String(value||"")}})()}
 function recentCard(entry,index){
-  const {series,volume}=entry,c=volumeCover(series,volume),finished=readingStatus?.isFinished(volume.file);
+  const {series,volume,volumeIndex}=entry,c=volumeCover(series,volume),finished=readingStatus?.isVolumeFinished?.(series.id,volume,volumeIndex)||false;
   const title=volume.title||`Volume ${volume.number??"—"}`;
   const badge=finished?"✓ FINISHED":volume.number!=null?`VOL ${volume.number}`:"NEW";
-  const href=volume.file?`/reader.html?book=${encodeURIComponent(volume.file)}&series=${encodeURIComponent(series.id)}`:`/series.html?id=${encodeURIComponent(series.id)}`;
+  const href=volume.file?(domain?.urls?.readerUrl?.(volume.file,series.id)||`/reader.html?book=${encodeURIComponent(volume.file)}&series=${encodeURIComponent(series.id)}`):(domain?.urls?.seriesUrl?.(series.id)||`/series.html?id=${encodeURIComponent(series.id)}`);
   return `<a class="recent-volume" href="${href}"><div class="recent-volume-cover">${c?`<img src="${esc(c)}" alt="${esc(title)} cover" loading="${index<4?"eager":"lazy"}" decoding="async" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">`:""}<div class="recent-volume-fallback ${c?"hidden":""}">${esc(title)}</div><span class="recent-volume-badge">${esc(badge)}</span></div><div class="recent-volume-copy"><strong>${esc(title)}</strong><span>${esc(series.title)} · ${esc(formatDate(volume.added))}</span></div></a>`;
 }
 function renderRecentlyAdded(){
-  const recent=state.items.flatMap(series=>arr(series.volumes).map(volume=>({series,volume,time:addedTime(volume.added)}))).filter(entry=>entry.time>0).sort((a,b)=>b.time-a.time).slice(0,8);
+  const recent=state.items.flatMap(series=>arr(series.volumes).map((volume,volumeIndex)=>({series,volume,volumeIndex,time:addedTime(volume.added)}))).filter(entry=>entry.time>0).sort((a,b)=>b.time-a.time).slice(0,8);
   const section=$("#recentSection"),container=$("#recentVolumes");if(!section||!container)return;if(!recent.length){section.classList.add("hidden");return}container.innerHTML=recent.map(recentCard).join("");section.classList.remove("hidden");
 }
 function mountReadingStatusFilter(){
@@ -119,12 +120,24 @@ function updateResultCount(){const totalSeries=state.filtered.length,totalVolume
 function appendBatch(){if(state.renderedCount>=state.filtered.length){updateResultCount();return}const start=state.renderedCount,end=Math.min(state.filtered.length,start+batchSize()),html=state.filtered.slice(start,end).map((series,index)=>card(series,start+index)).join("");$("#catalogGrid")?.insertAdjacentHTML("beforeend",html);state.renderedCount=end;updateResultCount()}
 function apply({historyMode=null}={}){filterAndSort();state.renderedCount=0;const grid=$("#catalogGrid");if(grid){grid.innerHTML="";grid.classList.toggle("compact",state.view==="compact")}$("#emptyState")?.classList.toggle("hidden",state.filtered.length>0);if($("#emptyMessage"))$("#emptyMessage").textContent=state.items.length?"No series match these filters.":"No seeds have taken root in the Garden yet.";syncControls();appendBatch();if(historyMode)writeUrl(historyMode)}
 function renderContinue(){
-  const progress=[];for(let i=0;i<localStorage.length;i++){const key=localStorage.key(i);if(!key?.startsWith("sg-progress:"))continue;try{const item=JSON.parse(localStorage.getItem(key));if(item?.updatedAt&&!readingStatus?.isFinished(item.file))progress.push(item)}catch{}}
-  progress.sort((a,b)=>b.updatedAt-a.updatedAt);const allowedFiles=new Set(state.items.flatMap(series=>arr(series.volumes).map(volume=>volume.file))),saved=progress.find(item=>allowedFiles.has(item.file));const panel=$("#continuePanel");if(!saved){panel?.classList.add("hidden");return}const match=state.items.flatMap(series=>arr(series.volumes).map(volume=>({series,volume}))).find(item=>item.volume.file===saved.file);if(!match)return;panel.innerHTML=`<div class="continue-mark">✦</div><div><strong>${esc(match.volume.title)}</strong><span>${esc(match.series.title)} · ${Math.round((saved.percentage||0)*100)}%</span></div><a href="/reader.html?book=${encodeURIComponent(match.volume.file)}&series=${encodeURIComponent(match.series.id)}">Continue</a>`;panel.classList.remove("hidden");
+  const current=readingStatus?.latestActiveEntry?.(state.items)||null;
+  const panel=$("#continuePanel");
+  if(!current){panel?.classList.add("hidden");return}
+  const {series,volume,progress,state:volumeState}=current;
+  const action=readingStatus?.actionLabelForState?.(volumeState)||"Continue";
+  const href=domain?.urls?.readerUrl?.(volume.file,series.id)||`/reader.html?book=${encodeURIComponent(volume.file)}&series=${encodeURIComponent(series.id)}`;
+  panel.innerHTML=`<div class="continue-mark">✦</div><div><strong>${esc(volume.title)}</strong><span>${esc(series.title)} · ${Math.round((Number(progress?.percentage)||0)*100)}%</span></div><a data-volume-state="${esc(volumeState)}" href="${href}">${esc(action)}</a>`;panel.classList.remove("hidden");
 }
 function setupIncrementalRendering(){const sentinel=$("#catalogSentinel");if(!sentinel||typeof IntersectionObserver!=="function")return;state.observer=new IntersectionObserver(entries=>{if(!entries.some(entry=>entry.isIntersecting)||state.autoLoading||state.renderedCount>=state.filtered.length)return;state.autoLoading=true;requestAnimationFrame(()=>{appendBatch();setTimeout(()=>{state.autoLoading=false},120)})},{rootMargin:"800px 0px"});state.observer.observe(sentinel)}
 function clearFilters({historyMode="push"}={}){state.query="";state.author="";state.tags=new Set();state.year="";state.volumeRange="";state.readingStatus="";state.sort="recent";state.pinnedOnly=false;apply({historyMode})}
-function setupAdultGate(){if(scope!=="nsfw")return;const gate=$("#adultGate"),enter=$("#adultEnter"),reset=$("#adultReset"),accepted=localStorage.getItem("sg-adult-ack")==="1";gate?.classList.toggle("hidden",accepted);document.body.classList.toggle("adult-locked",!accepted);enter?.addEventListener("click",()=>{localStorage.setItem("sg-adult-ack","1");gate.classList.add("hidden");document.body.classList.remove("adult-locked");const ret=new URLSearchParams(location.search).get("return");if(ret&&ret.startsWith("/"))location.href=ret});reset?.addEventListener("click",()=>{localStorage.removeItem("sg-adult-ack");gate?.classList.remove("hidden");document.body.classList.add("adult-locked")})}
+function setupAdultGate(){
+  if(scope!=="nsfw")return;
+  const gate=$("#adultGate"),enter=$("#adultEnter"),reset=$("#adultReset"),accepted=domain.preferences.adultAcknowledged();
+  gate?.classList.toggle("hidden",accepted);document.body.classList.toggle("adult-locked",!accepted);
+  enter?.addEventListener("click",()=>{domain.preferences.setAdultAcknowledged(true);gate.classList.add("hidden");document.body.classList.remove("adult-locked");const ret=new URLSearchParams(location.search).get("return");if(ret&&ret.startsWith("/"))location.href=ret});
+  reset?.addEventListener("click",()=>{domain.preferences.setAdultAcknowledged(false);gate?.classList.remove("hidden");document.body.classList.add("adult-locked")});
+}
+function refreshReadingUi(){renderContinue();renderRecentlyAdded();apply()}
 function bindControls(){
   $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
   $("#authorSelect")?.addEventListener("change",event=>{state.author=event.target.value;apply({historyMode:"push"})});
@@ -136,16 +149,27 @@ function bindControls(){
   document.querySelector(".filters")?.addEventListener("click",event=>{const button=event.target.closest("button[data-reading-status]");if(!button)return;const value=button.dataset.readingStatus;state.readingStatus=state.readingStatus===value?"":value;apply({historyMode:"push"})});
   $("#activeTags")?.addEventListener("click",event=>{const button=event.target.closest("button[data-remove-tag]");if(!button)return;state.tags.delete(button.dataset.removeTag);apply({historyMode:"push"})});
   $("#clearFilters")?.addEventListener("click",()=>clearFilters());$("#pinnedNav")?.addEventListener("click",()=>{state.pinnedOnly=!state.pinnedOnly;apply({historyMode:"push"})});
-  document.querySelector(".view-switch")?.addEventListener("click",event=>{const button=event.target.closest("button[data-view]");if(!button)return;state.view=button.dataset.view;localStorage.setItem(`sg-view:${scope}`,state.view);apply({historyMode:"replace"})});
+  document.querySelector(".view-switch")?.addEventListener("click",event=>{const button=event.target.closest("button[data-view]");if(!button)return;state.view=button.dataset.view;domain.preferences.setLibraryView(scope,state.view);apply({historyMode:"replace"})});
   $("#loadMore")?.addEventListener("click",appendBatch);$("#recentViewAll")?.addEventListener("click",()=>{clearFilters({historyMode:null});state.sort="recent";apply({historyMode:"push"});$("#catalogSection")?.scrollIntoView({behavior:"smooth",block:"start"})});
   window.addEventListener("popstate",()=>{readUrl();validateState();apply()});
-  window.addEventListener("storage",event=>{if(event.key===readingStatus?.KEY){renderContinue();renderRecentlyAdded();apply()}});
+  window.addEventListener(readingStatus.EVENT,refreshReadingUi);
+  window.addEventListener("storage",event=>{
+    if(readingStatus.isReadingStorageKey?.(event.key)){refreshReadingUi();return}
+    if(domain.preferences.isPreferenceStorageKey(event.key)){
+      if(event.key===domain.preferences.viewKey(scope))state.view=domain.preferences.libraryView(scope);
+      apply();
+    }
+  });
 }
 async function init(){
-  setupAdultGate();bindControls();readUrl();
   try{
-    await import("/assets/js/reading-status.js?v=1.15.0");readingStatus=window.ShadowGardenReadingStatus;
-    if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");state.catalog=await window.ShadowGardenData.loadCatalog(scope==="nsfw");state.items=arr(state.catalog.series);$("#headerVolumes").textContent=state.items.reduce((n,series)=>n+arr(series.volumes).length,0);collectFilters();validateState();renderContinue();renderRecentlyAdded();setupIncrementalRendering();apply();
+    domain=await import("/assets/js/domain/index.js");
+    await import("/assets/js/reading-status.js");
+    readingStatus=window.ShadowGardenReadingStatus||domain.readingState;
+    state.view=domain.preferences.libraryView(scope);
+    setupAdultGate();bindControls();readUrl();
+    if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");
+    state.catalog=await window.ShadowGardenData.loadCatalog(scope==="nsfw");state.items=arr(state.catalog.series);$("#headerVolumes").textContent=state.items.reduce((n,series)=>n+arr(series.volumes).length,0);collectFilters();validateState();renderContinue();renderRecentlyAdded();setupIncrementalRendering();apply();
   }catch(error){console.error(error);$("#resultCount").textContent="Could not load catalog";$("#emptyState")?.classList.remove("hidden");if($("#emptyMessage"))$("#emptyMessage").textContent="The library catalog could not be reached."}
 }
 init();

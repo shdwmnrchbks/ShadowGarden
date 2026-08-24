@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "baseline": "v1.15.14",
+  "grandfatheredPatchStyleFiles": [
+    "src/assets/js/library-series-polish.js",
+    "src/assets/js/library-finished-polish.js",
+    "src/assets/js/reader-polish.js",
+    "src/assets/js/reader-v1.10.1.js",
+    "src/assets/js/admin-series-editor-polish.js",
+    "src/assets/js/admin-upload-polish.js",
+    "src/assets/css/site-current.css",
+    "src/assets/css/site-v1.9.4.css",
+    "src/assets/css/reader-polish.css",
+    "src/assets/css/reader-v1.10.1.css",
+    "src/assets/css/admin-current.css",
+    "src/assets/css/admin-v1.9.4.css",
+    "src/assets/css/admin-series-editor-polish.css"
+  ],
+  "removedDeadFiles": [
+    "src/assets/js/library-continue-meta.js"
+  ]
+}

@@ -39,7 +39,9 @@ for(const route of ["/media/*","/book-access","/human-access","/admin-access","/
 for(const marker of ["/admin.html","/reader.html","/data/version.json","Cache-Control: no-store"]){
   if(!headers.includes(marker))fail(`security/cache headers are missing ${marker}`);
 }
-if(!readerBootstrap.includes("ShadowGardenBookAccess")||!readerBootstrap.includes("BOOK_ID"))fail("Reader startup must retain opaque book authorization handoff");
+for(const marker of ["ShadowGardenBookAccess","/assets/js/domain/index.js","identity.isBookId","window.__sgReaderPublicBookId","sourcePath"]){
+  if(!readerBootstrap.includes(marker))fail(`Reader startup opaque authorization handoff is missing ${marker}`);
+}
 for(const html of [readerHtml,indexHtml,adultHtml,seriesHtml]){
   if(/s3\.us-east-005\.backblazeb2\.com|backblazeb2\.com\/shadow-garden-books-01/i.test(html))fail("public HTML must not expose direct private B2 delivery URLs");
 }

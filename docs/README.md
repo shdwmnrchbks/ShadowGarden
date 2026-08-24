@@ -1,18 +1,21 @@
 # Shadow Garden Documentation
 
-This directory contains architecture contracts, project planning, security history, and design guidance that should not live at the repository root.
+This is the single documentation index for Shadow Garden. Architecture contracts, project planning, security history, build conventions, and design guidance live under `docs/` rather than accumulating at the repository root.
 
-## Architecture baseline
+## Architecture and refactor contracts
 
 - [`architecture/README.md`](./architecture/README.md) — architecture documentation index.
 - [`architecture/V1_BASELINE.md`](./architecture/V1_BASELINE.md) — frozen v1.15.14 runtime/ownership/dependency baseline.
 - [`architecture/PERSISTENCE_CONTRACTS.md`](./architecture/PERSISTENCE_CONTRACTS.md) — browser persistence, IndexedDB, cookie, and migration contracts.
 - [`architecture/HTTP_STORAGE_CONTRACTS.md`](./architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and Backblaze B2 namespace contracts.
+- [`architecture/MODULE_CONVENTIONS.md`](./architecture/MODULE_CONVENTIONS.md) — post-R1 module naming, ownership, DOM/state, and placement rules.
+- [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning.
 - [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable R0 JS/CSS entrypoint manifest.
+- [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — explicit grandfather list for pre-R1 patch-style source names.
 
 ## Active roadmap
 
-- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0 is complete; R1 is next.
+- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0 and R1 are complete; R2 is next.
 
 ## Completed roadmaps
 
@@ -32,8 +35,6 @@ This directory contains architecture contracts, project planning, security histo
 
 ## Files intentionally kept at repository root
 
-- `README.md` — project entry point and development overview.
-- `CHANGELOG.md` — release history.
-- `package.json` / configuration files — build/runtime configuration.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). In short, the root is limited to normal project entry/configuration files and the top-level source directories: README/CHANGELOG, package/config files, `.github/`, `docs/`, `functions/`, `library/`, `src/`, and `tools/`.
 
-Historical planning documents should be archived under `docs/` rather than accumulating at the repository root.
+Historical planning documents should be archived under `docs/`; generated output belongs in ignored build directories.

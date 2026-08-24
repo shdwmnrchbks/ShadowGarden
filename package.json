@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "node tools/check.mjs && node tools/check-security.mjs && node tools/check-m5.mjs && node tools/check-m6.mjs && node tools/check-m7.mjs && node tools/check-m8.mjs && node tools/check-reading-status.mjs && node tools/check-flavor.mjs && node tools/check-m9.mjs && node tools/check-r0.mjs",
+    "check": "node tools/check.mjs && node tools/check-security.mjs && node tools/check-m5.mjs && node tools/check-m6.mjs && node tools/check-m7.mjs && node tools/check-m8.mjs && node tools/check-reading-status.mjs && node tools/check-flavor.mjs && node tools/check-m9.mjs && node tools/check-r0.mjs && node tools/check-r1.mjs",
     "prebuild": "npm run check",
     "build": "node tools/build.mjs && node tools/write-source.mjs",
     "preview": "npx serve dist",

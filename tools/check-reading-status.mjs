@@ -50,10 +50,10 @@ if(!readerHtml.includes("reader-bootstrap.js"))fail("Reader HTML must load the R
 for(const marker of ["finished-volume-badge","data-volume-state","data-reading-state","volumeState","volumeProgress","actionLabelForState","Read Again","Continue","Unread"]){
   if(!series.includes(marker))fail(`Series three-state UI is missing ${marker}`);
 }
-for(const marker of ["RETURN TO THE FIRST PAGE","Walk this volume from the beginning?","restart","resetVolumeState","clearVolumeProgress","data.volumeState",".volume-cover-link","Keep My Place","Begin Again"]){
+for(const marker of ["RETURN TO THE FIRST PAGE","Walk this volume from the beginning?","restart","resetVolumeState","clearVolumeProgress","dataset.volumeState",".volume-cover-link","Keep My Place","Begin Again"]){
   if(!readAgain.includes(marker))fail(`Read Again reset flow is missing ${marker}`);
 }
-for(const marker of ["volume-cover-link","data.volumeState","data.volumeTitle","action=read.textContent"]){
+for(const marker of ["volume-cover-link","dataset.volumeState","dataset.volumeTitle","action=read.textContent"]){
   if(!coverLinks.includes(marker))fail(`volume cover action mirroring is missing ${marker}`);
 }
 for(const marker of [".read-again-dialog",".read-again-actions",".read-again-confirm","::backdrop"]){
@@ -95,9 +95,6 @@ for(const marker of ["/assets/js/reading-status.js","/assets/js/reader.js","/ass
 const parsed=JSON.parse(pkg);
 if(parsed.version!=="1.15.14")fail("package version must be 1.15.14");
 
-/* Behavioral regression: every volume has exactly three meaningful states.
-   Page 1/cover is Unread; progress beyond page 1 is In Progress; Finished always wins.
-   Read Again must clear both Finished and progress and return the volume to Unread. */
 {
   const values=new Map();
   const localStorage={
@@ -109,21 +106,13 @@ if(parsed.version!=="1.15.14")fail("package version must be 1.15.14");
   };
   const events=[];
   const window={dispatchEvent:event=>events.push(event)};
-  const context={
-    window,
-    localStorage,
-    document:{querySelector:()=>({})},
-    CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail}},
-    Date,
-    console
-  };
+  const context={window,localStorage,document:{querySelector:()=>({})},CustomEvent:class{constructor(type,init){this.type=type;this.detail=init?.detail}},Date,console};
   try{
     vm.runInNewContext(status,context,{filename:"reading-status.js"});
     const api=window.ShadowGardenReadingStatus;
     const seriesId="example-series";
     const volume={file:"bk_1234567890123456789012",bookId:"bk_1234567890123456789012",number:2,title:"Volume 2"};
     const aliases=api.volumeAliases(seriesId,volume,1);
-
     if(api.volumeState(seriesId,volume,1)!==api.STATES.UNREAD||api.actionLabelForState(api.STATES.UNREAD)!=="Read")fail("a never-opened volume must be Unread with a Read action");
     localStorage.setItem(`sg-progress:${volume.file}`,JSON.stringify({file:volume.file,page:1,totalPages:120,percentage:.08,updatedAt:100}));
     if(api.volumeState(seriesId,volume,1)!==api.STATES.UNREAD)fail("page 1/cover must remain Unread even when EPUB percentage is nonzero");

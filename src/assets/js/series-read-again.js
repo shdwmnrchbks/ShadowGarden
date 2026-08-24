@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.12 — confirmed Read Again reset flow. */
+/* Shadow Garden v1.15.13 — confirmed Read Again reset flow. */
 (()=>{
   const root=document.getElementById("seriesRoot");
   if(!root)return;
@@ -14,12 +14,12 @@
     dialog.innerHTML=`
       <form method="dialog" class="read-again-card">
         <div class="read-again-mark" aria-hidden="true">↺</div>
-        <p class="read-again-kicker">START OVER</p>
-        <h2>Read this volume again?</h2>
-        <p class="read-again-copy">Your reading progress for <strong data-read-again-title>this volume</strong> will reset to page 1 and its Finished mark will be removed. Bookmarks will be kept.</p>
+        <p class="read-again-kicker">RETURN TO THE FIRST PAGE</p>
+        <h2>Walk this volume from the beginning?</h2>
+        <p class="read-again-copy">The reading trail for <strong data-read-again-title>this volume</strong> will be cleared and its Finished mark lifted. You will return to page 1; bookmarks remain untouched.</p>
         <div class="read-again-actions">
-          <button class="read-again-cancel" value="cancel" type="submit">Cancel</button>
-          <button class="read-again-confirm" value="confirm" type="submit">Start from Page 1</button>
+          <button class="read-again-cancel" value="cancel" type="submit">Keep My Place</button>
+          <button class="read-again-confirm" value="confirm" type="submit">Begin Again</button>
         </div>
       </form>`;
     document.body.appendChild(dialog);
@@ -36,7 +36,7 @@
   function confirmRestart(title){
     const dialog=ensureDialog();
     dialog.querySelector("[data-read-again-title]").textContent=title||"this volume";
-    if(typeof dialog.showModal!=="function")return Promise.resolve(window.confirm(`Read ${title||"this volume"} again?\n\nThis resets reading progress to page 1 and removes the Finished mark. Bookmarks will be kept.`));
+    if(typeof dialog.showModal!=="function")return Promise.resolve(window.confirm(`Walk ${title||"this volume"} from the beginning?\n\nIts reading trail will be cleared, the Finished mark lifted, and the book reopened at page 1. Bookmarks remain untouched.`));
     if(dialog.open)dialog.close("cancel");
     return new Promise(resolve=>{
       pending={resolve};

@@ -64,6 +64,41 @@
     }catch{}
   }
 
+  function installCanonicalReaderMirror(sourcePath){
+    const canonical=String(window.__sgReaderPublicBookId||"").trim();
+    if(!BOOK_ID.test(canonical)||!EPUB_PATH.test(sourcePath))return;
+    const progressSource=`sg-progress:${sourcePath}`,progressPublic=`sg-progress:${canonical}`;
+    const bookmarksSource=`sg-bookmarks:${sourcePath}`,bookmarksPublic=`sg-bookmarks:${canonical}`;
+
+    const parse=raw=>{try{return JSON.parse(raw||"null")}catch{return null}};
+    const progressRaw=(raw,file)=>{
+      const value=parse(raw);
+      if(!value||typeof value!=="object")return raw;
+      value.file=file;
+      return JSON.stringify(value);
+    };
+    const updated=raw=>Number(parse(raw)?.updatedAt)||0;
+    const sync=()=>{
+      try{
+        const sourceRaw=localStorage.getItem(progressSource),publicRaw=localStorage.getItem(progressPublic);
+        if(sourceRaw!==null||publicRaw!==null){
+          if(sourceRaw===null&&publicRaw!==null)localStorage.setItem(progressSource,progressRaw(publicRaw,sourcePath));
+          else if(publicRaw===null&&sourceRaw!==null)localStorage.setItem(progressPublic,progressRaw(sourceRaw,canonical));
+          else if(updated(sourceRaw)>=updated(publicRaw))localStorage.setItem(progressPublic,progressRaw(sourceRaw,canonical));
+          else localStorage.setItem(progressSource,progressRaw(publicRaw,sourcePath));
+        }
+        const sourceMarks=localStorage.getItem(bookmarksSource),publicMarks=localStorage.getItem(bookmarksPublic);
+        if(sourceMarks!==null&&sourceMarks!==publicMarks)localStorage.setItem(bookmarksPublic,sourceMarks);
+        else if(sourceMarks===null&&publicMarks!==null)localStorage.setItem(bookmarksSource,publicMarks);
+      }catch(error){console.warn("Canonical Reader state mirror skipped",error)}
+    };
+    sync();
+    const timer=setInterval(sync,500);
+    window.addEventListener("pagehide",sync);
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")sync()});
+    window.__sgCanonicalReaderMirror={sourcePath,canonical,sync,stop:()=>clearInterval(timer)};
+  }
+
   async function resetForReadAgain(ticket,sourcePath){
     if(!restartRequested)return;
     const canonical=String(ticket?.bookId||ticket?.identity||window.__sgReaderPublicBookId||"").trim();
@@ -115,6 +150,7 @@
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
     window.__sgReaderSourcePath=EPUB_PATH.test(sourcePath)?sourcePath:"";
     await resetForReadAgain(ticket,sourcePath);
+    installCanonicalReaderMirror(sourcePath);
 
     if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
       try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}

@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/assets/css/site-current.css?v=1.8.0">
   <link rel="stylesheet" href="/assets/css/site-v1.9.4.css?v=1.10.3">
   <link rel="stylesheet" href="/assets/css/library-compact-alignment.css?v=1.15.11">
+  <link rel="stylesheet" href="/assets/css/reading-status.css">
   <link rel="stylesheet" href="/assets/css/volume-actions.css">
   <link rel="stylesheet" href="/assets/css/ui-symbols.css?v=1.6.0">
   <script src="/assets/js/nav.js?v=1.6.1" defer></script>
@@ -27,96 +28,15 @@
 </head>
 <body class="adult-library" data-library-scope="nsfw">
   <a class="skip-link" href="#mainContent">Skip to main content</a>
-  <div id="adultGate" class="adult-gate hidden" role="dialog" aria-modal="true" aria-labelledby="adultGateTitle">
-    <div class="adult-gate-card">
-      <div class="adult-gate-mark" aria-hidden="true">✦</div>
-      <p class="kicker">RESTRICTED WING</p>
-      <h1 id="adultGateTitle">The Forbidden Sanctuary</h1>
-      <p>This section contains adult or sexually explicit books. Continue only if you are of legal age to view this material in your jurisdiction.</p>
-      <div class="adult-gate-actions">
-        <button id="adultEnter" class="adult-enter" type="button">Enter Adult Library</button>
-        <a href="/">Return to Main Library</a>
-      </div>
-      <small>Your acknowledgement is stored only in this browser. No account is created.</small>
-    </div>
-  </div>
-
-  <header class="site-header">
-    <div class="brand">
-      <button class="brand-mark" type="button" aria-label="Open navigation" aria-controls="siteNav" aria-expanded="false">✦</button>
-      <a class="brand-home" href="/nsfw.html" aria-label="Shadow Garden Adult Library home"><strong>Shadow Garden</strong><small>EPUB LIBRARY</small></a>
-    </div>
-    <nav id="siteNav" aria-label="Primary navigation">
-      <a href="/">Library</a>
-      <a class="adult-nav-link active" aria-current="page" href="/nsfw.html">Adult Section <span>18+</span></a>
-    </nav>
-    <div class="header-actions">
-      <div class="header-stat"><span id="headerVolumes">0</span> adult volumes</div>
-      <a class="header-main-link" href="/" aria-label="Return to the Main Archive">◀ Main Archive</a>
-    </div>
-  </header>
-
+  <div id="adultGate" class="adult-gate hidden" role="dialog" aria-modal="true" aria-labelledby="adultGateTitle"><div class="adult-gate-card"><div class="adult-gate-mark" aria-hidden="true">✦</div><p class="kicker">RESTRICTED WING</p><h1 id="adultGateTitle">The Forbidden Sanctuary</h1><p>This section contains adult or sexually explicit books. Continue only if you are of legal age to view this material in your jurisdiction.</p><div class="adult-gate-actions"><button id="adultEnter" class="adult-enter" type="button">Enter Adult Library</button><a href="/">Return to Main Library</a></div><small>Your acknowledgement is stored only in this browser. No account is created.</small></div></div>
+  <header class="site-header"><div class="brand"><button class="brand-mark" type="button" aria-label="Open navigation" aria-controls="siteNav" aria-expanded="false">✦</button><a class="brand-home" href="/nsfw.html" aria-label="Shadow Garden Adult Library home"><strong>Shadow Garden</strong><small>EPUB LIBRARY</small></a></div><nav id="siteNav" aria-label="Primary navigation"><a href="/">Library</a><a class="adult-nav-link active" aria-current="page" href="/nsfw.html">Adult Section <span>18+</span></a></nav><div class="header-actions"><div class="header-stat"><span id="headerVolumes">0</span> adult volumes</div><a class="header-main-link" href="/" aria-label="Return to the Main Archive">◀ Main Archive</a></div></header>
   <main id="mainContent" class="library-shell" tabindex="-1">
-    <section class="library-intro adult-intro">
-      <div>
-        <p class="kicker">THE FORBIDDEN SANCTUARY</p>
-        <h1>Adult Section</h1>
-        <p class="intro-copy">A separate shelf for NSFW and adult EPUBs, kept out of the main archive.</p>
-      </div>
-      <div id="continuePanel" class="continue-panel hidden"></div>
-    </section>
-
+    <section class="library-intro adult-intro"><div><p class="kicker">THE FORBIDDEN SANCTUARY</p><h1>Adult Section</h1><p class="intro-copy">A separate shelf for NSFW and adult EPUBs, kept out of the main archive.</p></div><div id="continuePanel" class="continue-panel hidden"></div></section>
     <section id="catalogSection" class="catalog-layout" aria-label="Adult library catalog">
-      <aside class="filters" aria-label="Adult library filters">
-        <div class="filter-head"><strong>Filter adult archive</strong><button id="clearFilters" type="button">Reset</button></div>
-        <div class="search-stack">
-          <div class="search-field">
-            <span aria-hidden="true">⌕</span>
-            <input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search adult library">
-            <button id="filterToggle" class="filter-toggle mobile-filter-toggle" type="button" hidden aria-expanded="true" aria-label="Expand adult library filters" title="Expand filters">▼</button>
-          </div>
-          <p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p>
-        </div>
-        <div class="filter-group"><label for="authorSelect">Author</label><select id="authorSelect"><option value="">Any author</option></select></div>
-        <div class="filter-group"><label for="yearSelect">Year</label><select id="yearSelect"><option value="">Any year</option></select></div>
-        <div class="filter-group">
-          <label for="volumeCountSelect">Volume count</label>
-          <select id="volumeCountSelect"><option value="">Any size</option><option value="1">Single volume</option><option value="2-5">2–5 volumes</option><option value="6-10">6–10 volumes</option><option value="11+">11+ volumes</option></select>
-        </div>
-        <div class="filter-group">
-          <label for="sortSelect">Sort</label>
-          <select id="sortSelect"><option value="recent">Recently added</option><option value="title">Title</option><option value="author">Author</option><option value="year">Year released</option><option value="volumes">Volumes</option></select>
-        </div>
-        <div class="filter-group filter-tags">
-          <label for="tagSelect">Exact tags</label>
-          <div class="tag-picker"><select id="tagSelect"><option value="">Add a tag…</option></select><div id="activeTags" class="active-filter-tags" aria-label="Selected tags"></div></div>
-          <span class="filter-sub-label">Popular tags</span><div id="genreChips" class="genre-chips"></div>
-        </div>
-      </aside>
-
-      <div class="catalog-main">
-        <section id="recentSection" class="recent-section hidden" aria-labelledby="recentHeading">
-          <div class="recent-head">
-            <div><p class="kicker">NEW GROWTH</p><h2 id="recentHeading">Recently Added</h2></div>
-            <button id="recentViewAll" class="recent-view-all" type="button">View newest in archive ▶</button>
-          </div>
-          <div id="recentVolumes" class="recent-volumes"></div>
-        </section>
-
-        <div class="catalog-bar">
-          <p id="resultCount" role="status" aria-live="polite" aria-atomic="true">Loading restricted archive…</p>
-          <div class="view-switch" role="group" aria-label="View style">
-            <button class="active" data-view="grid" type="button" aria-pressed="true">Grid</button>
-            <button data-view="compact" type="button" aria-pressed="false">Compact</button>
-          </div>
-        </div>
-        <div id="catalogGrid" class="catalog-grid"></div>
-        <div id="catalogSentinel" class="catalog-sentinel hidden"><button id="loadMore" type="button">Load more</button></div>
-        <div id="emptyState" class="empty-state hidden" role="status"><span aria-hidden="true">✦</span><h2>No books in the Night Garden.</h2><p id="emptyMessage">Sow new forbidden knowledge beneath the shadows.</p></div>
-      </div>
+      <aside class="filters" aria-label="Adult library filters"><div class="filter-head"><strong>Filter adult archive</strong><button id="clearFilters" type="button">Reset</button></div><div class="search-stack"><div class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search adult library"><button id="filterToggle" class="filter-toggle mobile-filter-toggle" type="button" hidden aria-expanded="true" aria-label="Expand adult library filters" title="Expand filters">▼</button></div><p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p></div><div class="filter-group"><label for="authorSelect">Author</label><select id="authorSelect"><option value="">Any author</option></select></div><div class="filter-group"><label for="yearSelect">Year</label><select id="yearSelect"><option value="">Any year</option></select></div><div class="filter-group"><label for="volumeCountSelect">Volume count</label><select id="volumeCountSelect"><option value="">Any size</option><option value="1">Single volume</option><option value="2-5">2–5 volumes</option><option value="6-10">6–10 volumes</option><option value="11+">11+ volumes</option></select></div><div class="filter-group"><label for="sortSelect">Sort</label><select id="sortSelect"><option value="recent">Recently added</option><option value="title">Title</option><option value="author">Author</option><option value="year">Year released</option><option value="volumes">Volumes</option></select></div><div class="filter-group filter-tags"><label for="tagSelect">Exact tags</label><div class="tag-picker"><select id="tagSelect"><option value="">Add a tag…</option></select><div id="activeTags" class="active-filter-tags" aria-label="Selected tags"></div></div><span class="filter-sub-label">Popular tags</span><div id="genreChips" class="genre-chips"></div></div></aside>
+      <div class="catalog-main"><section id="recentSection" class="recent-section hidden" aria-labelledby="recentHeading"><div class="recent-head"><div><p class="kicker">NEW GROWTH</p><h2 id="recentHeading">Recently Added</h2></div><button id="recentViewAll" class="recent-view-all" type="button">View newest in archive ▶</button></div><div id="recentVolumes" class="recent-volumes"></div></section><div class="catalog-bar"><p id="resultCount" role="status" aria-live="polite" aria-atomic="true">Loading restricted archive…</p><div class="view-switch" role="group" aria-label="View style"><button class="active" data-view="grid" type="button" aria-pressed="true">Grid</button><button data-view="compact" type="button" aria-pressed="false">Compact</button></div></div><div id="catalogGrid" class="catalog-grid"></div><div id="catalogSentinel" class="catalog-sentinel hidden"><button id="loadMore" type="button">Load more</button></div><div id="emptyState" class="empty-state hidden" role="status"><span aria-hidden="true">✦</span><h2>No books in the Night Garden.</h2><p id="emptyMessage">Sow new forbidden knowledge beneath the shadows.</p></div></div>
     </section>
   </main>
-
   <footer><span>Shadow Garden<span id="libraryVersion"></span> · Adult Section</span><span><button id="adultReset" class="footer-button" type="button">18+ Content warning</button></span></footer>
 </body>
 </html>

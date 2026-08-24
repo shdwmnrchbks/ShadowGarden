@@ -38,4 +38,6 @@
     new MutationObserver(syncBusy).observe(seriesRoot,{childList:true,subtree:true});
     syncBusy();
   }
+
+  void import('/assets/js/site-flavor.js?v=1.15.13').catch(error=>console.warn('Shadow Garden flavor copy unavailable',error));
 })();

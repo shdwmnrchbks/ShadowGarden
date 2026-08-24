@@ -62,4 +62,6 @@
     const syncContinuous=()=>continuous.setAttribute('aria-valuetext',continuousText.textContent||'0%');
     new MutationObserver(syncContinuous).observe(continuousText,{childList:true,characterData:true,subtree:true});syncContinuous();
   }
+
+  void import('/assets/js/site-flavor.js?v=1.15.13').catch(error=>console.warn('Shadow Garden flavor copy unavailable',error));
 })();

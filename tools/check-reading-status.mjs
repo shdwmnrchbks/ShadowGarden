@@ -48,13 +48,13 @@ if(!readerHtml.includes("reader-bootstrap.js?v=1.15.7"))fail("Reader HTML must r
 for(const marker of ["finished-volume-badge","Read again","finishedCount"]){
   if(!series.includes(marker))fail(`Series completion UI is missing ${marker}`);
 }
-for(const marker of ["Read this volume again?","Start from Page 1","restart","setVolumeFinished","localStorage.removeItem(`sg-progress:${bookId}`)","Bookmarks will be kept","read again"]){
+for(const marker of ["Walk this volume from the beginning?","Begin Again","restart","setVolumeFinished","localStorage.removeItem(`sg-progress:${bookId}`)","bookmarks remain untouched","read again"]){
   if(!readAgain.includes(marker))fail(`Read Again reset flow is missing ${marker}`);
 }
 for(const marker of [".read-again-dialog",".read-again-actions",".read-again-confirm","::backdrop"]){
   if(!readAgainStyle.includes(marker))fail(`Read Again dialog styling is missing ${marker}`);
 }
-if(!seriesHtml.includes("series-read-again.css?v=1.15.12")||!seriesHtml.includes("series-read-again.js?v=1.15.12"))fail("Series page must load the v1.15.12 Read Again warning/reset clients");
+if(!seriesHtml.includes("series-read-again.css?v=1.15.12")||!seriesHtml.includes("series-read-again.js?v=1.15.13"))fail("Series page must load the current Read Again warning/reset clients");
 for(const marker of ["finished-series-badge","data-reading-status=\"finished\"","data-reading-status=\"unfinished\"","params.set(\"reading\"","seriesFinished"]){
   if(!library.includes(marker))fail(`Library completion/filter UI is missing ${marker}`);
 }
@@ -88,7 +88,7 @@ for(const marker of ["/data/version.json","/assets/js/reading-status.js","/asset
   if(!headers.includes(marker))fail(`fresh-cache headers are missing ${marker}`);
 }
 const parsed=JSON.parse(pkg);
-if(parsed.version!=="1.15.12")fail("package version must be 1.15.12");
+if(parsed.version!=="1.15.13")fail("package version must be 1.15.13");
 
 /* Behavioral regression: one finished volume must be readable through every alias used
    by Reader, Series and Library, survive a fresh API instance, and clear atomically. */

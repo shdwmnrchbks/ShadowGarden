@@ -99,6 +99,8 @@
         "/assets/css/reader-page-map.css",
         "/assets/css/reader-polish.css",
         "/assets/css/reader-end-page.css",
+        "/assets/css/reading-status.css",
+        "/assets/css/reader-zoom.css",
         "/assets/css/reader-a11y.css",
         "/assets/css/reader-interface-themes.css",
         "/assets/css/reader-v1.10.1.css",
@@ -114,23 +116,26 @@
         "/assets/js/reader-visual-cache.js",
         "/assets/js/reader-paginated-visual-fit.js",
         "/assets/js/reader-continuous-core.js",
-        "/assets/js/reader-gesture-hook.js",
-        "/assets/js/reader-polish.js",
-        "/assets/js/reader-v1.10.1.js",
         "/assets/js/reader-a11y.js",
         "/assets/js/ui-direction-triangles.js",
-        "/assets/js/reader-wheel-pages.js",
         "/assets/js/reader-bootstrap.js"
       ],
       "runtimeLoaded": [
-        "/assets/js/reader.js",
+        "/assets/js/domain/index.js",
+        "/assets/js/reader/app.js",
+        "/assets/js/reader/book-session.js",
         "/assets/js/reader/storage.js",
         "/assets/js/reader/theme.js",
         "/assets/js/reader/toc.js",
         "/assets/js/reader/page-map.js",
-        "/assets/js/reading-status.js",
-        "/assets/js/reader-finished.js",
-        "/assets/css/reading-status.css"
+        "/assets/js/reader/settings.js",
+        "/assets/js/reader/progress-controller.js",
+        "/assets/js/reader/bookmarks-controller.js",
+        "/assets/js/reader/gestures.js",
+        "/assets/js/reader/completion.js",
+        "/assets/js/reader/paginated.js",
+        "/assets/js/reader/continuous.js",
+        "/assets/js/reader/rendition.js"
       ]
     },
     "gardenKeeper": {

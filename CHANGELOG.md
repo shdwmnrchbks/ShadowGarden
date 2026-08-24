@@ -1,5 +1,18 @@
 # Shadow Garden Changelog
 
+## 1.18.0 — Reader Architecture & Zoom
+- Replaced the Reader monolith/polish stack with an explicit protected book-session boundary and a single Reader application orchestrator.
+- Split Reader responsibilities into rendition, Paginated, Continuous, progress, bookmarks, completion, settings, theme, and gesture controllers.
+- Removed the temporary `URLSearchParams` interception and the `window.__sgReaderPublicBookId` / `window.__sgReaderSourcePath` handoffs; public opaque identity and private EPUB source are now passed explicitly by the authorized session.
+- Kept the public `bk_...` identity canonical for browser state and Page Map ownership while retaining the private source path as a compatibility persistence alias.
+- Consolidated Finished toggle, end-page context, and next-volume completion into one Reader completion controller for Pages and Continuous end pages.
+- Consolidated swipe paging, desktop wheel paging, iframe touch forwarding, pinch zoom, one-finger pan, double-tap zoom/reset, Ctrl/Cmd-wheel zoom, and keyboard/settings zoom controls into one gesture owner.
+- Added session-only viewport zoom: normal content supports up to 3× and Visual Page Cache synthetic covers/maps/illustrations up to 4×.
+- Kept zoom outside EPUB.js layout geometry so magnification does not change typography, pagination, canonical Page Map data, or saved reading position.
+- Read Again is now verified at the authorized session boundary and fails closed if Finished/progress state cannot be cleared; bookmarks remain untouched.
+- Retired `reader.js`, `reader-polish.js`, `reader-v1.10.1.js`, `reader-gesture-hook.js`, `reader-wheel-pages.js`, and `reader-finished.js`.
+- Added `docs/architecture/READER_LAYER.md` and `tools/check-r4.mjs`; R0–R4 are complete and R5 Garden Keeper decomposition is next.
+
 ## 1.8.0 — Codebase Cleanup
 - Removed the retired v1.1-v1.3 Continuous-mode controllers that had remained in the repository after `reader-continuous-core.js` became authoritative.
 - Consolidated the public `v1-polish.css`, `site-v1.5.css`, and `site-v1.6.css` layers into `site-current.css` while preserving their final cascade behavior.

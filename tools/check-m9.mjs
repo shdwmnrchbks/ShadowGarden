@@ -6,7 +6,7 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 
-const [media,bookAccess,humanAccess,adminAccess,b2,uploadApi,routes,headers,readerBootstrap,readerHtml,indexHtml,adultHtml,seriesHtml,status,adminBootstrap,roadmap,audit,pkg]=await Promise.all([
+const [media,bookAccess,humanAccess,adminAccess,b2,uploadApi,routes,headers,readerBootstrap,readerSession,readerApp,readerHtml,indexHtml,adultHtml,seriesHtml,status,adminBootstrap,roadmap,audit,pkg]=await Promise.all([
   read("functions/media/[[path]].js"),
   read("functions/book-access.js"),
   read("functions/human-access.js"),
@@ -16,6 +16,8 @@ const [media,bookAccess,humanAccess,adminAccess,b2,uploadApi,routes,headers,read
   read("src/_routes.json"),
   read("src/_headers"),
   read("src/assets/js/reader-bootstrap.js"),
+  read("src/assets/js/reader/book-session.js"),
+  read("src/assets/js/reader/app.js"),
   read("src/reader.html"),
   read("src/index.html"),
   read("src/nsfw.html"),
@@ -39,9 +41,10 @@ for(const route of ["/media/*","/book-access","/human-access","/admin-access","/
 for(const marker of ["/admin.html","/reader.html","/data/version.json","Cache-Control: no-store"]){
   if(!headers.includes(marker))fail(`security/cache headers are missing ${marker}`);
 }
-for(const marker of ["ShadowGardenBookAccess","/assets/js/domain/index.js","identity.isBookId","window.__sgReaderPublicBookId","sourcePath"]){
-  if(!readerBootstrap.includes(marker))fail(`Reader startup opaque authorization handoff is missing ${marker}`);
-}
+for(const marker of ["createAuthorizedBookSession","startReader"]){if(!readerBootstrap.includes(marker))fail(`Reader bootstrap authorization orchestration is missing ${marker}`)}
+for(const marker of ["ShadowGardenBookAccess","identity.isBookId","publicBookId","sourcePath","access?.initial"]){if(!readerSession.includes(marker))fail(`Reader book-session opaque authorization handoff is missing ${marker}`)}
+if(!readerApp.includes("window.ePub(session.sourcePath)")||!readerApp.includes("session.publicBookId||session.storageIdentity"))fail("Reader must open the authorized private source while keying browser state/page map to the opaque public identity");
+for(const retired of ["window.__sgReaderPublicBookId","ReaderURLSearchParams"]){if(readerBootstrap.includes(retired)||readerSession.includes(retired)||readerApp.includes(retired))fail(`retired Reader authorization workaround returned: ${retired}`)}
 for(const html of [readerHtml,indexHtml,adultHtml,seriesHtml]){
   if(/s3\.us-east-005\.backblazeb2\.com|backblazeb2\.com\/shadow-garden-books-01/i.test(html))fail("public HTML must not expose direct private B2 delivery URLs");
 }

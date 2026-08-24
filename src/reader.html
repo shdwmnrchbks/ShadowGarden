@@ -21,6 +21,8 @@
   <link rel="stylesheet" href="/assets/css/reader-page-map.css?v=1.2.0">
   <link rel="stylesheet" href="/assets/css/reader-polish.css?v=1.10.2">
   <link rel="stylesheet" href="/assets/css/reader-end-page.css?v=1.12.0">
+  <link rel="stylesheet" href="/assets/css/reading-status.css">
+  <link rel="stylesheet" href="/assets/css/reader-zoom.css">
   <link rel="stylesheet" href="/assets/css/reader-a11y.css">
   <link rel="stylesheet" href="/assets/css/reader-interface-themes.css?v=1.10.2">
   <link rel="stylesheet" href="/assets/css/reader-v1.10.1.css?v=1.10.2">
@@ -34,13 +36,9 @@
   <script src="/assets/js/reader-visual-cache.js?v=1.3.0"></script>
   <script src="/assets/js/reader-paginated-visual-fit.js?v=1.4.3"></script>
   <script src="/assets/js/reader-continuous-core.js?v=1.4.1"></script>
-  <script src="/assets/js/reader-gesture-hook.js"></script>
-  <script src="/assets/js/reader-polish.js?v=1.10.2" defer></script>
-  <script src="/assets/js/reader-v1.10.1.js?v=1.10.2" defer></script>
   <script src="/assets/js/reader-a11y.js" defer></script>
   <script src="/assets/js/ui-direction-triangles.js?v=1.8.0" defer></script>
-  <script src="/assets/js/reader-wheel-pages.js?v=1.6.0" defer></script>
-  <script type="module" src="/assets/js/reader-bootstrap.js?v=1.15.7"></script>
+  <script type="module" src="/assets/js/reader-bootstrap.js"></script>
 </head>
 <body>
   <script>
@@ -96,13 +94,24 @@
         <label id="textWidthSetting" hidden><span>Text width <output id="widthValue">760px</output></span><input id="widthRange" type="range" min="560" max="1050" step="10" value="760"></label>
         <label><span>Reading flow</span><select id="flowSelect"><option value="paginated">Pages</option><option value="scrolled-doc">Continuous scroll</option></select></label>
         <label class="reader-toggle-setting"><span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span><input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns"></label>
+        <div class="reader-zoom-setting" aria-label="Reader zoom controls">
+          <span>Zoom <output id="zoomValue">100%</output></span>
+          <div class="reader-zoom-controls">
+            <button id="zoomOut" type="button" aria-label="Zoom out" disabled>−</button>
+            <button id="zoomReset" type="button" aria-label="Reset zoom" disabled>Reset</button>
+            <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
+          </div>
+          <small>Pinch or double-tap the page to inspect it without changing pagination. Drag to pan while zoomed.</small>
+        </div>
         <button id="resetReader" class="reader-reset" type="button">Reset reader settings</button>
       </div>
     </aside>
 
     <main id="viewerShell" class="viewer-shell" tabindex="-1" aria-label="EPUB reading area">
       <button id="prevPage" class="page-hit page-prev" type="button" aria-label="Previous page">◀</button>
-      <div id="viewer" class="viewer"></div>
+      <div id="zoomViewport" class="reader-zoom-viewport">
+        <div id="zoomLayer" class="reader-zoom-layer"><div id="viewer" class="viewer"></div></div>
+      </div>
       <button id="nextPage" class="page-hit page-next" type="button" aria-label="Next page">▶</button>
       <div id="readerLoading" class="reader-loading" role="status" aria-live="polite"><span aria-hidden="true">✦</span><p>Opening the book…</p></div>
     </main>

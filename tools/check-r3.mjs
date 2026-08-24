@@ -63,8 +63,8 @@ reading.setVolumeFinished(seriesFixture.id,volume,true,0);
 action=actionModule.volumeActionFor(seriesFixture,volume,0);
 if(action.state!==reading.STATES.FINISHED||action.label!=="Read Again")fail("shared volume action must expose Finished as Read Again");
 
-const pkg=JSON.parse(pkgText);
-if(pkg.version!=="1.17.0")fail(`R3 release version must be 1.17.0, found ${pkg.version}`);
+const pkg=JSON.parse(pkgText),[major,minor]=String(pkg.version||"").split(".").map(value=>Number.parseInt(value,10)||0);
+if(major<1||(major===1&&minor<17))fail(`R3 baseline requires v1.17.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r3.mjs"))fail("R3 guardrail must remain in npm run check");
 if(!roadmap.includes("R3. Library + Series decomposition | ✅ Done"))fail("refactor roadmap must record R3 as done after acceptance");
 

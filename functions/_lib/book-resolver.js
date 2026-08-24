@@ -1,4 +1,4 @@
-import { getTextObject, readClient } from "./b2.js";
+import { getTextObject, readClient } from "../services/storage.js";
 import { isBookId, normalizeBookFile, volumeBookId } from "./book-id.js";
 
 const MAIN_KEY = "shadow-garden/data/catalog.json";

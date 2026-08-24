@@ -72,12 +72,14 @@ async function checkHumanSessions(){
 }
 
 async function checkWiring(){
-  const [routesText,reader,series,client,bootstrap,bookAccess,humanAccess,humanHelper,media,mediaTicket,resolver,dataSource,domainCatalog,domainIdentity,headers,robots]=await Promise.all([
+  const [routesText,reader,series,client,bootstrap,readerSession,readerApp,bookAccess,humanAccess,humanHelper,media,mediaTicket,resolver,dataSource,domainCatalog,domainIdentity,headers,robots]=await Promise.all([
     read("src/_routes.json"),
     read("src/reader.html"),
     read("src/series.html"),
     read("src/assets/js/book-access.js"),
     read("src/assets/js/reader-bootstrap.js"),
+    read("src/assets/js/reader/book-session.js"),
+    read("src/assets/js/reader/app.js"),
     read("functions/book-access.js"),
     read("functions/human-access.js"),
     read("functions/_lib/human-session.js"),
@@ -95,7 +97,10 @@ async function checkWiring(){
   for(const marker of ["/book-access","/human-access","turnstile.render","bookId","migrateLegacyState","sourcePath"]){if(!client.includes(marker))fail(`book-access client is missing ${marker}`)}
   if(!reader.includes("/assets/js/book-access.js")||!reader.includes("/assets/js/reader-bootstrap.js"))fail("Reader security/bootstrap scripts are not wired");
   if(!series.includes("/assets/js/book-access.js"))fail("Series page must load book-access.js for protected downloads");
-  if(!/import\(["']\/assets\/js\/reader\.js(?:\?v=\d+\.\d+\.\d+)?["']\)/.test(bootstrap))fail("Reader bootstrap must import reader.js through the local asset pipeline");
+  for(const marker of ['from "./reader/book-session.js"','from "./reader/app.js"','createAuthorizedBookSession','startReader'])if(!bootstrap.includes(marker))fail(`Reader bootstrap must use explicit R4 session/app wiring: ${marker}`);
+  for(const marker of ["access?.initial","sourcePath","publicBookId","identity.isBookId"]){if(!readerSession.includes(marker))fail(`Reader session security handoff is missing ${marker}`)}
+  if(!readerApp.includes("window.ePub(session.sourcePath)"))fail("Reader application must open only the sourcePath produced by the authorized session boundary");
+  if(bootstrap.includes("ReaderURLSearchParams")||readerSession.includes("ReaderURLSearchParams"))fail("Reader URLSearchParams interception must remain retired after R4");
   for(const marker of ["issueMediaTicket","ticketCookie","resolveBookReference","verifyHumanSession","human_verification_required"]){if(!bookAccess.includes(marker))fail(`book-access endpoint is missing ${marker}`)}
   for(const marker of ["verifyTurnstileToken","issueHumanSession","humanSessionCookie"]){if(!humanAccess.includes(marker))fail(`human-access endpoint is missing ${marker}`)}
   for(const marker of ["SG_TURNSTILE_SITE_KEY","SG_TURNSTILE_SECRET_KEY","turnstile/v0/siteverify","result?.hostname","SameSite=Strict"]){if(!humanHelper.includes(marker))fail(`human-session helper is missing ${marker}`)}

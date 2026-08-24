@@ -32,8 +32,8 @@ async function checkWiring(){
     read("functions/media/[[path]].js"),
     read("src/robots.txt"),
     read("src/_headers"),
-    read("SECURITY_ROADMAP.md"),
-    read("MILESTONE_6_CRAWLER_POLICY.md")
+    read("docs/roadmaps/SECURITY_ROADMAP.md"),
+    read("docs/security/MILESTONE_6_CRAWLER_POLICY.md")
   ]);
 
   for(const [name,source] of [["book-access",bookAccess],["human-access",humanAccess]]){
@@ -60,8 +60,8 @@ async function checkWiring(){
     fail("Reader shell must be noindex/nofollow/noarchive");
   }
 
-  if(!roadmap.includes("5. Bulk-download throttling | ✅ Done"))fail("Milestone 5 must be recorded as complete before Milestone 6");
-  if(!roadmap.includes("6. Bot and crawler controls | 🟨 In progress"))fail("Milestone 6 must be recorded as in progress");
+  if(!roadmap.includes("5. Bulk-download throttling | ✅ Done"))fail("Milestone 5 must remain recorded as complete");
+  if(!roadmap.includes("6. Bot and crawler controls | ✅ Done"))fail("Milestone 6 must be recorded as complete after Milestone 9 acceptance");
   for(const marker of ["pages.dev","Bot Fight Mode","AI Crawl Control","AI Labyrinth","optional future hardening"]){
     if(!guide.includes(marker))fail(`Milestone 6 guide is missing ${marker}`);
   }

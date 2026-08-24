@@ -1,4 +1,4 @@
-# Shadow Garden v1.19.0
+# Shadow Garden v1.20.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -38,7 +38,8 @@ Production: `https://shadowgarden-bon.pages.dev/`
 
 ### Garden Keeper
 
-- Turnstile + Keeper-token protected `/admin.html` and signed server-side sessions for `/admin-api/*`.
+- Thin R5 application shell with one admin client and explicit Authentication/session, Library/Series, Upload, Maintenance, Catalog History, Trash, Abuse Watch, and version owners.
+- Turnstile + Keeper-token protected `/admin.html` and signed server-side sessions for `/admin-api/*`; the browser client opens only after a protected status request verifies both credentials.
 - Manage Library, New Books, Maintenance, Series Editor, Catalog History, Trash, Garden Health, and Abuse Watch workflows.
 - Multi-EPUB upload/preflight, duplicate policies, metadata/shelf/banner/status editing, Audio EPUB links, opaque random `cv_...` covers, restore/purge, and deployed version/commit information.
 
@@ -52,11 +53,12 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The full codebase refactor is incremental: `main` remains deployable, completed security/persistence contracts remain protected by CI, and each milestone replaces duplicate ownership rather than layering another patch.
 
-**R0–R4 plus R4.1 Reader stabilization are complete. R5 — Garden Keeper decomposition is next.**
+**R0–R5 are complete. R6 — Pages Functions service-layer decomposition is next.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
 - R4/R4.1 Reader ownership and stabilization: [`docs/architecture/READER_LAYER.md`](./docs/architecture/READER_LAYER.md)
+- R5 Garden Keeper ownership: [`docs/architecture/KEEPER_LAYER.md`](./docs/architecture/KEEPER_LAYER.md)
 - Full plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 
 ### Current browser architecture
@@ -99,10 +101,26 @@ reader/app.js
       +--> signed /media/* source
 
 Garden Keeper
-  -> /admin-access + /admin-api/* -> private B2
+      |
+      v
+admin/core.js + admin/app.js
+  ├─ Authentication/session
+  ├─ Library/Series
+  ├─ Upload workflow internals
+  ├─ Maintenance
+  ├─ Catalog History
+  ├─ Trash & Recovery
+  ├─ Abuse Watch
+  └─ version + shell UI
+      |
+      v
+single AdminClient
+      |
+      +--> /admin-access
+      +--> /admin-api/* -> private B2
 ```
 
-R4 retired the old Reader monolith/polish ownership scripts and removed temporary public/private URL interception. R4.1 then retired the combined hotfix-era gesture owner and Reader-wide zoom stylesheet after real-device behavior showed that page-wide touch interception could break Continuous scrolling. Reader CSS consolidation beyond the responsibility-correct image-focus layer remains R7 work.
+R4 retired the old Reader monolith/polish ownership scripts and R4.1 permanently separated Pages input from focused-image zoom after real-device stabilization. R5 replaces the Garden Keeper's browser-wide patch/monkey-patch load chain with explicit workflow ownership while deliberately leaving Pages Functions service extraction for R6. CSS consolidation remains R7 work.
 
 ## Repository layout
 
@@ -122,6 +140,7 @@ R4 retired the old Reader monolith/polish ownership scripts and removed temporar
 │  ├─ reader.html
 │  ├─ admin.html
 │  └─ assets/js/
+│     ├─ admin/
 │     ├─ domain/
 │     ├─ public/
 │     └─ reader/

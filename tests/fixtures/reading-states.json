@@ -1,0 +1,33 @@
+{
+  "seriesId": "long-metadata-archive",
+  "bookId": "bk_2222222222222222222222",
+  "cases": [
+    {
+      "name": "cover or page one remains unread",
+      "progress": {"page": 1, "totalPages": 120, "percentage": 0.008, "updatedAt": 100},
+      "finished": false,
+      "expectedState": "unread",
+      "expectedAction": "Read"
+    },
+    {
+      "name": "page two becomes in progress",
+      "progress": {"page": 2, "totalPages": 120, "percentage": 0.02, "updatedAt": 200},
+      "finished": false,
+      "expectedState": "in-progress",
+      "expectedAction": "Continue"
+    },
+    {
+      "name": "finished overrides progress",
+      "progress": {"page": 72, "totalPages": 120, "percentage": 0.6, "updatedAt": 300},
+      "finished": true,
+      "expectedState": "finished",
+      "expectedAction": "Read Again"
+    }
+  ],
+  "readAgain": {
+    "expectedState": "unread",
+    "expectedAction": "Read",
+    "preserveBookmarks": true,
+    "restartQuery": "restart=1"
+  }
+}

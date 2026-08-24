@@ -1,0 +1,57 @@
+/* Shadow Garden R4 — EPUB.js rendition lifecycle adapter. */
+
+export function paginatedNeedsSinglePage(){
+  const visualWidth=Number(window.visualViewport?.width),innerWidth=Number(window.innerWidth),clientWidth=Number(document.documentElement?.clientWidth);
+  const widths=[visualWidth,innerWidth,clientWidth].filter(value=>Number.isFinite(value)&&value>0);
+  const viewportWidth=widths.length?Math.min(...widths):0;
+  const coarsePointer=window.matchMedia?.("(pointer: coarse)")?.matches===true;
+  const mobileUa=navigator.userAgentData?.mobile===true||/Android|iPhone|iPod|Mobile/i.test(navigator.userAgent||"");
+  return mobileUa||(viewportWidth>0&&viewportWidth<900)||(coarsePointer&&viewportWidth>0&&viewportWidth<=1024);
+}
+
+export function pageMapLayoutMetrics(viewerShell){
+  const shell=viewerShell;
+  const rect=shell?.getBoundingClientRect?.();
+  const width=Math.max(320,Math.round(Number(rect?.width)||Number(shell?.clientWidth)||Number(window.innerWidth)||720));
+  const height=Math.max(320,Math.round(Number(rect?.height)||Number(shell?.clientHeight)||Number(window.innerHeight)*.8||800));
+  const single=paginatedNeedsSinglePage()||width<900;
+  return{width,height,spread:single?"single":"spread"};
+}
+
+export function configureSpread(rendition,flow="paginated"){
+  if(!rendition)return;
+  try{
+    if(flow==="paginated"){
+      if(paginatedNeedsSinglePage())rendition.spread("none");
+      else rendition.spread("auto",900);
+    }else rendition.spread("none");
+  }catch(error){console.warn("Reader spread configuration skipped",error)}
+}
+
+export function createRendition({book,target,viewerId="viewer",flow="paginated",wire,themeCss}={}){
+  if(!book)throw new Error("EPUB is not open");
+  const scrolled=flow==="scrolled-doc",singlePage=!scrolled&&paginatedNeedsSinglePage();
+  const rendition=book.renderTo(viewerId,{
+    width:"100%",height:"100%",manager:scrolled?"continuous":"default",flow:scrolled?"scrolled-doc":"paginated",
+    spread:scrolled||singlePage?"none":"auto",minSpreadWidth:900
+  });
+  wire?.(rendition);
+  try{if(themeCss)rendition.themes.default(themeCss)}catch{}
+  configureSpread(rendition,flow);
+  return rendition.display(target||undefined).then(()=>rendition);
+}
+
+export async function captureRenditionPosition({rendition,flow,pageMap,fallback}={}){
+  if(!rendition)return fallback||null;
+  let location=rendition.location;
+  try{
+    const live=rendition.currentLocation?.();
+    if(live&&typeof live.then==="function")location=await live;else if(live)location=live;
+  }catch{}
+  return pageMap?.positionForLocation?.(location,{rendition,flow})||fallback||null;
+}
+
+export function destroyRendition(rendition,viewer){
+  try{rendition?.destroy?.()}catch(error){console.warn("Old rendition cleanup skipped",error)}
+  if(viewer)viewer.innerHTML="";
+}

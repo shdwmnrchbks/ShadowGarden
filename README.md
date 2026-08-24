@@ -1,4 +1,4 @@
-# Shadow Garden v1.16.0
+# Shadow Garden v1.17.0
 
 Shadow Garden is a self-hosted EPUB library and browser reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -8,125 +8,88 @@ Production: `https://shadowgarden-bon.pages.dev/`
 
 ### Library
 
-- Separate Main and 18+ / Adult archives.
-- Dark moonlit garden-library interface with a distinct Adult palette.
-- Recently Added shelf plus progress-aware Read/Continue banner.
-- Search across series metadata and volume titles.
-- Author, year, volume-count, reading-status, pinned, and exact multi-tag filters.
-- URL-persisted filters, sort, and view state with browser Back/Forward restoration.
-- Grid and Compact views with incremental rendering.
-- Browser-local reading state; there are no reader accounts.
-- Canonical volume states:
+- Separate Main and 18+ / Adult archives using the same Library controller/model/renderers with an explicit scope.
+- Recently Added shelf and progress-aware reading banner.
+- Search, author/year/volume-count/reading-status/pinned/exact-tag filters, sorting, URL persistence, Back/Forward restoration, and incremental Grid/Compact rendering.
+- Canonical browser-local volume states:
   - **Unread** → Read
   - **In Progress** → Continue
   - **Finished** → Read Again
+- Recently Added and the reading banner use the same volume-action pipeline as Series, so Finished shortcuts cannot silently bypass Read Again confirmation.
+- No Reader accounts; reading state remains local to the browser/profile.
+
+### Series
+
+- Progress-aware primary CTA and per-volume actions.
+- Volume cover and action button are rendered from the same state/action object.
+- Finished marks, progress metadata, direct tag navigation, selected series banner artwork, pinning, and Main/Adult navigation.
+- Read Again confirms the reset, clears Finished + progress, preserves bookmarks, verifies the volume returned to Unread, and then opens page 1.
 
 ### EPUB Reader
 
-- EPUB.js-based Reader with **Pages** and **Continuous** modes.
-- Canonical device Page Map shared between both reading modes.
+- EPUB.js-based **Pages** and **Continuous** modes.
+- Canonical device Page Map shared by both modes.
 - Persistent progress, bookmarks, themes, typography, and layout preferences.
-- Visual Page Cache and fitting for standalone covers/illustration pages.
-- Mobile swipe/tap navigation in Pages mode and desktop mouse-wheel page turns.
-- Continuous vertical seek rail and page-aware progress display.
-- Table of contents, bookmarks, fullscreen, end-of-volume navigation, and next-volume flow.
-- Finished toggle on the volume end page.
-- Read Again confirmation clears progress + Finished state, preserves bookmarks, and returns to page 1.
+- Visual Page Cache and fitting for standalone covers/illustrations.
+- Mobile swipe/tap navigation, desktop wheel page turns, Continuous seek rail, TOC, fullscreen, end-of-volume navigation, and next-volume flow.
+- Finished toggle on the end page.
 - Accessibility support for keyboard navigation, reduced motion, increased contrast, and forced colors.
 
 ### Garden Keeper
 
-- Turnstile + Keeper-token protected administration console at `/admin.html`.
-- Signed server-side admin sessions for `/admin-api/*`.
-- Manage Library, New Books, Maintenance, Series Editor, and Abuse Watch workflows.
-- Multi-EPUB upload queue with local browser inspection and Reader-focused preflight checks.
-- Duplicate detection with Skip / Replace / Add Separate policies.
-- Metadata editing, shelf movement, series status/banner management, and Audio EPUB links.
-- Opaque random `cv_...` cover object names for new uploads.
-- Catalog History, Garden Health/deep B2 checks, cover optimization, Trash, restore, backup deletion, and protected permanent purge.
-- Centered deployed-version/commit information in the Keeper footer.
+- Turnstile + Keeper-token protected `/admin.html` and signed server-side sessions for `/admin-api/*`.
+- Manage Library, New Books, Maintenance, Series Editor, Catalog History, Trash, Garden Health, and Abuse Watch workflows.
+- Multi-EPUB upload/preflight, duplicate policies, metadata/shelf/banner/status editing, Audio EPUB links, opaque random `cv_...` covers, restore/purge, and deployed version/commit information.
 
 ## Security baseline
 
-Security Milestones **1–9 are complete** as of 2026-08-24. The accepted v1.15.14 security baseline remains intact in v1.16.0 and includes:
+Security Milestones **1–9 are complete**. The accepted v1.15.14 security baseline remains a permanent refactor contract and includes private B2 origin storage, signed EPUB tickets, opaque `bk_...` identifiers, Garden Pass/Turnstile, acquisition throttling, crawler screening, Reader anti-indexing, signed Garden Keeper sessions, server-side cooldowns, HMAC-derived abuse controls, private Abuse Watch telemetry, and opaque cover keys.
 
-- private B2 origin storage;
-- signed EPUB access tickets;
-- opaque public `bk_...` book IDs;
-- Turnstile-backed Garden Pass sessions;
-- bulk-acquisition throttling;
-- crawler/script screening on protected acquisition endpoints;
-- Reader anti-indexing policy;
-- signed Garden Keeper sessions and server-side cross-session cooldowns;
-- HMAC-derived abuse tripwires and private Abuse Watch telemetry;
-- opaque new cover identifiers;
-- final Reader/Library/Garden Keeper regression audit.
-
-The complete record is in [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
+See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 ## Active refactor
 
-The full codebase refactor is intentionally incremental: `main` remains deployable, Reader behavior stays stable, and the completed security baseline is treated as a contract.
+The full codebase refactor is incremental: `main` remains deployable, Reader behavior stays stable, and completed security/persistence contracts remain protected by CI.
 
-**R0–R2 are complete. R3 — Library + Series decomposition is next.**
+**R0–R3 are complete. R4 — Reader architecture refactor is next.**
 
-See [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md).
+- R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
+- R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
+- Full plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 
-### Shared browser domain layer
-
-v1.16.0 introduces `src/assets/js/domain/` as the canonical browser state/domain boundary:
-
-```text
-Library / Series / Reader
-        |
-        v
-domain/
-├─ catalog.js
-├─ book-identity.js
-├─ reading-state.js
-├─ progress.js
-├─ bookmarks.js
-├─ preferences.js
-├─ storage.js
-├─ urls.js
-└─ format.js
-```
-
-Library, Series, Reader progress/bookmark storage, pinned/view state, and Read Again now consume these shared services rather than independently interpreting the same localStorage keys. Existing persisted browser data formats are preserved.
-
-See [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md).
-
-## Architecture
+### Current browser architecture
 
 ```text
-Browser UI
-  Library / Series / Reader
-        |
-        +--> shared browser domain/state layer
-        |      local progress, bookmarks, preferences
-        |
-        +--> /book-access + /human-access
-        |      acquisition / Garden Pass boundary
-        |
-        +--> /media/*
-               signed EPUB/media proxy
-                    |
-                    v
-             private Backblaze B2
+Main / Adult Library                 Series
+        |                              |
+        v                              v
+ library.js                       series.js
+      |                               |
+      +--> library-model.js           +--> series-renderers.js
+      +--> library-renderers.js       |
+      |                               |
+      +-----------+-------------------+
+                  |
+                  v
+        public/volume-actions.js
+                  |
+                  v
+              domain/
+  catalog · identity · reading-state
+  progress · bookmarks · preferences
+  storage · urls · format
+                  |
+                  v
+        browser-local persistence
+
+Reader
+  -> R2 domain/state + protected book-access/media boundary
 
 Garden Keeper
-        |
-        +--> /admin-access
-        |      Keeper Gate
-        |
-        +--> /admin-api/*
-               token + signed admin session
-                    |
-                    v
-             private Backblaze B2
+  -> /admin-access + /admin-api/* -> private B2
 ```
 
-Storage configuration has one backend source of truth in `functions/_lib/b2.js`. Public media delivery and admin routes use the same bucket/endpoint/key conventions while preserving separate read/write credentials.
+R3 removed the public `library-series-polish.js`, `library-finished-polish.js`, `series-read-again.js`, and `series-cover-links.js` repair layers. Owned Library/Series DOM is now rendered directly instead of corrected afterward with MutationObservers.
 
 ## Repository layout
 
@@ -135,10 +98,7 @@ Storage configuration has one backend source of truth in `functions/_lib/b2.js`.
 ├─ README.md
 ├─ CHANGELOG.md
 ├─ docs/
-│  ├─ README.md
 │  ├─ architecture/
-│  │  ├─ DOMAIN_LAYER.md
-│  │  └─ refactor contracts
 │  ├─ roadmaps/
 │  ├─ security/
 │  └─ style/
@@ -150,7 +110,8 @@ Storage configuration has one backend source of truth in `functions/_lib/b2.js`.
 │  ├─ admin.html
 │  └─ assets/js/
 │     ├─ domain/
-│     └─ existing page/Reader/Keeper modules
+│     ├─ public/
+│     └─ page/Reader/Keeper modules
 ├─ functions/
 │  ├─ _lib/
 │  ├─ media/[[path]].js
@@ -164,11 +125,9 @@ Storage configuration has one backend source of truth in `functions/_lib/b2.js`.
    └─ check*.mjs
 ```
 
-The v1.x source still contains several grandfathered `*-polish`, compatibility, and version-specific override modules. Removing those safely is a primary goal of R3–R7 rather than something to hide in the current layout documentation.
+Remaining grandfathered Reader/Keeper/CSS patch layers are intentionally removed only in their owning milestones.
 
 ## Backblaze B2
-
-Current non-secret configuration:
 
 ```text
 Bucket:   shadow-garden-books-01
@@ -177,21 +136,9 @@ Region:   us-east-005
 Proxy:    /media
 ```
 
-Primary data namespaces include:
-
-```text
-shadow-garden/books/
-shadow-garden/covers/
-shadow-garden/data/
-shadow-garden/backups/
-shadow-garden/security/
-```
-
-The B2 bucket stays private. Backblaze credentials and direct private EPUB delivery URLs are never exposed as the normal public delivery mechanism.
+Primary namespaces: `shadow-garden/books/`, `covers/`, `data/`, `backups/`, and `security/`. The bucket remains private; direct B2 URLs and credentials are not the public delivery mechanism.
 
 ## Required Cloudflare secrets
-
-Configure these encrypted Production secrets in the Cloudflare Pages project:
 
 ```text
 B2_READ_KEY_ID
@@ -202,8 +149,6 @@ SG_ADMIN_TOKEN
 SG_MEDIA_SIGNING_SECRET
 TURNSTILE_SECRET_KEY
 ```
-
-Use separate read and write Backblaze keys where possible and restrict them to the Shadow Garden bucket/prefix.
 
 Never commit application keys, signing secrets, Turnstile secrets, or `SG_ADMIN_TOKEN`.
 
@@ -217,40 +162,20 @@ Build output directory: dist
 Root directory:         repository root
 ```
 
-Shadow Garden intentionally remains compatible with the free `pages.dev` deployment. A custom domain is not required.
+Shadow Garden remains compatible with the free `pages.dev` deployment; a custom domain is not required.
 
 ## Development and validation
 
-Requirements:
-
-- Node.js 22 recommended
-- npm
-
-Install:
+Use Node.js 22.
 
 ```bash
 npm install
-```
-
-Run the complete repository/security/refactor regression suite:
-
-```bash
 npm run check
-```
-
-Build:
-
-```bash
 npm run build
-```
-
-Preview the generated `dist/` directory:
-
-```bash
 npm run preview
 ```
 
-Pull requests and `main` run `.github/workflows/verify.yml`, which executes repository checks and a production build on Node 22 before changes are accepted.
+Pull requests and `main` run `.github/workflows/verify.yml`, which executes the full repository/security/refactor checks and a production build before changes are accepted.
 
 Optional desktop B2 utilities:
 
@@ -259,24 +184,10 @@ npm run b2:setup
 npm run b2:upload -- "path/to/book.epub"
 ```
 
-Normal Garden Keeper administration does not require the desktop utilities.
-
 ## Browser-local data
 
-Shadow Garden intentionally has no Reader accounts. Progress, bookmarks, Finished state, pinned state, Reader settings, Library view/filter preferences, and Adult acknowledgement remain local to the browser/profile.
-
-R2 centralizes the code that owns these values without moving them to a server. Clearing site data or changing browser/profile removes that local reading/preference state.
+Progress, bookmarks, Finished state, pinned state, Reader settings, Library view/filter preferences, and Adult acknowledgement remain local to the browser/profile. Clearing site data or changing browser/profile removes that state.
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md).
-
-- Shared browser domain: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
-- Active refactor plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
-- Completed security plan: [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md)
-- Final security audit: [`docs/security/MILESTONE_9_FINAL_AUDIT.md`](./docs/security/MILESTONE_9_FINAL_AUDIT.md)
-- Site copy/tone rules: [`docs/style/SITE_VOICE.md`](./docs/style/SITE_VOICE.md)
-
-## Release history
-
-See [`CHANGELOG.md`](./CHANGELOG.md).
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for historical releases.

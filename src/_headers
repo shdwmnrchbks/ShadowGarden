@@ -35,13 +35,16 @@
 /assets/js/library.js
   Cache-Control: no-store
 
-/assets/js/library-series-polish.js
+/assets/js/library-model.js
   Cache-Control: no-store
 
-/assets/js/library-finished-polish.js
+/assets/js/library-renderers.js
   Cache-Control: no-store
 
 /assets/js/library-footer-version.js
+  Cache-Control: no-store
+
+/assets/js/public/volume-actions.js
   Cache-Control: no-store
 
 /assets/js/site-flavor.js
@@ -56,10 +59,7 @@
 /assets/js/series.js
   Cache-Control: no-store
 
-/assets/js/series-read-again.js
-  Cache-Control: no-store
-
-/assets/js/series-cover-links.js
+/assets/js/series-renderers.js
   Cache-Control: no-store
 
 /assets/js/nav-pinned.js
@@ -104,7 +104,7 @@
 /assets/css/library-compact-alignment.css
   Cache-Control: no-store
 
-/assets/css/series-read-again.css
+/assets/css/volume-actions.css
   Cache-Control: no-store
 
 /assets/css/reader-end-page.css

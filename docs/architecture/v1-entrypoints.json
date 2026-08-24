@@ -11,6 +11,8 @@
         "/assets/css/site-current.css",
         "/assets/css/site-v1.9.4.css",
         "/assets/css/library-compact-alignment.css",
+        "/assets/css/reading-status.css",
+        "/assets/css/volume-actions.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -19,15 +21,15 @@
         "/assets/js/library.js",
         "/assets/js/nav-pinned.js",
         "/assets/js/library-mobile-filter.js",
-        "/assets/js/library-series-polish.js",
-        "/assets/js/library-finished-polish.js",
         "/assets/js/library-footer-version.js",
         "/assets/js/site-a11y.js",
         "/assets/js/ui-direction-triangles.js"
       ],
       "runtimeLoaded": [
-        "/assets/js/reading-status.js",
-        "/assets/css/reading-status.css"
+        "/assets/js/domain/index.js",
+        "/assets/js/library-model.js",
+        "/assets/js/library-renderers.js",
+        "/assets/js/public/volume-actions.js"
       ]
     },
     "adultLibrary": {
@@ -40,6 +42,8 @@
         "/assets/css/site-current.css",
         "/assets/css/site-v1.9.4.css",
         "/assets/css/library-compact-alignment.css",
+        "/assets/css/reading-status.css",
+        "/assets/css/volume-actions.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -48,15 +52,15 @@
         "/assets/js/library.js",
         "/assets/js/nav-pinned.js",
         "/assets/js/library-mobile-filter.js",
-        "/assets/js/library-series-polish.js",
-        "/assets/js/library-finished-polish.js",
         "/assets/js/library-footer-version.js",
         "/assets/js/site-a11y.js",
         "/assets/js/ui-direction-triangles.js"
       ],
       "runtimeLoaded": [
-        "/assets/js/reading-status.js",
-        "/assets/css/reading-status.css"
+        "/assets/js/domain/index.js",
+        "/assets/js/library-model.js",
+        "/assets/js/library-renderers.js",
+        "/assets/js/public/volume-actions.js"
       ]
     },
     "series": {
@@ -68,7 +72,8 @@
         "/assets/css/series-extra.css",
         "/assets/css/site-current.css",
         "/assets/css/site-v1.9.4.css",
-        "/assets/css/series-read-again.css",
+        "/assets/css/reading-status.css",
+        "/assets/css/volume-actions.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -77,15 +82,13 @@
         "/assets/js/data-source.js",
         "/assets/js/book-access.js",
         "/assets/js/series.js",
-        "/assets/js/series-read-again.js",
         "/assets/js/nav-pinned.js",
-        "/assets/js/series-cover-links.js",
-        "/assets/js/library-series-polish.js",
         "/assets/js/ui-direction-triangles.js"
       ],
       "runtimeLoaded": [
-        "/assets/js/reading-status.js",
-        "/assets/css/reading-status.css"
+        "/assets/js/domain/index.js",
+        "/assets/js/series-renderers.js",
+        "/assets/js/public/volume-actions.js"
       ]
     },
     "reader": {

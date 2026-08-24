@@ -17,7 +17,7 @@ const layerFiles = {
   unit: ["tests/unit/catalog-model.test.mjs", "tests/unit/reading-state.test.mjs", "tests/unit/reader-input.test.mjs"],
   service: ["tests/service/media-ticket.test.mjs", "tests/service/validation.test.mjs", "tests/service/admin-auth.test.mjs"],
   dom: ["tests/dom/public-renderers.test.mjs"],
-  browser: ["tests/browser/entrypoints.test.mjs", "tests/browser/reading-flow.test.mjs", "tests/browser/reader-interactions.test.mjs", "tests/browser/keeper-smoke.test.mjs"]
+  browser: ["tests/browser/entrypoints.test.mjs", "tests/browser/reading-flow.test.mjs", "tests/browser/reader-interactions.test.mjs", "tests/browser/keeper-smoke.test.mjs", "tests/browser/mobile-nav-viewport.test.mjs"]
 };
 const fixtures = [
   "tests/fixtures/catalog-main.json", "tests/fixtures/catalog-adult.json", "tests/fixtures/reading-states.json",
@@ -76,6 +76,8 @@ const adminTest = await read("tests/service/admin-auth.test.mjs");
 for (const marker of ["both bearer token and signed session", "adminAuthorized", "issueAdminSession"]) if (!adminTest.includes(marker)) fail(`Keeper authorization integration coverage is missing ${marker}`);
 const keeperSmoke = await read("tests/browser/keeper-smoke.test.mjs");
 for (const marker of ["admin/auth-session.js", "verifySession", "admin-api", "admin/core.js", "admin/app.js"]) if (!keeperSmoke.includes(marker)) fail(`Keeper browser smoke is missing ${marker}`);
+const mobileNavSmoke = await read("tests/browser/mobile-nav-viewport.test.mjs");
+for (const marker of ["position:fixed!important", "top:62px;bottom:0;height:auto", "overflow-y:auto", "100dvh"]) if (!mobileNavSmoke.includes(marker)) fail(`mobile navigation viewport smoke is missing ${marker}`);
 
 for (const marker of ["Shadow Garden Test Architecture", "Unit", "Service / integration", "DOM", "Browser smoke", "Shared fixtures", "Read → Continue → Finished → Read Again", "Permanent R8 guard"]) if (!architecture.includes(marker)) fail(`TEST_ARCHITECTURE.md is missing ${marker}`);
 if (!docsIndex.includes("TEST_ARCHITECTURE.md") || !architectureIndex.includes("TEST_ARCHITECTURE.md")) fail("documentation indexes must include TEST_ARCHITECTURE.md");

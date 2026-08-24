@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "series": [
+    {
+      "id": "moonlit-single",
+      "title": "Moonlit Single",
+      "author": "Fixture Author",
+      "year": 2024,
+      "status": "finished",
+      "tags": ["Fantasy", "finished"],
+      "description": "A compact single-volume fixture used to verify canonical catalog and Library behavior.",
+      "cover": "/media/shadow-garden/covers/cv_fixturemain0000000001-detail.webp",
+      "coverThumb": "/media/shadow-garden/covers/cv_fixturemain0000000001-thumb.webp",
+      "volumes": [
+        {
+          "number": 1,
+          "title": "The First and Only Volume",
+          "year": 2024,
+          "bookId": "bk_1111111111111111111111",
+          "file": "bk_1111111111111111111111",
+          "added": "2026-08-20T10:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "long-metadata-archive",
+      "title": "The Extremely Long Archive Title That Exercises Wrapping, Search, Sorting, and Metadata Boundaries Across Shadow Garden",
+      "author": "An Author With A Deliberately Long Display Name For Responsive Layout Testing",
+      "year": 2026,
+      "status": "publishing",
+      "tags": ["Fantasy", "Adventure", "Mystery", "Very Long Metadata"],
+      "description": "This deliberately verbose fixture description exists to exercise long metadata without truncating the underlying model. It contains several searchable phrases, including moonlit conservatory, western continent, glass garden, and ancient archive, so query token behavior can be tested independently of presentation clipping.",
+      "volumes": [
+        {
+          "number": 1,
+          "title": "A Long Beginning Beneath the Moonlit Conservatory",
+          "year": 2025,
+          "bookId": "bk_2222222222222222222222",
+          "file": "bk_2222222222222222222222",
+          "added": "2026-08-21T10:00:00Z"
+        },
+        {
+          "number": 2,
+          "title": "The Western Continent and the Glass Garden",
+          "year": 2026,
+          "bookId": "bk_3333333333333333333333",
+          "file": "bk_3333333333333333333333",
+          "added": "2026-08-22T10:00:00Z"
+        },
+        {
+          "number": 3,
+          "title": "An Ancient Archive Opens Again",
+          "year": 2026,
+          "bookId": "bk_4444444444444444444444",
+          "file": "bk_4444444444444444444444",
+          "added": "2026-08-23T10:00:00Z"
+        }
+      ]
+    }
+  ]
+}

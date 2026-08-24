@@ -55,7 +55,7 @@ for(const marker of ["/admin-api/abuse","data-release-abuse"]){if(!entries.abuse
 
 for(const marker of ["Garden Keeper Application Layer","Single admin client","Authentication/session","Upload workflow","Maintenance workflow","History workflow","Trash workflow","Abuse workflow","Security invariants"]){if(!entries.architecture.includes(marker))fail(`KEEPER_LAYER.md is missing ${marker}`)}
 if(!entries.roadmap.includes("R5. Garden Keeper decomposition | ✅ Done"))fail("Refactor roadmap must record R5 complete");
-if(!entries.roadmap.includes("R6. Pages Functions service layer | ⬜ Planned"))fail("R6 must remain the next backend refactor milestone");
+if(!entries.roadmap.includes("R6. Pages Functions service layer |"))fail("Refactor roadmap must retain the R6 backend milestone after R5");
 const [major=0,minor=0]=String(pkg.version||"").split(".").map(value=>Number.parseInt(value,10)||0);if(major<1||(major===1&&minor<20))fail(`R5 requires v1.20.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r5.mjs"))fail("tools/check-r5.mjs must remain in npm run check");
 

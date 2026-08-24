@@ -63,7 +63,7 @@ if(validateUploadTarget("shadow-garden/books/example.epub","text/plain").ok)fail
 
 for(const marker of ["Pages Functions Service Layer","Thin route adapters","Authentication service","Media service","Catalog service","Storage service","Validation service","Abuse service","Security invariants"]){if(!architecture.includes(marker))fail(`FUNCTIONS_LAYER.md is missing ${marker}`)}
 if(!roadmap.includes("R6. Pages Functions service layer | ✅ Done"))fail("Refactor roadmap must record R6 complete");
-if(!roadmap.includes("R7. CSS and design-system consolidation | ⬜ Planned"))fail("R7 must remain the next planned refactor milestone");
+if(!roadmap.includes("R7. CSS and design-system consolidation |"))fail("R6 roadmap must retain the R7 CSS/design-system milestone");
 if(!semverAtLeast(pkg.version,"1.21.0"))fail(`R6 requires v1.21.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r6.mjs"))fail("tools/check-r6.mjs must remain in npm run check");
 

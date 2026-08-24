@@ -49,6 +49,13 @@ R4.1 permanently separates `page-navigation-input.js` from `image-focus.js`. EPU
 
 R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs on acquisition/human-verification endpoints, not `/media/*`. Range requests continue through signed-ticket authorization without persistent cooldown enforcement, and invalid-ticket scoring remains suppressed for stale Range retries.
 
+## R7 CSS and design system
+
+- [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — semantic public, Library, Reader, and Garden Keeper CSS ownership introduced in v1.22.0, including cascade order and accessibility/variant contracts.
+- Historical public/Reader/runtime-Keeper `current`, `polish`, version-number, scale, and alignment sheets are retired and guarded from returning.
+- Public/Keeper foundation tokens remain intentionally scoped to `site.css`; Reader chrome/theme tokens remain scoped to `reader.css` and `reader-interface-themes.css`.
+- The two R0-frozen Keeper direct historical CSS paths are selector-free aliases only; real styling lives in `admin-series-editor.css` and `admin-layout.css` until final R10 entrypoint cleanup.
+
 ## Permanent guardrails
 
 - `tools/check-r0.mjs` protects frozen behavior/security/persistence contracts when owners move.
@@ -59,5 +66,6 @@ R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs 
 - `tools/check-r4-1.mjs` protects post-R4 stabilization: Reader startup wiring, split input ownership, native Continuous touch behavior, isolated image zoom, focus/chrome behavior, and removal of Reader-wide zoom remnants.
 - `tools/check-r5.mjs` protects the Garden Keeper shell/client/session ownership and isolated workflows.
 - `tools/check-r6.mjs` protects thin Functions routes, explicit service ownership, storage/validation boundaries, and the signed Range/M8 security separation.
+- `tools/check-r7.mjs` protects semantic CSS cascade order, surface ownership, accessibility/variant rules, cache freshness, and retirement of historical patch/version layers.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

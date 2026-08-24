@@ -1,4 +1,4 @@
-/* Shadow Garden R5 — explicit Garden Keeper composition root. */
+/* Shadow Garden R5/R7 — explicit Garden Keeper composition root with semantic CSS ownership. */
 (()=>{
   const keeper=window.ShadowGardenKeeper;if(!keeper)throw new Error("Garden Keeper core did not initialize.");
   keeper.workflows=keeper.workflows||keeper.core?.workflows;
@@ -10,7 +10,7 @@
   const loadStyle=href=>{if(document.querySelector(`link[href^="${href.split("?")[0]}"]`))return;const link=document.createElement("link");link.rel="stylesheet";link.href=href;link.dataset.keeperStyle="1";document.head.appendChild(link)};
 
   async function boot(){
-    loadStyle("/assets/css/admin-current.css?v=1.20.0");loadStyle("/assets/css/admin-version.css?v=1.20.0");loadStyle("/assets/css/admin-v1.9.4.css?v=1.9.4");
+    loadStyle("/assets/css/admin-components.css?v=1.22.0");loadStyle("/assets/css/admin-version.css?v=1.22.0");loadStyle("/assets/css/admin-presentation.css?v=1.22.0");
 
     /* Register first-class workflows. */
     for(const src of [

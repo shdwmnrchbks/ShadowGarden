@@ -34,57 +34,23 @@ function semverAtLeast(current,minimum){
 const manifest=JSON.parse(await read("docs/architecture/v1-entrypoints.json"));
 for(const [name,page] of Object.entries(manifest.pages||{})){
   if(!(await exists(page.html))){fail(`${name} HTML entrypoint is missing: ${page.html}`);continue}
-  const html=await read(page.html);
-  const actualStyles=htmlAssets(html,"style");
-  const actualScripts=htmlAssets(html,"script");
-  if(!sameArray(actualStyles,page.styles||[])){
-    fail(`${name} direct stylesheet order drifted from the frozen R0 manifest\n  expected: ${(page.styles||[]).join(", ")}\n  actual:   ${actualStyles.join(", ")}`);
-  }
-  if(!sameArray(actualScripts,page.scripts||[])){
-    fail(`${name} direct script order drifted from the frozen R0 manifest\n  expected: ${(page.scripts||[]).join(", ")}\n  actual:   ${actualScripts.join(", ")}`);
-  }
+  const html=await read(page.html),actualStyles=htmlAssets(html,"style"),actualScripts=htmlAssets(html,"script");
+  if(!sameArray(actualStyles,page.styles||[]))fail(`${name} direct stylesheet order drifted from the frozen R0 manifest\n  expected: ${(page.styles||[]).join(", ")}\n  actual:   ${actualStyles.join(", ")}`);
+  if(!sameArray(actualScripts,page.scripts||[]))fail(`${name} direct script order drifted from the frozen R0 manifest\n  expected: ${(page.scripts||[]).join(", ")}\n  actual:   ${actualScripts.join(", ")}`);
   for(const asset of [...(page.styles||[]),...(page.scripts||[]),...(page.runtimeLoaded||[])]){
     if(!asset.startsWith("/assets/")||asset.startsWith("/assets/vendor/"))continue;
-    const sourcePath=`src${asset}`;
-    if(!(await exists(sourcePath)))fail(`${name} references a missing frozen asset: ${sourcePath}`);
+    const sourcePath=`src${asset}`;if(!(await exists(sourcePath)))fail(`${name} references a missing frozen asset: ${sourcePath}`);
   }
 }
 
-const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,humanAccess,adminAccess,b2,bookId,upload,readingFacade,readingState,progress,bookmarks,preferences,identity,readerStorage,readerVisual,pageMap,library,mobileFilter,navPinned,build]=await Promise.all([
-  read("package.json"),
-  read("docs/roadmaps/REFACTOR_ROADMAP.md"),
-  read("docs/architecture/V1_BASELINE.md"),
-  read("docs/architecture/PERSISTENCE_CONTRACTS.md"),
-  read("docs/architecture/HTTP_STORAGE_CONTRACTS.md"),
-  read("src/_routes.json"),
-  read("functions/media/[[path]].js"),
-  read("functions/book-access.js"),
-  read("functions/human-access.js"),
-  read("functions/admin-access.js"),
-  read("functions/_lib/b2.js"),
-  read("functions/_lib/book-id.js"),
-  read("functions/admin-api/upload.js"),
-  read("src/assets/js/reading-status.js"),
-  read("src/assets/js/domain/reading-state.js"),
-  read("src/assets/js/domain/progress.js"),
-  read("src/assets/js/domain/bookmarks.js"),
-  read("src/assets/js/domain/preferences.js"),
-  read("src/assets/js/domain/book-identity.js"),
-  read("src/assets/js/reader/storage.js"),
-  read("src/assets/js/reader-visual-cache.js"),
-  read("src/assets/js/reader/page-map.js"),
-  read("src/assets/js/library.js"),
-  read("src/assets/js/library-mobile-filter.js"),
-  read("src/assets/js/nav-pinned.js"),
-  read("tools/build.mjs")
+const [pkg,roadmap,baseline,persistence,httpStorage,routes,mediaRoute,bookRoute,humanRoute,adminRoute,media,auth,storage,validation,bookId,uploadRoute,readingFacade,readingState,progress,bookmarks,preferences,identity,readerStorage,readerVisual,pageMap,library,mobileFilter,navPinned,build]=await Promise.all([
+  read("package.json"),read("docs/roadmaps/REFACTOR_ROADMAP.md"),read("docs/architecture/V1_BASELINE.md"),read("docs/architecture/PERSISTENCE_CONTRACTS.md"),read("docs/architecture/HTTP_STORAGE_CONTRACTS.md"),read("src/_routes.json"),read("functions/media/[[path]].js"),read("functions/book-access.js"),read("functions/human-access.js"),read("functions/admin-access.js"),read("functions/services/media.js"),read("functions/services/auth.js"),read("functions/services/storage.js"),read("functions/services/validation.js"),read("functions/_lib/book-id.js"),read("functions/admin-api/upload.js"),read("src/assets/js/reading-status.js"),read("src/assets/js/domain/reading-state.js"),read("src/assets/js/domain/progress.js"),read("src/assets/js/domain/bookmarks.js"),read("src/assets/js/domain/preferences.js"),read("src/assets/js/domain/book-identity.js"),read("src/assets/js/reader/storage.js"),read("src/assets/js/reader-visual-cache.js"),read("src/assets/js/reader/page-map.js"),read("src/assets/js/library.js"),read("src/assets/js/library-mobile-filter.js"),read("src/assets/js/nav-pinned.js"),read("tools/build.mjs")
 ]);
 
 const packageData=JSON.parse(pkg);
 if(!semverAtLeast(packageData.version,manifest.baselineVersion))fail(`package version ${packageData.version} is older than the frozen ${manifest.baselineVersion} baseline`);
 const checkCommand=String(packageData.scripts?.check||"");
-for(const required of ["check-security.mjs","check-m5.mjs","check-m6.mjs","check-m7.mjs","check-m8.mjs","check-reading-status.mjs","check-m9.mjs","check-r0.mjs"]){
-  if(!checkCommand.includes(required))fail(`npm run check must retain permanent contract guardrail ${required}`);
-}
+for(const required of ["check-security.mjs","check-m5.mjs","check-m6.mjs","check-m7.mjs","check-m8.mjs","check-reading-status.mjs","check-m9.mjs","check-r0.mjs"]){if(!checkCommand.includes(required))fail(`npm run check must retain permanent contract guardrail ${required}`)}
 for(const [dependency,buildMarker] of [["epubjs",'"epubjs","dist","epub.min.js"'],["jszip",'"jszip","dist","jszip.min.js"']]){
   if(!packageData.dependencies?.[dependency])fail(`generated vendor asset dependency is missing: ${dependency}`);
   if(!build.includes(buildMarker))fail(`build must continue generating the ${dependency} browser vendor asset`);
@@ -97,15 +63,19 @@ for(const marker of ["/media/*","/book-access","/human-access","/admin-access","
 
 const routeConfig=JSON.parse(routes);
 for(const route of ["/media/*","/book-access","/human-access","/admin-access","/admin-api/*"]){if(!routeConfig.include?.includes(route))fail(`Pages Functions route contract drifted: ${route}`)}
+for(const [name,source,marker] of [["media",mediaRoute,"handleMediaRequest"],["book-access",bookRoute,"handleBookAccess"],["human-access",humanRoute,"handleHumanAccess"],["admin-access",adminRoute,"handleAdminAccess"],["upload",uploadRoute,"handleAdminUpload"]]){
+  if(!source.includes(marker)||!source.includes("services/"))fail(`${name} route must remain an explicit R6 service adapter`);
+}
 
 for(const marker of ["incomingRange","authorizedEpub","verifyMediaTicket","verifyMediaTicketCookie","publicCatalogShape","Cross-Origin-Resource-Policy"]){if(!media.includes(marker))fail(`media contract lost ${marker}`)}
-if(media.includes("abuseCooldown(env"))fail("M8 cooldown enforcement must remain outside /media/* during refactor");
-for(const marker of ["issueMediaTicket","verifyHumanSession","evaluateAcquisition","abuseCooldown","classifyAutomatedClient","resolveBookReference"]){if(!bookAccess.includes(marker))fail(`book-access contract lost ${marker}`)}
-for(const marker of ["verifyTurnstileToken","issueHumanSession","registerAbuseSignal"]){if(!humanAccess.includes(marker))fail(`human-access contract lost ${marker}`)}
-for(const marker of ["adminTokenMatches","adminCooldown","issueAdminSession","registerAdminFailure"]){if(!adminAccess.includes(marker))fail(`admin-access contract lost ${marker}`)}
-for(const marker of ["verifyAdminSession","adminTokenMatches","readClient","writeClient","validObjectKey"]){if(!b2.includes(marker))fail(`B2/admin authorization contract lost ${marker}`)}
+const proxy=media.slice(media.indexOf("export async function handleMediaRequest"));
+if(proxy.includes("safeAbuseCooldown("))fail("M8 cooldown enforcement must remain outside /media/* during refactor");
+for(const marker of ["issueMediaTicket","verifyHumanSession","evaluateAcquisition","safeAbuseCooldown","classifyAutomatedClient","resolveBookReference"]){if(!media.includes(marker))fail(`book-access contract lost ${marker}`)}
+for(const marker of ["verifyTurnstileToken","issueHumanSession","registerAbuseSignal","handleHumanAccess"]){if(!auth.includes(marker))fail(`human-access contract lost ${marker}`)}
+for(const marker of ["adminTokenMatches","adminCooldown","issueAdminSession","registerAdminFailure","verifyAdminSession","adminAuthorized"]){if(!auth.includes(marker))fail(`admin-access contract lost ${marker}`)}
+for(const marker of ["readClient","writeClient","validObjectKey","objectUrl","putObject","deleteObject"]){if(!storage.includes(marker))fail(`B2 storage contract lost ${marker}`)}
 for(const marker of ["/^bk_[A-Za-z0-9_-]{22}$/","shadow-garden-book-id-v1","publicCatalogShape","originalFilename"]){if(!bookId.includes(marker))fail(`server book identity contract lost ${marker}`)}
-for(const marker of ["OPAQUE_COVER_KEY","opaque cv_ identifier"]){if(!upload.includes(marker))fail(`opaque cover enforcement lost ${marker}`)}
+for(const marker of ["OPAQUE_COVER_KEY","opaque cv_ identifier","MAX_UPLOAD_BYTES"]){if(!validation.includes(marker))fail(`opaque/upload validation contract lost ${marker}`)}
 
 if(!readingFacade.includes('./domain/reading-state.js')||!readingFacade.includes('ShadowGardenReadingStatus'))fail("reading-status compatibility facade must point at the canonical R2 reading-state owner");
 for(const marker of ['UNREAD: "unread"','IN_PROGRESS: "in-progress"','FINISHED: "finished"','progressAtBeginning','actionLabelForState','clearVolumeProgress','sg-finished-books','sg-finished:'])if(!readingState.includes(marker))fail(`three-state reading contract lost ${marker}`);
@@ -121,10 +91,5 @@ if(!library.includes('preferences.pinnedIds')&&!library.includes('preferences?.p
 if(!mobileFilter.includes('preferences.mobileFiltersCollapsed'))fail("mobile filter persistence must be owned by R2 preferences");
 for(const marker of ['preferences.pinnedIds','preferences.pinnedNavCollapsed'])if(!navPinned.includes(marker))fail(`pinned navigation persistence must be owned by R2 preferences: ${marker}`);
 
-if(failures.length){
-  console.error(`Shadow Garden R0 refactor baseline check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);
-  failures.forEach(message=>console.error(`- ${message}`));
-  process.exitCode=1;
-}else{
-  console.log("Shadow Garden R0 behavior, persistence, entrypoint, security, and storage contracts remain intact under their current owners.");
-}
+if(failures.length){console.error(`Shadow Garden R0 refactor baseline check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);failures.forEach(message=>console.error(`- ${message}`));process.exitCode=1}
+else console.log("Shadow Garden R0 behavior, persistence, entrypoint, security, and storage contracts remain intact under their current owners.");

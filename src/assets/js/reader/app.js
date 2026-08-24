@@ -1,4 +1,4 @@
-/* Shadow Garden R4 — Reader application orchestrator. */
+/* Shadow Garden R4.1 — Reader application orchestrator. */
 import { createReaderStorage } from "./storage.js";
 import { createThemeController } from "./theme.js";
 import { createTocController } from "./toc.js?v=1.2.0";
@@ -6,7 +6,8 @@ import { createPageMapController } from "./page-map.js?v=1.2.0";
 import { createSettingsController } from "./settings.js";
 import { createProgressController } from "./progress-controller.js";
 import { createBookmarksController } from "./bookmarks-controller.js";
-import { createGestureController } from "./gestures.js";
+import { createPageNavigationInput } from "./page-navigation-input.js";
+import { createImageFocusController } from "./image-focus.js";
 import { createCompletionController } from "./completion.js";
 import { createPaginatedController } from "./paginated.js";
 import { createContinuousController } from "./continuous.js";
@@ -32,7 +33,7 @@ export async function startReader(session){
   const elements=readerElements();
   const storage=createReaderStorage({sourceIdentity:session.sourcePath,publicIdentity:session.publicBookId});
   const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};
-  let settingsController,progressController,bookmarksController,gestureController,paginatedController,continuousController,completionController;
+  let settingsController,progressController,bookmarksController,pageInputController,imageFocusController,paginatedController,continuousController,completionController;
 
   const themeController=createThemeController({getSettings:()=>settingsController?.get?.()||{},isAdult:session.adult});
 
@@ -41,10 +42,11 @@ export async function startReader(session){
   }
   function openDrawer(drawer){document.querySelectorAll(".reader-drawer").forEach(item=>item.classList.toggle("open",item===drawer));elements.backdrop?.classList.remove("hidden")}
   function closeDrawers(){document.querySelectorAll(".reader-drawer").forEach(item=>item.classList.remove("open"));elements.backdrop?.classList.add("hidden")}
+  function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}
 
   async function navigate(target){
     if(!state.rendition||!target)return;
-    gestureController?.reset();
+    resetReaderInput();
     if(settingsController.get().flow==="scrolled-doc")await continuousController.display(target);
     else await state.rendition.display(target);
   }
@@ -71,18 +73,18 @@ export async function startReader(session){
     },120);
   }
   function applySettings({relayout=false,rebuildPageMap=false}={}){
-    if(relayout||rebuildPageMap)gestureController?.reset();
+    if(relayout||rebuildPageMap)resetReaderInput();
     const rendition=state.rendition,settings=settingsController.get();
     if(rendition){
       try{rendition.themes.default(themeController.css(settings))}catch(error){console.warn("Reader theme update skipped",error)}
-      configureSpread(rendition,settings.flow);themeController.refresh(rendition);gestureController?.syncFlow();if(relayout)scheduleRelayout();
+      configureSpread(rendition,settings.flow);themeController.refresh(rendition);if(relayout)scheduleRelayout();
     }
     if(rebuildPageMap)schedulePageMapRefresh();
   }
 
   settingsController=createSettingsController({
     storage,elements,isAdult:session.adult,onApply:applySettings,onFlowChange:flow=>void switchFlow(flow),
-    onReset:previousFlow=>{gestureController?.reset();schedulePageMapRefresh(100);if(previousFlow!==settingsController.get().flow)void switchFlow(settingsController.get().flow);else applySettings({relayout:true,rebuildPageMap:true});toast("Reader settings reset")}
+    onReset:previousFlow=>{resetReaderInput();schedulePageMapRefresh(100);if(previousFlow!==settingsController.get().flow)void switchFlow(settingsController.get().flow);else applySettings({relayout:true,rebuildPageMap:true});toast("Reader settings reset")}
   });
 
   progressController=createProgressController({
@@ -93,12 +95,13 @@ export async function startReader(session){
   bookmarksController=createBookmarksController({storage,elements,getPosition:()=>progressController.currentPosition(),getCfi:()=>progressController.currentCfi(),getChapter:()=>state.currentChapter,getPageMap:()=>state.pageMap,navigate,closeDrawers,toast});
 
   function turn(direction){if(settingsController.get().flow!=="paginated")return;paginatedController?.turn(direction)}
-  gestureController=createGestureController({
-    getFlow:()=>settingsController.get().flow,getSwipeTurns:()=>settingsController.get().swipeTurns,turn,
-    imageFocus:elements.imageFocus,imageFocusViewport:elements.imageFocusViewport,imageFocusLayer:elements.imageFocusLayer,imageFocusImage:elements.imageFocusImage,imageFocusClose:elements.imageFocusClose
+  pageInputController=createPageNavigationInput({getFlow:()=>settingsController.get().flow,getSwipeTurns:()=>settingsController.get().swipeTurns,turn});
+  imageFocusController=createImageFocusController({
+    overlay:elements.imageFocus,viewport:elements.imageFocusViewport,layer:elements.imageFocusLayer,image:elements.imageFocusImage,closeButton:elements.imageFocusClose,
+    shouldSuppressOpen:()=>pageInputController.shouldSuppressClick()
   });
-  paginatedController=createPaginatedController({getRendition:()=>state.rendition,beforeTurn:()=>gestureController.reset()});
-  continuousController=createContinuousController({getRendition:()=>state.rendition,beforeNavigate:()=>gestureController.reset()});
+  paginatedController=createPaginatedController({getRendition:()=>state.rendition,beforeTurn:resetReaderInput});
+  continuousController=createContinuousController({getRendition:()=>state.rendition,beforeNavigate:resetReaderInput});
 
   function onRelocated(rendition,location){
     if(rendition!==state.rendition)return;
@@ -107,10 +110,11 @@ export async function startReader(session){
   }
   function wireRendition(rendition){
     rendition.hooks.content.register(contents=>themeController.prepare(contents));
-    gestureController.attachRendition(rendition);
+    pageInputController.attachRendition(rendition);
+    imageFocusController.attachRendition(rendition);
     rendition.on("relocated",location=>onRelocated(rendition,location));
     rendition.on("rendered",()=>{if(rendition!==state.rendition)return;themeController.refresh(rendition);bookmarksController.syncButton()});
-    rendition.on("keyup",event=>{if(rendition!==state.rendition||settingsController.get().flow!=="paginated"||gestureController.isImageFocused())return;if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1)});
+    rendition.on("keyup",event=>{if(rendition!==state.rendition||settingsController.get().flow!=="paginated"||imageFocusController.isFocused())return;if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1)});
   }
 
   async function openRendition(target){
@@ -123,19 +127,19 @@ export async function startReader(session){
   async function switchFlow(nextFlow){
     const desired=nextFlow==="scrolled-doc"?"scrolled-doc":"paginated";
     if(state.switchingFlow){state.queuedFlow=desired;return}
-    if(desired===state.renderedFlow&&state.rendition){settingsController.setFlow(desired);gestureController.syncFlow();return}
+    if(desired===state.renderedFlow&&state.rendition){settingsController.setFlow(desired);return}
     const previousFlow=state.renderedFlow||settingsController.get().flow,old=state.rendition;
     const position=await captureRenditionPosition({rendition:old,flow:previousFlow,pageMap:state.pageMap,fallback:progressController.currentPosition()});
     let target=progressController.currentCfi()||storage.loadProgress()?.cfi||undefined;
     if(state.pageMap&&position){try{target=await state.pageMap.targetForPosition(position,{includeFraction:desired==="scrolled-doc"})||target}catch(error){console.warn("Canonical flow target fallback",error)}}
-    progressController.setPosition(position);settingsController.setFlow(desired);gestureController.reset();state.switchingFlow=true;state.rendition=null;destroyRendition(old,elements.viewer);
+    progressController.setPosition(position);settingsController.setFlow(desired);resetReaderInput();state.switchingFlow=true;state.rendition=null;destroyRendition(old,elements.viewer);
     try{
       await openRendition(target);
       if(state.pageMap&&position){const canonicalTarget=await state.pageMap.targetForPosition(position,{includeFraction:desired==="scrolled-doc"});if(canonicalTarget&&state.rendition){if(desired==="scrolled-doc")await nextPaint();await state.rendition.display(canonicalTarget)}}
     }catch(error){
       console.error("Reader flow switch failed",error);toast("Could not switch reading flow");try{state.rendition?.destroy?.()}catch{}if(elements.viewer)elements.viewer.innerHTML="";settingsController.setFlow(previousFlow);try{await openRendition(target)}catch(recoveryError){console.error("Reader flow recovery failed",recoveryError);elements.loading?.classList.remove("hidden");if(elements.loading)elements.loading.innerHTML="<p>Shadow Garden could not restore the reader.</p>"}
     }finally{
-      state.switchingFlow=false;gestureController.syncFlow();const queued=state.queuedFlow;state.queuedFlow=null;if(queued&&queued!==state.renderedFlow)setTimeout(()=>void switchFlow(queued),0);
+      state.switchingFlow=false;const queued=state.queuedFlow;state.queuedFlow=null;if(queued&&queued!==state.renderedFlow)setTimeout(()=>void switchFlow(queued),0);
     }
   }
 
@@ -154,21 +158,21 @@ export async function startReader(session){
   }
   function bindNavigation(){
     elements.prevPage?.addEventListener("click",()=>turn(-1));elements.prevBottom?.addEventListener("click",()=>turn(-1));elements.nextPage?.addEventListener("click",()=>turn(1));elements.nextBottom?.addEventListener("click",()=>turn(1));
-    elements.progressRange?.addEventListener("input",event=>{gestureController.reset();progressController.seekTo(Number(event.target.value)/1000)});
-    elements.progressRange?.addEventListener("change",event=>{gestureController.reset();progressController.seekTo(Number(event.target.value)/1000,true)});
-    elements.progressRange?.addEventListener("pointerup",event=>{if(settingsController.get().flow==="paginated"){gestureController.reset();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}});
-    elements.progressRange?.addEventListener("touchend",event=>{if(settingsController.get().flow==="paginated"){gestureController.reset();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}},{passive:true});
+    elements.progressRange?.addEventListener("input",event=>{resetReaderInput();progressController.seekTo(Number(event.target.value)/1000)});
+    elements.progressRange?.addEventListener("change",event=>{resetReaderInput();progressController.seekTo(Number(event.target.value)/1000,true)});
+    elements.progressRange?.addEventListener("pointerup",event=>{if(settingsController.get().flow==="paginated"){resetReaderInput();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}});
+    elements.progressRange?.addEventListener("touchend",event=>{if(settingsController.get().flow==="paginated"){resetReaderInput();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}},{passive:true});
     elements.fullscreenButton?.addEventListener("click",()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.()});
     document.addEventListener("keydown",event=>{
       if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName))return;
-      if(event.key==="Escape"){if(gestureController.isImageFocused())gestureController.closeImageFocus();else closeDrawers();return}
+      if(event.key==="Escape"){if(imageFocusController.isFocused())imageFocusController.closeImageFocus();else closeDrawers();return}
       if(event.key.toLowerCase()==="t"){openDrawer(elements.tocDrawer);return}
-      if(settingsController.get().flow!=="paginated"||gestureController.isImageFocused())return;
+      if(settingsController.get().flow!=="paginated"||imageFocusController.isFocused())return;
       if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1);
     });
     window.addEventListener("resize",()=>{
       clearTimeout(state.resizeTimer);state.resizeTimer=setTimeout(async()=>{
-        const rendition=state.rendition;if(!rendition||state.switchingFlow)return;gestureController.reset();const keepCfi=progressController.currentCfi();
+        const rendition=state.rendition;if(!rendition||state.switchingFlow)return;resetReaderInput();const keepCfi=progressController.currentCfi();
         try{rendition.resize?.("100%","100%")}catch{}configureSpread(rendition,settingsController.get().flow);
         if(settingsController.get().flow==="paginated"&&keepCfi){try{await rendition.display(keepCfi)}catch{}}
         if(mapLayoutChangedSignificantly())schedulePageMapRefresh(900);
@@ -198,5 +202,5 @@ export async function startReader(session){
     console.error("Reader initialization failed",error);elements.loading?.classList.remove("hidden");if(elements.loading)elements.loading.innerHTML="<p>Shadow Garden could not open this EPUB.</p>";throw error;
   }
 
-  return{session,state,settings:settingsController,progress:progressController,bookmarks:bookmarksController,gestures:gestureController,completion:completionController};
+  return{session,state,settings:settingsController,progress:progressController,bookmarks:bookmarksController,pageInput:pageInputController,imageFocus:imageFocusController,completion:completionController};
 }

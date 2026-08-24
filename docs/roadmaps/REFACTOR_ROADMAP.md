@@ -1,8 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R4 complete; R5 next  
+**Status:** 🟨 Active — R0–R4.1 complete; R5 next  
 **Starting baseline:** v1.15.14  
-**Current refactor release:** v1.18.0  
+**Current refactor release:** v1.19.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with `shadowgarden-bon.pages.dev` and private Backblaze B2.
 
@@ -12,13 +12,14 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 
 1. **Behavior before beauty.** Refactors preserve user-visible behavior unless a correction is explicitly included and tested.
 2. **Security invariants are contracts.** Signed media tickets, opaque IDs, Turnstile sessions, admin sessions, throttles, Range behavior, and private B2 boundaries cannot weaken during cleanup.
-3. **Reader stability is highest risk.** Page/Continuous, Page Map, Visual Page Cache, ticket renewal, progress, bookmarks, completion and gestures require regression coverage around every Reader slice.
+3. **Reader stability is highest risk.** Page/Continuous, Page Map, Visual Page Cache, ticket renewal, progress, bookmarks, completion and input handling require regression coverage around every Reader slice.
 4. **One owner per responsibility.** Replace v1's base + polish + patch ownership with controllers, models, renderers, and services.
 5. **Small mergeable slices.** Do not combine unrelated subsystem rewrites.
 6. **Delete dead compatibility code when proven safe.**
 7. **No framework rewrite by default.** Native modules remain preferred until a later decision demonstrates a measurable benefit.
 8. **No Reader accounts or server-side reading history.**
 9. **Refactoring is also an audit.** When duplicated ownership exposes a closely related behavioral flaw, correct it in the owning milestone and add a regression check rather than preserving a known defect.
+10. **Real-device regressions feed back into architecture.** A corrective hotfix may restore service, but the next stabilization slice must fold the lesson into explicit ownership and permanent checks.
 
 ## Status legend
 
@@ -35,7 +36,8 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 | R1. Repository and tooling hygiene | ✅ Done | Clean repository/document structure, naming rules, deterministic tooling, and build boundaries |
 | R2. Shared domain and state layer | ✅ Done | Canonical catalog, identity, reading-state, progress/bookmarks, preferences, URLs, and formatting |
 | R3. Library + Series decomposition | ✅ Done | Single-owner Library/Series controllers/renderers plus one canonical volume-action pipeline |
-| R4. Reader architecture refactor | ✅ Done | Explicit Reader session/orchestrator/controllers plus unified swipe/wheel/pinch/pan/zoom ownership |
+| R4. Reader architecture refactor | ✅ Done | Explicit Reader session/orchestrator/controllers and removal of the old monolith |
+| R4.1. Reader stabilization and consolidation | ✅ Done | Split Pages input from image focus, restore native Continuous touch, fold v1.18.x hotfix lessons into permanent architecture |
 | R5. Garden Keeper decomposition | ⬜ Planned | Thin Keeper shell, shared admin client, isolated workflows, reusable UI primitives |
 | R6. Pages Functions service layer | ⬜ Planned | Thin routes over explicit auth, catalog, B2, validation, media, and abuse services |
 | R7. CSS and design-system consolidation | ⬜ Planned | Tokens/components/layout layers; remove stacked override stylesheets |
@@ -131,37 +133,29 @@ See [`../architecture/DOMAIN_LAYER.md`](../architecture/DOMAIN_LAYER.md) and `to
 - `series.js` — Series controller, scope/catalog/pin/refresh orchestration.
 - `series-renderers.js` — hero/banner, tags, primary CTA, volume cards/covers/status metadata.
 - `public/volume-actions.js` — shared Read / Continue / Read Again model and Finished-reset confirmation flow.
-- `library-mobile-filter.js` — mobile filter panel placement/collapse (single focused owner retained).
-- `nav-pinned.js` — pinned navigation (shared navigation owner retained).
+- `library-mobile-filter.js` — mobile filter panel placement/collapse.
+- `nav-pinned.js` — pinned navigation.
 - `library-footer-version.js` — Library deployed-version component.
 
 See [`../architecture/PUBLIC_UI_LAYER.md`](../architecture/PUBLIC_UI_LAYER.md).
 
-### Removed ownership layers
-
-- `library-series-polish.js`
-- `library-finished-polish.js`
-- `series-read-again.js`
-- `series-cover-links.js`
-- `series-read-again.css` (replaced by shared `volume-actions.css`)
-
 ### Relevant flaws caught during decomposition
 
-- **Recently Added bypassed Finished state.** A Finished volume card used a direct Reader URL, so it skipped the Read Again warning/reset. All Library/Series volume entry points now carry the same canonical action metadata and use one delegated controller.
-- **Series covers depended on post-render mirroring.** Cover and button are now rendered from the same action object, eliminating timing/staleness differences.
-- **Returned pages could display stale state.** Library and Series now refresh on `pageshow` as well as reading/storage events, covering browser history/bfcache returns from the Reader.
-- **Reading-state refresh collapsed incremental Library results.** R3 preserves the number of already-rendered cards when refreshing badges/actions.
-- **Read Again could navigate after an incomplete local reset.** The shared controller verifies Finished + progress were cleared and the volume is Unread before opening `restart=1`; otherwise it leaves the current place unchanged and reports the failure.
-- **Series banner selection was a later DOM repair.** `bannerBookId` now participates in the initial Series render.
+- **Recently Added bypassed Finished state.** All Library/Series volume entry points now use one canonical action model.
+- **Series covers depended on post-render mirroring.** Cover and button are rendered from the same action object.
+- **Returned pages could display stale state.** Library and Series refresh on `pageshow` plus reading/storage events.
+- **Reading-state refresh collapsed incremental Library results.** R3 preserves rendered depth.
+- **Read Again could navigate after an incomplete local reset.** Reset is verified before `restart=1` navigation.
+- **Series banner selection was a later DOM repair.** `bannerBookId` now participates in initial render.
 
 ### Acceptance
 
 - [x] Each Library/Series behavior has one renderer/controller owner.
-- [x] Grid/Compact share model/state without a post-render compact badge observer.
-- [x] Read / Continue / Read Again is identical for Series button, Series cover, Series primary CTA, Recently Added, and reading-banner volume entry points.
+- [x] Grid/Compact share model/state without post-render compact badge repair.
+- [x] Read / Continue / Read Again is identical across all public volume entry points.
 - [x] Main and Adult Libraries use the same controller/model/renderers with explicit scope.
 - [x] Public R3 controllers do not use MutationObserver to repair owned DOM.
-- [x] `tools/check-r3.mjs` guards the ownership and volume-action contracts.
+- [x] `tools/check-r3.mjs` guards ownership and volume-action contracts.
 
 ---
 
@@ -173,67 +167,23 @@ See [`../architecture/PUBLIC_UI_LAYER.md`](../architecture/PUBLIC_UI_LAYER.md).
 
 See [`../architecture/READER_LAYER.md`](../architecture/READER_LAYER.md).
 
-### Final ownership
+### Core ownership established
 
-- `reader-bootstrap.js` — minimal protected startup only.
-- `reader/book-session.js` — authorized public/private book session, Adult gate, Read Again reset and final public URL cleanup.
-- `reader/app.js` — Reader orchestration only.
-- `reader/rendition.js` — EPUB.js rendition creation/destruction, spread configuration and flow-position capture.
-- `reader/paginated.js` — Page-mode turns.
-- `reader/continuous.js` — application-level Continuous navigation and exact target resolution.
+- `reader-bootstrap.js` — minimal protected startup.
+- `reader/book-session.js` — authorized public/private book session and Read Again startup boundary.
+- `reader/app.js` — Reader orchestration.
+- `reader/rendition.js` — rendition lifecycle/spread/flow-position capture.
+- `reader/paginated.js` / `reader/continuous.js` — application flow adapters.
 - `reader/page-map.js` — canonical device Page Map.
-- `reader/progress-controller.js` — progress persistence/UI/seeking over R2 state.
-- `reader/bookmarks-controller.js` — bookmark UI/navigation over R2 bookmark persistence.
-- `reader/completion.js` — Finished toggle, end-page context and next-volume completion.
-- `reader/settings.js` / `reader/theme.js` — Reader preferences and presentation.
-- `reader/gestures.js` — single swipe/wheel/pinch/pan/double-tap/zoom owner.
-- `reader-visual-cache.js`, `reader-paginated-visual-fit.js`, `reader-continuous-core.js`, `reader-epub-adapter.js`, and `reader-continuous-rail.js` remain low-level EPUB.js compatibility boundaries rather than application-state owners.
+- `reader/progress-controller.js` / `reader/bookmarks-controller.js` / `reader/completion.js` — canonical reading state UI owners.
+- `reader/settings.js` / `reader/theme.js` — Reader preferences/presentation.
+- retained low-level compatibility boundaries: Visual Page Cache, paginated visual fit, Continuous core, EPUB adapter, Continuous rail.
 
-### Zoom added during R4
+R4 also removed the temporary `URLSearchParams` source interception, global public/private Reader identity handoffs, and the old `reader.js` / polish / gesture-hook / wheel / Finished controllers.
 
-R4 adds Reader viewport zoom without making zoom part of EPUB layout:
+### Original R4 zoom decision
 
-- pinch to zoom;
-- one-finger pan above 1x;
-- double-tap to zoom/reset;
-- desktop Ctrl/Cmd + wheel zoom;
-- Ctrl/Cmd `+`, `-`, `0` keyboard equivalents;
-- settings-drawer Zoom In / Reset / Zoom Out controls;
-- ordinary content up to 3x;
-- synthetic cover/map/illustration pages from Visual Page Cache up to 4x.
-
-Zoom transforms an outer `#zoomLayer`, so font size, EPUB pagination, canonical Page Map geometry and saved progress remain unchanged. Page turns, explicit navigation/seeking, flow switches and layout changes reset zoom before navigation.
-
-### Architectural debt removed
-
-- Removed the temporary `URLSearchParams` source interception used to disguise the public `bk_...` Reader URL as a private EPUB path for the old monolith.
-- Removed `window.__sgReaderPublicBookId` and `window.__sgReaderSourcePath` state handoffs.
-- Reader storage now receives the public/private identities explicitly from the authorized session.
-- Page Map/cache ownership keys use the public opaque book identity while EPUB.js opens the authorized private source path.
-- Merged swipe, iframe gesture hooking and desktop wheel-turn behavior into `reader/gestures.js`.
-- Merged Finished/end-page/next-volume behavior into `reader/completion.js`.
-- Moved Continuous-only text-width visibility into `reader/settings.js` rather than observing body classes from a version patch.
-
-### Retired Reader scripts
-
-- `reader.js`
-- `reader-polish.js`
-- `reader-v1.10.1.js`
-- `reader-gesture-hook.js`
-- `reader-wheel-pages.js`
-- `reader-finished.js`
-
-Reader CSS patch files are intentionally deferred to R7 so this high-risk behavioral refactor does not also become a design-system rewrite.
-
-### Relevant flaws caught during decomposition
-
-- **Gesture ownership was split across three controllers.** Swipe, forwarded iframe touch handling and desktop wheel paging could compete. They now share one gesture state machine, and pan takes precedence while zoomed.
-- **Legacy completion-dialog code no longer matched the live end-page architecture.** Completion is now owned only by the real Page/Continuous end page controller.
-- **Reader settings were split across two persistence/DOM owners.** R4 has one settings controller while retaining compatibility with the old swipe preference key.
-- **Public/private progress identity depended on global bootstrap variables.** The Reader session/storage contract now supplies identities explicitly.
-- **Reader startup depended on monkey-patching `URLSearchParams`.** EPUB.js receives the authorized `sourcePath` directly instead.
-- **Page Map identity could follow the private source path through that interception.** R4 keys Page Map/Reader browser state to the public opaque identity where available.
-- **Read Again reset was still defensively duplicated around startup.** The authorized book session is now the single pre-open reset boundary and fails closed if Finished/progress cannot actually be cleared.
+v1.18.0 introduced Reader-wide viewport pinch/pan/zoom. The layout-isolation idea was sound, but real-device use showed that EPUB-document gesture interception could still interfere with Continuous vertical touch scrolling. That feature was therefore corrected in v1.18.2 and permanently re-architected by R4.1 rather than preserved as the final contract.
 
 ### Acceptance
 
@@ -241,10 +191,46 @@ Reader CSS patch files are intentionally deferred to R7 so this high-risk behavi
 - [x] Cover/page 1 = Unread; page 2+ = In Progress; Finished overrides progress.
 - [x] Read Again clears progress + Finished, preserves bookmarks and opens page 1 through the session boundary.
 - [x] Signed `/media/*` source/Range behavior and ticket renewal stay outside Reader state ownership.
-- [x] Page Map and Visual Page Cache remain the canonical layout/visual optimization boundaries.
-- [x] Swipe, desktop wheel, pinch, pan, double-tap and zoom have one owner.
-- [x] Zoom is excluded from Page Map/saved-progress geometry.
+- [x] Page Map and Visual Page Cache remain canonical layout/visual boundaries.
 - [x] Dead/competing Reader controllers are removed and guarded by `tools/check-r4.mjs`.
+
+---
+
+## R4.1 — Reader stabilization and consolidation
+
+**Status:** ✅ Done — accepted 2026-08-24  
+**Release:** v1.19.0  
+**Goal:** fold v1.18.1–v1.18.3 Reader corrections back into clean architecture before leaving the Reader for later milestones.
+
+### Final input ownership
+
+- `reader/page-navigation-input.js` — Pages-only horizontal swipe recognition and desktop wheel page turns.
+- `reader/image-focus.js` — EPUB image selection plus the top-level focused-image overlay, pinch zoom and pan.
+- `reader-image-focus.css` — focused-image presentation only.
+
+The combined `reader/gestures.js` and misleading `reader-zoom.css` names are retired.
+
+### Stabilization corrections
+
+- **Reader startup regression:** the `createRendition()` boundary permanently requires `wire: wireRendition`, preventing the v1.18.0 undeclared `wire` failure from returning.
+- **Continuous touch regression:** EPUB documents receive no Reader-owned `touchmove` handler or `touch-action` override. Native vertical touch scrolling stays browser/Continuous-owned.
+- **Input coupling:** Pages navigation and image focus no longer share a state machine.
+- **Image-only zoom:** pinch/pan exists only inside the focused-image overlay, never on the live EPUB viewport.
+- **Image pan geometry:** transform is applied directly to the focused image and bounded using its rendered dimensions against the overlay viewport.
+- **Hotfix CSS cleanup:** explicit `reader-image-focus-zoomed` state replaces `:has()` plus inline-style substring detection.
+- **Hidden-control focus flaw:** if magnification hides the close button while it owns keyboard focus, focus moves to the dialog rather than remaining on invisible chrome.
+- **Navigation safety:** page turns, seeks, flow switches, relayout and resize dismiss the temporary image overlay without changing reading position.
+
+### Acceptance
+
+- [x] Reader opens through explicit `wire: wireRendition` wiring.
+- [x] Continuous EPUB documents have no Reader-owned `touchmove` or `touch-action` override.
+- [x] Pages horizontal swipe and desktop wheel turns remain isolated to Pages mode.
+- [x] Tapping/clicking an EPUB image opens image focus; pinch/pan is confined to the overlay.
+- [x] Closing image focus preserves the live EPUB position and canonical Page Map state.
+- [x] Image-focus chrome hides above 1x without leaving focus on an invisible close button.
+- [x] `gestures.js` / `reader-zoom.css` are removed and guarded from returning.
+- [x] `tools/check-r4-1.mjs` protects these stabilization contracts.
 
 ---
 
@@ -279,7 +265,7 @@ Security acceptance remains strict: `/media/*` keeps Range + signed authorizatio
 
 **Goal:** add dedicated unit, service/integration, DOM and browser smoke layers. Required fixtures cover Main/Adult, single/multi-volume, long metadata, visual EPUB pages, progress state variants, and expired/tampered ticket scenarios.
 
-Priority browser flow remains **Read → Continue → Finished → Read Again**, alongside Page/Continuous parity, Reader zoom/gesture interactions, and Keeper security/workflow smoke tests.
+Priority browser flow remains **Read → Continue → Finished → Read Again**, alongside Page/Continuous parity, native Continuous touch scrolling, Pages swipe/wheel input, focused-image zoom, and Keeper security/workflow smoke tests.
 
 ---
 
@@ -307,6 +293,6 @@ Priority browser flow remains **Read → Continue → Finished → Read Again**,
 
 ## Recommended execution order
 
-With **R0–R4 complete**, proceed to **R5 Garden Keeper decomposition**. The public browsing and Reader sides now have explicit application/domain boundaries, so Keeper can be decomposed without also changing reading behavior. Follow with Functions (R6), CSS/design system (R7), broader tests (R8), build cleanup (R9), and final cutover (R10).
+With **R0–R4.1 complete**, proceed to **R5 Garden Keeper decomposition**. The public browsing and Reader sides now have explicit application/domain boundaries and the post-R4 Reader corrections have been consolidated before moving on. Follow with Functions (R6), CSS/design system (R7), broader tests (R8), build cleanup (R9), and final cutover (R10).
 
 Do not mix the Keeper rewrite, backend service rewrite, and design-system consolidation in one PR.

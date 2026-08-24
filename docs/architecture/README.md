@@ -25,12 +25,13 @@ This directory is the refactor contract surface for Shadow Garden. It begins wit
 - [`PUBLIC_UI_LAYER.md`](./PUBLIC_UI_LAYER.md) — Library/Series controllers, query/render ownership, shared volume actions, refresh lifecycle, and removed post-render repair layers introduced in v1.17.0.
 - Implementations: `library.js`, `library-model.js`, `library-renderers.js`, `series.js`, `series-renderers.js`, and `public/volume-actions.js`.
 
-## R4 Reader application
+## R4 + R4.1 Reader application
 
-- [`READER_LAYER.md`](./READER_LAYER.md) — explicit authorized book session, Reader orchestrator, rendition/Page/Continuous adapters, canonical progress/bookmark/completion/settings ownership, retained EPUB.js compatibility boundaries, and the focused-image zoom contract. R4 shipped in v1.18.0; the Reader input model was corrected in v1.18.2.
+- [`READER_LAYER.md`](./READER_LAYER.md) — authorized book session, Reader orchestrator, rendition/Page/Continuous adapters, canonical progress/bookmark/completion/settings ownership, retained EPUB.js compatibility boundaries, Pages-only input, and isolated focused-image zoom.
+- R4 shipped in v1.18.0; R4.1 stabilizes the Reader in v1.19.0 after the v1.18.1–v1.18.3 corrective releases.
 - Implementation: `src/assets/js/reader/`, with `reader-bootstrap.js` as the protected startup entrypoint.
 
-R4 removes the old monolithic Reader, gesture hook, swipe/wheel polish, flow-visibility patch, and separate Finished controller. Reader-wide pinch/pan was removed after it interfered with Continuous touch scrolling. Zoom now exists only inside a temporary focused-image overlay; the live EPUB viewport remains unscaled and Continuous vertical touch input stays native.
+R4.1 permanently separates `page-navigation-input.js` from `image-focus.js`. EPUB documents receive no Reader-owned `touchmove` or `touch-action` override, so Continuous vertical touch scrolling remains native. Magnification exists only in the top-level focused-image overlay; the live EPUB viewport is never scaled.
 
 ## Permanent guardrails
 
@@ -38,6 +39,7 @@ R4 removes the old monolithic Reader, gesture hook, swipe/wheel polish, flow-vis
 - `tools/check-r1.mjs` protects repository layout, source naming, build boundaries, CI pins, dead-file removal, and asset versioning.
 - `tools/check-r2.mjs` protects canonical domain/state ownership and Unread / In Progress / Finished transitions.
 - `tools/check-r3.mjs` protects single-owner Library/Series rendering and parity across all volume entry points.
-- `tools/check-r4.mjs` protects explicit Reader session/feature ownership, native Continuous touch scrolling, focused-image zoom isolation, and retirement of competing Reader controllers.
+- `tools/check-r4.mjs` protects the core R4 Reader session/application/state boundaries.
+- `tools/check-r4-1.mjs` protects post-R4 stabilization: Reader startup wiring, split input ownership, native Continuous touch behavior, isolated image zoom, focus/chrome behavior, and removal of Reader-wide zoom remnants.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

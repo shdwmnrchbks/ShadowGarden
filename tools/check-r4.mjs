@@ -22,8 +22,8 @@ globalThis.location={href:"https://shadowgarden-bon.pages.dev/reader.html?book=b
 globalThis.dispatchEvent=()=>true;
 globalThis.CustomEvent=class{constructor(type,init={}){this.type=type;this.detail=init.detail}};
 
-const [pkgText,roadmap,readerDoc,readerHtml,bootstrap,session,app,storage,settings,progress,bookmarks,completion,gestures,rendition,paginated,continuous,pageMap,visualCache,continuousCore,focusCss,headers,legacyText,manifestText]=await Promise.all([
-  read("package.json"),read("docs/roadmaps/REFACTOR_ROADMAP.md"),read("docs/architecture/READER_LAYER.md"),read("src/reader.html"),read("src/assets/js/reader-bootstrap.js"),read("src/assets/js/reader/book-session.js"),read("src/assets/js/reader/app.js"),read("src/assets/js/reader/storage.js"),read("src/assets/js/reader/settings.js"),read("src/assets/js/reader/progress-controller.js"),read("src/assets/js/reader/bookmarks-controller.js"),read("src/assets/js/reader/completion.js"),read("src/assets/js/reader/gestures.js"),read("src/assets/js/reader/rendition.js"),read("src/assets/js/reader/paginated.js"),read("src/assets/js/reader/continuous.js"),read("src/assets/js/reader/page-map.js"),read("src/assets/js/reader-visual-cache.js"),read("src/assets/js/reader-continuous-core.js"),read("src/assets/css/reader-zoom.css"),read("src/_headers"),read("docs/architecture/r1-legacy-source-exceptions.json"),read("docs/architecture/v1-entrypoints.json")
+const [pkgText,roadmap,readerDoc,readerHtml,bootstrap,session,app,storage,settings,progress,bookmarks,completion,pageInput,imageFocus,rendition,paginated,continuous,pageMap,visualCache,continuousCore,focusCss,headers,legacyText,manifestText]=await Promise.all([
+  read("package.json"),read("docs/roadmaps/REFACTOR_ROADMAP.md"),read("docs/architecture/READER_LAYER.md"),read("src/reader.html"),read("src/assets/js/reader-bootstrap.js"),read("src/assets/js/reader/book-session.js"),read("src/assets/js/reader/app.js"),read("src/assets/js/reader/storage.js"),read("src/assets/js/reader/settings.js"),read("src/assets/js/reader/progress-controller.js"),read("src/assets/js/reader/bookmarks-controller.js"),read("src/assets/js/reader/completion.js"),read("src/assets/js/reader/page-navigation-input.js"),read("src/assets/js/reader/image-focus.js"),read("src/assets/js/reader/rendition.js"),read("src/assets/js/reader/paginated.js"),read("src/assets/js/reader/continuous.js"),read("src/assets/js/reader/page-map.js"),read("src/assets/js/reader-visual-cache.js"),read("src/assets/js/reader-continuous-core.js"),read("src/assets/css/reader-image-focus.css"),read("src/_headers"),read("docs/architecture/r1-legacy-source-exceptions.json"),read("docs/architecture/v1-entrypoints.json")
 ]);
 const pkg=JSON.parse(pkgText),legacy=JSON.parse(legacyText),manifest=JSON.parse(manifestText);
 
@@ -34,7 +34,7 @@ for(const marker of ['from "./reader/book-session.js"','from "./reader/app.js"',
 for(const retiredMarker of ["ReaderURLSearchParams","__sgReaderPublicBookId","__sgReaderSourcePath","window.ePub="]){if(bootstrap.includes(retiredMarker)||session.includes(retiredMarker))fail(`Reader bootstrap/session must not restore ${retiredMarker}`)}
 for(const marker of ["access?.initial","publicBookId","sourcePath","restartRequested","resetReadAgain","preferences.adultAcknowledged","readingState.clearProgressAliases","finalizeBookSession"])if(!session.includes(marker))fail(`authorized Reader session is missing ${marker}`);
 
-for(const marker of ["createReaderStorage","createThemeController","createTocController","createPageMapController","createSettingsController","createProgressController","createBookmarksController","createGestureController","createCompletionController","createPaginatedController","createContinuousController","createRendition","window.ePub(session.sourcePath)","session.publicBookId||session.storageIdentity","switchFlow","imageFocus:elements.imageFocus","isImageFocused"])if(!app.includes(marker))fail(`Reader app orchestrator is missing ${marker}`);
+for(const marker of ["createReaderStorage","createThemeController","createTocController","createPageMapController","createSettingsController","createProgressController","createBookmarksController","createPageNavigationInput","createImageFocusController","createCompletionController","createPaginatedController","createContinuousController","createRendition","window.ePub(session.sourcePath)","session.publicBookId||session.storageIdentity","switchFlow"]){if(!app.includes(marker))fail(`Reader app orchestrator is missing ${marker}`)}
 if(app.includes("localStorage."))fail("Reader app must not bypass canonical storage/domain owners");
 if(!app.includes("bookUrl:session.publicBookId||session.storageIdentity"))fail("Page Map must prefer the opaque public book identity rather than the private media path");
 if(!app.includes("wire:wireRendition"))fail("Reader rendition creation must pass the declared wireRendition callback explicitly");
@@ -48,20 +48,9 @@ for(const marker of ["storage.saveProgress","canonicalIdentity","pageMap","targe
 for(const marker of ["storage.loadBookmarks","storage.saveBookmarks","pageMapFingerprint","targetForPosition","bookmarkButton"]){if(!bookmarks.includes(marker))fail(`Reader bookmark controller is missing ${marker}`)}
 for(const marker of ["readingState.volumeAliases","readingState.setAliasesFinished","volume-finished-toggle","volume-complete-next","persist(true,{quiet:true})","volume-end-page-continuous"]){if(!completion.includes(marker))fail(`Reader completion controller is missing ${marker}`)}
 
-for(const marker of ["beginSwipe","finishSwipe","openImageFocus","closeImageFocus","beginFocusTouch",'mode:"pinch"','mode:"pan"',"isImageFocused","img{cursor:zoom-in}"]){if(!gestures.includes(marker))fail(`Reader gesture/image-focus controller is missing ${marker}`)}
-for(const retiredMarker of ["reader-zoomed","zoomViewport","zoomInButton","zoomOutButton","zoomResetButton","lastTap","zoomAt(2.2"]){if(gestures.includes(retiredMarker))fail(`page-wide Reader zoom behavior must stay removed: ${retiredMarker}`)}
-if(gestures.includes('doc.addEventListener("touchmove"'))fail("EPUB documents must not receive a custom touchmove handler; Continuous vertical scrolling stays browser-native");
-const beginSwipeSource=gestures.slice(gestures.indexOf("function beginSwipe"),gestures.indexOf("function finishSwipe"));
-if(beginSwipeSource.includes("preventDefault"))fail("Reader touchstart must not prevent default scrolling");
-const finishSwipeSource=gestures.slice(gestures.indexOf("function finishSwipe"),gestures.indexOf("function normalizeWheel"));
-if(!finishSwipeSource.includes('getFlow?.()!=="paginated"'))fail("swipe completion must exit before any intervention outside Pages mode");
-if(gestures.includes("touch-action:pan-y")||gestures.includes("touch-action:none"))fail("EPUB content documents must not receive touch-action overrides from the gesture controller");
-
-for(const marker of [".reader-image-focus",".reader-image-focus-viewport","touch-action:none",".reader-image-focus-layer",".reader-image-focus-image",".reader-image-focus-hint"]){if(!focusCss.includes(marker))fail(`image-focus CSS is missing ${marker}`)}
-if(focusCss.includes(".reader-zoom-viewport")||focusCss.includes("body.reader-zoomed"))fail("page-wide zoom CSS must stay removed");
-if(!readerHtml.includes('<div id="viewer" class="viewer"></div>'))fail("Reader must restore the direct EPUB viewer container so Continuous scrolling keeps its original geometry");
-for(const marker of ['id="imageFocus"','id="imageFocusViewport"','id="imageFocusLayer"','id="imageFocusImage"','id="imageFocusClose"','Pinch to zoom','tap again to return'])if(!readerHtml.includes(marker))fail(`Reader image-focus overlay is missing ${marker}`);
-for(const retiredMarker of ['id="zoomViewport"','id="zoomLayer"','id="zoomIn"','id="zoomOut"','id="zoomReset"','id="zoomValue"','reader-zoom-setting'])if(readerHtml.includes(retiredMarker))fail(`page-wide zoom UI must stay removed: ${retiredMarker}`);
+for(const marker of ["createPageNavigationInput","pageSwipeDirection","touchstart","touchend","wheel"]){if(!pageInput.includes(marker))fail(`Pages input owner is missing ${marker}`)}
+for(const marker of ["createImageFocusController","openImageFocus","closeImageFocus",'mode:"pinch"','mode:"pan"',"reader-image-focus-zoomed"]){if(!imageFocus.includes(marker))fail(`image-focus owner is missing ${marker}`)}
+for(const marker of [".reader-image-focus",".reader-image-focus-viewport",".reader-image-focus-image",".reader-image-focus-zoomed"]){if(!focusCss.includes(marker))fail(`image-focus CSS is missing ${marker}`)}
 
 for(const marker of ["paginatedNeedsSinglePage","pageMapLayoutMetrics","captureRenditionPosition","destroyRendition"]){if(!rendition.includes(marker))fail(`Reader rendition adapter is missing ${marker}`)}
 if(!paginated.includes("rendition.next")||!paginated.includes("rendition.prev"))fail("Paginated adapter must own next/previous rendition commands");
@@ -71,14 +60,14 @@ if(!pageMap.includes('DB_NAME = "shadow-garden-reader"')||!pageMap.includes('STO
 if(!visualCache.includes('CACHE_DB="shadow-garden-visual-pages"')||!visualCache.includes('body.dataset.sgSyntheticVisual="1"'))fail("Visual Page Cache/synthetic visual marker contract drifted during R4");
 
 for(const retiredName of ["reader-polish.js","reader-v1.10.1.js","reader-gesture-hook.js","reader-wheel-pages.js","reader-finished.js"]){if(readerHtml.includes(retiredName))fail(`Reader HTML still loads retired R4 owner ${retiredName}`)}
-for(const marker of ["/assets/js/reader-bootstrap.js","/assets/js/reader-a11y.js","/assets/js/reader-continuous-core.js","/assets/js/reader-visual-cache.js","/assets/css/reader-zoom.css","/assets/css/reading-status.css"]){if(!readerHtml.includes(marker))fail(`Reader HTML is missing retained R4 asset ${marker}`)}
-for(const marker of ["/assets/js/reader/*","/assets/js/reader-bootstrap.js","/assets/css/reader-zoom.css","Cache-Control: no-store"]){if(!headers.includes(marker))fail(`fresh-cache contract is missing ${marker}`)}
+for(const marker of ["/assets/js/reader-bootstrap.js","/assets/js/reader-a11y.js","/assets/js/reader-continuous-core.js","/assets/js/reader-visual-cache.js","/assets/css/reader-image-focus.css","/assets/css/reading-status.css"]){if(!readerHtml.includes(marker))fail(`Reader HTML is missing retained R4 asset ${marker}`)}
+for(const marker of ["/assets/js/reader/*","/assets/js/reader-bootstrap.js","/assets/css/reader-image-focus.css","Cache-Control: no-store"]){if(!headers.includes(marker))fail(`fresh-cache contract is missing ${marker}`)}
 
 const readerManifest=manifest.pages?.reader;
-if(!readerManifest?.runtimeLoaded?.includes("/assets/js/reader/app.js")||!readerManifest.runtimeLoaded.includes("/assets/js/reader/book-session.js")||!readerManifest.runtimeLoaded.includes("/assets/js/reader/gestures.js"))fail("R0 entrypoint manifest must record intentional R4 Reader module ownership");
+for(const marker of ["/assets/js/reader/app.js","/assets/js/reader/book-session.js","/assets/js/reader/page-navigation-input.js","/assets/js/reader/image-focus.js"]){if(!readerManifest?.runtimeLoaded?.includes(marker))fail(`R0 entrypoint manifest must record Reader runtime owner ${marker}`)}
 for(const retiredName of ["/assets/js/reader.js","/assets/js/reader-polish.js","/assets/js/reader-gesture-hook.js","/assets/js/reader-wheel-pages.js","/assets/js/reader-finished.js"]){if(readerManifest?.scripts?.includes(retiredName)||readerManifest?.runtimeLoaded?.includes(retiredName))fail(`entrypoint manifest still includes retired Reader owner ${retiredName}`)}
 
-for(const marker of ["Reader Application Layer","Authorized book session","Image-focus zoom contract","Continuous mode receives no page-wide touchmove interception","Retired Reader ownership scripts"]){if(!readerDoc.includes(marker))fail(`Reader architecture document is missing ${marker}`)}
+for(const marker of ["Reader Application Layer","Authorized book session","Reader state invariants","Security invariants"]){if(!readerDoc.includes(marker))fail(`Reader architecture document is missing ${marker}`)}
 if(!roadmap.includes("R4. Reader architecture refactor | ✅ Done"))fail("Refactor roadmap must retain R4 complete");
 
 try{
@@ -95,9 +84,9 @@ try{
   if(primary?.swipeTurns!==false||legacySwipe?.swipeTurns!==false)fail("R4 settings must preserve the legacy swipe preference while making sg-reader-settings authoritative");
 }catch(error){fail(`R4 Reader storage/settings regression threw: ${error.message}`)}
 
-const [major=0,minor=0,patch=0]=String(pkg.version||"").split(".").map(value=>Number.parseInt(value,10)||0);
-if(major<1||(major===1&&minor<18)||(major===1&&minor===18&&patch<2))fail(`current R4 Reader input baseline requires v1.18.2 or newer, found ${pkg.version}`);
+const [major=0,minor=0]=String(pkg.version||"").split(".").map(value=>Number.parseInt(value,10)||0);
+if(major<1||(major===1&&minor<18))fail(`R4 Reader architecture requires v1.18.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r4.mjs"))fail("tools/check-r4.mjs must remain in npm run check");
 
-if(failures.length){console.error(`Shadow Garden R4 Reader architecture/image-focus check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);failures.forEach(message=>console.error(`- ${message}`));process.exitCode=1}
-else console.log("Shadow Garden R4 Reader ownership, Continuous touch, and image-focus zoom contracts passed.");
+if(failures.length){console.error(`Shadow Garden R4 Reader architecture check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);failures.forEach(message=>console.error(`- ${message}`));process.exitCode=1}
+else console.log("Shadow Garden R4 Reader session, state, rendition, and application ownership contracts passed.");

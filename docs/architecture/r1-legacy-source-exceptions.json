@@ -24,6 +24,8 @@
     "src/assets/js/reader-v1.10.1.js",
     "src/assets/js/reader-gesture-hook.js",
     "src/assets/js/reader-wheel-pages.js",
-    "src/assets/js/reader-finished.js"
+    "src/assets/js/reader-finished.js",
+    "src/assets/js/reader/gestures.js",
+    "src/assets/css/reader-zoom.css"
   ]
 }

@@ -1,4 +1,4 @@
-# Shadow Garden v1.18.1
+# Shadow Garden v1.19.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -22,9 +22,11 @@ Production: `https://shadowgarden-bon.pages.dev/`
 - Canonical device Page Map shared by both reading modes.
 - Persistent progress, bookmarks, Finished state, themes, typography, flow and layout preferences through the shared browser domain layer.
 - Visual Page Cache and fitting for standalone covers, maps, and illustration pages.
-- One gesture controller for swipe paging, desktop wheel turns, pinch zoom, one-finger pan while zoomed, double-tap zoom/reset, Ctrl/Cmd-wheel zoom, and keyboard/settings zoom controls.
-- Ordinary content zooms to 3×; synthetic Visual Page Cache pages can zoom to 4×.
-- Zoom is a session-only visual viewport transform and does **not** change typography, EPUB pagination, Page Map geometry, or saved reading position.
+- Pages-only input owner for horizontal swipe turns and desktop wheel page turns.
+- Continuous mode receives no Reader-owned `touchmove` or `touch-action` override, so vertical touch scrolling remains native.
+- EPUB images can be tapped/clicked into an isolated focused-image overlay with pinch zoom up to 4× and one-finger pan while magnified.
+- Focused-image zoom transforms only the copied image, not the live EPUB viewport, so Page Map, CFI, pagination, Continuous scroll position, and saved progress remain unchanged.
+- Focus overlay close/hint chrome fades while magnified and returns at 1×; tap again, Close, or Escape exits image focus.
 - Continuous seek rail, TOC, fullscreen, end-of-volume navigation, next-volume completion, and Finished toggle.
 - Accessibility support for keyboard navigation, reduced motion, increased contrast, and forced colors.
 
@@ -50,11 +52,11 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The full codebase refactor is incremental: `main` remains deployable, completed security/persistence contracts remain protected by CI, and each milestone replaces duplicate ownership rather than layering another patch.
 
-**R0–R4 are complete. R5 — Garden Keeper decomposition is next.**
+**R0–R4 plus R4.1 Reader stabilization are complete. R5 — Garden Keeper decomposition is next.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
-- R4 Reader ownership and zoom: [`docs/architecture/READER_LAYER.md`](./docs/architecture/READER_LAYER.md)
+- R4/R4.1 Reader ownership and stabilization: [`docs/architecture/READER_LAYER.md`](./docs/architecture/READER_LAYER.md)
 - Full plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 
 ### Current browser architecture
@@ -89,7 +91,8 @@ reader/app.js
   ├─ rendition + paginated + continuous
   ├─ progress + bookmarks + completion
   ├─ settings + theme
-  ├─ gestures/zoom
+  ├─ page-navigation-input
+  ├─ image-focus
   └─ Page Map + retained EPUB.js compatibility layers
       |
       +--> shared domain/state
@@ -99,7 +102,7 @@ Garden Keeper
   -> /admin-access + /admin-api/* -> private B2
 ```
 
-R4 retired the old Reader monolith/polish ownership scripts and removed the temporary URLSearchParams/private-source interception. Reader CSS consolidation is intentionally deferred to R7 so Reader behavioral architecture and design-system cleanup remain separate risk domains.
+R4 retired the old Reader monolith/polish ownership scripts and removed temporary public/private URL interception. R4.1 then retired the combined hotfix-era gesture owner and Reader-wide zoom stylesheet after real-device behavior showed that page-wide touch interception could break Continuous scrolling. Reader CSS consolidation beyond the responsibility-correct image-focus layer remains R7 work.
 
 ## Repository layout
 

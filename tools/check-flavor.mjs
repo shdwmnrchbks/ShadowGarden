@@ -44,7 +44,7 @@ for(const marker of ["The path fades into shadow.","No shelf, gate, or footpath 
   if(!notFound.includes(marker))fail(`404 page is missing themed copy: ${marker}`);
 }
 if(!headers.includes("/assets/js/site-flavor.js"))fail("shared voice layer must be served no-store during the audit");
-if(JSON.parse(pkg).version!=="1.15.13")fail("package version must be 1.15.13");
+if(JSON.parse(pkg).version!=="1.15.14")fail("package version must be 1.15.14");
 
 if(failures.length){
   console.error(`Shadow Garden site-voice check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);

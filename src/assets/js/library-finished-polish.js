@@ -1,94 +1,30 @@
-/* Shadow Garden v1.15.7 — authoritative Library Continue Reading state. */
+/* Shadow Garden v1.15.14 — authoritative Library Read/Continue state. */
 (async()=>{
   const panel=document.getElementById("continuePanel");
   if(!panel||!window.ShadowGardenData)return;
 
   const scope=document.body.dataset.libraryScope||"main";
   const adult=scope==="nsfw";
-  const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
-  const LEGACY_BOOK=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
-  const encoder=new TextEncoder();
   const arr=value=>Array.isArray(value)?value:[];
   const esc=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-
-  function normalizeIdentity(value){
-    const raw=String(value||"").trim();
-    if(!raw)return"";
-    if(BOOK_ID.test(raw))return raw;
-    try{
-      const url=new URL(raw,location.origin);
-      let path=url.pathname;
-      try{path=decodeURIComponent(path)}catch{}
-      return path.replace(/\/+$/g,"");
-    }catch{
-      let path=raw.split(/[?#]/)[0];
-      try{path=decodeURIComponent(path)}catch{}
-      return path.replace(/\/+$/g,"");
-    }
-  }
-
-  function base64Url(bytes){
-    let binary="";
-    for(const value of bytes)binary+=String.fromCharCode(value);
-    return btoa(binary).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"");
-  }
-
-  async function canonicalBookId(identity){
-    const normalized=normalizeIdentity(identity);
-    if(BOOK_ID.test(normalized))return normalized;
-    if(!LEGACY_BOOK.test(normalized))return normalized;
-    try{
-      const digest=new Uint8Array(await crypto.subtle.digest("SHA-256",encoder.encode(`shadow-garden-book-id-v1\n${normalized}`)));
-      return `bk_${base64Url(digest.slice(0,16))}`;
-    }catch{return normalized}
-  }
-
-  function volumeCover(series,volume){return String(volume?.coverThumb||volume?.cover||series?.coverThumb||series?.cover||"")}
-  function volumeNumber(volume,index){const raw=String(volume?.number??"").trim();return raw||String(index+1)}
-  function isAtBeginning(item){
-    const page=Number(item?.page);
-    if(Number.isFinite(page)&&page>0)return page<=1;
-    const percentage=Number(item?.percentage);
-    return Number.isFinite(percentage)&&percentage<=0.01;
-  }
+  const volumeCover=(series,volume)=>String(volume?.coverThumb||volume?.cover||series?.coverThumb||series?.cover||"");
+  const volumeNumber=(volume,index)=>String(volume?.number??"").trim()||String(index+1);
 
   try{
-    await import("/assets/js/reading-status.js?v=1.15.6");
+    await import("/assets/js/reading-status.js?v=1.15.14");
     const status=window.ShadowGardenReadingStatus;
     if(!status)return;
 
     const catalog=await window.ShadowGardenData.loadCatalog(adult);
     const entries=arr(catalog?.series).flatMap(series=>arr(series?.volumes).map((volume,index)=>({series,volume,index})));
-    const byIdentity=new Map();
-    for(const entry of entries){
-      for(const identity of [entry.volume?.file,entry.volume?.bookId]){
-        const normalized=normalizeIdentity(identity);
-        if(normalized)byIdentity.set(normalized,entry);
-      }
-    }
 
-    async function progressEntries(){
-      const saved=[];
-      const keys=[];
-      for(let index=0;index<localStorage.length;index++)keys.push(localStorage.key(index));
-      for(const key of keys){
-        if(!key?.startsWith("sg-progress:"))continue;
-        try{
-          const item=JSON.parse(localStorage.getItem(key)||"null");
-          if(!item?.updatedAt)continue;
-          const rawIdentity=String(item.file||key.slice("sg-progress:".length)||"");
-          const normalized=normalizeIdentity(rawIdentity);
-          const canonical=await canonicalBookId(rawIdentity);
-          const entry=byIdentity.get(canonical)||byIdentity.get(normalized);
-          if(!entry)continue;
-          const finished=status.isVolumeFinished?.(entry.series?.id,entry.volume,entry.index)
-            ??status.isFinished?.(entry.volume?.file);
-          if(finished)continue;
-          saved.push({item,entry,updatedAt:Number(item.updatedAt)||0});
-        }catch{}
-      }
-      saved.sort((a,b)=>b.updatedAt-a.updatedAt);
-      return saved;
+    function progressEntries(){
+      return entries.map(entry=>{
+        const state=status.volumeState?.(entry.series?.id,entry.volume,entry.index)||status.STATES?.UNREAD||"unread";
+        const item=status.volumeProgress?.(entry.series?.id,entry.volume,entry.index)||null;
+        return{entry,state,item,updatedAt:Number(item?.updatedAt)||0};
+      }).filter(candidate=>candidate.item?.updatedAt&&candidate.state!==status.STATES?.FINISHED&&candidate.state!=="finished")
+        .sort((a,b)=>b.updatedAt-a.updatedAt);
     }
 
     let syncing=false;
@@ -97,8 +33,7 @@
       if(syncing){rerun=true;return}
       syncing=true;
       try{
-        const candidates=await progressEntries();
-        const current=candidates[0]||null;
+        const current=progressEntries()[0]||null;
         const art=document.querySelector(".library-intro > .intro-banner-art");
         if(!current){
           if(!panel.classList.contains("hidden"))panel.classList.add("hidden");
@@ -109,15 +44,15 @@
           return;
         }
 
-        const {item,entry}=current;
+        const {item,entry,state}=current;
         const {series,volume,index}=entry;
         const cover=volumeCover(series,volume);
         const title=String(volume?.title||`Volume ${volumeNumber(volume,index)}`);
         const seriesTitle=String(series?.title||"Untitled series");
         const percent=Math.round((Number(item?.percentage)||0)*100);
-        const actionLabel=isAtBeginning(item)?"Read":"Continue";
+        const actionLabel=status.actionLabelForState?.(state)||(state==="in-progress"?"Continue":"Read");
         const href=`/reader.html?book=${encodeURIComponent(volume.file)}&series=${encodeURIComponent(series.id)}`;
-        const signature=[series.id,volume.file,item.updatedAt,percent,cover,actionLabel].join("|");
+        const signature=[series.id,volume.file,item.updatedAt,percent,cover,state,actionLabel].join("|");
         const currentHref=panel.querySelector("a[href*='/reader.html']")?.getAttribute("href")||"";
         const currentTitle=panel.querySelector("strong")?.textContent||"";
         const currentAction=panel.querySelector("a[href*='/reader.html']")?.textContent||"";
@@ -126,7 +61,8 @@
         if(needsRender){
           panel.dataset.continueSignature=signature;
           panel.removeAttribute("data-finished-suppressed");
-          panel.innerHTML=`<div class="continue-mark${cover?" continue-cover":""}">${cover?`<img src="${esc(cover)}" alt="" loading="eager" decoding="async">`:"✦"}</div><div><strong>${esc(title)}</strong><span>${esc(seriesTitle)} · Volume ${esc(volumeNumber(volume,index))} · ${percent}%</span></div><a href="${href}">${actionLabel}</a>`;
+          panel.dataset.readingState=state;
+          panel.innerHTML=`<div class="continue-mark${cover?" continue-cover":""}">${cover?`<img src="${esc(cover)}" alt="" loading="eager" decoding="async">`:"✦"}</div><div><strong>${esc(title)}</strong><span>${esc(seriesTitle)} · Volume ${esc(volumeNumber(volume,index))} · ${percent}%</span></div><a data-volume-state="${esc(state)}" href="${href}">${actionLabel}</a>`;
         }
         if(panel.classList.contains("hidden"))panel.classList.remove("hidden");
 
@@ -152,6 +88,6 @@
     window.addEventListener("pageshow",()=>void sync());
     await sync();
   }catch(error){
-    console.warn("Library finished-state polish unavailable",error);
+    console.warn("Library reading-state polish unavailable",error);
   }
 })();

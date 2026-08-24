@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.12 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.14 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -9,9 +9,6 @@
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
 
-  /* Reader internals temporarily see the private media path while they initialize.
-     Public reading state must never key itself from that temporary view. The initial
-     URL can itself still be a legacy media URL, so the access ticket is authoritative. */
   window.__sgReaderPublicBookId=BOOK_ID.test(requested)?requested:"";
   window.__sgReaderSourcePath="";
 
@@ -28,7 +25,7 @@
 
   async function importReader(){
     const originalEpub=window.ePub;
-    if(typeof originalEpub!=="function")return import("/assets/js/reader.js?v=1.10.2");
+    if(typeof originalEpub!=="function")return import("/assets/js/reader.js?v=1.15.14");
     function capturedEpub(...args){
       const book=Reflect.apply(originalEpub,this,args);
       if(!window.__sgReaderBook)window.__sgReaderBook=book;
@@ -39,13 +36,13 @@
       Object.setPrototypeOf(capturedEpub,originalEpub);
     }catch{}
     window.ePub=capturedEpub;
-    try{return await import("/assets/js/reader.js?v=1.10.2")}
+    try{return await import("/assets/js/reader.js?v=1.15.14")}
     finally{window.ePub=originalEpub}
   }
 
   async function mountReadingStatus(){
-    await import("/assets/js/reading-status.js?v=1.15.6");
-    await import("/assets/js/reader-finished.js?v=1.15.7");
+    await import("/assets/js/reading-status.js?v=1.15.14");
+    await import("/assets/js/reader-finished.js?v=1.15.14");
   }
 
   function canonicalizeLegacyUrl(){
@@ -67,31 +64,72 @@
     }catch{}
   }
 
+  function installCanonicalReaderMirror(sourcePath){
+    const canonical=String(window.__sgReaderPublicBookId||"").trim();
+    if(!BOOK_ID.test(canonical)||!EPUB_PATH.test(sourcePath))return;
+    const progressSource=`sg-progress:${sourcePath}`,progressPublic=`sg-progress:${canonical}`;
+    const bookmarksSource=`sg-bookmarks:${sourcePath}`,bookmarksPublic=`sg-bookmarks:${canonical}`;
+
+    const parse=raw=>{try{return JSON.parse(raw||"null")}catch{return null}};
+    const progressRaw=(raw,file)=>{
+      const value=parse(raw);
+      if(!value||typeof value!=="object")return raw;
+      value.file=file;
+      return JSON.stringify(value);
+    };
+    const updated=raw=>Number(parse(raw)?.updatedAt)||0;
+    const sync=()=>{
+      try{
+        const sourceRaw=localStorage.getItem(progressSource),publicRaw=localStorage.getItem(progressPublic);
+        if(sourceRaw!==null||publicRaw!==null){
+          if(sourceRaw===null&&publicRaw!==null)localStorage.setItem(progressSource,progressRaw(publicRaw,sourcePath));
+          else if(publicRaw===null&&sourceRaw!==null)localStorage.setItem(progressPublic,progressRaw(sourceRaw,canonical));
+          else if(updated(sourceRaw)>=updated(publicRaw))localStorage.setItem(progressPublic,progressRaw(sourceRaw,canonical));
+          else localStorage.setItem(progressSource,progressRaw(publicRaw,sourcePath));
+        }
+        const sourceMarks=localStorage.getItem(bookmarksSource),publicMarks=localStorage.getItem(bookmarksPublic);
+        if(sourceMarks!==null&&sourceMarks!==publicMarks)localStorage.setItem(bookmarksPublic,sourceMarks);
+        else if(sourceMarks===null&&publicMarks!==null)localStorage.setItem(bookmarksSource,publicMarks);
+      }catch(error){console.warn("Canonical Reader state mirror skipped",error)}
+    };
+    sync();
+    const timer=setInterval(sync,500);
+    window.addEventListener("pagehide",sync);
+    document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")sync()});
+    window.__sgCanonicalReaderMirror={sourcePath,canonical,sync,stop:()=>clearInterval(timer)};
+  }
+
   async function resetForReadAgain(ticket,sourcePath){
     if(!restartRequested)return;
     const canonical=String(ticket?.bookId||ticket?.identity||window.__sgReaderPublicBookId||"").trim();
-    const identities=new Set([
+    const identities=[
       requested,
       canonical,
       String(ticket?.requestedIdentity||"").trim(),
       String(sourcePath||"").trim()
-    ].filter(Boolean));
-    for(const identity of identities){
-      try{localStorage.removeItem(`sg-progress:${identity}`)}catch{}
-    }
+    ].filter(Boolean);
 
     try{
-      await import("/assets/js/reading-status.js?v=1.15.6");
+      await import("/assets/js/reading-status.js?v=1.15.14");
       const reading=window.ShadowGardenReadingStatus;
+      const aliases=new Set(identities);
       const adult=String(seriesId||"").startsWith("adult-");
       const catalog=await window.ShadowGardenData?.loadCatalog?.(adult);
       const series=(Array.isArray(catalog?.series)?catalog.series:[]).find(item=>String(item?.id||"")===String(seriesId||""));
       const volumes=Array.isArray(series?.volumes)?series.volumes:[];
-      const index=volumes.findIndex(volume=>identities.has(String(volume?.file||volume?.bookId||"")));
-      if(series&&index>=0)reading?.setVolumeFinished?.(series.id,volumes[index],false,index);
-      else for(const identity of identities)reading?.setFinished?.(identity,false);
+      const index=volumes.findIndex(volume=>identities.includes(String(volume?.file||volume?.bookId||"")));
+      if(series&&index>=0){
+        const volume=volumes[index];
+        for(const alias of reading?.volumeAliases?.(series.id,volume,index,identities)||[])aliases.add(alias);
+      }
+      const all=[...aliases].filter(Boolean);
+      reading?.setAliasesFinished?.(all,false);
+      reading?.clearProgressAliases?.(all);
     }catch(error){
-      console.warn("Read Again finished-state reset skipped",error);
+      console.warn("Read Again state reset skipped",error);
+      for(const identity of identities){
+        try{localStorage.removeItem(`sg-progress:${identity}`)}catch{}
+      }
     }
   }
 
@@ -112,6 +150,7 @@
     const sourcePath=String(ticket?.sourcePath||(()=>{try{return new URL(ticket?.url||"",location.href).pathname}catch{return""}})());
     window.__sgReaderSourcePath=EPUB_PATH.test(sourcePath)?sourcePath:"";
     await resetForReadAgain(ticket,sourcePath);
+    installCanonicalReaderMirror(sourcePath);
 
     if(BOOK_ID.test(requested)&&EPUB_PATH.test(sourcePath)){
       try{await window.__sgVisualPageCache?.prepare?.(requested)}catch(error){console.warn("Visual-page preparation handoff skipped",error)}
@@ -125,11 +164,8 @@
       ReaderURLSearchParams.prototype=NativeURLSearchParams.prototype;
       try{Object.setPrototypeOf(ReaderURLSearchParams,NativeURLSearchParams)}catch{}
       window.URLSearchParams=ReaderURLSearchParams;
-      try{
-        await importReader();
-      }finally{
-        window.URLSearchParams=NativeURLSearchParams;
-      }
+      try{await importReader()}
+      finally{window.URLSearchParams=NativeURLSearchParams}
       await mountReadingStatus();
       clearRestartFlag();
       return;

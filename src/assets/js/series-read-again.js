@@ -1,4 +1,4 @@
-/* Shadow Garden v1.15.13 — confirmed Read Again reset flow. */
+/* Shadow Garden v1.15.14 — canonical Read Again reset flow. */
 (()=>{
   const root=document.getElementById("seriesRoot");
   if(!root)return;
@@ -48,11 +48,11 @@
 
   async function readingApi(){
     if(window.ShadowGardenReadingStatus)return window.ShadowGardenReadingStatus;
-    await import("/assets/js/reading-status.js?v=1.15.6");
+    await import("/assets/js/reading-status.js?v=1.15.14");
     return window.ShadowGardenReadingStatus;
   }
 
-  async function clearFinishedState(seriesId,bookId){
+  async function resetVolumeState(seriesId,bookId){
     const reading=await readingApi();
     if(!reading)return;
     try{
@@ -62,42 +62,41 @@
       const volumes=Array.isArray(series?.volumes)?series.volumes:[];
       const index=volumes.findIndex(volume=>String(volume?.file||volume?.bookId||"")===String(bookId||""));
       if(series&&index>=0){
-        reading.setVolumeFinished?.(series.id,volumes[index],false,index);
+        const volume=volumes[index];
+        reading.setVolumeFinished?.(series.id,volume,false,index);
+        reading.clearVolumeProgress?.(series.id,volume,index);
         return;
       }
     }catch(error){
       console.warn("Read Again catalog lookup skipped",error);
     }
     reading.setFinished?.(bookId,false);
+    reading.clearProgressAliases?.([bookId]);
   }
 
   function isReadAgainLink(link){
-    if(!link?.matches?.(".series-actions .primary-button,.volume-actions a.read"))return false;
-    return link.textContent.trim().toLowerCase()==="read again";
+    if(!link?.matches?.(".series-actions .primary-button,.volume-actions a.read,.volume-cover-link"))return false;
+    return link.dataset.volumeState==="finished"||link.closest(".volume-card")?.dataset.readingState==="finished"||link.textContent.trim().toLowerCase()==="read again";
   }
 
   document.addEventListener("click",async event=>{
     const link=event.target.closest?.("a");
     if(!isReadAgainLink(link))return;
     event.preventDefault();
-    event.stopPropagation();
+    event.stopImmediatePropagation();
 
     const target=new URL(link.href,location.href);
     const bookId=target.searchParams.get("book")||"";
     const seriesId=target.searchParams.get("series")||new URLSearchParams(location.search).get("id")||"";
     const card=link.closest(".volume-card");
-    const title=card?.querySelector(".volume-title")?.textContent?.trim()||document.querySelector(".series-info h1")?.textContent?.trim()||"this volume";
+    const title=link.dataset.volumeTitle||card?.querySelector(".volume-title")?.textContent?.trim()||document.querySelector(".series-info h1")?.textContent?.trim()||"this volume";
     if(!bookId)return;
 
     const confirmed=await confirmRestart(title);
     if(!confirmed)return;
 
-    try{
-      await clearFinishedState(seriesId,bookId);
-      localStorage.removeItem(`sg-progress:${bookId}`);
-    }catch(error){
-      console.warn("Read Again local reset was incomplete; Reader will retry it",error);
-    }
+    try{await resetVolumeState(seriesId,bookId)}
+    catch(error){console.warn("Read Again local reset was incomplete; Reader will retry it",error)}
 
     target.searchParams.set("restart","1");
     location.assign(`${target.pathname}${target.search}${target.hash}`);

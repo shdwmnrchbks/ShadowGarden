@@ -1,4 +1,4 @@
-# Shadow Garden v1.15.14
+# Shadow Garden v1.16.0
 
 Shadow Garden is a self-hosted EPUB library and browser reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -48,7 +48,7 @@ Production: `https://shadowgarden-bon.pages.dev/`
 
 ## Security baseline
 
-Security Milestones **1–9 are complete** as of 2026-08-24. The accepted v1.15.14 baseline includes:
+Security Milestones **1–9 are complete** as of 2026-08-24. The accepted v1.15.14 security baseline remains intact in v1.16.0 and includes:
 
 - private B2 origin storage;
 - signed EPUB access tickets;
@@ -64,32 +64,57 @@ Security Milestones **1–9 are complete** as of 2026-08-24. The accepted v1.15.
 
 The complete record is in [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
-## Active roadmap
+## Active refactor
 
-The next project phase is a **full codebase refactor**. See:
+The full codebase refactor is intentionally incremental: `main` remains deployable, Reader behavior stays stable, and the completed security baseline is treated as a contract.
 
-[`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
+**R0–R2 are complete. R3 — Library + Series decomposition is next.**
 
-The refactor is intentionally incremental: `main` must remain deployable, current Reader behavior must stay stable, and the completed security baseline is treated as a contract.
+See [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md).
+
+### Shared browser domain layer
+
+v1.16.0 introduces `src/assets/js/domain/` as the canonical browser state/domain boundary:
+
+```text
+Library / Series / Reader
+        |
+        v
+domain/
+├─ catalog.js
+├─ book-identity.js
+├─ reading-state.js
+├─ progress.js
+├─ bookmarks.js
+├─ preferences.js
+├─ storage.js
+├─ urls.js
+└─ format.js
+```
+
+Library, Series, Reader progress/bookmark storage, pinned/view state, and Read Again now consume these shared services rather than independently interpreting the same localStorage keys. Existing persisted browser data formats are preserved.
+
+See [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md).
 
 ## Architecture
 
 ```text
-GitHub repository
-  authored static source + Pages Functions + validation tools
+Browser UI
+  Library / Series / Reader
         |
-        v
-Cloudflare Pages
-  dist/ static Library, Reader, Garden Keeper
+        +--> shared browser domain/state layer
+        |      local progress, bookmarks, preferences
         |
         +--> /book-access + /human-access
         |      acquisition / Garden Pass boundary
         |
         +--> /media/*
-        |      signed read-only EPUB/media proxy
-        |          |
-        |          v
-        |    private Backblaze B2
+               signed EPUB/media proxy
+                    |
+                    v
+             private Backblaze B2
+
+Garden Keeper
         |
         +--> /admin-access
         |      Keeper Gate
@@ -98,7 +123,7 @@ Cloudflare Pages
                token + signed admin session
                     |
                     v
-          B2 writes + catalog maintenance
+             private Backblaze B2
 ```
 
 Storage configuration has one backend source of truth in `functions/_lib/b2.js`. Public media delivery and admin routes use the same bucket/endpoint/key conventions while preserving separate read/write credentials.
@@ -111,20 +136,21 @@ Storage configuration has one backend source of truth in `functions/_lib/b2.js`.
 ├─ CHANGELOG.md
 ├─ docs/
 │  ├─ README.md
+│  ├─ architecture/
+│  │  ├─ DOMAIN_LAYER.md
+│  │  └─ refactor contracts
 │  ├─ roadmaps/
-│  │  ├─ REFACTOR_ROADMAP.md
-│  │  └─ SECURITY_ROADMAP.md
 │  ├─ security/
-│  │  └─ completed milestone records
 │  └─ style/
-│     └─ SITE_VOICE.md
 ├─ src/
 │  ├─ index.html
 │  ├─ nsfw.html
 │  ├─ series.html
 │  ├─ reader.html
 │  ├─ admin.html
-│  └─ assets/
+│  └─ assets/js/
+│     ├─ domain/
+│     └─ existing page/Reader/Keeper modules
 ├─ functions/
 │  ├─ _lib/
 │  ├─ media/[[path]].js
@@ -135,11 +161,10 @@ Storage configuration has one backend source of truth in `functions/_lib/b2.js`.
 └─ tools/
    ├─ build.mjs
    ├─ write-source.mjs
-   ├─ check.mjs
-   └─ milestone/regression checks
+   └─ check*.mjs
 ```
 
-The v1.x source still contains several `*-polish`, compatibility, and version-specific override modules. Removing those safely is a primary goal of the active Refactor Roadmap rather than something to hide in the current layout documentation.
+The v1.x source still contains several grandfathered `*-polish`, compatibility, and version-specific override modules. Removing those safely is a primary goal of R3–R7 rather than something to hide in the current layout documentation.
 
 ## Backblaze B2
 
@@ -207,7 +232,7 @@ Install:
 npm install
 ```
 
-Run the complete repository/security/regression suite:
+Run the complete repository/security/refactor regression suite:
 
 ```bash
 npm run check
@@ -225,7 +250,7 @@ Preview the generated `dist/` directory:
 npm run preview
 ```
 
-Pull requests and `main` run `.github/workflows/verify.yml`, which executes the repository check on Node 22 before changes are accepted.
+Pull requests and `main` run `.github/workflows/verify.yml`, which executes repository checks and a production build on Node 22 before changes are accepted.
 
 Optional desktop B2 utilities:
 
@@ -240,12 +265,13 @@ Normal Garden Keeper administration does not require the desktop utilities.
 
 Shadow Garden intentionally has no Reader accounts. Progress, bookmarks, Finished state, pinned state, Reader settings, Library view/filter preferences, and Adult acknowledgement remain local to the browser/profile.
 
-Clearing site data or changing browser/profile removes that local reading/preference state.
+R2 centralizes the code that owns these values without moving them to a server. Clearing site data or changing browser/profile removes that local reading/preference state.
 
 ## Documentation
 
 Start with [`docs/README.md`](./docs/README.md).
 
+- Shared browser domain: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - Active refactor plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 - Completed security plan: [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md)
 - Final security audit: [`docs/security/MILESTONE_9_FINAL_AUDIT.md`](./docs/security/MILESTONE_9_FINAL_AUDIT.md)

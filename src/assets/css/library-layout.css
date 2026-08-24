@@ -1,0 +1,119 @@
+/* Shadow Garden R7 — stable compact-card columns and badge rail. */
+
+.catalog-grid.compact .series-card{
+  --sg-compact-cover-width:68px;
+  position:relative;
+  overflow:hidden;
+  grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr) auto!important;
+  grid-template-rows:1fr!important;
+  column-gap:12px!important;
+  row-gap:0!important;
+  align-items:start!important;
+}
+.catalog-grid.compact .series-card>.cover{
+  grid-column:1;
+  grid-row:1;
+  width:var(--sg-compact-cover-width)!important;
+  min-width:var(--sg-compact-cover-width)!important;
+  max-width:var(--sg-compact-cover-width)!important;
+  height:100%!important;
+  max-height:100%;
+  justify-self:start;
+  align-self:stretch;
+}
+.catalog-grid.compact .series-card>.card-copy{
+  grid-column:2;
+  grid-row:1;
+  min-width:0;
+  width:100%;
+  margin:0!important;
+  padding:0!important;
+  align-self:start;
+  justify-self:stretch;
+  display:block!important;
+}
+.catalog-grid.compact .series-card>.card-copy h2{
+  min-height:0!important;
+  max-height:2.5em;
+  margin:0!important;
+  line-height:1.25;
+  display:-webkit-box;
+  overflow:hidden;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:2;
+}
+.catalog-grid.compact .series-card>.card-copy p{
+  min-height:0!important;
+  margin:4px 0 0!important;
+  line-height:1.2;
+}
+.catalog-grid.compact .series-card>.card-copy .card-meta{
+  min-height:0!important;
+  margin-top:4px!important;
+  line-height:1.2;
+  align-items:center;
+}
+.catalog-grid.compact .compact-card-badges{
+  grid-column:3!important;
+  grid-row:1!important;
+  display:flex!important;
+  align-items:flex-start!important;
+  justify-content:flex-end!important;
+  align-self:start!important;
+  justify-self:end!important;
+  flex-wrap:wrap;
+  gap:5px;
+  width:max-content;
+  max-width:min(34vw,230px)!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:visible;
+}
+@media(max-width:720px){
+  .catalog-grid.compact .series-card{
+    --sg-compact-cover-width:74px;
+    grid-template-columns:var(--sg-compact-cover-width) minmax(0,1fr) auto!important;
+    grid-template-rows:1fr!important;
+    column-gap:12px!important;
+    row-gap:0!important;
+    align-items:start!important;
+  }
+  .catalog-grid.compact .series-card>.cover{
+    grid-column:1;
+    grid-row:1;
+    width:var(--sg-compact-cover-width)!important;
+    min-width:var(--sg-compact-cover-width)!important;
+    max-width:var(--sg-compact-cover-width)!important;
+  }
+  .catalog-grid.compact .series-card>.card-copy{
+    grid-column:2;
+    grid-row:1;
+    align-self:start;
+  }
+  .catalog-grid.compact .compact-card-badges{
+    grid-column:3!important;
+    grid-row:1!important;
+    align-self:start!important;
+    justify-self:end!important;
+    justify-content:flex-end!important;
+    width:max-content;
+    max-width:min(31vw,132px)!important;
+    margin:0!important;
+    padding:0!important;
+  }
+}
+@media(max-width:430px){
+  .catalog-grid.compact .series-card{
+    --sg-compact-cover-width:70px;
+    column-gap:10px!important;
+    padding-left:10px!important;
+    padding-right:10px!important;
+  }
+  .catalog-grid.compact .compact-card-badges{
+    max-width:112px!important;
+    gap:4px;
+  }
+  .catalog-grid.compact .compact-card-badge{
+    padding-inline:5px;
+  }
+}

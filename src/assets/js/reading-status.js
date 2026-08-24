@@ -1,8 +1,9 @@
-/* Shadow Garden v1.15.3 — browser-local reading completion state. */
+/* Shadow Garden v1.15.14 — canonical browser-local volume reading state. */
 (()=>{
   const KEY="sg-finished-books";
   const MARKER_PREFIX="sg-finished:";
   const EVENT="sg-reading-status-changed";
+  const STATES=Object.freeze({UNREAD:"unread",IN_PROGRESS:"in-progress",FINISHED:"finished"});
 
   if(!document.querySelector('link[data-reading-status-style]')){
     const link=document.createElement("link");
@@ -73,8 +74,54 @@
   function volumeAliases(seriesId,volume,index=-1,extra=[]){return cleanIds([volume?.file,volume?.bookId,stableVolumeId(seriesId,volume,index),...(Array.isArray(extra)?extra:[extra])])}
   function isVolumeFinished(seriesId,volume,index=-1){return isAnyFinished(volumeAliases(seriesId,volume,index))}
   function setVolumeFinished(seriesId,volume,finished=true,index=-1,extra=[]){return setAliasesFinished(volumeAliases(seriesId,volume,index,extra),finished)}
+
+  function progressForIdentity(identity){
+    const id=cleanId(identity);if(!id)return null;
+    try{
+      const value=JSON.parse(localStorage.getItem(`sg-progress:${id}`)||"null");
+      return value&&typeof value==="object"?value:null;
+    }catch{return null}
+  }
+  function progressForAliases(ids){
+    const aliases=cleanIds(ids);
+    let newest=null;
+    for(const id of aliases){
+      const item=progressForIdentity(id);
+      if(!item)continue;
+      if(!newest||(Number(item.updatedAt)||0)>(Number(newest.updatedAt)||0))newest=item;
+    }
+    return newest;
+  }
+  function volumeProgress(seriesId,volume,index=-1,extra=[]){return progressForAliases(volumeAliases(seriesId,volume,index,extra))}
+  function progressAtBeginning(progress){
+    if(!progress)return true;
+    const page=Number(progress.page);
+    if(Number.isFinite(page)&&page>0)return page<=1;
+    const percentage=Number(progress.percentage);
+    if(Number.isFinite(percentage))return percentage<=0.01;
+    return true;
+  }
+  function volumeState(seriesId,volume,index=-1,extra=[]){
+    if(isVolumeFinished(seriesId,volume,index))return STATES.FINISHED;
+    const progress=volumeProgress(seriesId,volume,index,extra);
+    return progressAtBeginning(progress)?STATES.UNREAD:STATES.IN_PROGRESS;
+  }
+  function actionLabelForState(state){
+    if(state===STATES.FINISHED)return"Read Again";
+    if(state===STATES.IN_PROGRESS)return"Continue";
+    return"Read";
+  }
+  function clearProgressAliases(ids){
+    const aliases=cleanIds(ids);if(!aliases.length)return true;
+    try{
+      for(const id of aliases)localStorage.removeItem(`sg-progress:${id}`);
+      return aliases.every(id=>localStorage.getItem(`sg-progress:${id}`)===null);
+    }catch(error){console.warn("Shadow Garden could not clear reading progress",error);return false}
+  }
+  function clearVolumeProgress(seriesId,volume,index=-1,extra=[]){return clearProgressAliases(volumeAliases(seriesId,volume,index,extra))}
+
   function finishedCount(series){const volumes=Array.isArray(series?.volumes)?series.volumes:[];return volumes.filter((volume,index)=>isVolumeFinished(series?.id,volume,index)).length}
   function seriesFinished(series){const volumes=Array.isArray(series?.volumes)?series.volumes:[];return volumes.length>0&&finishedCount(series)===volumes.length}
 
-  window.ShadowGardenReadingStatus={KEY,MARKER_PREFIX,EVENT,load,isFinished,isAnyFinished,setFinished,setAliasesFinished,migrateFinished,volumeId,stableVolumeId,volumeAliases,isVolumeFinished,setVolumeFinished,finishedCount,seriesFinished};
+  window.ShadowGardenReadingStatus={KEY,MARKER_PREFIX,EVENT,STATES,load,isFinished,isAnyFinished,setFinished,setAliasesFinished,migrateFinished,volumeId,stableVolumeId,volumeAliases,isVolumeFinished,setVolumeFinished,progressForIdentity,progressForAliases,volumeProgress,progressAtBeginning,volumeState,actionLabelForState,clearProgressAliases,clearVolumeProgress,finishedCount,seriesFinished};
 })();

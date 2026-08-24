@@ -11,12 +11,13 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 - [`architecture/MODULE_CONVENTIONS.md`](./architecture/MODULE_CONVENTIONS.md) — post-R1 module naming, ownership, DOM/state, and placement rules.
 - [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning.
 - [`architecture/DOMAIN_LAYER.md`](./architecture/DOMAIN_LAYER.md) — R2 canonical catalog, identity, progress, bookmarks, reading-state, preferences, URL, and formatting services.
-- [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable R0 JS/CSS entrypoint manifest.
-- [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — explicit grandfather list for pre-R1 patch-style source names.
+- [`architecture/PUBLIC_UI_LAYER.md`](./architecture/PUBLIC_UI_LAYER.md) — R3 Library/Series controllers, renderers, shared volume actions, and removed public repair layers.
+- [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable baseline/intentional-replacement entrypoint contract.
+- [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — remaining grandfathered patch-style source plus refactor-proven removals.
 
 ## Active roadmap
 
-- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R2 are complete; R3 is next.
+- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R3 are complete; R4 Reader architecture is next.
 
 ## Completed roadmaps
 
@@ -36,6 +37,4 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## Files intentionally kept at repository root
 
-The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). In short, the root is limited to normal project entry/configuration files and the top-level source directories: README/CHANGELOG, package/config files, `.github/`, `docs/`, `functions/`, `library/`, `src/`, and `tools/`.
-
-Historical planning documents should be archived under `docs/`; generated output belongs in ignored build directories.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/tool directories. Historical planning belongs under `docs/`; generated output belongs in ignored build directories.

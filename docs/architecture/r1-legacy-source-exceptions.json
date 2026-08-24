@@ -2,8 +2,6 @@
   "version": 1,
   "baseline": "v1.15.14",
   "grandfatheredPatchStyleFiles": [
-    "src/assets/js/library-series-polish.js",
-    "src/assets/js/library-finished-polish.js",
     "src/assets/js/reader-polish.js",
     "src/assets/js/reader-v1.10.1.js",
     "src/assets/js/admin-series-editor-polish.js",
@@ -17,6 +15,11 @@
     "src/assets/css/admin-series-editor-polish.css"
   ],
   "removedDeadFiles": [
-    "src/assets/js/library-continue-meta.js"
+    "src/assets/js/library-continue-meta.js",
+    "src/assets/js/library-series-polish.js",
+    "src/assets/js/library-finished-polish.js",
+    "src/assets/js/series-read-again.js",
+    "src/assets/js/series-cover-links.js",
+    "src/assets/css/series-read-again.css"
   ]
 }

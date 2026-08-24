@@ -1,4 +1,4 @@
-# Shadow Garden v1.21.0
+# Shadow Garden v1.22.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -51,6 +51,14 @@ Production: `https://shadowgarden-bon.pages.dev/`
 - Signed EPUB authorization and HTTP Range delivery remain together in the Media service, while M8 public cooldown enforcement deliberately stays outside `/media/*`.
 - Existing `/media/*`, `/book-access`, `/human-access`, `/admin-access`, and `/admin-api/*` URLs and security contracts remain unchanged.
 
+### CSS and design system
+
+- Public Library/Series styling now uses semantic `library-features`, `public-components`, `public-artwork`, and `library-layout` owners instead of release-history `current`/version/alignment sheets.
+- Reader completion/settings and targeted presentation fixes now live in `reader-completion.css` and `reader-presentation.css`; Page Map, Continuous rail, image focus, accessibility, themes, and end-page styles remain feature-owned.
+- Garden Keeper runtime styling now uses explicit Series Editor, workspace layout, components, version, and banner-presentation owners.
+- Main/Adult palettes, Reader Garden/Night/Black/Paper themes, Adult Reader chrome, focus-visible, reduced motion, increased contrast, and forced-colors contracts remain intact.
+- Historical public/Reader/runtime-Keeper patch/version CSS files are deleted and guarded from returning. Two R0-frozen Keeper direct paths remain selector-free import aliases until final R10 entrypoint cleanup.
+
 ## Security baseline
 
 Security Milestones **1–9 are complete**. The accepted v1.15.14 security baseline remains a permanent refactor contract: private B2 origin storage, signed EPUB tickets, opaque `bk_...` identifiers, Garden Pass/Turnstile, acquisition throttling, crawler screening, Reader anti-indexing, signed Garden Keeper sessions, server-side cooldowns, HMAC-derived abuse controls, private Abuse Watch telemetry, and opaque cover keys.
@@ -61,13 +69,14 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The full codebase refactor is incremental: `main` remains deployable, completed security/persistence contracts remain protected by CI, and each milestone replaces duplicate ownership rather than layering another patch.
 
-**R0–R6 are complete. R7 — CSS and design-system consolidation is next.**
+**R0–R7 are complete. R8 — test architecture and fixtures is next.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
 - R4/R4.1 Reader ownership and stabilization: [`docs/architecture/READER_LAYER.md`](./docs/architecture/READER_LAYER.md)
 - R5 Garden Keeper ownership: [`docs/architecture/KEEPER_LAYER.md`](./docs/architecture/KEEPER_LAYER.md)
 - R6 Pages Functions service ownership: [`docs/architecture/FUNCTIONS_LAYER.md`](./docs/architecture/FUNCTIONS_LAYER.md)
+- R7 CSS/design-system ownership: [`docs/architecture/DESIGN_SYSTEM.md`](./docs/architecture/DESIGN_SYSTEM.md)
 - Full plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 
 ### Current architecture
@@ -92,6 +101,15 @@ Main / Adult Library                 Series
   progress · bookmarks · preferences
   storage · urls · format
 
+Public CSS
+  site + nav + adult/series feature layers
+      |
+      +--> library-features
+      +--> public-components
+      +--> public-artwork
+      +--> library-layout
+      +--> shared reading-status / volume-actions / symbols
+
 Reader bootstrap
       |
       v
@@ -108,6 +126,7 @@ reader/app.js
       |
       +--> shared domain/state
       +--> signed /media/* source
+      +--> Reader-scoped CSS/theme owners
 
 Garden Keeper
       |
@@ -121,6 +140,8 @@ admin/core.js + admin/app.js
   ├─ Trash & Recovery
   ├─ Abuse Watch
   └─ version + shell UI
+      |
+      +--> semantic Keeper CSS owners
       |
       v
 single AdminClient
@@ -138,7 +159,7 @@ functions/services/
       +--> private Backblaze B2
 ```
 
-R4/R4.1 established the Reader application and stabilized real-device input. R5 replaced the Garden Keeper browser patch stack with explicit workflow ownership. R6 now makes Pages Function routes thin over explicit services without changing signed tickets, Range behavior, server throttles, opaque identities, or private B2 boundaries. CSS/design-system consolidation remains R7 work.
+R4/R4.1 established the Reader application and stabilized real-device input. R5 replaced the Garden Keeper browser patch stack with explicit workflow ownership. R6 made Pages Function routes thin over explicit services. R7 removes the historical CSS override/version ownership and replaces it with semantic surface/feature/layout owners while preserving the established visual and accessibility variants.
 
 ## Repository layout
 
@@ -157,11 +178,13 @@ R4/R4.1 established the Reader application and stabilized real-device input. R5 
 │  ├─ series.html
 │  ├─ reader.html
 │  ├─ admin.html
-│  └─ assets/js/
-│     ├─ admin/
-│     ├─ domain/
-│     ├─ public/
-│     └─ reader/
+│  └─ assets/
+│     ├─ css/
+│     └─ js/
+│        ├─ admin/
+│        ├─ domain/
+│        ├─ public/
+│        └─ reader/
 ├─ functions/
 │  ├─ services/
 │  ├─ _lib/

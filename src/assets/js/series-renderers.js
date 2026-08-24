@@ -33,7 +33,7 @@ function tagLinks(series, urls, format) {
 }
 
 function volumeCard(series, entry, dependencies) {
-  const { readingState, urls, format } = dependencies;
+  const { readingState, format } = dependencies;
   const esc = format.escapeHtml;
   const { volume, index, state, progress } = entry;
   const action = volumeActionFor(series, volume, index);
@@ -71,7 +71,7 @@ export function seriesMarkup(series, dependencies) {
 
   return `
     <section class="series-hero">
-      ${backdrop ? `<div class="series-backdrop" aria-hidden="true" style="background-image:url(${JSON.stringify(backdrop)})"></div>` : ""}
+      ${backdrop ? `<div class="series-backdrop" aria-hidden="true" style="background-image:url('${esc(backdrop)}')"></div>` : ""}
       <div class="series-hero-inner">
         ${cover ? `<img class="series-cover" src="${esc(cover)}" alt="${esc(series?.title)} cover" loading="eager" decoding="async" fetchpriority="high">` : `<div class="series-cover-fallback">${esc(series?.title)}</div>`}
         <div class="series-info">

@@ -28,6 +28,6 @@
   }
 
   const observer=new MutationObserver(wireVolumeCovers);
-  observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:["data-reading-state","data-volume-state"]});
+  observer.observe(root,{childList:true,subtree:true});
   wireVolumeCovers();
 })();

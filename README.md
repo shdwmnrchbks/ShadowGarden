@@ -1,4 +1,4 @@
-# Shadow Garden v1.22.0
+# Shadow Garden v1.23.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -49,15 +49,25 @@ Production: `https://shadowgarden-bon.pages.dev/`
 - One B2 transport owner for private object reads/writes, object-key validation, and storage configuration.
 - One server catalog owner for Main/Adult persistence, upload mutations, Library/Series edits, banners, backups, Trash, recovery, purge, and Maintenance commits.
 - Signed EPUB authorization and HTTP Range delivery remain together in the Media service, while M8 public cooldown enforcement deliberately stays outside `/media/*`.
+- Signed EPUB tickets normalize only under `/media/shadow-garden/books/`; R8 added a permanent traversal/namespace regression case.
 - Existing `/media/*`, `/book-access`, `/human-access`, `/admin-access`, and `/admin-api/*` URLs and security contracts remain unchanged.
 
 ### CSS and design system
 
-- Public Library/Series styling now uses semantic `library-features`, `public-components`, `public-artwork`, and `library-layout` owners instead of release-history `current`/version/alignment sheets.
-- Reader completion/settings and targeted presentation fixes now live in `reader-completion.css` and `reader-presentation.css`; Page Map, Continuous rail, image focus, accessibility, themes, and end-page styles remain feature-owned.
-- Garden Keeper runtime styling now uses explicit Series Editor, workspace layout, components, version, and banner-presentation owners.
+- Public Library/Series styling uses semantic `library-features`, `public-components`, `public-artwork`, and `library-layout` owners instead of release-history `current`/version/alignment sheets.
+- Reader completion/settings and targeted presentation fixes live in `reader-completion.css` and `reader-presentation.css`; Page Map, Continuous rail, image focus, accessibility, themes, and end-page styles remain feature-owned.
+- Garden Keeper runtime styling uses explicit Series Editor, workspace layout, components, version, and banner-presentation owners.
 - Main/Adult palettes, Reader Garden/Night/Black/Paper themes, Adult Reader chrome, focus-visible, reduced motion, increased contrast, and forced-colors contracts remain intact.
 - Historical public/Reader/runtime-Keeper patch/version CSS files are deleted and guarded from returning. Two R0-frozen Keeper direct paths remain selector-free import aliases until final R10 entrypoint cleanup.
+
+### Test architecture
+
+- Four deterministic layers: `tests/unit/`, `tests/service/`, `tests/dom/`, and `tests/browser/`.
+- Node 22's built-in test runner powers all layers; R8 adds no test framework or headless-browser dependency.
+- Shared fixtures cover Main/Adult shelves, single/multi-volume series, deliberately long metadata, visual cover/map/illustration XHTML pages, normal chapter XHTML, reading-state variants, and valid/tampered/expired media tickets.
+- Priority browser-contract smoke covers **Read → Continue → Finished → Read Again**, bookmark preservation, Adult isolation, Pages vs Continuous input, image-focus isolation, and Garden Keeper composition/unlock boundaries.
+- Service tests exercise real media-ticket, Keeper-session, validation, and Garden Health modules offline.
+- `npm test` runs all behavioral layers; `npm run check` combines Security Milestones 1–9, R0–R8 guardrails, and the behavioral suite before every production build.
 
 ## Security baseline
 
@@ -69,7 +79,7 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The full codebase refactor is incremental: `main` remains deployable, completed security/persistence contracts remain protected by CI, and each milestone replaces duplicate ownership rather than layering another patch.
 
-**R0–R7 are complete. R8 — test architecture and fixtures is next.**
+**R0–R8 are complete. R9 — build and deployment cleanup is next.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -77,6 +87,7 @@ The full codebase refactor is incremental: `main` remains deployable, completed 
 - R5 Garden Keeper ownership: [`docs/architecture/KEEPER_LAYER.md`](./docs/architecture/KEEPER_LAYER.md)
 - R6 Pages Functions service ownership: [`docs/architecture/FUNCTIONS_LAYER.md`](./docs/architecture/FUNCTIONS_LAYER.md)
 - R7 CSS/design-system ownership: [`docs/architecture/DESIGN_SYSTEM.md`](./docs/architecture/DESIGN_SYSTEM.md)
+- R8 layered tests/fixtures: [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITECTURE.md)
 - Full plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 
 ### Current architecture
@@ -157,9 +168,22 @@ functions/services/
       |
       +--> signed session/ticket/throttle primitives
       +--> private Backblaze B2
+
+Regression architecture
+      |
+      v
+    tests/
+  ├─ unit      -> domain/model/input helpers
+  ├─ service   -> auth/media/validation services
+  ├─ dom       -> renderer contracts
+  └─ browser   -> browser-facing smoke flows
+      |
+      +--> shared deterministic fixtures/helpers
+      +--> tools/run-tests.mjs
+      +--> tools/check-r8.mjs
 ```
 
-R4/R4.1 established the Reader application and stabilized real-device input. R5 replaced the Garden Keeper browser patch stack with explicit workflow ownership. R6 made Pages Function routes thin over explicit services. R7 removes the historical CSS override/version ownership and replaces it with semantic surface/feature/layout owners while preserving the established visual and accessibility variants.
+R4/R4.1 established the Reader application and stabilized real-device input. R5 replaced the Garden Keeper browser patch stack with explicit workflow ownership. R6 made Pages Function routes thin over explicit services. R7 replaced historical CSS override/version ownership with semantic surface owners. R8 adds reusable deterministic behavioral coverage around those owners and caught/tightened the signed-EPUB books-namespace boundary.
 
 ## Repository layout
 
@@ -193,7 +217,15 @@ R4/R4.1 established the Reader application and stabilized real-device input. R5 
 │  ├─ human-access.js
 │  ├─ admin-access.js
 │  └─ admin-api/*.js
+├─ tests/
+│  ├─ unit/
+│  ├─ service/
+│  ├─ dom/
+│  ├─ browser/
+│  ├─ fixtures/
+│  └─ helpers/
 └─ tools/
+   ├─ run-tests.mjs
    ├─ build.mjs
    ├─ write-source.mjs
    └─ check*.mjs
@@ -243,6 +275,11 @@ Use Node.js 22.
 
 ```bash
 npm install
+npm test
+npm run test:unit
+npm run test:service
+npm run test:dom
+npm run test:browser
 npm run check
 npm run build
 npm run preview

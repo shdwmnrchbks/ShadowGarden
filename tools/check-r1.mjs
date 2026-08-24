@@ -32,7 +32,7 @@ const [pkgText,roadmap,docsIndex,conventions,buildContract,workflow,nvmrc,buildS
 const pkg=JSON.parse(pkgText);
 const legacy=JSON.parse(legacyText);
 
-const allowedRoot=new Set([".env.b2.example",".github",".gitignore",".nvmrc","CHANGELOG.md","README.md","docs","functions","library","package.json","package-lock.json","src","tools"]);
+const allowedRoot=new Set([".env.b2.example",".github",".gitignore",".nvmrc","CHANGELOG.md","README.md","docs","functions","library","package.json","package-lock.json","src","tests","tools"]);
 for(const entry of await fs.readdir(ROOT,{withFileTypes:true})){
   if(entry.name===".git"||entry.name==="node_modules"||entry.name==="dist")continue;
   if(!allowedRoot.has(entry.name))fail(`unexpected repository-root entry: ${entry.name}`);

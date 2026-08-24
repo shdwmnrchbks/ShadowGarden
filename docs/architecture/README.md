@@ -12,7 +12,7 @@ This directory is the refactor contract surface for Shadow Garden. It begins wit
 ## R1 repository/tooling contracts
 
 - [`MODULE_CONVENTIONS.md`](./MODULE_CONVENTIONS.md) — naming, ownership, DOM/state, CSS, dependency direction, and placement conventions.
-- [`BUILD_CONTRACT.md`](./BUILD_CONTRACT.md) — authored/generated boundaries, root policy, Node/CI policy, dependency strategy, and asset cache-busting.
+- [`BUILD_CONTRACT.md`](./BUILD_CONTRACT.md) — authored/generated boundaries, root policy, Node/CI policy, dependency strategy, asset cache-busting, and the R8 `tests/` source boundary.
 - [`r1-legacy-source-exceptions.json`](./r1-legacy-source-exceptions.json) — grandfathered v1 patch-style files plus refactor-proven removals.
 
 ## R2 shared browser domain
@@ -56,6 +56,17 @@ R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs 
 - Public/Keeper foundation tokens remain intentionally scoped to `site.css`; Reader chrome/theme tokens remain scoped to `reader.css` and `reader-interface-themes.css`.
 - The two R0-frozen Keeper direct historical CSS paths are selector-free aliases only; real styling lives in `admin-series-editor.css` and `admin-layout.css` until final R10 entrypoint cleanup.
 
+## R8 test architecture and fixtures
+
+- [`TEST_ARCHITECTURE.md`](./TEST_ARCHITECTURE.md) — layered deterministic testing introduced in v1.23.0.
+- `tests/unit/` covers pure/domain and browser-local state/model/input behavior.
+- `tests/service/` exercises real server modules for signed media tickets, Keeper bearer + signed-session authorization, upload/catalog validation, and Garden Health without external network calls.
+- `tests/dom/` exercises public renderer ownership with narrow deterministic DOM doubles.
+- `tests/browser/` provides browser-contract smoke coverage for Main/Adult/Series/Reader/Keeper entrypoints, visual EPUB XHTML pages, Pages vs Continuous input behavior, isolated image focus, and the priority **Read → Continue → Finished → Read Again** flow.
+- Shared fixtures cover Main/Adult, single/multi-volume, long metadata, visual cover/map/illustration pages, reading-state variants, and valid/tampered/expired media tickets.
+- R8's service tests exposed and corrected a signed-ticket namespace gap: EPUB tickets now normalize only under `/media/shadow-garden/books/`, so a normalized traversal cannot escape the canonical books namespace.
+- The suite uses Node 22's built-in test runner; R8 adds no test framework or headless-browser dependency. A deliberate dependency/browser-runner decision remains R9/R10 work.
+
 ## Permanent guardrails
 
 - `tools/check-r0.mjs` protects frozen behavior/security/persistence contracts when owners move.
@@ -67,5 +78,6 @@ R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs 
 - `tools/check-r5.mjs` protects the Garden Keeper shell/client/session ownership and isolated workflows.
 - `tools/check-r6.mjs` protects thin Functions routes, explicit service ownership, storage/validation boundaries, and the signed Range/M8 security separation.
 - `tools/check-r7.mjs` protects semantic CSS cascade order, surface ownership, accessibility/variant rules, cache freshness, and retirement of historical patch/version layers.
+- `tools/check-r8.mjs` protects the four test layers, required fixture families, priority reading/Reader/Keeper/security smoke coverage, package scripts, documentation, and v1.23.0 milestone status.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

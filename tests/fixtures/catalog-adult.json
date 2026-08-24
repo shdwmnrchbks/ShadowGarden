@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "series": [
+    {
+      "id": "adult-night-orchid",
+      "title": "Night Orchid",
+      "author": "Restricted Fixture Author",
+      "year": 2025,
+      "status": "on hiatus",
+      "nsfw": true,
+      "tags": ["Romance", "Drama", "on hiatus"],
+      "description": "A separate Adult shelf fixture used to verify scope isolation without sharing public identifiers with the Main archive.",
+      "cover": "/media/shadow-garden/covers/cv_fixtureadult000000001-detail.webp",
+      "coverThumb": "/media/shadow-garden/covers/cv_fixtureadult000000001-thumb.webp",
+      "volumes": [
+        {
+          "number": 1,
+          "title": "Night Orchid I",
+          "year": 2025,
+          "bookId": "bk_5555555555555555555555",
+          "file": "bk_5555555555555555555555",
+          "added": "2026-08-19T10:00:00Z"
+        },
+        {
+          "number": 2,
+          "title": "Night Orchid II",
+          "year": 2025,
+          "bookId": "bk_6666666666666666666666",
+          "file": "bk_6666666666666666666666",
+          "added": "2026-08-24T10:00:00Z"
+        }
+      ]
+    }
+  ]
+}

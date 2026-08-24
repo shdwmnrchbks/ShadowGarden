@@ -1,0 +1,33 @@
+{
+  "spine": [
+    {
+      "href": "text/cover.xhtml",
+      "kind": "cover",
+      "visualOnly": true,
+      "image": "images/cover.webp",
+      "expectedObjectFit": "contain"
+    },
+    {
+      "href": "text/western-continent-map.xhtml",
+      "kind": "map",
+      "visualOnly": true,
+      "image": "images/western-continent-map.png",
+      "expectedObjectFit": "contain"
+    },
+    {
+      "href": "text/illustration-01.xhtml",
+      "kind": "illustration",
+      "visualOnly": true,
+      "image": "images/illustration-01.webp",
+      "expectedObjectFit": "contain"
+    },
+    {
+      "href": "text/chapter-01.xhtml",
+      "kind": "chapter",
+      "visualOnly": false,
+      "expectedObjectFit": null
+    }
+  ],
+  "viewport": {"width": 720, "height": 960},
+  "edgeInset": 18
+}

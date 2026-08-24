@@ -101,7 +101,7 @@ for(const marker of ["/assets/css/public-components.css","/assets/css/public-art
 
 for(const marker of ["CSS & Design-System Layer","Public Library + Series ownership","Reader ownership","Garden Keeper ownership","Keeper compatibility aliases","Accessibility and variant contracts","Permanent R7 guard"]){if(!entries.architecture.includes(marker))fail(`DESIGN_SYSTEM.md is missing ${marker}`)}
 if(!entries.roadmap.includes("R7. CSS and design-system consolidation | ✅ Done"))fail("Refactor roadmap must record R7 complete");
-if(!entries.roadmap.includes("R8. Test architecture and fixtures | ⬜ Planned"))fail("R8 must be the next planned refactor milestone");
+if(!entries.roadmap.includes("R8. Test architecture and fixtures |"))fail("R8 milestone must remain present after R7");
 if(!semverAtLeast(pkg.version,"1.22.0"))fail(`R7 requires v1.22.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r7.mjs"))fail("tools/check-r7.mjs must remain in npm run check");
 

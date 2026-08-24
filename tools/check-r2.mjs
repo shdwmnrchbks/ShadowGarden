@@ -14,8 +14,8 @@ globalThis.dispatchEvent=()=>true;
 globalThis.CustomEvent=class{constructor(type,init={}){this.type=type;this.detail=init.detail}};
 const importFresh=relative=>import(`${pathToFileURL(path.join(ROOT,relative)).href}?r2=${Date.now()}-${Math.random()}`);
 
-const [pkgText,roadmap,headers,facade,dataSource,readerStorage,library,series,mobileFilter,navPinned,readerBootstrap,volumeActions]=await Promise.all([
-  read("package.json"),read("docs/roadmaps/REFACTOR_ROADMAP.md"),read("src/_headers"),read("src/assets/js/reading-status.js"),read("src/assets/js/data-source.js"),read("src/assets/js/reader/storage.js"),read("src/assets/js/library.js"),read("src/assets/js/series.js"),read("src/assets/js/library-mobile-filter.js"),read("src/assets/js/nav-pinned.js"),read("src/assets/js/reader-bootstrap.js"),read("src/assets/js/public/volume-actions.js")
+const [pkgText,roadmap,headers,facade,dataSource,readerStorage,readerSession,readerApp,readerBootstrap,library,series,mobileFilter,navPinned,volumeActions]=await Promise.all([
+  read("package.json"),read("docs/roadmaps/REFACTOR_ROADMAP.md"),read("src/_headers"),read("src/assets/js/reading-status.js"),read("src/assets/js/data-source.js"),read("src/assets/js/reader/storage.js"),read("src/assets/js/reader/book-session.js"),read("src/assets/js/reader/app.js"),read("src/assets/js/reader-bootstrap.js"),read("src/assets/js/library.js"),read("src/assets/js/series.js"),read("src/assets/js/library-mobile-filter.js"),read("src/assets/js/nav-pinned.js"),read("src/assets/js/public/volume-actions.js")
 ]);
 
 for(const file of ["index.js","storage.js","book-identity.js","catalog.js","progress.js","bookmarks.js","preferences.js","reading-state.js","urls.js","format.js"]){try{await fs.access(path.join(ROOT,"src/assets/js/domain",file))}catch{fail(`R2 domain module is missing: ${file}`)}}
@@ -45,15 +45,18 @@ if(!urls.readerUrl(publicId,seriesId,{restart:true}).includes("restart=1")||form
 
 if(!facade.includes('./domain/reading-state.js')||!facade.includes('window.ShadowGardenReadingStatus'))fail("reading-status compatibility facade drifted");
 if(!dataSource.includes('domain.catalog.normalizeCatalog')||dataSource.includes('for(let i=0;i<localStorage.length'))fail("data-source must delegate catalog/state migration to R2");
-for(const marker of ['../domain/progress.js','../domain/bookmarks.js','canonicalIdentity'])if(!readerStorage.includes(marker))fail(`Reader storage is missing ${marker}`);
-for(const [name,source] of [["Library",library],["Series",series],["mobile filter",mobileFilter],["pinned navigation",navPinned],["Reader bootstrap",readerBootstrap]])if(source.includes('localStorage.'))fail(`${name} must not bypass R2 persistence owners`);
+for(const marker of ['../domain/progress.js','../domain/bookmarks.js','canonicalIdentity','publicIdentity'])if(!readerStorage.includes(marker))fail(`Reader storage is missing ${marker}`);
+if(readerStorage.includes('__sgReaderPublicBookId')||readerStorage.includes('localStorage.'))fail("Reader storage must receive explicit session identities and use R2 persistence services");
+for(const [name,source] of [["Library",library],["Series",series],["mobile filter",mobileFilter],["pinned navigation",navPinned],["Reader app",readerApp],["Reader session",readerSession],["Reader bootstrap",readerBootstrap]])if(source.includes('localStorage.'))fail(`${name} must not bypass R2 persistence owners`);
 for(const marker of ['preferences.libraryView','preferences.setLibraryView','isReadingStorageKey'])if(!library.includes(marker))fail(`Library is missing R2 marker ${marker}`);
 for(const marker of ['readingState.EVENT','preferences.setPinned','catalog.seriesById'])if(!series.includes(marker))fail(`Series is missing R2 marker ${marker}`);
 if(!mobileFilter.includes('preferences.mobileFiltersCollapsed')||!navPinned.includes('preferences.pinnedIds'))fail("preference consumers must use R2 services");
-for(const marker of ['domain.urls','readingState.clearProgressAliases','catalog.findVolumeEntry'])if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing ${marker}`);
-if(readerBootstrap.includes('setInterval(sync,500)'))fail("obsolete Reader progress mirror returned");
+for(const marker of ['readingState.clearProgressAliases','catalog.findVolumeEntry','preferences.adultAcknowledged','publicBookId','sourcePath'])if(!readerSession.includes(marker))fail(`Reader session is missing R2 marker ${marker}`);
+for(const marker of ['createReaderStorage','session.sourcePath','session.publicBookId'])if(!readerApp.includes(marker))fail(`Reader app is missing explicit R2 storage/session marker ${marker}`);
+for(const marker of ['createAuthorizedBookSession','startReader'])if(!readerBootstrap.includes(marker))fail(`Reader bootstrap is missing R4/R2 handoff marker ${marker}`);
+if(readerBootstrap.includes('setInterval(sync,500)')||readerBootstrap.includes('ReaderURLSearchParams'))fail("obsolete Reader persistence/URL mirror returned");
 for(const marker of ['catalog.findVolumeEntry','readingState.clearVolumeProgress','readingState.setVolumeFinished'])if(!volumeActions.includes(marker))fail(`public Read Again pipeline must reset through R2 service: ${marker}`);
-if(!headers.includes('/assets/js/domain/*'))fail("R2 domain modules must retain fresh-cache headers");
+if(!headers.includes('/assets/js/domain/*')||!headers.includes('/assets/js/reader/*'))fail("R2 domain/Reader modules must retain fresh-cache headers");
 
 const pkg=JSON.parse(pkgText);const [major,minor]=pkg.version.split('.').map(Number);
 if(major<1||(major===1&&minor<16))fail(`R2 baseline requires v1.16.0 or newer, found ${pkg.version}`);

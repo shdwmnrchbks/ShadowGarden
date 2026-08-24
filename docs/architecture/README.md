@@ -25,11 +25,19 @@ This directory is the refactor contract surface for Shadow Garden. It begins wit
 - [`PUBLIC_UI_LAYER.md`](./PUBLIC_UI_LAYER.md) — Library/Series controllers, query/render ownership, shared volume actions, refresh lifecycle, and removed post-render repair layers introduced in v1.17.0.
 - Implementations: `library.js`, `library-model.js`, `library-renderers.js`, `series.js`, `series-renderers.js`, and `public/volume-actions.js`.
 
+## R4 Reader application
+
+- [`READER_LAYER.md`](./READER_LAYER.md) — explicit authorized book session, Reader orchestrator, rendition/Page/Continuous adapters, canonical progress/bookmark/completion/settings ownership, retained EPUB.js compatibility boundaries, and session-only viewport zoom introduced in v1.18.0.
+- Implementation: `src/assets/js/reader/`, with `reader-bootstrap.js` as the protected startup entrypoint.
+
+R4 removes the old monolithic Reader, gesture hook, swipe/wheel polish, flow-visibility patch, and separate Finished controller. Pinch/pan/double-tap/desktop zoom is deliberately a visual viewport transform and must never become Page Map or saved-position geometry.
+
 ## Permanent guardrails
 
 - `tools/check-r0.mjs` protects frozen behavior/security/persistence contracts when owners move.
 - `tools/check-r1.mjs` protects repository layout, source naming, build boundaries, CI pins, dead-file removal, and asset versioning.
 - `tools/check-r2.mjs` protects canonical domain/state ownership and Unread / In Progress / Finished transitions.
 - `tools/check-r3.mjs` protects single-owner Library/Series rendering and parity across all volume entry points.
+- `tools/check-r4.mjs` protects explicit Reader session/feature ownership, zoom-vs-layout separation, and retirement of competing Reader controllers.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

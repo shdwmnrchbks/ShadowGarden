@@ -1,124 +1,145 @@
-# Shadow Garden v1.8
+# Shadow Garden v1.15.14
 
-Shadow Garden is a self-hosted EPUB library and browser reader built for Cloudflare Pages. EPUBs, covers, and catalogs live in a **private Backblaze B2 bucket** and are delivered through same-origin Cloudflare Pages Functions. Private administration is handled by the phone-friendly **Garden Keeper** console.
+Shadow Garden is a self-hosted EPUB library and browser reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
 ## Current feature set
 
 ### Library
-- Separate Main and 18+ / Adult archives.
-- Dark garden-library interface with a rose/wine Adult palette.
-- Recently Added shelf and Continue Reading card.
-- Search across series metadata and volume titles.
-- Author, year, volume-count, pinned, and exact multi-tag filters.
-- URL-persisted filter, sort, and view state with browser Back/Forward restoration.
-- Grid and Compact catalog views with incremental rendering.
-- Mobile-only collapsible filters while desktop/tablet filters stay expanded.
-- Pinned series in the archive cards and navigation sidebar.
-- Scope-aware Main/Adult navigation.
-- Browser-local reading state; there are no reader accounts.
 
-### EPUB reader
-- EPUB.js-based browser reader with **Pages** and **Continuous** modes.
+- Separate Main and 18+ / Adult archives.
+- Dark moonlit garden-library interface with a distinct Adult palette.
+- Recently Added shelf plus progress-aware Read/Continue banner.
+- Search across series metadata and volume titles.
+- Author, year, volume-count, reading-status, pinned, and exact multi-tag filters.
+- URL-persisted filters, sort, and view state with browser Back/Forward restoration.
+- Grid and Compact views with incremental rendering.
+- Browser-local reading state; there are no reader accounts.
+- Canonical volume states:
+  - **Unread** → Read
+  - **In Progress** → Continue
+  - **Finished** → Read Again
+
+### EPUB Reader
+
+- EPUB.js-based Reader with **Pages** and **Continuous** modes.
 - Canonical device Page Map shared between both reading modes.
-- Persistent progress, bookmarks, themes, typeface, font size, line height, and text width.
-- First-run Visual Page Cache for standalone covers and illustration pages.
-- WebP preparation for compatible visual-only pages with safe fallbacks.
-- Dedicated paginated visual-page fitting.
-- Single-owner Continuous controller with bounded neighboring spine buffering, idle trimming, location reporting, seek deduplication, and end-of-volume handling.
+- Persistent progress, bookmarks, themes, typography, and layout preferences.
+- Visual Page Cache and fitting for standalone covers/illustration pages.
 - Mobile swipe/tap navigation in Pages mode and desktop mouse-wheel page turns.
 - Continuous vertical seek rail and page-aware progress display.
-- Table of contents, bookmarks, fullscreen/distraction-free reading, and next-volume completion flow.
-- Interface themes plus reduced-motion, increased-contrast, forced-colors, and keyboard accessibility support.
+- Table of contents, bookmarks, fullscreen, end-of-volume navigation, and next-volume flow.
+- Finished toggle on the volume end page.
+- Read Again confirmation clears progress + Finished state, preserves bookmarks, and returns to page 1.
+- Accessibility support for keyboard navigation, reduced motion, increased contrast, and forced colors.
 
 ### Garden Keeper
-- Token-protected administration console at `/admin.html`.
-- Manage Library is the permanent post-unlock home.
-- New Books, Maintenance, and Series Editor run as focused modal workflows.
-- Direct **+ Add book** targeting an exact existing series and shelf.
-- Multi-EPUB upload queue with local browser inspection before upload.
-- Reader-focused EPUB preflight checks.
-- Duplicate detection and **Skip / Replace / Add Separate** policies.
-- Stateful upload progress and success/partial-completion screens.
-- Multi-series completion chooser with cover cards.
-- Metadata editing and Main/18+ shelf movement.
-- Cover extraction and WebP derivatives.
-- Series-level Audio EPUB link support.
-- Maintenance tools for Garden Health, deep B2 checks, legacy-cover optimization, Catalog History, Trash, restore, backup deletion, and protected permanent purge.
 
-The previously planned PWA/offline-books milestone was intentionally scrapped and is not part of Shadow Garden.
+- Turnstile + Keeper-token protected administration console at `/admin.html`.
+- Signed server-side admin sessions for `/admin-api/*`.
+- Manage Library, New Books, Maintenance, Series Editor, and Abuse Watch workflows.
+- Multi-EPUB upload queue with local browser inspection and Reader-focused preflight checks.
+- Duplicate detection with Skip / Replace / Add Separate policies.
+- Metadata editing, shelf movement, series status/banner management, and Audio EPUB links.
+- Opaque random `cv_...` cover object names for new uploads.
+- Catalog History, Garden Health/deep B2 checks, cover optimization, Trash, restore, backup deletion, and protected permanent purge.
+- Centered deployed-version/commit information in the Keeper footer.
+
+## Security baseline
+
+Security Milestones **1–9 are complete** as of 2026-08-24. The accepted v1.15.14 baseline includes:
+
+- private B2 origin storage;
+- signed EPUB access tickets;
+- opaque public `bk_...` book IDs;
+- Turnstile-backed Garden Pass sessions;
+- bulk-acquisition throttling;
+- crawler/script screening on protected acquisition endpoints;
+- Reader anti-indexing policy;
+- signed Garden Keeper sessions and server-side cross-session cooldowns;
+- HMAC-derived abuse tripwires and private Abuse Watch telemetry;
+- opaque new cover identifiers;
+- final Reader/Library/Garden Keeper regression audit.
+
+The complete record is in [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
+
+## Active roadmap
+
+The next project phase is a **full codebase refactor**. See:
+
+[`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
+
+The refactor is intentionally incremental: `main` must remain deployable, current Reader behavior must stay stable, and the completed security baseline is treated as a contract.
 
 ## Architecture
 
 ```text
 GitHub repository
-  static source + Pages Functions + non-secret B2 configuration
+  authored static source + Pages Functions + validation tools
         |
         v
 Cloudflare Pages
-  dist/ static library, reader, Garden Keeper
+  dist/ static Library, Reader, Garden Keeper
+        |
+        +--> /book-access + /human-access
+        |      acquisition / Garden Pass boundary
         |
         +--> /media/*
-        |      read-only Pages Function
+        |      signed read-only EPUB/media proxy
         |          |
         |          v
         |    private Backblaze B2
         |
+        +--> /admin-access
+        |      Keeper Gate
+        |
         +--> /admin-api/*
-               SG_ADMIN_TOKEN protected Functions
+               token + signed admin session
                     |
                     v
           B2 writes + catalog maintenance
 ```
 
-Storage configuration has one backend source of truth in `functions/_lib/b2.js`. Public media delivery and all admin routes use the same bucket/endpoint/key conventions.
+Storage configuration has one backend source of truth in `functions/_lib/b2.js`. Public media delivery and admin routes use the same bucket/endpoint/key conventions while preserving separate read/write credentials.
 
-## Source layout
+## Repository layout
 
 ```text
-src/
-├─ index.html                 Main archive
-├─ nsfw.html                  Adult archive
-├─ series.html                Series page
-├─ reader.html                EPUB reader shell
-├─ admin.html                 Garden Keeper shell
-└─ assets/
-   ├─ css/
-   │  ├─ site.css             Base public UI
-   │  ├─ site-current.css     Current public polish layer
-   │  ├─ reader*.css          Reader UI/layout modules
-   │  ├─ admin*.css           Garden Keeper modules
-   │  └─ admin-current.css    Current Keeper workflow polish
-   └─ js/
-      ├─ library*.js          Archive behavior
-      ├─ series*.js           Series behavior
-      ├─ reader.js            Reader application
-      ├─ reader/              Page Map, storage, theme, TOC
-      ├─ reader-continuous-core.js
-      ├─ reader-visual-cache.js
-      ├─ reader-paginated-visual-fit.js
-      ├─ admin*.js            Base Keeper controllers
-      ├─ admin-upload-workflow.js
-      ├─ admin-upload-completion.js
-      ├─ admin-upload-polish.js
-      └─ admin-backup-history.js
-
-functions/
-├─ _lib/
-│  ├─ b2.js
-│  └─ garden-maintenance.js
-├─ media/[[path]].js
-└─ admin-api/*.js
-
-tools/
-├─ build.mjs
-├─ write-source.mjs
-├─ check.mjs
-└─ B2 desktop utilities
+.
+├─ README.md
+├─ CHANGELOG.md
+├─ docs/
+│  ├─ README.md
+│  ├─ roadmaps/
+│  │  ├─ REFACTOR_ROADMAP.md
+│  │  └─ SECURITY_ROADMAP.md
+│  ├─ security/
+│  │  └─ completed milestone records
+│  └─ style/
+│     └─ SITE_VOICE.md
+├─ src/
+│  ├─ index.html
+│  ├─ nsfw.html
+│  ├─ series.html
+│  ├─ reader.html
+│  ├─ admin.html
+│  └─ assets/
+├─ functions/
+│  ├─ _lib/
+│  ├─ media/[[path]].js
+│  ├─ book-access.js
+│  ├─ human-access.js
+│  ├─ admin-access.js
+│  └─ admin-api/*.js
+└─ tools/
+   ├─ build.mjs
+   ├─ write-source.mjs
+   ├─ check.mjs
+   └─ milestone/regression checks
 ```
 
-Historical Continuous-mode patch controllers from v1.1-v1.3 are intentionally removed. `reader-continuous-core.js` is the sole Continuous manager owner.
+The v1.x source still contains several `*-polish`, compatibility, and version-specific override modules. Removing those safely is a primary goal of the active Refactor Roadmap rather than something to hide in the current layout documentation.
 
 ## Backblaze B2
 
@@ -131,37 +152,17 @@ Region:   us-east-005
 Proxy:    /media
 ```
 
-Catalog keys:
+Primary data namespaces include:
 
 ```text
-shadow-garden/data/catalog.json
-shadow-garden/data/adult-catalog.json
+shadow-garden/books/
+shadow-garden/covers/
+shadow-garden/data/
+shadow-garden/backups/
+shadow-garden/security/
 ```
 
-Maintenance data:
-
-```text
-shadow-garden/data/trash.json
-shadow-garden/backups/catalog-index.json
-shadow-garden/backups/catalogs/*.json
-```
-
-Typical object layout:
-
-```text
-shadow-garden/
-├─ books/<series-id>/*.epub
-├─ covers/*
-├─ data/
-│  ├─ catalog.json
-│  ├─ adult-catalog.json
-│  └─ trash.json
-└─ backups/
-   ├─ catalog-index.json
-   └─ catalogs/*.json
-```
-
-The B2 bucket stays private. Cataloged objects become readable through the same-origin `/media/...` proxy; Backblaze credentials are never exposed to the browser.
+The B2 bucket stays private. Backblaze credentials and direct private EPUB delivery URLs are never exposed as the normal public delivery mechanism.
 
 ## Required Cloudflare secrets
 
@@ -173,11 +174,13 @@ B2_READ_APPLICATION_KEY
 B2_WRITE_KEY_ID
 B2_WRITE_APPLICATION_KEY
 SG_ADMIN_TOKEN
+SG_MEDIA_SIGNING_SECRET
+TURNSTILE_SECRET_KEY
 ```
 
-Use separate read and write Backblaze keys where possible, restricted to `shadow-garden-books-01` and optionally the `shadow-garden/` prefix.
+Use separate read and write Backblaze keys where possible and restrict them to the Shadow Garden bucket/prefix.
 
-Never commit application keys or `SG_ADMIN_TOKEN`.
+Never commit application keys, signing secrets, Turnstile secrets, or `SG_ADMIN_TOKEN`.
 
 ## Cloudflare Pages settings
 
@@ -189,11 +192,12 @@ Build output directory: dist
 Root directory:         repository root
 ```
 
-`npm run build` automatically runs the repository health check first.
+Shadow Garden intentionally remains compatible with the free `pages.dev` deployment. A custom domain is not required.
 
 ## Development and validation
 
 Requirements:
+
 - Node.js 22 recommended
 - npm
 
@@ -203,20 +207,11 @@ Install:
 npm install
 ```
 
-Run the repository audit without building:
+Run the complete repository/security/regression suite:
 
 ```bash
 npm run check
 ```
-
-The checker currently validates:
-- JavaScript/MJS syntax across `src`, `functions`, and `tools`;
-- JSON syntax across source/configuration files;
-- duplicate static HTML IDs;
-- local HTML asset references;
-- runtime `/assets/...` references used by JavaScript;
-- asset paths declared in `_headers`;
-- absence of retired compatibility files that must not return.
 
 Build:
 
@@ -230,7 +225,7 @@ Preview the generated `dist/` directory:
 npm run preview
 ```
 
-Pull requests and `main` also run `.github/workflows/verify.yml`, which executes the same repository check on Node 22.
+Pull requests and `main` run `.github/workflows/verify.yml`, which executes the repository check on Node 22 before changes are accepted.
 
 Optional desktop B2 utilities:
 
@@ -239,33 +234,22 @@ npm run b2:setup
 npm run b2:upload -- "path/to/book.epub"
 ```
 
-Normal Garden Keeper administration does not require them.
+Normal Garden Keeper administration does not require the desktop utilities.
 
 ## Browser-local data
 
-Shadow Garden intentionally has no reader accounts. Reading/preferences state is stored locally, including keys such as:
+Shadow Garden intentionally has no Reader accounts. Progress, bookmarks, Finished state, pinned state, Reader settings, Library view/filter preferences, and Adult acknowledgement remain local to the browser/profile.
 
-```text
-sg-progress:<bookUrl>
-sg-reader-settings
-sg-bookmarks:<bookUrl>
-sg-pinned
-sg-adult-ack
-sg-view:<library>
-sg-filters-collapsed:<library>
-sg-reader-polish-settings
-```
+Clearing site data or changing browser/profile removes that local reading/preference state.
 
-Clearing site data or changing browser/profile removes that local state.
+## Documentation
 
-## Security notes
+Start with [`docs/README.md`](./docs/README.md).
 
-- B2 stays private and uses separate read/write credentials.
-- Garden Keeper mutations require `SG_ADMIN_TOKEN`.
-- Admin routes validate managed object keys against the Shadow Garden namespace.
-- `/admin.html` is `noindex` and is not linked as a normal public navigation destination.
-- The concealed Garden Keeper shortcut is only a convenience; it is not authentication.
-- The Adult Library acknowledgement is a client-side gate, not parental control or authentication.
+- Active refactor plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
+- Completed security plan: [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md)
+- Final security audit: [`docs/security/MILESTONE_9_FINAL_AUDIT.md`](./docs/security/MILESTONE_9_FINAL_AUDIT.md)
+- Site copy/tone rules: [`docs/style/SITE_VOICE.md`](./docs/style/SITE_VOICE.md)
 
 ## Release history
 

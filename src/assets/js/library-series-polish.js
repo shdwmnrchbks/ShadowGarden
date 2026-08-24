@@ -1,15 +1,11 @@
-/* Shadow Garden v1.15.0 — public archive/series presentation polish. */
-(()=>{
-  const arr=value=>Array.isArray(value)?value:[];
-  const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
+/* Shadow Garden v1 compatibility presentation layer; R2 domain-backed state. */
+(async()=>{
+  const domain=await import('/assets/js/domain/index.js');
+  const {catalog:catalogDomain,preferences,readingState,format}=domain;
+  const arr=format.asArray;
   const scope=(document.body.dataset.libraryScope||"").toLowerCase();
   const isLibrary=Boolean(document.getElementById("catalogGrid"));
   const isSeries=Boolean(document.getElementById("seriesRoot"));
-
-  function pinnedIds(){
-    try{return new Set(JSON.parse(localStorage.getItem("sg-pinned")||"[]"))}
-    catch{return new Set()}
-  }
 
   function cardSeriesId(card){
     try{return new URL(card.getAttribute("href")||"",location.href).searchParams.get("id")||""}
@@ -23,7 +19,7 @@
     return badge;
   }
 
-  function syncCompactCard(card,pins=pinnedIds()){
+  function syncCompactCard(card,pins=preferences.pinnedIds()){
     if(!card)return;
     let rail=card.querySelector(":scope > .compact-card-badges");
     if(!rail){
@@ -49,22 +45,8 @@
   function syncCompactCards(){
     const grid=document.getElementById("catalogGrid");
     if(!grid)return;
-    const pins=pinnedIds();
+    const pins=preferences.pinnedIds();
     grid.querySelectorAll(":scope > .series-card").forEach(card=>syncCompactCard(card,pins));
-  }
-
-  function latestProgressFor(allowed){
-    const entries=[];
-    for(let index=0;index<localStorage.length;index++){
-      const key=localStorage.key(index);
-      if(!key?.startsWith("sg-progress:"))continue;
-      try{
-        const item=JSON.parse(localStorage.getItem(key)||"null");
-        if(item?.updatedAt&&allowed.has(String(item.file||"")))entries.push(item);
-      }catch{}
-    }
-    entries.sort((a,b)=>Number(b.updatedAt||0)-Number(a.updatedAt||0));
-    return entries[0]||null;
   }
 
   function volumeArtwork(series,volume){
@@ -89,18 +71,14 @@
     if(!grid||!window.ShadowGardenData)return;
     syncCompactCards();
     new MutationObserver(syncCompactCards).observe(grid,{childList:true});
-    window.addEventListener("storage",event=>{if(event.key==="sg-pinned"||event.key==="sg-finished-books")syncCompactCards()});
-    window.addEventListener("sg-reading-status-changed",syncCompactCards);
+    window.addEventListener("storage",event=>{if(preferences.isPreferenceStorageKey(event.key)||readingState.isReadingStorageKey(event.key))syncCompactCards()});
+    window.addEventListener(readingState.EVENT,syncCompactCards);
 
     const adult=scope==="nsfw";
     try{
       const catalog=await window.ShadowGardenData.loadCatalog(adult);
-      const entries=arr(catalog?.series).flatMap(series=>arr(series?.volumes).map(volume=>({series,volume})));
-      const allowed=new Set(entries.map(entry=>String(entry.volume?.file||"")).filter(Boolean));
-      const saved=latestProgressFor(allowed);
-      if(!saved)return;
-      const match=entries.find(entry=>String(entry.volume?.file||"")===String(saved.file||""));
-      if(match)setIntroArtwork(volumeArtwork(match.series,match.volume));
+      const saved=readingState.latestActiveEntry(catalogDomain.seriesList(catalog));
+      if(saved)setIntroArtwork(volumeArtwork(saved.series,saved.volume));
     }catch(error){
       console.warn("Library intro artwork unavailable",error);
     }
@@ -111,7 +89,7 @@
   function makeTagsClickable(series){
     const row=document.querySelector(".series-info .tag-row");
     if(!row)return;
-    const adult=Boolean(series?.nsfw)||String(series?.id||"").startsWith("adult-");
+    const adult=Boolean(series?.nsfw)||catalogDomain.isAdultSeriesId(series?.id);
     const base=tagLibraryPath(adult);
     const tags=arr(series?.tags).map(String).filter(Boolean);
     if(!tags.length)return;
@@ -131,7 +109,7 @@
   function seriesBannerVolume(series){
     const volumes=arr(series?.volumes);
     const selected=String(series?.bannerBookId||"");
-    if(BOOK_ID.test(selected)){
+    if(domain.identity.isBookId(selected)){
       const match=volumes.find(volume=>String(volume?.bookId||volume?.file||"")===selected);
       if(match)return match;
     }
@@ -158,10 +136,10 @@
     if(!window.ShadowGardenData)return;
     const id=new URLSearchParams(location.search).get("id")||"";
     if(!id)return;
-    const adult=id.startsWith("adult-");
+    const adult=catalogDomain.isAdultSeriesId(id);
     try{
       const catalog=await window.ShadowGardenData.loadCatalog(adult);
-      const series=arr(catalog?.series).find(item=>item?.id===id);
+      const series=catalogDomain.seriesById(catalog,id);
       if(!series)return;
       const apply=()=>{
         if(!document.querySelector(".series-hero"))return false;

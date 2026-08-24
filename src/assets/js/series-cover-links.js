@@ -1,23 +1,33 @@
-/* Turn each volume cover into the same reader link used by its Read/Continue button. */
+/* Shadow Garden v1.15.14 — volume covers mirror their Read/Continue/Read Again action. */
 (()=>{
   const root=document.querySelector("#seriesRoot");
   if(!root)return;
 
   function wireVolumeCovers(){
     root.querySelectorAll(".volume-card").forEach(card=>{
-      const cover=card.querySelector(":scope > .volume-cover");
       const read=card.querySelector(".volume-actions a.read");
-      if(!cover||!read||cover.parentElement?.classList.contains("volume-cover-link"))return;
-      const link=document.createElement("a");
-      link.className="volume-cover-link";
+      if(!read)return;
+      let link=card.querySelector(":scope > .volume-cover-link");
+      if(!link){
+        const cover=card.querySelector(":scope > .volume-cover");
+        if(!cover)return;
+        link=document.createElement("a");
+        link.className="volume-cover-link";
+        cover.replaceWith(link);
+        link.appendChild(cover);
+      }
+      const title=card.querySelector(".volume-title")?.textContent?.trim()||"volume";
+      const state=read.dataset.volumeState||card.dataset.readingState||"unread";
+      const action=read.textContent.trim()||"Read";
       link.href=read.href;
-      link.setAttribute("aria-label",`Read ${card.querySelector(".volume-title")?.textContent?.trim()||"volume"}`);
-      cover.replaceWith(link);
-      link.appendChild(cover);
+      link.dataset.volumeState=state;
+      link.dataset.volumeTitle=read.dataset.volumeTitle||title;
+      link.setAttribute("aria-label",`${action} ${title}`);
+      link.title=`${action} ${title}`;
     });
   }
 
   const observer=new MutationObserver(wireVolumeCovers);
-  observer.observe(root,{childList:true,subtree:true});
+  observer.observe(root,{childList:true,subtree:true,attributes:true,attributeFilter:["data-reading-state","data-volume-state"]});
   wireVolumeCovers();
 })();

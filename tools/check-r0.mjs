@@ -44,13 +44,13 @@ for(const [name,page] of Object.entries(manifest.pages||{})){
     fail(`${name} direct script order drifted from the frozen R0 manifest\n  expected: ${(page.scripts||[]).join(", ")}\n  actual:   ${actualScripts.join(", ")}`);
   }
   for(const asset of [...(page.styles||[]),...(page.scripts||[]),...(page.runtimeLoaded||[])]){
-    if(!asset.startsWith("/assets/"))continue;
+    if(!asset.startsWith("/assets/")||asset.startsWith("/assets/vendor/"))continue;
     const sourcePath=`src${asset}`;
     if(!(await exists(sourcePath)))fail(`${name} references a missing frozen asset: ${sourcePath}`);
   }
 }
 
-const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,humanAccess,adminAccess,b2,bookId,upload,readingStatus,readerStorage,readerVisual,pageMap,library,mobileFilter,navPinned]=await Promise.all([
+const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,humanAccess,adminAccess,b2,bookId,upload,readingStatus,readerStorage,readerVisual,pageMap,library,mobileFilter,navPinned,build]=await Promise.all([
   read("package.json"),
   read("docs/roadmaps/REFACTOR_ROADMAP.md"),
   read("docs/architecture/V1_BASELINE.md"),
@@ -70,7 +70,8 @@ const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,huma
   read("src/assets/js/reader/page-map.js"),
   read("src/assets/js/library.js"),
   read("src/assets/js/library-mobile-filter.js"),
-  read("src/assets/js/nav-pinned.js")
+  read("src/assets/js/nav-pinned.js"),
+  read("tools/build.mjs")
 ]);
 
 const packageData=JSON.parse(pkg);
@@ -78,6 +79,10 @@ if(!semverAtLeast(packageData.version,manifest.baselineVersion))fail(`package ve
 const checkCommand=String(packageData.scripts?.check||"");
 for(const required of ["check-security.mjs","check-m5.mjs","check-m6.mjs","check-m7.mjs","check-m8.mjs","check-reading-status.mjs","check-m9.mjs","check-r0.mjs"]){
   if(!checkCommand.includes(required))fail(`npm run check must retain permanent contract guardrail ${required}`);
+}
+for(const [dependency,buildMarker] of [["epubjs",'"epubjs","dist","epub.min.js"'],["jszip",'"jszip","dist","jszip.min.js"']]){
+  if(!packageData.dependencies?.[dependency])fail(`generated vendor asset dependency is missing: ${dependency}`);
+  if(!build.includes(buildMarker))fail(`build must continue generating the ${dependency} browser vendor asset`);
 }
 
 if(!roadmap.includes("R0. Freeze the v1 baseline | ✅ Done"))fail("Refactor roadmap must record R0 as done after baseline acceptance");

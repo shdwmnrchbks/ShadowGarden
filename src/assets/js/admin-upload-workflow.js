@@ -11,8 +11,8 @@
   const trashSvg='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M7 7l1 13h8l1-13"></path><path d="M10 11v5M14 11v5"></path></svg>';
   let mode='edit',sessionIds=[],completedSeries=[],completionSnapshot={successes:[],failures:[]},finishing=false;
 
-  if(!document.querySelector('link[data-admin-v17]')){
-    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/admin-current.css?v=1.8.0';link.dataset.adminV17='1';document.head.appendChild(link);
+  if(!document.querySelector('link[href*="/assets/css/admin-components.css"]')){
+    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/admin-components.css?v=1.22.0';link.dataset.adminComponents='1';document.head.appendChild(link);
   }
   document.querySelector('#openSeries')?.classList.add('sg-legacy-open-series');
 

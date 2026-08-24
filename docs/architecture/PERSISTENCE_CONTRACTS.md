@@ -1,31 +1,35 @@
-# Shadow Garden v1 Persistence Contracts
+# Shadow Garden Browser Persistence Contracts
 
-This document freezes the browser-local persistence surface used by the v1.15.14 application. These keys are compatibility contracts during the refactor. A refactor may introduce a canonical storage service, but it must either preserve these keys or explicitly migrate them before deleting old readers.
+This document freezes the browser-local persistence surface established by the v1.15.14 application and records the canonical owners introduced by R2/v1.16.0. R2 preserves the existing key formats; it changes who is allowed to interpret/write them.
 
 ## localStorage
 
-| Key / family | Owner(s) today | Value | Contract |
+| Key / family | Canonical owner after R2 | Value | Contract |
 | --- | --- | --- | --- |
-| `sg-progress:<identity>` | `reader/storage.js`, Reader bootstrap/mirroring, `reading-status.js`, Library banner | JSON object containing Reader position/progress and `updatedAt` | Primary reading progress. `<identity>` may be public `bk_...` or a legacy private media alias during v1 migration. Page 1/cover must classify as Unread. |
-| `sg-bookmarks:<identity>` | `reader/storage.js`, `book-access.js` migration, Reader | JSON array | Per-volume bookmarks. Read Again must preserve bookmarks. |
-| `sg-reader-settings` | `reader/storage.js`, `reader.html` early theme bootstrap | JSON object | Reader theme, typography, flow and related core settings. Must be readable before full Reader initialization so the loading shell uses the saved theme. |
-| `sg-reader-polish-settings` | `reader-polish.js` | JSON object | v1 auxiliary Reader settings, currently including swipe-page-turn preference. R4 should fold this into the canonical Reader settings service with migration. |
-| `sg-finished-books` | `reading-status.js` | JSON object keyed by recognized volume aliases with timestamp values | Aggregate Finished-state compatibility map. Finished state overrides progress. |
-| `sg-finished:<alias>` | `reading-status.js` | string `"1"` | Redundant per-alias Finished marker used by v1. It exists to make completion resilient across public/private/stable aliases. R10 may remove it only after the transition window. |
-| `sg-pinned` | `library.js`, `series.js`, `nav-pinned.js` | JSON array of series IDs | Pinned-series set shared by Library, Series and navigation. |
-| `sg-pinned-nav-collapsed` | `nav-pinned.js` | `"1"` or `"0"` | Collapse preference for the pinned-series navigation section. |
-| `sg-view:<scope>` | `library.js` | `"grid"` or `"compact"` | Library view preference. Current scopes are `main` and `nsfw`. |
-| `sg-mobile-filters-collapsed:<scope>` | `library-mobile-filter.js` | `"1"` or `"0"` | Mobile-only Library filter collapse preference for `main` / `nsfw`. |
-| `sg-adult-ack` | `library.js`, Series/Reader adult-gate checks | `"1"` when acknowledged | Browser-local acknowledgement for the Adult Library. It is not authentication or parental control. |
+| `sg-progress:<identity>` | `domain/progress.js` through `reader/storage.js` | JSON object containing Reader position/progress and `updatedAt` | Primary reading progress. `<identity>` may be public `bk_...` or a legacy private media alias during migration. Page 1/cover classifies as Unread. |
+| `sg-bookmarks:<identity>` | `domain/bookmarks.js` through `reader/storage.js` | JSON array | Per-volume bookmarks. Read Again must preserve bookmarks. |
+| `sg-reader-settings` | `reader/storage.js` + Reader bootstrap early-theme read via `domain/storage.js` | JSON object | Reader theme, typography, flow and related core settings. Must remain readable before full Reader initialization so the loading shell uses the saved theme. |
+| `sg-reader-polish-settings` | `reader-polish.js` | JSON object | v1 auxiliary Reader settings, currently including swipe-page-turn preference. R4 should fold this into canonical Reader settings with migration. |
+| `sg-finished-books` | `domain/reading-state.js` | JSON object keyed by recognized volume aliases with timestamp values | Aggregate Finished-state compatibility map. Finished overrides progress. |
+| `sg-finished:<alias>` | `domain/reading-state.js` | string `"1"` | Redundant per-alias Finished marker retained for compatibility/resilience. R10 may remove it only after the transition window. |
+| `sg-pinned` | `domain/preferences.js` | JSON array of series IDs | Pinned-series set shared by Library, Series and navigation. |
+| `sg-pinned-nav-collapsed` | `domain/preferences.js` | `"1"` or `"0"` | Collapse preference for the pinned-series navigation section. |
+| `sg-view:<scope>` | `domain/preferences.js` | `"grid"` or `"compact"` | Library view preference. Current scopes are `main` and `nsfw`. |
+| `sg-mobile-filters-collapsed:<scope>` | `domain/preferences.js` | `"1"` or `"0"` | Mobile-only Library filter collapse preference for `main` / `nsfw`. |
+| `sg-adult-ack` | `domain/preferences.js` | `"1"` when acknowledged | Browser-local acknowledgement for the Adult Library. It is not authentication or parental control. |
 
 ### Reading-progress identity rule
 
-The v1 Reader still has compatibility code because EPUB.js historically initializes against the private media path while public Series/Library pages use `bk_...`. During the refactor:
+The public `bk_...` identity is canonical for public navigation/domain state, while EPUB.js still receives the signed private media path during the current Reader transport handoff.
 
-1. the public `bk_...` identity is canonical for public navigation and domain state;
-2. legacy `/media/shadow-garden/books/...epub` progress/bookmark keys may be read/migrated while compatibility remains supported;
-3. new architecture must not create a third unrelated identity for the same volume;
-4. the final R4/R10 architecture should write progress once through a canonical state service rather than mirror aliases with timers/patches.
+R2 therefore uses one logical-volume service with compatibility aliases:
+
+1. public `bk_...` remains the canonical value stored in new progress records' `file` field;
+2. Reader writes progress/bookmarks to the public and current private-source compatibility keys through one service call;
+3. legacy `/media/shadow-garden/books/...epub` keys may be read/migrated while compatibility remains supported;
+4. no UI module may invent another unrelated identity for the same volume;
+5. the old 500 ms Reader bootstrap mirror is removed—alias writes are synchronous at the canonical storage boundary;
+6. R4 may simplify the private-source transport handoff further, but cannot change the three-state semantics or lose existing progress/bookmarks.
 
 ## IndexedDB
 
@@ -57,4 +61,4 @@ These are browser persistence contracts but are server-authoritative rather than
 
 ## Refactor guardrail
 
-R2/R4 may consolidate these contracts behind services, but no storage-key deletion is allowed merely because a new module exists. A key can be retired only after its reader/writer owners are identified, migration behavior is tested, and the roadmap records the supported transition window.
+R2 centralizes the public/browser state contracts behind services, but no storage-key deletion is allowed merely because a new module exists. A key can be retired only after its readers/writers are identified, migration behavior is tested, and the roadmap records the supported transition window. `tools/check-r0.mjs`, `tools/check-reading-status.mjs`, and `tools/check-r2.mjs` enforce these contracts across implementation-owner changes.

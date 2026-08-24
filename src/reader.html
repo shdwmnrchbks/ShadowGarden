@@ -94,24 +94,13 @@
         <label id="textWidthSetting" hidden><span>Text width <output id="widthValue">760px</output></span><input id="widthRange" type="range" min="560" max="1050" step="10" value="760"></label>
         <label><span>Reading flow</span><select id="flowSelect"><option value="paginated">Pages</option><option value="scrolled-doc">Continuous scroll</option></select></label>
         <label class="reader-toggle-setting"><span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span><input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns"></label>
-        <div class="reader-zoom-setting" aria-label="Reader zoom controls">
-          <span>Zoom <output id="zoomValue">100%</output></span>
-          <div class="reader-zoom-controls">
-            <button id="zoomOut" type="button" aria-label="Zoom out" disabled>−</button>
-            <button id="zoomReset" type="button" aria-label="Reset zoom" disabled>Reset</button>
-            <button id="zoomIn" type="button" aria-label="Zoom in">+</button>
-          </div>
-          <small>Pinch or double-tap the page to inspect it without changing pagination. Drag to pan while zoomed.</small>
-        </div>
         <button id="resetReader" class="reader-reset" type="button">Reset reader settings</button>
       </div>
     </aside>
 
     <main id="viewerShell" class="viewer-shell" tabindex="-1" aria-label="EPUB reading area">
       <button id="prevPage" class="page-hit page-prev" type="button" aria-label="Previous page">◀</button>
-      <div id="zoomViewport" class="reader-zoom-viewport">
-        <div id="zoomLayer" class="reader-zoom-layer"><div id="viewer" class="viewer"></div></div>
-      </div>
+      <div id="viewer" class="viewer"></div>
       <button id="nextPage" class="page-hit page-next" type="button" aria-label="Next page">▶</button>
       <div id="readerLoading" class="reader-loading" role="status" aria-live="polite"><span aria-hidden="true">✦</span><p>Opening the book…</p></div>
     </main>
@@ -136,6 +125,14 @@
         <div class="volume-complete-actions"><a id="nextVolumeLink" class="volume-complete-next" href="#">Read next volume ▶</a><a id="completeReturnLink" class="volume-complete-return" href="/">Return to series</a></div>
       </div>
     </section>
+
+    <div id="imageFocus" class="reader-image-focus hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-label="Focused book image">
+      <button id="imageFocusClose" class="reader-image-focus-close" type="button" aria-label="Close focused image">×</button>
+      <div id="imageFocusViewport" class="reader-image-focus-viewport">
+        <div id="imageFocusLayer" class="reader-image-focus-layer"><img id="imageFocusImage" class="reader-image-focus-image" alt=""></div>
+      </div>
+      <p class="reader-image-focus-hint">Pinch to zoom · drag to inspect · tap again to return</p>
+    </div>
 
     <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
     <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>

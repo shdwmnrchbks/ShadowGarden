@@ -43,7 +43,7 @@ export function normalizeBookPath(value, requestUrl) {
   }
   const origin = new URL(requestUrl).origin;
   if (url.origin !== origin) return "";
-  if (!url.pathname.startsWith("/media/shadow-garden/") || !url.pathname.toLowerCase().endsWith(".epub")) return "";
+  if (!url.pathname.startsWith("/media/shadow-garden/books/") || !url.pathname.toLowerCase().endsWith(".epub")) return "";
   if (url.pathname.includes("\\") || url.pathname.split("/").some(part => part === "." || part === "..")) return "";
   return url.pathname;
 }

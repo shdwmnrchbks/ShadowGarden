@@ -44,7 +44,7 @@ for(const marker of ["/assets/js/reader/page-navigation-input.js","/assets/js/re
 if(readerManifest?.runtimeLoaded?.includes("/assets/js/reader/gestures.js"))fail("R0 entrypoint manifest must not retain reader/gestures.js");
 if(!readerManifest?.styles?.includes("/assets/css/reader-image-focus.css")||readerManifest.styles.includes("/assets/css/reader-zoom.css"))fail("R0 Reader style manifest must use reader-image-focus.css only");
 
-for(const marker of ["R4 + R4.1 Reader architecture and stabilization","page-navigation-input.js","image-focus.js","Continuous mode receives no page-wide","reader-image-focus-zoomed","Hidden-control focus flaw"]){if(!readerDoc.includes(marker))fail(`Reader architecture document is missing R4.1 marker ${marker}`)}
+for(const marker of ["R4 + R4.1 Reader architecture and stabilization","page-navigation-input.js","image-focus.js","Continuous mode ignores this controller completely","reader-image-focus-zoomed","Hidden-control focus flaw"]){if(!readerDoc.includes(marker))fail(`Reader architecture document is missing R4.1 marker ${marker}`)}
 if(!roadmap.includes("R4.1. Reader stabilization and consolidation | ✅ Done")||!roadmap.includes("**Release:** v1.19.0"))fail("Refactor roadmap must record R4.1 complete as v1.19.0");
 
 try{

@@ -1,0 +1,17 @@
+/* Shadow Garden R4 — non-layout Reader viewport zoom. */
+.reader-zoom-viewport{position:absolute;inset:0;overflow:hidden;contain:layout paint}
+.reader-zoom-layer{position:absolute;inset:0;transform-origin:0 0;will-change:transform}
+.reader-zoom-layer>.viewer{position:absolute;inset:0}
+body.reader-flow-scrolled .reader-zoom-viewport{right:34px}
+body.reader-flow-scrolled .reader-zoom-layer>.viewer{right:0}
+body.reader-zoomed .page-hit{pointer-events:none;opacity:0}
+.reader-zoom-setting{display:grid;gap:9px}
+.reader-zoom-setting>span{display:flex;justify-content:space-between;color:var(--muted);font-size:.74rem}
+.reader-zoom-setting>small{color:var(--muted);font-size:.66rem;line-height:1.5}
+.reader-zoom-controls{display:grid;grid-template-columns:44px minmax(82px,1fr) 44px;gap:7px}
+.reader-zoom-controls button{height:38px;border:1px solid var(--line);border-radius:9px;color:var(--text);background:rgba(255,255,255,.025);cursor:pointer}
+.reader-zoom-controls button:hover:not(:disabled),.reader-zoom-controls button:focus-visible:not(:disabled){border-color:rgba(181,163,229,.34);background:rgba(154,134,211,.08)}
+.reader-zoom-controls button:disabled{opacity:.38;cursor:default}
+body.adult-reader .reader-zoom-controls button:hover:not(:disabled),body.adult-reader .reader-zoom-controls button:focus-visible:not(:disabled){border-color:rgba(225,151,173,.3);background:rgba(183,121,139,.08)}
+@media(max-width:700px){body.reader-flow-scrolled .reader-zoom-viewport{right:28px}}
+@media(prefers-reduced-motion:reduce){.reader-zoom-layer{will-change:auto}}

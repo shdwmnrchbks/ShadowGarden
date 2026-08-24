@@ -1,6 +1,8 @@
 /* Shadow Garden R5 — explicit Garden Keeper composition root. */
 (()=>{
   const keeper=window.ShadowGardenKeeper;if(!keeper)throw new Error("Garden Keeper core did not initialize.");
+  keeper.workflows=keeper.workflows||keeper.core?.workflows;
+  if(!keeper.workflows)throw new Error("Garden Keeper workflow registry did not initialize.");
   const loadScript=src=>new Promise((resolve,reject)=>{
     const existing=document.querySelector(`script[src^="${src.split("?")[0]}"]`);if(existing){if(existing.dataset.loaded==="1")resolve(existing);else{existing.addEventListener("load",()=>resolve(existing),{once:true});existing.addEventListener("error",reject,{once:true})}return}
     const script=document.createElement("script");script.src=src;script.defer=true;script.dataset.keeperModule="1";script.addEventListener("load",()=>{script.dataset.loaded="1";resolve(script)},{once:true});script.addEventListener("error",()=>reject(new Error(`Could not load ${src}`)),{once:true});document.body.appendChild(script);

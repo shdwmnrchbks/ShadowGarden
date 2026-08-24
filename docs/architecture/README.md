@@ -27,10 +27,10 @@ This directory is the refactor contract surface for Shadow Garden. It begins wit
 
 ## R4 Reader application
 
-- [`READER_LAYER.md`](./READER_LAYER.md) — explicit authorized book session, Reader orchestrator, rendition/Page/Continuous adapters, canonical progress/bookmark/completion/settings ownership, retained EPUB.js compatibility boundaries, and session-only viewport zoom introduced in v1.18.0.
+- [`READER_LAYER.md`](./READER_LAYER.md) — explicit authorized book session, Reader orchestrator, rendition/Page/Continuous adapters, canonical progress/bookmark/completion/settings ownership, retained EPUB.js compatibility boundaries, and the focused-image zoom contract. R4 shipped in v1.18.0; the Reader input model was corrected in v1.18.2.
 - Implementation: `src/assets/js/reader/`, with `reader-bootstrap.js` as the protected startup entrypoint.
 
-R4 removes the old monolithic Reader, gesture hook, swipe/wheel polish, flow-visibility patch, and separate Finished controller. Pinch/pan/double-tap/desktop zoom is deliberately a visual viewport transform and must never become Page Map or saved-position geometry.
+R4 removes the old monolithic Reader, gesture hook, swipe/wheel polish, flow-visibility patch, and separate Finished controller. Reader-wide pinch/pan was removed after it interfered with Continuous touch scrolling. Zoom now exists only inside a temporary focused-image overlay; the live EPUB viewport remains unscaled and Continuous vertical touch input stays native.
 
 ## Permanent guardrails
 
@@ -38,6 +38,6 @@ R4 removes the old monolithic Reader, gesture hook, swipe/wheel polish, flow-vis
 - `tools/check-r1.mjs` protects repository layout, source naming, build boundaries, CI pins, dead-file removal, and asset versioning.
 - `tools/check-r2.mjs` protects canonical domain/state ownership and Unread / In Progress / Finished transitions.
 - `tools/check-r3.mjs` protects single-owner Library/Series rendering and parity across all volume entry points.
-- `tools/check-r4.mjs` protects explicit Reader session/feature ownership, zoom-vs-layout separation, and retirement of competing Reader controllers.
+- `tools/check-r4.mjs` protects explicit Reader session/feature ownership, native Continuous touch scrolling, focused-image zoom isolation, and retirement of competing Reader controllers.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

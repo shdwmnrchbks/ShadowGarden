@@ -1,0 +1,11 @@
+{
+  "requestUrl": "https://shadowgarden-bon.pages.dev/media/shadow-garden/books/fixture.epub",
+  "secret": "shadow-garden-r8-fixture-secret-0123456789abcdef0123456789abcdef",
+  "ttlSeconds": 120,
+  "scenarios": [
+    {"name": "valid", "mutation": "none", "expectedValid": true},
+    {"name": "tampered signature", "mutation": "signature", "expectedValid": false, "expectedReason": "signature"},
+    {"name": "tampered path", "mutation": "path", "expectedValid": false, "expectedReason": "signature"},
+    {"name": "expired", "mutation": "expired", "expectedValid": false, "expectedReason": "expired"}
+  ]
+}

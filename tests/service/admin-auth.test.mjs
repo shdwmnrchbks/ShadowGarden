@@ -35,6 +35,8 @@ test("Keeper bearer comparison and session signatures reject tampering", async (
   const separator = cookie.indexOf(";");
   const raw = cookie.slice(0, separator);
   const suffix = cookie.slice(separator);
-  const tampered = `${raw.slice(0, -1)}${raw.endsWith("A") ? "B" : "A"}${suffix}`;
+  const signatureStart = raw.lastIndexOf(".") + 1;
+  const signatureHead = raw[signatureStart];
+  const tampered = `${raw.slice(0, signatureStart)}${signatureHead === "A" ? "B" : "A"}${raw.slice(signatureStart + 1)}${suffix}`;
   assert.equal(await adminAuthorized(request({ cookie: tampered }), env), false);
 });

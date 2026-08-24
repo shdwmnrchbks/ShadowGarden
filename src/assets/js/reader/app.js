@@ -112,7 +112,7 @@ export async function startReader(session){
 
   async function openRendition(target){
     const serial=++state.renditionSerial,flow=settingsController.get().flow;
-    const rendition=await createRendition({book:state.book,target,flow,wire,onCreate:value=>{state.rendition=value},themeCss:themeController.css(settingsController.get())});
+    const rendition=await createRendition({book:state.book,target,flow,wire:wireRendition,onCreate:value=>{state.rendition=value},themeCss:themeController.css(settingsController.get())});
     if(serial!==state.renditionSerial||rendition!==state.rendition)return rendition;
     state.renderedFlow=flow;themeController.refresh(rendition);bookmarksController.syncButton();return rendition;
   }

@@ -1,12 +1,11 @@
-/* Shadow Garden v1.7.0 — shelf-scoped collapsible pinned-series sidebar and library indicators. */
-(()=>{
+/* Shadow Garden R2 — shelf-scoped collapsible pinned-series sidebar and library indicators. */
+(async()=>{
   const nav=document.querySelector('.site-header nav');
   if(!nav||!window.ShadowGardenData)return;
 
-  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-  const arr=value=>Array.isArray(value)?value:[];
-  const pinnedIds=()=>{try{return new Set(JSON.parse(localStorage.getItem('sg-pinned')||'[]'))}catch{return new Set()}};
-  const collapseKey='sg-pinned-nav-collapsed';
+  const {preferences,format,urls}=await import('/assets/js/domain/index.js');
+  const esc=format.escapeHtml;
+  const arr=format.asArray;
 
   nav.querySelector('#pinnedNav')?.remove();
 
@@ -17,14 +16,13 @@
   const toggle=section.querySelector('.nav-pinned-toggle');
   const list=section.querySelector('.nav-pinned-list');
 
-  function readCollapsed(){try{return localStorage.getItem(collapseKey)==='1'}catch{return false}}
   function setCollapsed(collapsed,save=true){
     section.classList.toggle('is-collapsed',collapsed);
     toggle.setAttribute('aria-expanded',String(!collapsed));
     toggle.querySelector('span').textContent=collapsed?'▼':'▲';
-    if(save){try{localStorage.setItem(collapseKey,collapsed?'1':'0')}catch{}}
+    if(save)preferences.setPinnedNavCollapsed(collapsed);
   }
-  setCollapsed(readCollapsed(),false);
+  setCollapsed(preferences.pinnedNavCollapsed(),false);
   toggle.addEventListener('click',event=>{
     event.preventDefault();
     event.stopPropagation();
@@ -39,7 +37,7 @@
     .then(catalog=>arr(catalog?.series).map(series=>({...series,__scope:currentScope})));
 
   function markCards(){
-    const pins=pinnedIds();
+    const pins=preferences.pinnedIds();
     document.querySelectorAll('.series-card').forEach(card=>{
       let id='';
       try{id=new URL(card.getAttribute('href')||'',location.href).searchParams.get('id')||''}catch{}
@@ -53,13 +51,13 @@
   }
 
   async function render(){
-    const pins=pinnedIds();
+    const pins=preferences.pinnedIds();
     const shelf=await catalogPromise;
     const pinned=shelf.filter(series=>pins.has(series.id)).sort((a,b)=>String(a.title||'').localeCompare(String(b.title||'')));
     if(!pinned.length){
       list.innerHTML=`<div class="nav-pinned-empty">No pinned ${currentAdult?'18+ ':''}series yet.</div>`;
     }else{
-      list.innerHTML=pinned.map(series=>`<a class="nav-pinned-entry" href="/series.html?id=${encodeURIComponent(series.id)}"><span class="pin-mark" aria-hidden="true">◆</span><span class="pin-title">${esc(series.title||'Untitled series')}</span>${currentAdult?'<span class="pin-scope">18+</span>':''}</a>`).join('');
+      list.innerHTML=pinned.map(series=>`<a class="nav-pinned-entry" href="${urls.seriesUrl(series.id)}"><span class="pin-mark" aria-hidden="true">◆</span><span class="pin-title">${esc(series.title||'Untitled series')}</span>${currentAdult?'<span class="pin-scope">18+</span>':''}</a>`).join('');
     }
     markCards();
   }
@@ -71,6 +69,6 @@
   document.addEventListener('click',event=>{
     if(event.target.closest('#pinButton'))window.setTimeout(()=>void render(),0);
   });
-  window.addEventListener('storage',event=>{if(event.key==='sg-pinned'||event.key===collapseKey)void render()});
+  window.addEventListener('storage',event=>{if(event.key===preferences.PINNED_KEY||event.key===preferences.PINNED_NAV_COLLAPSED_KEY){setCollapsed(preferences.pinnedNavCollapsed(),false);void render()}});
   void render();
 })();

@@ -1,7 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R1 complete; R2 next  
+**Status:** 🟨 Active — R0–R2 complete; R3 next  
 **Starting baseline:** v1.15.14  
+**Current refactor release:** v1.16.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with the free `shadowgarden-bon.pages.dev` deployment and private Backblaze B2.
 
@@ -33,7 +34,7 @@ The intended end state is a clean major-version architecture baseline (provision
 | --- | --- | --- |
 | R0. Freeze the v1 baseline | ✅ Done | Map runtime contracts, dependencies, persistent keys, APIs, and security invariants before moving code |
 | R1. Repository and tooling hygiene | ✅ Done | Clean directory structure, deterministic tooling, documentation organization, and ownership conventions |
-| R2. Shared domain and state layer | ⬜ Planned | Canonical catalog, book identity, reading-state, URL, storage, and formatting services |
+| R2. Shared domain and state layer | ✅ Done | Canonical catalog, book identity, reading-state, URL, storage, and formatting services |
 | R3. Library + Series decomposition | ⬜ Planned | Replace overlapping Library/Series patch scripts with explicit controllers/renderers/components |
 | R4. Reader architecture refactor | ⬜ Planned | One Reader orchestrator with clean Page/Continuous adapters and canonical progress/completion state |
 | R5. Garden Keeper decomposition | ⬜ Planned | Thin app shell, shared admin API client, isolated workflows, reusable dialog/form primitives |
@@ -63,11 +64,11 @@ The intended end state is a clean major-version architecture baseline (provision
 
 ### R0 artifacts
 
-- [`../architecture/V1_BASELINE.md`](../architecture/V1_BASELINE.md) — runtime surfaces, current ownership, dependency direction, Reader invariants, and known competing owners.
-- [`../architecture/PERSISTENCE_CONTRACTS.md`](../architecture/PERSISTENCE_CONTRACTS.md) — localStorage, IndexedDB, cookies, migration and sensitive-state contracts.
-- [`../architecture/HTTP_STORAGE_CONTRACTS.md`](../architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions route/auth policy and private B2 namespace/read-write-delete contracts.
-- [`../architecture/v1-entrypoints.json`](../architecture/v1-entrypoints.json) — machine-readable frozen direct/runtime-loaded JS/CSS entrypoint manifest.
-- `tools/check-r0.mjs` — permanent CI guardrail for the frozen architecture/security/state contracts.
+- [`../architecture/V1_BASELINE.md`](../architecture/V1_BASELINE.md)
+- [`../architecture/PERSISTENCE_CONTRACTS.md`](../architecture/PERSISTENCE_CONTRACTS.md)
+- [`../architecture/HTTP_STORAGE_CONTRACTS.md`](../architecture/HTTP_STORAGE_CONTRACTS.md)
+- [`../architecture/v1-entrypoints.json`](../architecture/v1-entrypoints.json)
+- `tools/check-r0.mjs`
 
 ### Acceptance
 
@@ -76,7 +77,7 @@ The intended end state is a clean major-version architecture baseline (provision
 - [x] High-risk behaviors have automated baseline tests.
 - [x] No production behavior has changed.
 
-R0 deliberately leaves the application at **v1.15.14**. It adds documentation and regression assertions only; no Library, Series, Reader, Garden Keeper, Pages Function, storage, or visual behavior is changed.
+R0 deliberately left the application at **v1.15.14** and added documentation/regression assertions only.
 
 ---
 
@@ -85,33 +86,18 @@ R0 deliberately leaves the application at **v1.15.14**. It adds documentation an
 **Status:** ✅ Done — accepted 2026-08-24  
 **Goal:** make the repository structure communicate ownership before deeper code movement.
 
-### Proposed documentation structure
-
-```text
-docs/
-├─ README.md
-├─ architecture/
-├─ roadmaps/
-│  ├─ REFACTOR_ROADMAP.md
-│  └─ SECURITY_ROADMAP.md
-├─ security/
-│  └─ milestone records
-└─ style/
-   └─ SITE_VOICE.md
-```
-
 ### Completed work
 
 - Established post-R1 naming/ownership rules in [`../architecture/MODULE_CONVENTIONS.md`](../architecture/MODULE_CONVENTIONS.md). New permanent `*-polish`, `*-fix`, `*-patch`, `*-current`, and version-named source files are prohibited unless explicitly temporary.
 - Added [`../architecture/r1-legacy-source-exceptions.json`](../architecture/r1-legacy-source-exceptions.json) so CI can distinguish frozen v1 debt from newly introduced patch-style files.
 - Documented authored/generated boundaries, root policy, Node/CI policy, dependency strategy, and asset cache-busting in [`../architecture/BUILD_CONTRACT.md`](../architecture/BUILD_CONTRACT.md).
 - Pinned local development to Node 22 via `.nvmrc` and pinned GitHub Actions to immutable action commit SHAs.
-- Removed the abandoned `src/assets/js/library-continue-meta.js`; the authoritative completion-aware Library banner remains owned by the current v1 Library completion layer until R3 replaces it cleanly.
-- Added `tools/lib/asset-versioning.mjs`: `package.json#version` is now the single deploy-time cache-busting stamp for local JS/CSS references in copied `dist/` source. Historical source query strings no longer require manual bumps for deployment.
+- Removed the abandoned `src/assets/js/library-continue-meta.js`.
+- Added `tools/lib/asset-versioning.mjs`: `package.json#version` is the single deploy-time cache-busting stamp for local JS/CSS references in copied `dist/` source.
 - Added `tools/check-r1.mjs` to permanently enforce root layout, documentation indexing, naming exceptions, dead-file removal, Node/CI pinning, and asset-version behavior.
 - Kept `dist/` and `node_modules/` generated/ignored; vendor EPUB.js/JSZip assets remain generated from installed packages by the build.
 - Formatting/linting remains intentionally deferred until module moves settle so refactor diffs stay reviewable.
-- A committed npm lockfile remains intentionally deferred to R9, where the dependency audit will finalize the dependency set before freezing transitive resolution. R1 does not combine dependency upgrades with structural cleanup.
+- A committed npm lockfile remains intentionally deferred to R9, where the dependency audit will finalize the dependency set before freezing transitive resolution.
 
 ### Acceptance
 
@@ -120,28 +106,45 @@ docs/
 - [x] New code naming/ownership rules are documented.
 - [x] `npm run check` remains green.
 
-R1 keeps the application version at **v1.15.14**. The only deployed-output change is deterministic cache-query stamping for local JS/CSS assets; Library, Series, Reader, Garden Keeper, security, and storage behavior remain unchanged.
-
 ---
 
 ## R2 — Shared domain and state layer
 
-**Goal:** stop Library, Series, Reader, and Garden Keeper from independently re-implementing the same concepts.
+**Status:** ✅ Done — accepted 2026-08-24  
+**Release:** v1.16.0  
+**Goal:** stop Library, Series, Reader, and shared public UI code from independently re-implementing catalog identity, reading state, and browser persistence.
 
-### Introduce canonical modules
+### Canonical modules
 
-- `catalog` domain helpers: series/volume lookup, normalization, status, tags, shelf scope.
-- `book-identity` helpers: public IDs, safe aliases, Reader identity mapping.
-- `reading-state` service: **Unread / In Progress / Finished** as the only volume state machine.
-- `progress` storage service: canonical read/write/clear and alias migration.
-- `bookmarks` storage service.
-- `library-preferences` service: pinned/filter/view state.
-- shared URL builders for Series/Reader/download navigation.
-- shared escaping/formatting utilities instead of repeated local `esc`, `arr`, size/date helpers.
+R2 introduced `src/assets/js/domain/`:
+
+- `catalog.js` — catalog normalization, status/tag semantics, series/volume lookup and Main/Adult classification.
+- `book-identity.js` — opaque `bk_...`, stable volume aliases, legacy path recognition/mapping and identity matching.
+- `reading-state.js` — **Unread / In Progress / Finished** as the only user-facing volume state machine.
+- `progress.js` — canonical progress read/write/clear, alias resolution and legacy migration.
+- `bookmarks.js` — canonical bookmark read/write aliasing and legacy migration.
+- `preferences.js` — pinned series, Library view, mobile filter collapse, pinned-nav collapse and Adult acknowledgement.
+- `storage.js` — fail-soft browser persistence primitives.
+- `urls.js` — Series/Reader/Read Again/Main/Adult navigation builders.
+- `format.js` — shared browser formatting/escaping helpers.
+- `index.js` — stable namespace entrypoint.
+
+See [`../architecture/DOMAIN_LAYER.md`](../architecture/DOMAIN_LAYER.md) for the full ownership contract.
+
+### Integration completed
+
+- `reading-status.js` is now a compatibility facade over `domain/reading-state.js`; existing consumers keep the `window.ShadowGardenReadingStatus` API without retaining a second state implementation.
+- `data-source.js` delegates catalog normalization and legacy progress/bookmark migration to `domain/catalog.js`.
+- `reader/storage.js` writes progress/bookmarks through the canonical R2 services using public/private identities as aliases for one logical volume.
+- The old Reader bootstrap 500 ms public/private progress/bookmark polling mirror was removed because canonical writes now update both compatibility aliases directly.
+- Main/Adult Library consumes canonical reading state and preferences; Continue/Read selection no longer scans all localStorage progress keys.
+- Series uses the same state API for volume entries and primary CTA selection.
+- Read Again resolves the catalog volume and resets Finished/progress through the same domain services while preserving bookmarks.
+- Mobile filter and pinned-navigation persistence use `domain/preferences.js`.
+- The remaining public Library/Series compatibility layer no longer scans progress/pin localStorage itself.
+- R0 persistence formats are preserved; R2 changes ownership, not the user's browser data contract.
 
 ### Critical contract
-
-The three-state model introduced in v1.15.14 becomes a domain API, not UI-specific logic:
 
 ```text
 Unread      -> Read
@@ -149,12 +152,23 @@ In Progress -> Continue
 Finished    -> Read Again (confirmed reset)
 ```
 
+- Cover/page 1 stays Unread.
+- Page 2+ becomes In Progress when not Finished.
+- Finished overrides saved progress.
+- Read Again clears Finished + progress aliases, preserves bookmarks, and reopens page 1.
+
+### Permanent guardrail
+
+`tools/check-r2.mjs` tests state transitions, progress/bookmark alias writes, catalog normalization, preferences, shared URL/format helpers, UI consumption boundaries, Reader canonical writes, fresh-cache headers, and the absence of the retired polling mirror.
+
 ### Acceptance
 
-- [ ] Series and Library consume the same state API.
-- [ ] Reader writes progress through the same canonical service/contract.
-- [ ] No UI module scans unrelated localStorage keys directly.
-- [ ] State transitions have dedicated tests.
+- [x] Series and Library consume the same state API.
+- [x] Reader writes progress through the same canonical service/contract.
+- [x] Public UI modules no longer scan unrelated localStorage key families directly.
+- [x] State transitions have dedicated automated tests.
+
+R2 does not perform the R3/R4 component/controller rewrites. Existing grandfathered v1 compatibility/render layers remain until the milestone that can replace their DOM ownership safely.
 
 ---
 
@@ -209,16 +223,16 @@ Finished    -> Read Again (confirmed reset)
 - `reader/paginated` — page-only navigation behavior.
 - `reader/continuous` — continuous manager/rail/seek behavior.
 - `reader/page-map` — canonical device page map.
-- `reader/progress` — state persistence and progress events.
+- `reader/progress` — Reader-facing adapter over the R2 progress service.
 - `reader/completion` — Finished toggle, end page, next-volume completion.
-- `reader/bookmarks` — bookmark model/controller.
+- `reader/bookmarks` — Reader-facing adapter/controller over R2 bookmark state.
 - `reader/settings` / `reader/theme` — preferences and presentation.
 - `reader/visual-cache` — visual-page optimization boundary.
 
 ### Remove architectural debt
 
-- Eliminate private/public progress mirroring timers once Reader storage writes canonical state directly.
-- Remove temporary URLSearchParams interception if the authorization/session abstraction can provide the EPUB source without masquerading as the public URL.
+- R2 already removed the obsolete private/public progress polling mirror by making Reader storage write canonical aliases directly.
+- Remove the temporary URLSearchParams interception if the authorization/session abstraction can provide the EPUB source without masquerading as the public URL.
 - Reduce global `window.__sg...` handoffs to a narrow documented bootstrap contract.
 - Keep exactly one owner for Continuous rendering.
 
@@ -416,6 +430,6 @@ without complicating Cloudflare Pages Functions or EPUB.js runtime behavior. Oth
 
 ## Recommended execution order
 
-Start with **R0 → R2** before touching the large UI subsystems. Then refactor **Library/Series (R3)** before **Reader (R4)** so the canonical reading-state contract has stable consumers. Follow with **Garden Keeper (R5)** and **Functions (R6)**. Consolidate CSS after component ownership is clearer, then strengthen browser tests and build tooling before the final cleanup.
+With **R0–R2 complete**, the next step is **R3 Library/Series decomposition**. The canonical state layer now exists, so R3 can remove public post-render ownership without simultaneously redesigning persistence. Then proceed to **Reader (R4)**, **Garden Keeper (R5)**, and **Functions (R6)**. Consolidate CSS after component ownership is clearer, then strengthen browser tests and build tooling before the final cleanup.
 
 Avoid mixing a major Reader rewrite, backend service rewrite, and CSS redesign in the same PR. The purpose of this roadmap is to make a full refactor **incremental, reversible, and continuously deployable**.

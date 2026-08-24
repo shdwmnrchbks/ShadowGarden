@@ -1,5 +1,5 @@
-/* Shadow Garden v1.6.0 — mobile-only Library Filter collapse control. */
-(()=>{
+/* Shadow Garden R2 — mobile-only Library Filter collapse control. */
+(async()=>{
   const panel=document.querySelector('.filters');
   const toggle=document.getElementById('filterToggle');
   const head=panel?.querySelector('.filter-head');
@@ -10,21 +10,16 @@
   const tagPicker=activeTags?.parentElement;
   if(!panel||!toggle||!head||!clear||!searchField||!searchStack)return;
 
+  const {preferences}=await import('/assets/js/domain/index.js');
   const scope=document.body.dataset.libraryScope||'main';
-  const storageKey=`sg-mobile-filters-collapsed:${scope}`;
   const mobileQuery=window.matchMedia('(max-width: 720px)');
   const headActions=document.createElement('span');
   headActions.className='filter-head-actions';
   clear.before(headActions);
   headActions.appendChild(clear);
 
-  function readCollapsed(){
-    try{
-      const saved=localStorage.getItem(storageKey);
-      return saved===null?true:saved!=='0';
-    }catch{return true}
-  }
-  function writeCollapsed(collapsed){try{localStorage.setItem(storageKey,collapsed?'1':'0')}catch{}}
+  function readCollapsed(){return preferences.mobileFiltersCollapsed(scope)}
+  function writeCollapsed(collapsed){preferences.setMobileFiltersCollapsed(scope,collapsed)}
 
   function placeToggle(collapsed){
     if(!mobileQuery.matches)return;
@@ -77,5 +72,6 @@
 
   if(typeof mobileQuery.addEventListener==='function')mobileQuery.addEventListener('change',apply);
   else mobileQuery.addListener?.(apply);
+  window.addEventListener('storage',event=>{if(event.key===preferences.mobileFilterKey(scope))apply()});
   apply();
 })();

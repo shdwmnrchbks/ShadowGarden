@@ -81,6 +81,19 @@ function assertLocalRef(value, fromFile) {
   if (!fssync.existsSync(target)) fail(`${rel(fromFile)} references missing ${stripUrl(value)}`);
 }
 
+function assertHeaderRef(value, fromFile) {
+  const clean = stripUrl(value);
+  if (!clean.includes("*")) {
+    assertLocalRef(clean, fromFile);
+    return;
+  }
+  const prefix = clean.slice(0, clean.indexOf("*"));
+  const target = sourcePathForRef(prefix, fromFile);
+  if (!target) return;
+  stats.refs += 1;
+  if (!fssync.existsSync(target)) fail(`${rel(fromFile)} references missing wildcard base ${prefix}`);
+}
+
 async function checkScripts() {
   const roots = [path.join(SRC, "assets", "js"), path.join(ROOT, "functions"), path.join(ROOT, "tools")];
   const files = (await Promise.all(roots.map(root => walk(root, file => /\.(?:js|mjs)$/.test(file))))).flat();
@@ -145,7 +158,7 @@ async function checkRuntimeAssetRefs() {
     const source = await fs.readFile(headers, "utf8");
     for (const line of source.split(/\r?\n/)) {
       const value = line.trim();
-      if (value.startsWith("/assets/")) assertLocalRef(value, headers);
+      if (value.startsWith("/assets/")) assertHeaderRef(value, headers);
     }
   }
 }

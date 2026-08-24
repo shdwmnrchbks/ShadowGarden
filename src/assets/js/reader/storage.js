@@ -1,46 +1,44 @@
+import { cleanIdentities, cleanIdentity, isBookId } from "../domain/book-identity.js";
+import { readBookmarksAliases, writeBookmarksAliases } from "../domain/bookmarks.js";
+import { progressForAliases, writeProgressAliases } from "../domain/progress.js";
+import { readJson, writeJson } from "../domain/storage.js";
+
+export const READER_SETTINGS_KEY = "sg-reader-settings";
+
 export function readJSON(key, fallback) {
-  try {
-    const value = JSON.parse(localStorage.getItem(key) || "null");
-    return value ?? fallback;
-  } catch {
-    return fallback;
-  }
+  return readJson(key, fallback);
 }
 
 export function writeJSON(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch (error) {
-    console.warn("Shadow Garden could not persist reader data", error);
-    return false;
-  }
+  return writeJson(key, value);
 }
 
 export function createReaderStorage(bookUrl) {
-  const progressKey = `sg-progress:${bookUrl}`;
-  const bookmarksKey = `sg-bookmarks:${bookUrl}`;
-  const settingsKey = "sg-reader-settings";
+  const sourceIdentity = cleanIdentity(bookUrl) || "__missing__";
+  const publicIdentity = cleanIdentity(globalThis.__sgReaderPublicBookId);
+  const canonicalIdentity = isBookId(publicIdentity) ? publicIdentity : sourceIdentity;
+  const aliases = cleanIdentities([sourceIdentity, canonicalIdentity]);
 
   return {
+    identities: aliases,
+    canonicalIdentity,
     loadProgress() {
-      return readJSON(progressKey, null);
+      return progressForAliases(aliases);
     },
     saveProgress(value) {
-      return writeJSON(progressKey, value);
+      return writeProgressAliases(aliases, value, { canonicalIdentity });
     },
     loadBookmarks() {
-      const value = readJSON(bookmarksKey, []);
-      return Array.isArray(value) ? value : [];
+      return readBookmarksAliases(aliases);
     },
     saveBookmarks(value) {
-      return writeJSON(bookmarksKey, Array.isArray(value) ? value : []);
+      return writeBookmarksAliases(aliases, Array.isArray(value) ? value : []);
     },
     loadSettings(defaults) {
-      return { ...defaults, ...readJSON(settingsKey, {}) };
+      return { ...defaults, ...readJson(READER_SETTINGS_KEY, {}) };
     },
     saveSettings(value) {
-      return writeJSON(settingsKey, value);
+      return writeJson(READER_SETTINGS_KEY, value);
     }
   };
 }

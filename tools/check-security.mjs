@@ -72,7 +72,7 @@ async function checkHumanSessions(){
 }
 
 async function checkWiring(){
-  const [routesText,reader,series,client,bootstrap,bookAccess,humanAccess,humanHelper,media,mediaTicket,resolver,dataSource,headers,robots]=await Promise.all([
+  const [routesText,reader,series,client,bootstrap,bookAccess,humanAccess,humanHelper,media,mediaTicket,resolver,dataSource,domainCatalog,domainIdentity,headers,robots]=await Promise.all([
     read("src/_routes.json"),
     read("src/reader.html"),
     read("src/series.html"),
@@ -85,6 +85,8 @@ async function checkWiring(){
     read("functions/_lib/media-ticket.js"),
     read("functions/_lib/book-resolver.js"),
     read("src/assets/js/data-source.js"),
+    read("src/assets/js/domain/catalog.js"),
+    read("src/assets/js/domain/book-identity.js"),
     read("src/_headers"),
     read("src/robots.txt")
   ]);
@@ -93,7 +95,7 @@ async function checkWiring(){
   for(const marker of ["/book-access","/human-access","turnstile.render","bookId","migrateLegacyState","sourcePath"]){if(!client.includes(marker))fail(`book-access client is missing ${marker}`)}
   if(!reader.includes("/assets/js/book-access.js")||!reader.includes("/assets/js/reader-bootstrap.js"))fail("Reader security/bootstrap scripts are not wired");
   if(!series.includes("/assets/js/book-access.js"))fail("Series page must load book-access.js for protected downloads");
-  if(!/import\(["']\/assets\/js\/reader\.js\?v=\d+\.\d+\.\d+["']\)/.test(bootstrap))fail("Reader bootstrap must semantic-version cache-bust reader.js");
+  if(!/import\(["']\/assets\/js\/reader\.js(?:\?v=\d+\.\d+\.\d+)?["']\)/.test(bootstrap))fail("Reader bootstrap must import reader.js through the local asset pipeline");
   for(const marker of ["issueMediaTicket","ticketCookie","resolveBookReference","verifyHumanSession","human_verification_required"]){if(!bookAccess.includes(marker))fail(`book-access endpoint is missing ${marker}`)}
   for(const marker of ["verifyTurnstileToken","issueHumanSession","humanSessionCookie"]){if(!humanAccess.includes(marker))fail(`human-access endpoint is missing ${marker}`)}
   for(const marker of ["SG_TURNSTILE_SITE_KEY","SG_TURNSTILE_SECRET_KEY","turnstile/v0/siteverify","result?.hostname","SameSite=Strict"]){if(!humanHelper.includes(marker))fail(`human-session helper is missing ${marker}`)}
@@ -101,7 +103,9 @@ async function checkWiring(){
   for(const marker of ["verifyMediaTicket","verifyMediaTicketCookie","ticketingEnabled(env)","publicCatalogShape"]){if(!media.includes(marker))fail(`media boundary is missing ${marker}`)}
   for(const marker of ["SG_MEDIA_SIGNING_SECRET","HMAC","SHA-256","sg-media-ticket-v1"]){if(!mediaTicket.includes(marker))fail(`media-ticket helper is missing ${marker}`)}
   for(const marker of ["resolveBookReference","byId","byFile"]){if(!resolver.includes(marker))fail(`book resolver is missing ${marker}`)}
-  for(const marker of ["bookId","migrateLegacyState","shadow-garden-book-id-v1"]){if(!dataSource.includes(marker))fail(`public data adapter is missing ${marker}`)}
+  if(!dataSource.includes("domain.catalog.normalizeCatalog"))fail("public data adapter must delegate normalization to the R2 catalog domain");
+  for(const marker of ["bookId","migrateLegacyState"]){if(!domainCatalog.includes(marker))fail(`catalog domain is missing ${marker}`)}
+  for(const marker of ["shadow-garden-book-id-v1","BOOK_ID_PATTERN","bookIdForLegacyPath"]){if(!domainIdentity.includes(marker))fail(`book identity domain is missing ${marker}`)}
   if(!headers.includes("/reader.html")||!headers.includes("X-Robots-Tag: noindex, nofollow, noarchive"))fail("Reader noindex headers are missing");
   for(const marker of ["Disallow: /media/","Disallow: /admin-api/","Disallow: /book-access","Disallow: /human-access","Disallow: /admin-access"]){if(!robots.includes(marker))fail(`robots.txt is missing ${marker}`)}
 }

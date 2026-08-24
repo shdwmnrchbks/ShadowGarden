@@ -50,7 +50,7 @@ for(const [name,page] of Object.entries(manifest.pages||{})){
   }
 }
 
-const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,humanAccess,adminAccess,b2,bookId,upload,readingStatus,readerStorage,readerVisual,pageMap,library,mobileFilter,navPinned,build]=await Promise.all([
+const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,humanAccess,adminAccess,b2,bookId,upload,readingFacade,readingState,progress,bookmarks,preferences,identity,readerStorage,readerVisual,pageMap,library,mobileFilter,navPinned,build]=await Promise.all([
   read("package.json"),
   read("docs/roadmaps/REFACTOR_ROADMAP.md"),
   read("docs/architecture/V1_BASELINE.md"),
@@ -65,6 +65,11 @@ const [pkg,roadmap,baseline,persistence,httpStorage,routes,media,bookAccess,huma
   read("functions/_lib/book-id.js"),
   read("functions/admin-api/upload.js"),
   read("src/assets/js/reading-status.js"),
+  read("src/assets/js/domain/reading-state.js"),
+  read("src/assets/js/domain/progress.js"),
+  read("src/assets/js/domain/bookmarks.js"),
+  read("src/assets/js/domain/preferences.js"),
+  read("src/assets/js/domain/book-identity.js"),
   read("src/assets/js/reader/storage.js"),
   read("src/assets/js/reader-visual-cache.js"),
   read("src/assets/js/reader/page-map.js"),
@@ -99,21 +104,27 @@ for(const marker of ["issueMediaTicket","verifyHumanSession","evaluateAcquisitio
 for(const marker of ["verifyTurnstileToken","issueHumanSession","registerAbuseSignal"]){if(!humanAccess.includes(marker))fail(`human-access contract lost ${marker}`)}
 for(const marker of ["adminTokenMatches","adminCooldown","issueAdminSession","registerAdminFailure"]){if(!adminAccess.includes(marker))fail(`admin-access contract lost ${marker}`)}
 for(const marker of ["verifyAdminSession","adminTokenMatches","readClient","writeClient","validObjectKey"]){if(!b2.includes(marker))fail(`B2/admin authorization contract lost ${marker}`)}
-for(const marker of ["/^bk_[A-Za-z0-9_-]{22}$/","shadow-garden-book-id-v1","publicCatalogShape","originalFilename"]){if(!bookId.includes(marker))fail(`book identity contract lost ${marker}`)}
+for(const marker of ["/^bk_[A-Za-z0-9_-]{22}$/","shadow-garden-book-id-v1","publicCatalogShape","originalFilename"]){if(!bookId.includes(marker))fail(`server book identity contract lost ${marker}`)}
 for(const marker of ["OPAQUE_COVER_KEY","opaque cv_ identifier"]){if(!upload.includes(marker))fail(`opaque cover enforcement lost ${marker}`)}
 
-for(const marker of ["UNREAD:\"unread\"","IN_PROGRESS:\"in-progress\"","FINISHED:\"finished\"","progressAtBeginning","actionLabelForState","clearVolumeProgress"]){if(!readingStatus.includes(marker))fail(`three-state reading contract lost ${marker}`)}
-for(const marker of ["sg-progress:${bookUrl}","sg-bookmarks:${bookUrl}","sg-reader-settings"]){if(!readerStorage.includes(marker))fail(`Reader storage contract lost ${marker}`)}
+if(!readingFacade.includes('./domain/reading-state.js')||!readingFacade.includes('ShadowGardenReadingStatus'))fail("reading-status compatibility facade must point at the canonical R2 reading-state owner");
+for(const marker of ['UNREAD: "unread"','IN_PROGRESS: "in-progress"','FINISHED: "finished"','progressAtBeginning','actionLabelForState','clearVolumeProgress','sg-finished-books','sg-finished:'])if(!readingState.includes(marker))fail(`three-state reading contract lost ${marker}`);
+for(const marker of ['PROGRESS_PREFIX = "sg-progress:"','progressAtBeginning','writeProgressAliases','clearProgressAliases'])if(!progress.includes(marker))fail(`progress persistence contract lost ${marker}`);
+if(!bookmarks.includes('BOOKMARK_PREFIX = "sg-bookmarks:"')||!bookmarks.includes('writeBookmarksAliases'))fail("bookmark persistence contract drifted");
+for(const marker of ['PINNED_KEY = "sg-pinned"','PINNED_NAV_COLLAPSED_KEY = "sg-pinned-nav-collapsed"','ADULT_ACK_KEY = "sg-adult-ack"','VIEW_PREFIX = "sg-view:"','MOBILE_FILTER_PREFIX = "sg-mobile-filters-collapsed:"'])if(!preferences.includes(marker))fail(`preference persistence contract lost ${marker}`);
+for(const marker of ['BOOK_ID_PATTERN','shadow-garden-book-id-v1','stableVolumeId','volumeAliases'])if(!identity.includes(marker))fail(`browser book identity contract lost ${marker}`);
+for(const marker of ['../domain/progress.js','../domain/bookmarks.js','READER_SETTINGS_KEY = "sg-reader-settings"','canonicalIdentity'])if(!readerStorage.includes(marker))fail(`Reader storage contract lost ${marker}`);
 if(!readerVisual.includes('CACHE_DB="shadow-garden-visual-pages"')||!readerVisual.includes('CACHE_STORE="books"'))fail("Visual Page Cache IndexedDB contract drifted");
 if(!pageMap.includes('DB_NAME = "shadow-garden-reader"')||!pageMap.includes('STORE_NAME = "page-maps"'))fail("Page Map IndexedDB contract drifted");
-for(const marker of ["sg-view:${scope}","sg-pinned","sg-adult-ack","sg-progress:"]){if(!library.includes(marker))fail(`Library persistence contract lost ${marker}`)}
-if(!mobileFilter.includes("sg-mobile-filters-collapsed:${scope}"))fail("mobile filter persistence contract drifted");
-for(const marker of ["sg-pinned","sg-pinned-nav-collapsed"]){if(!navPinned.includes(marker))fail(`pinned navigation persistence contract lost ${marker}`)}
+for(const marker of ['preferences.libraryView','latestActiveEntry'])if(!library.includes(marker))fail(`Library must consume canonical R2 persistence/state owner ${marker}`);
+if(!library.includes('preferences.pinnedIds')&&!library.includes('preferences?.pinnedIds'))fail("Library must consume canonical R2 persistence/state owner preferences.pinnedIds");
+if(!mobileFilter.includes('preferences.mobileFiltersCollapsed'))fail("mobile filter persistence must be owned by R2 preferences");
+for(const marker of ['preferences.pinnedIds','preferences.pinnedNavCollapsed'])if(!navPinned.includes(marker))fail(`pinned navigation persistence must be owned by R2 preferences: ${marker}`);
 
 if(failures.length){
   console.error(`Shadow Garden R0 refactor baseline check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);
   failures.forEach(message=>console.error(`- ${message}`));
   process.exitCode=1;
 }else{
-  console.log("Shadow Garden R0 v1 architecture, persistence, entrypoint, security, and storage contracts are frozen and intact.");
+  console.log("Shadow Garden R0 behavior, persistence, entrypoint, security, and storage contracts remain intact under their current owners.");
 }

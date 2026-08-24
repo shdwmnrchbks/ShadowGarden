@@ -1,9 +1,11 @@
-/* Shadow Garden v1.15.14 — canonical Read Again reset flow. */
+/* Shadow Garden R2 — canonical Read Again reset flow. */
 (()=>{
   const root=document.getElementById("seriesRoot");
   if(!root)return;
 
   let pending=null;
+  let domainPromise=null;
+  const domain=()=>domainPromise||(domainPromise=import("/assets/js/domain/index.js"));
 
   function ensureDialog(){
     let dialog=document.getElementById("readAgainDialog");
@@ -46,32 +48,23 @@
     });
   }
 
-  async function readingApi(){
-    if(window.ShadowGardenReadingStatus)return window.ShadowGardenReadingStatus;
-    await import("/assets/js/reading-status.js?v=1.15.14");
-    return window.ShadowGardenReadingStatus;
-  }
-
   async function resetVolumeState(seriesId,bookId){
-    const reading=await readingApi();
-    if(!reading)return;
+    const shared=await domain();
+    const reading=shared.readingState;
     try{
-      const adult=String(seriesId||"").startsWith("adult-");
+      const adult=shared.catalog.isAdultSeriesId(seriesId);
       const catalog=await window.ShadowGardenData?.loadCatalog?.(adult);
-      const series=(Array.isArray(catalog?.series)?catalog.series:[]).find(item=>String(item?.id||"")===String(seriesId||""));
-      const volumes=Array.isArray(series?.volumes)?series.volumes:[];
-      const index=volumes.findIndex(volume=>String(volume?.file||volume?.bookId||"")===String(bookId||""));
-      if(series&&index>=0){
-        const volume=volumes[index];
-        reading.setVolumeFinished?.(series.id,volume,false,index);
-        reading.clearVolumeProgress?.(series.id,volume,index);
+      const entry=shared.catalog.findVolumeEntry(catalog,seriesId,bookId);
+      if(entry){
+        reading.setVolumeFinished(entry.series.id,entry.volume,false,entry.index);
+        reading.clearVolumeProgress(entry.series.id,entry.volume,entry.index);
         return;
       }
     }catch(error){
       console.warn("Read Again catalog lookup skipped",error);
     }
-    reading.setFinished?.(bookId,false);
-    reading.clearProgressAliases?.([bookId]);
+    reading.setFinished(bookId,false);
+    reading.clearProgressAliases([bookId]);
   }
 
   function isReadAgainLink(link){
@@ -98,7 +91,7 @@
     try{await resetVolumeState(seriesId,bookId)}
     catch(error){console.warn("Read Again local reset was incomplete; Reader will retry it",error)}
 
-    target.searchParams.set("restart","1");
-    location.assign(`${target.pathname}${target.search}${target.hash}`);
+    const shared=await domain();
+    location.assign(shared.urls.readerUrl(bookId,seriesId,{restart:true}));
   },true);
 })();

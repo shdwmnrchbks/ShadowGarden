@@ -1,6 +1,6 @@
 # Module Naming and Ownership Conventions
 
-**Refactor milestone:** R1 — Repository and tooling hygiene  
+**Refactor milestone:** R1 — Repository and tooling hygiene; state ownership updated by R2  
 **Applies to:** authored browser JavaScript/CSS, Pages Functions helpers, and tooling added after R1
 
 Shadow Garden's v1 source accumulated corrective layers such as `*-polish.js`, `*-current.css`, version-named files, and post-render observers. Those files are grandfathered until the milestone that owns their replacement, but they are not the naming model for new code.
@@ -49,6 +49,8 @@ page bootstrap/controller
   -> browser APIs / network boundary
 ```
 
+R2 establishes `src/assets/js/domain/` as the canonical browser state/domain boundary. Library, Series, and Reader code should import from that layer instead of interpreting its persistence keys independently.
+
 Avoid sideways dependencies where two UI scripts observe and repair one another. Avoid global `window` state unless the owning boundary is documented and a legacy integration requires it.
 
 New Pages Functions code should move toward:
@@ -70,10 +72,21 @@ Route files should not become new general-purpose utility modules.
 
 ## State ownership
 
-- Persistent browser state must go through the canonical service that owns that state once R2 introduces it.
-- Until R2, existing v1 keys and compatibility aliases remain frozen by `PERSISTENCE_CONTRACTS.md` and `check-r0.mjs`.
-- UI modules must not invent a fourth reading state beyond Unread / In Progress / Finished.
-- Security state remains server-authoritative; UI state is never authorization.
+R2 makes these owners authoritative:
+
+- `domain/catalog.js` — browser catalog meaning/lookup;
+- `domain/book-identity.js` — public/stable volume identity aliases;
+- `domain/progress.js` — `sg-progress:*`;
+- `domain/bookmarks.js` — `sg-bookmarks:*`;
+- `domain/reading-state.js` — Finished markers and Unread / In Progress / Finished semantics;
+- `domain/preferences.js` — pinned, Library view, mobile filter collapse, pinned-nav collapse, Adult acknowledgement;
+- `reader/storage.js` — Reader adapter over the domain progress/bookmark/settings services.
+
+UI modules must consume these services rather than scan unrelated localStorage families directly. Compatibility facades may expose an existing API while delegating ownership to the canonical service.
+
+UI modules must not invent a fourth reading state beyond Unread / In Progress / Finished. Security state remains server-authoritative; browser state is never authorization.
+
+The persisted key formats remain frozen by `PERSISTENCE_CONTRACTS.md` and `check-r0.mjs`; R2 changes their implementation owner, not their user-visible persistence contract.
 
 ## CSS ownership
 
@@ -86,7 +99,8 @@ R7 will perform the large stylesheet consolidation. Until then:
 
 ## File placement
 
-- Browser source: `src/assets/js/` and `src/assets/css/`.
+- Canonical browser domain/state services: `src/assets/js/domain/`.
+- Browser page/controller source: `src/assets/js/` and styles in `src/assets/css/`.
 - Reader submodules: `src/assets/js/reader/` until R4 establishes the final layout.
 - Pages Functions route handlers: `functions/`.
 - Shared backend helpers/services: `functions/_lib/` until R6 establishes the final service directories.

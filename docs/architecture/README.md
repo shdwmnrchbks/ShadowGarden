@@ -15,8 +15,17 @@ This directory is the refactor contract surface for Shadow Garden. It begins wit
 - [`BUILD_CONTRACT.md`](./BUILD_CONTRACT.md) — authored vs generated boundaries, root policy, Node/CI pinning, dependency policy, and centralized build-time asset cache-busting.
 - [`r1-legacy-source-exceptions.json`](./r1-legacy-source-exceptions.json) — the exact pre-R1 patch-style filenames allowed to remain until their owning cleanup milestone.
 
+## R2 shared browser domain
+
+- [`DOMAIN_LAYER.md`](./DOMAIN_LAYER.md) — canonical catalog, book identity, progress, bookmarks, reading state, Library preferences, URL, formatting, and compatibility-boundary ownership introduced in v1.16.0.
+- Browser implementation: `src/assets/js/domain/`.
+
+The R2 layer is the required persistence/state dependency for Library, Series, and Reader code going forward. It preserves the R0 browser-local persistence formats while moving interpretation and writes behind explicit owners.
+
 ## Permanent guardrails
 
-`tools/check-r0.mjs` remains the frozen behavior/security/state contract. `tools/check-r1.mjs` adds repository-layout, naming, build-boundary, CI-pin, dead-file, and asset-versioning checks.
+- `tools/check-r0.mjs` protects the frozen behavior/security/persistence contracts even when their implementation owner moves.
+- `tools/check-r1.mjs` protects repository layout, source naming, build boundaries, CI pins, dead-file removal, and asset versioning.
+- `tools/check-r2.mjs` protects canonical browser domain ownership and the Unread / In Progress / Finished state transitions.
 
 Later milestones may change a frozen item only when the replacement architecture is intentional, documented here, and accompanied by tests that demonstrate the same contract or an explicitly approved behavior change. The manifests are change detectors rather than a rule that v1 file names must exist forever.

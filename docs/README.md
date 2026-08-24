@@ -10,12 +10,13 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 - [`architecture/HTTP_STORAGE_CONTRACTS.md`](./architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and Backblaze B2 namespace contracts.
 - [`architecture/MODULE_CONVENTIONS.md`](./architecture/MODULE_CONVENTIONS.md) — post-R1 module naming, ownership, DOM/state, and placement rules.
 - [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning.
+- [`architecture/DOMAIN_LAYER.md`](./architecture/DOMAIN_LAYER.md) — R2 canonical catalog, identity, progress, bookmarks, reading-state, preferences, URL, and formatting services.
 - [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable R0 JS/CSS entrypoint manifest.
 - [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — explicit grandfather list for pre-R1 patch-style source names.
 
 ## Active roadmap
 
-- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0 and R1 are complete; R2 is next.
+- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R2 are complete; R3 is next.
 
 ## Completed roadmaps
 

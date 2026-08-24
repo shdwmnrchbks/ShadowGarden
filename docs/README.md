@@ -14,12 +14,13 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 - [`architecture/PUBLIC_UI_LAYER.md`](./architecture/PUBLIC_UI_LAYER.md) — R3 Library/Series controllers, renderers, shared volume actions, and removed public repair layers.
 - [`architecture/READER_LAYER.md`](./architecture/READER_LAYER.md) — R4/R4.1 authorized Reader session, app/controllers, Page/Continuous adapters, split Pages input vs image-focus ownership, native Continuous touch invariant, and retained EPUB.js compatibility boundaries.
 - [`architecture/KEEPER_LAYER.md`](./architecture/KEEPER_LAYER.md) — R5 Garden Keeper app shell, sole AdminClient, Authentication/session boundary, isolated workflows, contained Upload internals, and security invariants.
+- [`architecture/FUNCTIONS_LAYER.md`](./architecture/FUNCTIONS_LAYER.md) — R6 thin Pages Function routes, explicit auth/media/catalog/storage/validation/abuse/http services, and preserved security boundaries.
 - [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable baseline/intentional-replacement entrypoint contract.
 - [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — remaining grandfathered patch-style source plus refactor-proven removals.
 
 ## Active roadmap
 
-- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R5 are complete; R6 Pages Functions service-layer decomposition is next.
+- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R6 are complete; R7 CSS/design-system consolidation is next.
 
 ## Completed roadmaps
 

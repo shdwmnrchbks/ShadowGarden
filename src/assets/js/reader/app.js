@@ -17,14 +17,14 @@ const $=selector=>document.querySelector(selector);
 const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
 function readerElements(){return{
-  readerApp:$("#readerApp"),loading:$("#readerLoading"),viewerShell:$("#viewerShell"),zoomViewport:$("#zoomViewport"),zoomLayer:$("#zoomLayer"),viewer:$("#viewer"),
+  readerApp:$("#readerApp"),loading:$("#readerLoading"),viewerShell:$("#viewerShell"),viewer:$("#viewer"),
+  imageFocus:$("#imageFocus"),imageFocusViewport:$("#imageFocusViewport"),imageFocusLayer:$("#imageFocusLayer"),imageFocusImage:$("#imageFocusImage"),imageFocusClose:$("#imageFocusClose"),
   bookTitle:$("#bookTitle"),chapterTitle:$("#chapterTitle"),tocToggle:$("#tocToggle"),tocDrawer:$("#tocDrawer"),tocPanel:$("#tocPanel"),bookmarksPanel:$("#bookmarksPanel"),
   settingsToggle:$("#settingsToggle"),settingsDrawer:$("#settingsDrawer"),backdrop:$("#drawerBackdrop"),bookmarkButton:$("#bookmarkButton"),backLink:$("#backLink"),returnButton:$("#returnButton"),
   fullscreenButton:$("#fullscreenButton"),progressRange:$("#progressRange"),progressText:$("#progressText"),prevPage:$("#prevPage"),nextPage:$("#nextPage"),prevBottom:$("#prevBottom"),nextBottom:$("#nextBottom"),
   themeSelect:$("#themeSelect"),fontSelect:$("#fontSelect"),fontSizeRange:$("#fontSizeRange"),fontSizeValue:$("#fontSizeValue"),lineHeightRange:$("#lineHeightRange"),lineHeightValue:$("#lineHeightValue"),
   widthRange:$("#widthRange"),widthValue:$("#widthValue"),textWidthSetting:$("#textWidthSetting"),flowSelect:$("#flowSelect"),swipeTurnsToggle:$("#swipeTurnsToggle"),resetReader:$("#resetReader"),
-  zoomValue:$("#zoomValue"),zoomInButton:$("#zoomIn"),zoomOutButton:$("#zoomOut"),zoomResetButton:$("#zoomReset"),toast:$("#toast"),
-  volumeEndPage:$("#volumeEndPage"),volumeCompleteTitle:$("#volumeCompleteTitle"),volumeCompleteDetail:$("#volumeCompleteDetail"),nextVolumeLink:$("#nextVolumeLink"),completeReturnLink:$("#completeReturnLink")
+  toast:$("#toast"),volumeEndPage:$("#volumeEndPage"),volumeCompleteTitle:$("#volumeCompleteTitle"),volumeCompleteDetail:$("#volumeCompleteDetail"),nextVolumeLink:$("#nextVolumeLink"),completeReturnLink:$("#completeReturnLink")
 }}
 
 export async function startReader(session){
@@ -44,7 +44,7 @@ export async function startReader(session){
 
   async function navigate(target){
     if(!state.rendition||!target)return;
-    gestureController?.reset({silent:true});
+    gestureController?.reset();
     if(settingsController.get().flow==="scrolled-doc")await continuousController.display(target);
     else await state.rendition.display(target);
   }
@@ -71,7 +71,7 @@ export async function startReader(session){
     },120);
   }
   function applySettings({relayout=false,rebuildPageMap=false}={}){
-    if(relayout||rebuildPageMap)gestureController?.reset({silent:true});
+    if(relayout||rebuildPageMap)gestureController?.reset();
     const rendition=state.rendition,settings=settingsController.get();
     if(rendition){
       try{rendition.themes.default(themeController.css(settings))}catch(error){console.warn("Reader theme update skipped",error)}
@@ -82,7 +82,7 @@ export async function startReader(session){
 
   settingsController=createSettingsController({
     storage,elements,isAdult:session.adult,onApply:applySettings,onFlowChange:flow=>void switchFlow(flow),
-    onReset:previousFlow=>{gestureController?.reset({silent:true});schedulePageMapRefresh(100);if(previousFlow!==settingsController.get().flow)void switchFlow(settingsController.get().flow);else applySettings({relayout:true,rebuildPageMap:true});toast("Reader settings reset")}
+    onReset:previousFlow=>{gestureController?.reset();schedulePageMapRefresh(100);if(previousFlow!==settingsController.get().flow)void switchFlow(settingsController.get().flow);else applySettings({relayout:true,rebuildPageMap:true});toast("Reader settings reset")}
   });
 
   progressController=createProgressController({
@@ -93,9 +93,12 @@ export async function startReader(session){
   bookmarksController=createBookmarksController({storage,elements,getPosition:()=>progressController.currentPosition(),getCfi:()=>progressController.currentCfi(),getChapter:()=>state.currentChapter,getPageMap:()=>state.pageMap,navigate,closeDrawers,toast});
 
   function turn(direction){if(settingsController.get().flow!=="paginated")return;paginatedController?.turn(direction)}
-  gestureController=createGestureController({viewport:elements.zoomViewport||elements.viewerShell,layer:elements.zoomLayer||elements.viewer,getFlow:()=>settingsController.get().flow,getSwipeTurns:()=>settingsController.get().swipeTurns,turn,zoomValue:elements.zoomValue,zoomInButton:elements.zoomInButton,zoomOutButton:elements.zoomOutButton,zoomResetButton:elements.zoomResetButton});
-  paginatedController=createPaginatedController({getRendition:()=>state.rendition,beforeTurn:()=>gestureController.reset({silent:true})});
-  continuousController=createContinuousController({getRendition:()=>state.rendition,beforeNavigate:()=>gestureController.reset({silent:true})});
+  gestureController=createGestureController({
+    getFlow:()=>settingsController.get().flow,getSwipeTurns:()=>settingsController.get().swipeTurns,turn,
+    imageFocus:elements.imageFocus,imageFocusViewport:elements.imageFocusViewport,imageFocusLayer:elements.imageFocusLayer,imageFocusImage:elements.imageFocusImage,imageFocusClose:elements.imageFocusClose
+  });
+  paginatedController=createPaginatedController({getRendition:()=>state.rendition,beforeTurn:()=>gestureController.reset()});
+  continuousController=createContinuousController({getRendition:()=>state.rendition,beforeNavigate:()=>gestureController.reset()});
 
   function onRelocated(rendition,location){
     if(rendition!==state.rendition)return;
@@ -107,7 +110,7 @@ export async function startReader(session){
     gestureController.attachRendition(rendition);
     rendition.on("relocated",location=>onRelocated(rendition,location));
     rendition.on("rendered",()=>{if(rendition!==state.rendition)return;themeController.refresh(rendition);bookmarksController.syncButton()});
-    rendition.on("keyup",event=>{if(rendition!==state.rendition||settingsController.get().flow!=="paginated"||gestureController.isZoomed())return;if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1)});
+    rendition.on("keyup",event=>{if(rendition!==state.rendition||settingsController.get().flow!=="paginated"||gestureController.isImageFocused())return;if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1)});
   }
 
   async function openRendition(target){
@@ -125,7 +128,7 @@ export async function startReader(session){
     const position=await captureRenditionPosition({rendition:old,flow:previousFlow,pageMap:state.pageMap,fallback:progressController.currentPosition()});
     let target=progressController.currentCfi()||storage.loadProgress()?.cfi||undefined;
     if(state.pageMap&&position){try{target=await state.pageMap.targetForPosition(position,{includeFraction:desired==="scrolled-doc"})||target}catch(error){console.warn("Canonical flow target fallback",error)}}
-    progressController.setPosition(position);settingsController.setFlow(desired);gestureController.reset({silent:true});state.switchingFlow=true;state.rendition=null;destroyRendition(old,elements.viewer);
+    progressController.setPosition(position);settingsController.setFlow(desired);gestureController.reset();state.switchingFlow=true;state.rendition=null;destroyRendition(old,elements.viewer);
     try{
       await openRendition(target);
       if(state.pageMap&&position){const canonicalTarget=await state.pageMap.targetForPosition(position,{includeFraction:desired==="scrolled-doc"});if(canonicalTarget&&state.rendition){if(desired==="scrolled-doc")await nextPaint();await state.rendition.display(canonicalTarget)}}
@@ -151,21 +154,21 @@ export async function startReader(session){
   }
   function bindNavigation(){
     elements.prevPage?.addEventListener("click",()=>turn(-1));elements.prevBottom?.addEventListener("click",()=>turn(-1));elements.nextPage?.addEventListener("click",()=>turn(1));elements.nextBottom?.addEventListener("click",()=>turn(1));
-    elements.progressRange?.addEventListener("input",event=>{gestureController.reset({silent:true});progressController.seekTo(Number(event.target.value)/1000)});
-    elements.progressRange?.addEventListener("change",event=>{gestureController.reset({silent:true});progressController.seekTo(Number(event.target.value)/1000,true)});
-    elements.progressRange?.addEventListener("pointerup",event=>{if(settingsController.get().flow==="paginated"){gestureController.reset({silent:true});progressController.seekTo(Number(event.currentTarget.value)/1000,true)}});
-    elements.progressRange?.addEventListener("touchend",event=>{if(settingsController.get().flow==="paginated"){gestureController.reset({silent:true});progressController.seekTo(Number(event.currentTarget.value)/1000,true)}},{passive:true});
+    elements.progressRange?.addEventListener("input",event=>{gestureController.reset();progressController.seekTo(Number(event.target.value)/1000)});
+    elements.progressRange?.addEventListener("change",event=>{gestureController.reset();progressController.seekTo(Number(event.target.value)/1000,true)});
+    elements.progressRange?.addEventListener("pointerup",event=>{if(settingsController.get().flow==="paginated"){gestureController.reset();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}});
+    elements.progressRange?.addEventListener("touchend",event=>{if(settingsController.get().flow==="paginated"){gestureController.reset();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}},{passive:true});
     elements.fullscreenButton?.addEventListener("click",()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.()});
     document.addEventListener("keydown",event=>{
       if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName))return;
-      if(event.key==="Escape"){if(gestureController.isZoomed())gestureController.reset();else closeDrawers();return}
+      if(event.key==="Escape"){if(gestureController.isImageFocused())gestureController.closeImageFocus();else closeDrawers();return}
       if(event.key.toLowerCase()==="t"){openDrawer(elements.tocDrawer);return}
-      if(settingsController.get().flow!=="paginated"||gestureController.isZoomed())return;
+      if(settingsController.get().flow!=="paginated"||gestureController.isImageFocused())return;
       if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1);
     });
     window.addEventListener("resize",()=>{
       clearTimeout(state.resizeTimer);state.resizeTimer=setTimeout(async()=>{
-        const rendition=state.rendition;if(!rendition||state.switchingFlow)return;gestureController.reset({silent:true});const keepCfi=progressController.currentCfi();
+        const rendition=state.rendition;if(!rendition||state.switchingFlow)return;gestureController.reset();const keepCfi=progressController.currentCfi();
         try{rendition.resize?.("100%","100%")}catch{}configureSpread(rendition,settingsController.get().flow);
         if(settingsController.get().flow==="paginated"&&keepCfi){try{await rendition.display(keepCfi)}catch{}}
         if(mapLayoutChangedSignificantly())schedulePageMapRefresh(900);

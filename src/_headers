@@ -65,6 +65,9 @@
 /assets/js/ui-direction-triangles.js
   Cache-Control: no-store
 
+/assets/js/admin/*
+  Cache-Control: no-store
+
 /assets/js/admin-bootstrap.js
   Cache-Control: no-store
 

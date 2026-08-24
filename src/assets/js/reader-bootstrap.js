@@ -1,4 +1,4 @@
-/* Shadow Garden Security Milestones 2–3 + v1.15.12 Reader startup handoff. */
+/* Shadow Garden Security Milestones 2–3 + v1.15.14 Reader startup handoff. */
 (async()=>{
   const access=window.ShadowGardenBookAccess;
   const publicSearch=location.search;
@@ -9,9 +9,6 @@
   const BOOK_ID=/^bk_[A-Za-z0-9_-]{22}$/;
   const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
 
-  /* Reader internals temporarily see the private media path while they initialize.
-     Public reading state must never key itself from that temporary view. The initial
-     URL can itself still be a legacy media URL, so the access ticket is authoritative. */
   window.__sgReaderPublicBookId=BOOK_ID.test(requested)?requested:"";
   window.__sgReaderSourcePath="";
 
@@ -28,7 +25,7 @@
 
   async function importReader(){
     const originalEpub=window.ePub;
-    if(typeof originalEpub!=="function")return import("/assets/js/reader.js?v=1.10.2");
+    if(typeof originalEpub!=="function")return import("/assets/js/reader.js?v=1.15.14");
     function capturedEpub(...args){
       const book=Reflect.apply(originalEpub,this,args);
       if(!window.__sgReaderBook)window.__sgReaderBook=book;
@@ -39,13 +36,13 @@
       Object.setPrototypeOf(capturedEpub,originalEpub);
     }catch{}
     window.ePub=capturedEpub;
-    try{return await import("/assets/js/reader.js?v=1.10.2")}
+    try{return await import("/assets/js/reader.js?v=1.15.14")}
     finally{window.ePub=originalEpub}
   }
 
   async function mountReadingStatus(){
-    await import("/assets/js/reading-status.js?v=1.15.6");
-    await import("/assets/js/reader-finished.js?v=1.15.7");
+    await import("/assets/js/reading-status.js?v=1.15.14");
+    await import("/assets/js/reader-finished.js?v=1.15.14");
   }
 
   function canonicalizeLegacyUrl(){
@@ -70,28 +67,34 @@
   async function resetForReadAgain(ticket,sourcePath){
     if(!restartRequested)return;
     const canonical=String(ticket?.bookId||ticket?.identity||window.__sgReaderPublicBookId||"").trim();
-    const identities=new Set([
+    const identities=[
       requested,
       canonical,
       String(ticket?.requestedIdentity||"").trim(),
       String(sourcePath||"").trim()
-    ].filter(Boolean));
-    for(const identity of identities){
-      try{localStorage.removeItem(`sg-progress:${identity}`)}catch{}
-    }
+    ].filter(Boolean);
 
     try{
-      await import("/assets/js/reading-status.js?v=1.15.6");
+      await import("/assets/js/reading-status.js?v=1.15.14");
       const reading=window.ShadowGardenReadingStatus;
+      const aliases=new Set(identities);
       const adult=String(seriesId||"").startsWith("adult-");
       const catalog=await window.ShadowGardenData?.loadCatalog?.(adult);
       const series=(Array.isArray(catalog?.series)?catalog.series:[]).find(item=>String(item?.id||"")===String(seriesId||""));
       const volumes=Array.isArray(series?.volumes)?series.volumes:[];
-      const index=volumes.findIndex(volume=>identities.has(String(volume?.file||volume?.bookId||"")));
-      if(series&&index>=0)reading?.setVolumeFinished?.(series.id,volumes[index],false,index);
-      else for(const identity of identities)reading?.setFinished?.(identity,false);
+      const index=volumes.findIndex(volume=>identities.includes(String(volume?.file||volume?.bookId||"")));
+      if(series&&index>=0){
+        const volume=volumes[index];
+        for(const alias of reading?.volumeAliases?.(series.id,volume,index,identities)||[])aliases.add(alias);
+      }
+      const all=[...aliases].filter(Boolean);
+      reading?.setAliasesFinished?.(all,false);
+      reading?.clearProgressAliases?.(all);
     }catch(error){
-      console.warn("Read Again finished-state reset skipped",error);
+      console.warn("Read Again state reset skipped",error);
+      for(const identity of identities){
+        try{localStorage.removeItem(`sg-progress:${identity}`)}catch{}
+      }
     }
   }
 
@@ -125,11 +128,8 @@
       ReaderURLSearchParams.prototype=NativeURLSearchParams.prototype;
       try{Object.setPrototypeOf(ReaderURLSearchParams,NativeURLSearchParams)}catch{}
       window.URLSearchParams=ReaderURLSearchParams;
-      try{
-        await importReader();
-      }finally{
-        window.URLSearchParams=NativeURLSearchParams;
-      }
+      try{await importReader()}
+      finally{window.URLSearchParams=NativeURLSearchParams}
       await mountReadingStatus();
       clearRestartFlag();
       return;

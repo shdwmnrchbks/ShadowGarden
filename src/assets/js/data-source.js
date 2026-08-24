@@ -12,16 +12,6 @@ window.ShadowGardenData=(()=>{
   /* Synchronous compatibility export for older Keeper code. Actual catalog normalization
      and legacy state migration are owned by domain/catalog.js. */
   function normalizeStatus(value){return statusAliases.get(String(value||'').trim().toLowerCase())||'Ongoing'}
-  function ensureCurrentPublicPolish(){
-    const current=document.querySelector('link[href*="/assets/css/site-v1.9.4.css"]');
-    if(!current||document.querySelector('link[data-sg-public-polish="1"]'))return;
-    const link=document.createElement('link');
-    link.rel='stylesheet';
-    link.href='/assets/css/site-v1.9.4.css';
-    link.dataset.sgPublicPolish='1';
-    document.head.appendChild(link);
-  }
-  ensureCurrentPublicPolish();
   async function getSource(){
     if(!sourcePromise){
       sourcePromise=fetch('/data/source.json',{cache:'default'})

@@ -7,6 +7,12 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=file=>fs.readFile(path.join(ROOT,file),"utf8");
 const exists=async file=>{try{await fs.access(path.join(ROOT,file));return true}catch{return false}};
+const semverAtLeast=(current,minimum)=>{
+  const parse=value=>String(value||"").split(".").slice(0,3).map(item=>Number.parseInt(item,10)||0);
+  const a=parse(current),b=parse(minimum);
+  for(let index=0;index<3;index++){if(a[index]>b[index])return true;if(a[index]<b[index])return false}
+  return true;
+};
 
 const [pkgText,roadmap,readerDoc,readerHtml,app,pageInput,imageFocus,focusCss,headers,manifestText,legacyText]=await Promise.all([
   read("package.json"),read("docs/roadmaps/REFACTOR_ROADMAP.md"),read("docs/architecture/READER_LAYER.md"),read("src/reader.html"),read("src/assets/js/reader/app.js"),read("src/assets/js/reader/page-navigation-input.js"),read("src/assets/js/reader/image-focus.js"),read("src/assets/css/reader-image-focus.css"),read("src/_headers"),read("docs/architecture/v1-entrypoints.json"),read("docs/architecture/r1-legacy-source-exceptions.json")
@@ -60,7 +66,7 @@ try{
   if(atOne.x!==0||atOne.y!==0)fail("1x focused image must not expose empty-space pan bounds");
 }catch(error){fail(`R4.1 input helper regression threw: ${error.message}`)}
 
-if(pkg.version!=="1.19.0")fail(`R4.1 release version must be 1.19.0, found ${pkg.version}`);
+if(!semverAtLeast(pkg.version,"1.19.0"))fail(`R4.1 requires release version 1.19.0 or newer, found ${pkg.version}`);
 if(!String(pkg.scripts?.check||"").includes("check-r4-1.mjs"))fail("tools/check-r4-1.mjs must remain in npm run check");
 
 if(failures.length){console.error(`Shadow Garden R4.1 Reader stabilization check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);failures.forEach(message=>console.error(`- ${message}`));process.exitCode=1}

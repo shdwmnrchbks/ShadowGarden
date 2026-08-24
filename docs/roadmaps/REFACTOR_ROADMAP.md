@@ -1,8 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R6 complete; R7 next  
+**Status:** 🟨 Active — R0–R7 complete; R8 next  
 **Starting baseline:** v1.15.14  
-**Current refactor release:** v1.21.0  
+**Current refactor release:** v1.22.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with `shadowgarden-bon.pages.dev` and private Backblaze B2.
 
@@ -40,7 +40,7 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 | R4.1. Reader stabilization and consolidation | ✅ Done | Split Pages input from image focus, restore native Continuous touch, fold v1.18.x hotfix lessons into permanent architecture |
 | R5. Garden Keeper decomposition | ✅ Done | Thin Keeper shell, single admin client/session boundary, isolated workflows, explicit lifecycle events |
 | R6. Pages Functions service layer | ✅ Done | Thin routes over explicit auth, catalog, storage, validation, media, abuse, HTTP, and admin services |
-| R7. CSS and design-system consolidation | ⬜ Planned | Tokens/components/layout layers; remove stacked override stylesheets |
+| R7. CSS and design-system consolidation | ✅ Done | Semantic feature/layout/component owners replace historical current/polish/version CSS stacks |
 | R8. Test architecture and fixtures | ⬜ Planned | Unit/integration/DOM/browser coverage around high-risk contracts |
 | R9. Build and deployment cleanup | ⬜ Planned | Dependency audit, lockfile, deterministic assets, optional bundler decision |
 | R10. Final cutover and legacy removal | ⬜ Planned | Remove obsolete compatibility paths, complete production regression, establish v2 baseline |
@@ -315,7 +315,45 @@ See [`../architecture/FUNCTIONS_LAYER.md`](../architecture/FUNCTIONS_LAYER.md).
 
 ## R7 — CSS and design-system consolidation
 
-**Goal:** replace versioned/override stacks with tokens, primitives, layouts, and feature-owned styles. Preserve Main/Adult/Reader variants and accessibility media queries. Remove version-specific CSS only after visual parity is proven.
+**Status:** ✅ Done — accepted 2026-08-25  
+**Release:** v1.22.0  
+**Goal:** replace versioned/override stacks with semantic tokens, primitives, layouts, components, and feature-owned styles while preserving Main/Adult/Reader/Keeper behavior and accessibility variants.
+
+See [`../architecture/DESIGN_SYSTEM.md`](../architecture/DESIGN_SYSTEM.md).
+
+### Final ownership
+
+- `site.css` — public/Garden Keeper foundation tokens and base Library/Series structure.
+- `library-features.css` — Recently Added, advanced filters, exact-tag chips, load-more behavior, and responsive Library feature layout.
+- `public-components.css` — skip/focus treatment, archive/header components, pinned UI, mobile filter collapse, Adult chrome parity, and public accessibility media queries.
+- `public-artwork.css` — Library/Series artwork, compact badges, Continue cover, Series primary actions, and navigable Series tags.
+- `library-layout.css` — final compact-card column and badge-rail geometry.
+- `reader.css` — Reader-scoped token/chrome foundation and core flow geometry.
+- `reader-completion.css` — settings toggle and volume-completion presentation.
+- `reader-presentation.css` — Paper reading surface, loading motion, and flow-specific control visibility.
+- feature-owned Reader sheets remain separate for Continuous rail, Page Map, end page, image focus, accessibility, and interface themes.
+- `admin-series-editor.css` — Keeper Series Editor dialog/accessibility/toast presentation.
+- `admin-layout.css` — Keeper Manage Library/workspace/dialog geometry.
+- `admin-components.css` — Upload/preflight/completion/Catalog History components.
+- `admin-presentation.css` — Series banner chooser/preview presentation.
+
+### Relevant cleanup completed
+
+- **Public styling depended on `site-current.css` + `site-v1.9.4.css`.** Their rules now have semantic component/artwork owners and the historical files are deleted.
+- **Library layout fixes accumulated in scale/alignment filenames.** Recently Added/filter features and compact-card geometry are now separate `library-features.css` and `library-layout.css` owners.
+- **Reader presentation still had generic polish/version sheets.** `reader-completion.css` and `reader-presentation.css` replace them without touching Reader runtime/input/layout ownership.
+- **Garden Keeper runtime loaded `admin-current.css` and `admin-v1.9.4.css`.** The composition root now loads `admin-components.css` and `admin-presentation.css` instead.
+- **Two R0-frozen Keeper direct CSS paths remain in `admin.html`.** They are now selector-free `@import` aliases to `admin-series-editor.css` and `admin-layout.css`; they cannot act as patch owners and are reserved for final R10 legacy-entrypoint removal.
+- **Surface palettes are intentionally not flattened.** Public/Keeper foundation variables stay in `site.css`, while Reader-specific chrome/theme tokens stay in `reader.css` and `reader-interface-themes.css`.
+
+### Acceptance
+
+- [x] Main, Adult, Series, and Reader direct stylesheet order is semantic and matches the architecture manifest.
+- [x] `site-current.css`, `site-v1.9.4.css`, `library-scale.css`, `library-compact-alignment.css`, `reader-polish.css`, `reader-v1.10.1.css`, `admin-current.css`, and `admin-v1.9.4.css` are deleted and guarded from returning.
+- [x] Public reduced-motion, increased-contrast, forced-colors, focus-visible, and Adult variants remain under explicit owners.
+- [x] Reader Garden/Night/Black/Paper, Adult Reader, and accessibility variants remain intact.
+- [x] Garden Keeper semantic runtime CSS is declared by `admin/app.js`; the two legacy direct aliases contain no selectors.
+- [x] `tools/check-r7.mjs` protects cascade order, semantic ownership, variants, accessibility, cache headers, and retired patch layers.
 
 ---
 
@@ -351,6 +389,6 @@ Priority browser flow remains **Read → Continue → Finished → Read Again**,
 
 ## Recommended execution order
 
-With **R0–R6 complete**, proceed to **R7 CSS and design-system consolidation**. Public browsing, Reader, Garden Keeper, and Pages Functions now have explicit application/domain/service boundaries. Follow with broader tests (R8), build cleanup (R9), and final cutover (R10).
+With **R0–R7 complete**, proceed to **R8 test architecture and fixtures**. Public browsing, Reader, Garden Keeper, Pages Functions, and CSS/design-system ownership are now explicit. Follow with build/deployment cleanup (R9) and final cutover (R10).
 
-Do not mix design-system consolidation, test-architecture expansion, and build/deployment cleanup in one PR.
+Do not mix test-architecture expansion, build/deployment cleanup, and final legacy removal in one PR.

@@ -1,8 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R7 complete; R8 next  
+**Status:** 🟨 Active — R0–R8 complete; R9 next  
 **Starting baseline:** v1.15.14  
-**Current refactor release:** v1.22.0  
+**Current refactor release:** v1.23.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with `shadowgarden-bon.pages.dev` and private Backblaze B2.
 
@@ -41,7 +41,7 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 | R5. Garden Keeper decomposition | ✅ Done | Thin Keeper shell, single admin client/session boundary, isolated workflows, explicit lifecycle events |
 | R6. Pages Functions service layer | ✅ Done | Thin routes over explicit auth, catalog, storage, validation, media, abuse, HTTP, and admin services |
 | R7. CSS and design-system consolidation | ✅ Done | Semantic feature/layout/component owners replace historical current/polish/version CSS stacks |
-| R8. Test architecture and fixtures | ⬜ Planned | Unit/integration/DOM/browser coverage around high-risk contracts |
+| R8. Test architecture and fixtures | ✅ Done | Layered deterministic unit/service/DOM/browser-smoke coverage and reusable high-risk fixtures |
 | R9. Build and deployment cleanup | ⬜ Planned | Dependency audit, lockfile, deterministic assets, optional bundler decision |
 | R10. Final cutover and legacy removal | ⬜ Planned | Remove obsolete compatibility paths, complete production regression, establish v2 baseline |
 
@@ -359,9 +359,44 @@ See [`../architecture/DESIGN_SYSTEM.md`](../architecture/DESIGN_SYSTEM.md).
 
 ## R8 — Test architecture and fixtures
 
-**Goal:** add dedicated unit, service/integration, DOM and browser smoke layers. Required fixtures cover Main/Adult, single/multi-volume, long metadata, visual EPUB pages, progress state variants, and expired/tampered ticket scenarios.
+**Status:** ✅ Done — accepted 2026-08-25  
+**Release:** v1.23.0  
+**Goal:** add dedicated unit, service/integration, DOM and browser-smoke layers with reusable deterministic fixtures around Shadow Garden's highest-risk contracts.
 
-Priority browser flow remains **Read → Continue → Finished → Read Again**, alongside Page/Continuous parity, native Continuous touch scrolling, Pages swipe/wheel input, focused-image zoom, and Keeper security/workflow smoke tests.
+See [`../architecture/TEST_ARCHITECTURE.md`](../architecture/TEST_ARCHITECTURE.md).
+
+### Final test architecture
+
+- `tests/unit/` — catalog/Library model behavior, browser-local reading state, Reader swipe classification, and image-focus geometry.
+- `tests/service/` — signed media tickets, Garden Keeper bearer + signed-session authorization, upload/catalog validation, and Garden Health using real server modules without external network calls.
+- `tests/dom/` — public renderer ownership with narrow deterministic DOM doubles rather than a second DOM framework.
+- `tests/browser/` — browser-contract smoke tests for Main/Adult/Series/Reader/Keeper entrypoints, visual EPUB pages, Reader Pages/Continuous input ownership, image-focus isolation, Keeper composition, and the priority reading lifecycle.
+- `tools/run-tests.mjs` — one Node 22 layered runner behind `npm test` plus `test:unit`, `test:service`, `test:dom`, and `test:browser`.
+- `tools/check-r8.mjs` — permanent fixture/layer/package/docs/coverage guard.
+
+### Canonical fixture coverage
+
+- Main and Adult catalogs with explicit shelf isolation.
+- single-volume and multi-volume series.
+- deliberately long title/author/description/search metadata.
+- Unread / In Progress / Finished / Read Again state cases.
+- concrete cover, Western Continent map, illustration, and normal reflowable XHTML spine documents.
+- valid, tampered-signature, tampered-path, and expired signed-media-ticket scenarios.
+- deterministic browser-local storage/location/event helpers plus narrow DOM test doubles.
+
+### Audit correction caught by R8
+
+- **Signed EPUB path normalization was broader than the canonical book namespace.** `normalizeBookPath()` accepted any `.epub` below `/media/shadow-garden/`; after URL normalization, a traversal-like `/media/shadow-garden/books/../secret.epub` could become `/media/shadow-garden/secret.epub` and still satisfy that broad prefix. R8 tightened the primitive to require `/media/shadow-garden/books/`, and the service suite permanently covers this case together with valid/tampered/expired tickets.
+
+### Acceptance
+
+- [x] Unit, service/integration, DOM, and browser-smoke layers execute independently through Node 22's built-in test runner.
+- [x] Main/Adult, single/multi-volume, long-metadata, visual EPUB, reading-state, and ticket-security fixture families are reusable under `tests/fixtures/`.
+- [x] Priority browser flow **Read → Continue → Finished → Read Again** clears progress/Finished, preserves bookmarks, and retains `restart=1` semantics.
+- [x] Reader tests preserve Pages horizontal swipe ownership, native Continuous touch scrolling, and viewport-only image-focus pinch/pan.
+- [x] Keeper tests cover both bearer + signed-session authorization and the R5 composition/unlock boundary.
+- [x] `npm run check` runs the complete R0–R8/security guards plus all four behavioral test layers; `prebuild` repeats the same gate before production output.
+- [x] R8 adds no test framework/headless-browser dependency; the dependency/browser-runner decision remains R9/R10 work.
 
 ---
 
@@ -389,6 +424,6 @@ Priority browser flow remains **Read → Continue → Finished → Read Again**,
 
 ## Recommended execution order
 
-With **R0–R7 complete**, proceed to **R8 test architecture and fixtures**. Public browsing, Reader, Garden Keeper, Pages Functions, and CSS/design-system ownership are now explicit. Follow with build/deployment cleanup (R9) and final cutover (R10).
+With **R0–R8 complete**, proceed to **R9 build and deployment cleanup**. Public browsing, Reader, Garden Keeper, Pages Functions, CSS/design-system ownership, and deterministic regression layers are now explicit. Follow with final cutover and production regression (R10).
 
-Do not mix test-architecture expansion, build/deployment cleanup, and final legacy removal in one PR.
+Do not mix build/deployment cleanup and final legacy removal in one PR.

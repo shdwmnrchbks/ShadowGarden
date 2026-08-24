@@ -39,15 +39,26 @@ test("Main, Adult, Series, Reader, and Keeper entrypoints expose critical browse
 });
 
 test("visual EPUB fixture remains covered by Visual Page Cache and paginated contain-fit owners", async () => {
-  const [fixture, visualCache, visualFit] = await Promise.all([
+  const [fixture, visualCache, visualFit, cover, map, illustration, chapter] = await Promise.all([
     json("tests/fixtures/visual-pages.json"),
     read("src/assets/js/reader-visual-cache.js"),
-    read("src/assets/js/reader-paginated-visual-fit.js")
+    read("src/assets/js/reader-paginated-visual-fit.js"),
+    read("tests/fixtures/epub/cover.xhtml"),
+    read("tests/fixtures/epub/map.xhtml"),
+    read("tests/fixtures/epub/illustration.xhtml"),
+    read("tests/fixtures/epub/chapter.xhtml")
   ]);
   const visual = fixture.spine.filter(item => item.visualOnly);
   const text = fixture.spine.filter(item => !item.visualOnly);
   assert.deepEqual(visual.map(item => item.kind), ["cover", "map", "illustration"]);
   assert.deepEqual(text.map(item => item.kind), ["chapter"]);
+  for (const xhtml of [cover, map, illustration]) assert.equal((xhtml.match(/<img\b/g) || []).length, 1);
+  assert.match(cover, /cover-page/);
+  assert.match(map, /map-page/);
+  assert.match(map, /Map of the Western Continent/);
+  assert.match(illustration, /illustration-page/);
+  assert.match(chapter, /normal reflowable chapter text/);
+  assert.equal((chapter.match(/<p\b/g) || []).length >= 2, true);
   assert.match(visualCache, /shadow-garden-visual-pages/);
   assert.match(visualCache, /cover\|illustration\|illustrated/);
   assert.match(visualCache, /\|map\)/);

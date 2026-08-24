@@ -28,13 +28,14 @@ export function configureSpread(rendition,flow="paginated"){
   }catch(error){console.warn("Reader spread configuration skipped",error)}
 }
 
-export function createRendition({book,target,viewerId="viewer",flow="paginated",wire,themeCss}={}){
+export function createRendition({book,target,viewerId="viewer",flow="paginated",wire,onCreate,themeCss}={}){
   if(!book)throw new Error("EPUB is not open");
   const scrolled=flow==="scrolled-doc",singlePage=!scrolled&&paginatedNeedsSinglePage();
   const rendition=book.renderTo(viewerId,{
     width:"100%",height:"100%",manager:scrolled?"continuous":"default",flow:scrolled?"scrolled-doc":"paginated",
     spread:scrolled||singlePage?"none":"auto",minSpreadWidth:900
   });
+  onCreate?.(rendition);
   wire?.(rendition);
   try{if(themeCss)rendition.themes.default(themeCss)}catch{}
   configureSpread(rendition,flow);

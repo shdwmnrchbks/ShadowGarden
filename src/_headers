@@ -38,6 +38,9 @@
 /assets/js/library-footer-version.js
   Cache-Control: no-store
 
+/assets/js/site-flavor.js
+  Cache-Control: no-store
+
 /assets/js/reader/theme.js
   Cache-Control: no-store
 

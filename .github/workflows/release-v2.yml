@@ -70,12 +70,28 @@ jobs:
         env:
           PRODUCTION: https://shadowgarden-bon.pages.dev
         run: |
-          for path in / /nsfw.html /series.html /reader.html; do
+          smoke_dir="$(mktemp -d)"
+          trap 'rm -rf "$smoke_dir"' EXIT
+
+          smoke_page() {
+            path="$1"
+            marker="$2"
+            file="$smoke_dir/page.html"
             echo "Smoke $PRODUCTION$path"
-            body="$(curl --silent --show-error --fail --max-time 20 "$PRODUCTION$path")"
-            printf '%s' "$body" | grep -q "Shadow Garden"
-          done
-          curl --silent --show-error --fail --max-time 20 "$PRODUCTION/robots.txt" | grep -q "Disallow: /media/"
+            curl --silent --show-error --fail --max-time 20 \
+              --output "$file" "$PRODUCTION$path"
+            grep -Fq "$marker" "$file"
+          }
+
+          smoke_page / 'data-library-scope="main"'
+          smoke_page /nsfw.html 'data-library-scope="nsfw"'
+          smoke_page /series.html 'id="seriesRoot"'
+          smoke_page /reader.html 'id="viewer"'
+
+          robots="$smoke_dir/robots.txt"
+          curl --silent --show-error --fail --max-time 20 \
+            --output "$robots" "$PRODUCTION/robots.txt"
+          grep -Fq 'Disallow: /media/' "$robots"
 
       - name: Publish GitHub v2.0.0 release
         if: steps.release.outputs.publish == 'true'

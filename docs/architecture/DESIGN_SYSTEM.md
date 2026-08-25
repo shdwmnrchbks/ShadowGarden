@@ -43,11 +43,12 @@ Adult Library inserts `adult.css` after `nav.css`. Series replaces Library featu
 
 ### Reconciled responsive navigation contract
 
-Real-device fixes in v1.23.1–v1.23.5 clarified what `nav.css` and `nav.js` own together:
+Real-device fixes in v1.23.1–v1.23.5 established the body-level drawer portal; the v2.4 UX completion pass preserved that portal while removing layout-changing header compensation:
 
 - `nav.js` portals the responsive drawer to `document.body` so fixed geometry is not constrained by the filtered/sticky header in mobile Chromium.
-- `nav.css` owns the fixed drawer/header/backdrop geometry and complete drawer link/button presentation because portaled controls cannot depend on `.site-header nav ...` ancestry.
-- While open, the fixed header's removed flow space is compensated on `body.site-nav-open` (72px normally, 62px on mobile) so the background page does not jump.
+- `nav.css` owns the fixed drawer/backdrop geometry and complete drawer link/button presentation because portaled controls cannot depend on `.site-header nav ...` ancestry.
+- The site header remains sticky and in normal document flow while the drawer is open; open state may raise its z-index or add visual separation but must not switch it to `position: fixed`.
+- No `body.site-nav-open` top-padding compensation is used. `scrollbar-gutter: stable` and unchanged document geometry prevent open/close layout jumps.
 - `<html>` and `<body>` share the open-state scroll lock; the backdrop is non-pannable while the drawer remains vertically pannable/scrollable.
 - Main and Adult variants remain selector-scoped under the same `nav.css` owner.
 

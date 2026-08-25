@@ -32,8 +32,41 @@ function tagLinks(series, urls, format) {
   }).join("");
 }
 
+function translatorFilterHref(series, value, urls) {
+  const adult = Boolean(series?.nsfw) || String(series?.id || "").startsWith("adult-");
+  return `${urls.libraryUrl(adult)}?translator=${encodeURIComponent(value)}`;
+}
+
+function translatorLink(series, credit, urls, format, translations, className = "translation-name") {
+  const esc = format.escapeHtml;
+  const label = translations.creditDisplayName(credit);
+  const filterValue = credit?.name || credit?.group || label;
+  if (!label) return "";
+  return `<a class="${className}" href="${translatorFilterHref(series, filterValue, urls)}" title="Show ${esc(filterValue)} in the ${series?.nsfw ? "Adult Library" : "Library"}">${esc(label)}</a>`;
+}
+
+function translationPanel(series, dependencies) {
+  const { urls, format, translations } = dependencies;
+  const esc = format.escapeHtml;
+  const credits = translations.normalizeTranslations(series?.translations);
+  const status = translations.normalizeTranslationStatus(series?.translationStatus);
+  if (!credits.length && !status) return "";
+  return `<section class="translation-panel" aria-label="Fan translation credits">
+    <div class="translation-panel-head">
+      <div><span>FAN TRANSLATION</span><h2>Translation Credits</h2></div>
+      ${status ? `<strong class="translation-status">${esc(status)}</strong>` : ""}
+    </div>
+    <div class="translation-credit-list">
+      ${credits.map(credit => `<article class="translation-credit">
+        <div><strong>${translatorLink(series, credit, urls, format, translations)}</strong>${credit.coverage ? `<span>${esc(credit.coverage)}</span>` : ""}${credit.note ? `<small>${esc(credit.note)}</small>` : ""}</div>
+        ${credit.url ? `<a class="translation-source" href="${esc(credit.url)}" target="_blank" rel="noopener noreferrer">Translator site ↗</a>` : ""}
+      </article>`).join("")}
+    </div>
+  </section>`;
+}
+
 function volumeCard(series, entry, dependencies) {
-  const { readingState, format } = dependencies;
+  const { readingState, format, urls, translations } = dependencies;
   const esc = format.escapeHtml;
   const { volume, index, state, progress } = entry;
   const action = volumeActionFor(series, volume, index);
@@ -42,12 +75,15 @@ function volumeCard(series, entry, dependencies) {
   const finished = state === readingState.STATES.FINISHED;
   const stateMeta = finished ? "Finished" : state === readingState.STATES.IN_PROGRESS ? `${percent}% read` : "Unread";
   const title = volume?.title || `Volume ${index + 1}`;
+  const overrides = translations.normalizeTranslations(volume?.translations);
+  const overrideMarkup = overrides.length ? `<p class="volume-translator"><span>TL override</span> ${overrides.map(credit => translatorLink(series, credit, urls, format, translations, "volume-translator-link")).join(" · ")}</p>` : "";
   return `<article class="volume-card ${finished ? "is-finished" : ""}" data-volume-index="${index}" data-reading-state="${esc(state)}">
     <a class="volume-cover-link" ${attrs(action, esc)} href="${action.href}" aria-label="${esc(action.label)} ${esc(title)}" title="${esc(action.label)} ${esc(title)}">
       <div class="volume-cover">${cover ? `<img src="${esc(cover)}" alt="${esc(title)} cover" loading="lazy" decoding="async" fetchpriority="low">` : ""}${finished ? '<span class="finished-volume-badge" title="Finished" aria-label="Finished">✓</span>' : ""}</div>
     </a>
     <h3 class="volume-title">${esc(title)}</h3>
     <p class="volume-meta">${[volume?.date || "", format.formatBytes(volume?.size), stateMeta].filter(Boolean).join(" · ")}</p>
+    ${overrideMarkup}
     <div class="volume-actions">
       <a class="read" ${attrs(action, esc)} href="${action.href}">${esc(action.label)}</a>
       <a class="download" href="#book-${esc(volume?.file)}" data-book-id="${esc(volume?.file)}" download>Download EPUB</a>
@@ -56,7 +92,7 @@ function volumeCard(series, entry, dependencies) {
 }
 
 export function seriesMarkup(series, dependencies) {
-  const { readingState, preferences, urls, format, identity } = dependencies;
+  const { readingState, preferences, urls, format, identity, translations } = dependencies;
   const esc = format.escapeHtml;
   const volumes = arr(series?.volumes);
   const first = volumes[0];
@@ -68,6 +104,8 @@ export function seriesMarkup(series, dependencies) {
   const audioAlignedUrl = series?.audioAlignedUrl || volumes.find(volume => volume?.audioAlignedUrl)?.audioAlignedUrl || "";
   const cover = series?.cover || first?.cover || series?.coverThumb || first?.coverThumb || "";
   const backdrop = volumeArtwork(series, bannerVolume(series, identity)) || series?.coverThumb || first?.coverThumb || cover;
+  const primaryTranslator = translations.primaryTranslator(series);
+  const translatorSummary = primaryTranslator ? `<p class="series-translator-summary"><span>Fan translation</span>${translatorLink(series, primaryTranslator, urls, format, translations)}</p>` : "";
 
   return `
     <section class="series-hero">
@@ -78,6 +116,7 @@ export function seriesMarkup(series, dependencies) {
           <p class="kicker">${series?.nsfw ? "ADULT · " : ""}${esc((series?.status || "SERIES").toUpperCase())}</p>
           <h1>${esc(series?.title)}</h1>
           <p class="series-byline">${esc(series?.author || "Unknown author")} ${series?.year ? `<span class="series-year">· ${series.year}</span>` : ""}${finishedCount ? ` <span class="series-year">· ${finishedCount}/${volumes.length} finished</span>` : ""}</p>
+          ${translatorSummary}
           <div class="series-actions">
             ${startAction ? `<a class="primary-button" ${attrs(startAction, esc)} href="${startAction.href}">${esc(startAction.label)}</a>` : ""}
             ${audioAlignedUrl ? `<a class="secondary-button audio-series-link" href="${esc(audioAlignedUrl)}" target="_blank" rel="noopener noreferrer">Audio EPUBs ↗</a>` : ""}
@@ -88,6 +127,7 @@ export function seriesMarkup(series, dependencies) {
       </div>
     </section>
     <section class="series-body">
+      ${translationPanel(series, dependencies)}
       ${series?.description ? `<p class="series-description">${esc(series.description)}</p>` : ""}
       <div class="series-section-head"><h2>Volumes</h2><span>${volumes.length} ${volumes.length === 1 ? "volume" : "volumes"}</span></div>
       <div class="volume-grid">${entries.map(entry => volumeCard(series, entry, dependencies)).join("")}</div>

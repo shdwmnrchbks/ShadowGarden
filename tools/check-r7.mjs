@@ -26,6 +26,7 @@ function cssBalanced(source,name){
 
 const files={
   main:"src/index.html",adult:"src/nsfw.html",series:"src/series.html",reader:"src/reader.html",admin:"src/admin.html",
+  motionFoundation:"src/assets/css/motion.css",libraryMotion:"src/assets/css/library-motion.css",
   publicComponents:"src/assets/css/public-components.css",publicArtwork:"src/assets/css/public-artwork.css",
   libraryFeatures:"src/assets/css/library-features.css",libraryLayout:"src/assets/css/library-layout.css",
   readerBase:"src/assets/css/reader.css",readerCompletion:"src/assets/css/reader-completion.css",readerPresentation:"src/assets/css/reader-presentation.css",
@@ -38,9 +39,9 @@ const entries=Object.fromEntries(await Promise.all(Object.entries(files).map(asy
 const manifest=JSON.parse(entries.manifest),legacy=JSON.parse(entries.legacy),pkg=JSON.parse(entries.pkg);
 
 const expected={
-  main:["/assets/css/site.css","/assets/css/nav.css","/assets/css/library-features.css","/assets/css/public-components.css","/assets/css/public-artwork.css","/assets/css/library-layout.css","/assets/css/reading-status.css","/assets/css/volume-actions.css","/assets/css/ui-symbols.css"],
-  adult:["/assets/css/site.css","/assets/css/nav.css","/assets/css/adult.css","/assets/css/library-features.css","/assets/css/public-components.css","/assets/css/public-artwork.css","/assets/css/library-layout.css","/assets/css/reading-status.css","/assets/css/volume-actions.css","/assets/css/ui-symbols.css"],
-  series:["/assets/css/site.css","/assets/css/nav.css","/assets/css/adult.css","/assets/css/series-extra.css","/assets/css/public-components.css","/assets/css/public-artwork.css","/assets/css/reading-status.css","/assets/css/volume-actions.css","/assets/css/ui-symbols.css"],
+  main:["/assets/css/site.css","/assets/css/nav.css","/assets/css/motion.css","/assets/css/library-motion.css","/assets/css/library-features.css","/assets/css/public-components.css","/assets/css/public-artwork.css","/assets/css/library-layout.css","/assets/css/reading-status.css","/assets/css/volume-actions.css","/assets/css/ui-symbols.css"],
+  adult:["/assets/css/site.css","/assets/css/nav.css","/assets/css/motion.css","/assets/css/library-motion.css","/assets/css/adult.css","/assets/css/library-features.css","/assets/css/public-components.css","/assets/css/public-artwork.css","/assets/css/library-layout.css","/assets/css/reading-status.css","/assets/css/volume-actions.css","/assets/css/ui-symbols.css"],
+  series:["/assets/css/site.css","/assets/css/nav.css","/assets/css/motion.css","/assets/css/library-motion.css","/assets/css/adult.css","/assets/css/series-extra.css","/assets/css/public-components.css","/assets/css/public-artwork.css","/assets/css/reading-status.css","/assets/css/volume-actions.css","/assets/css/ui-symbols.css"],
   reader:["/assets/css/reader.css","/assets/css/reader-continuous-rail.css","/assets/css/reader-page-map.css","/assets/css/reader-completion.css","/assets/css/reader-end-page.css","/assets/css/reading-status.css","/assets/css/reader-image-focus.css","/assets/css/reader-a11y.css","/assets/css/reader-interface-themes.css","/assets/css/reader-presentation.css","/assets/css/ui-symbols.css"],
   admin:["/assets/css/site.css","/assets/css/nav.css","/assets/css/admin.css","/assets/css/admin-preflight.css","/assets/css/admin-batch.css","/assets/css/admin-maintenance.css","/assets/css/admin-series-editor.css","/assets/css/admin-layout.css","/assets/css/ui-symbols.css"]
 };
@@ -63,11 +64,14 @@ for(const file of retired){
 }
 
 for(const [name,source] of Object.entries({
+  motionFoundation:entries.motionFoundation,libraryMotion:entries.libraryMotion,
   publicComponents:entries.publicComponents,publicArtwork:entries.publicArtwork,libraryFeatures:entries.libraryFeatures,libraryLayout:entries.libraryLayout,
   readerCompletion:entries.readerCompletion,readerPresentation:entries.readerPresentation,adminSeries:entries.adminSeries,adminLayout:entries.adminLayout,
   adminComponents:entries.adminComponents,adminPresentation:entries.adminPresentation
 }))cssBalanced(source,name);
 
+for(const marker of ["--sg-motion-press","--sg-motion-page","--sg-ease-enter","prefers-reduced-motion:reduce"]){if(!entries.motionFoundation.includes(marker))fail(`motion.css is missing shared motion contract ${marker}`)}
+for(const marker of ["@view-transition","series-cover","sg-library-content-in","prefers-reduced-motion:reduce"]){if(!entries.libraryMotion.includes(marker))fail(`library-motion.css is missing ${marker}`)}
 for(const marker of [".skip-link",":focus-visible","body.adult-library","mobile-filter-toggle","prefers-contrast:more","forced-colors:active","prefers-reduced-motion:reduce"]){if(!entries.publicComponents.includes(marker))fail(`public-components.css is missing ${marker}`)}
 for(const marker of ["intro-banner-art",".series-backdrop","compact-card-badge","series-actions .primary-button","a.tag","prefers-reduced-motion:reduce"]){if(!entries.publicArtwork.includes(marker))fail(`public-artwork.css is missing ${marker}`)}
 for(const marker of [".recent-section",".active-filter-tags",".catalog-sentinel",".adult-library","@media(max-width:720px)"]){if(!entries.libraryFeatures.includes(marker))fail(`library-features.css is missing ${marker}`)}

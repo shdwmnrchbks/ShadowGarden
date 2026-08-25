@@ -7,6 +7,8 @@
       "styles": [
         "/assets/css/site.css",
         "/assets/css/nav.css",
+        "/assets/css/motion.css",
+        "/assets/css/library-motion.css",
         "/assets/css/library-features.css",
         "/assets/css/public-components.css",
         "/assets/css/public-artwork.css",
@@ -16,6 +18,8 @@
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
+        "/assets/js/motion.js",
+        "/assets/js/library-motion.js",
         "/assets/js/nav.js",
         "/assets/js/data-source.js",
         "/assets/js/library.js",
@@ -37,6 +41,8 @@
       "styles": [
         "/assets/css/site.css",
         "/assets/css/nav.css",
+        "/assets/css/motion.css",
+        "/assets/css/library-motion.css",
         "/assets/css/adult.css",
         "/assets/css/library-features.css",
         "/assets/css/public-components.css",
@@ -47,6 +53,8 @@
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
+        "/assets/js/motion.js",
+        "/assets/js/library-motion.js",
         "/assets/js/nav.js",
         "/assets/js/data-source.js",
         "/assets/js/library.js",
@@ -68,6 +76,8 @@
       "styles": [
         "/assets/css/site.css",
         "/assets/css/nav.css",
+        "/assets/css/motion.css",
+        "/assets/css/library-motion.css",
         "/assets/css/adult.css",
         "/assets/css/series-extra.css",
         "/assets/css/public-components.css",
@@ -77,6 +87,7 @@
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
+        "/assets/js/motion.js",
         "/assets/js/nav.js",
         "/assets/js/site-a11y.js",
         "/assets/js/data-source.js",

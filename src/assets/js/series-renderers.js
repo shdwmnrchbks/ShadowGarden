@@ -39,30 +39,13 @@ function translatorFilterHref(series, value, urls) {
 
 function translatorLink(series, credit, urls, format, translations, className = "translation-name") {
   const esc = format.escapeHtml;
-  const label = translations.creditDisplayName(credit);
-  const filterValue = credit?.name || credit?.group || label;
+  const normalized = translations.normalizeTranslationCredit(credit);
+  const label = normalized?.name || "";
   if (!label) return "";
-  return `<a class="${className}" href="${translatorFilterHref(series, filterValue, urls)}" title="Show ${esc(filterValue)} in the ${series?.nsfw ? "Adult Library" : "Library"}">${esc(label)}</a>`;
-}
-
-function translationPanel(series, dependencies) {
-  const { urls, format, translations } = dependencies;
-  const esc = format.escapeHtml;
-  const credits = translations.normalizeTranslations(series?.translations);
-  const status = translations.normalizeTranslationStatus(series?.translationStatus);
-  if (!credits.length && !status) return "";
-  return `<section class="translation-panel" aria-label="Fan translation credits">
-    <div class="translation-panel-head">
-      <div><span>FAN TRANSLATION</span><h2>Translation Credits</h2></div>
-      ${status ? `<strong class="translation-status">${esc(status)}</strong>` : ""}
-    </div>
-    <div class="translation-credit-list">
-      ${credits.map(credit => `<article class="translation-credit">
-        <div><strong>${translatorLink(series, credit, urls, format, translations)}</strong>${credit.coverage ? `<span>${esc(credit.coverage)}</span>` : ""}${credit.note ? `<small>${esc(credit.note)}</small>` : ""}</div>
-        ${credit.url ? `<a class="translation-source" href="${esc(credit.url)}" target="_blank" rel="noopener noreferrer">Translator site ↗</a>` : ""}
-      </article>`).join("")}
-    </div>
-  </section>`;
+  if (normalized?.url) {
+    return `<a class="${className}" href="${esc(normalized.url)}" target="_blank" rel="noopener noreferrer" title="Visit ${esc(label)} source">${esc(label)}</a>`;
+  }
+  return `<a class="${className}" href="${translatorFilterHref(series, label, urls)}" title="Show ${esc(label)} in the ${series?.nsfw ? "Adult Library" : "Library"}">${esc(label)}</a>`;
 }
 
 function volumeCard(series, entry, dependencies) {
@@ -127,7 +110,6 @@ export function seriesMarkup(series, dependencies) {
       </div>
     </section>
     <section class="series-body">
-      ${translationPanel(series, dependencies)}
       ${series?.description ? `<p class="series-description">${esc(series.description)}</p>` : ""}
       <div class="series-section-head"><h2>Volumes</h2><span>${volumes.length} ${volumes.length === 1 ? "volume" : "volumes"}</span></div>
       <div class="volume-grid">${entries.map(entry => volumeCard(series, entry, dependencies)).join("")}</div>

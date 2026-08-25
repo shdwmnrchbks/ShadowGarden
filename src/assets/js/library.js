@@ -30,7 +30,7 @@
   function mountTranslatorFilter(){
     if($("#translatorSelect"))return;
     const anchor=$("#authorSelect")?.closest(".filter-group");if(!anchor)return;
-    const group=document.createElement("div");group.className="filter-group";group.innerHTML='<label for="translatorSelect">Fan translator / group</label><select id="translatorSelect"><option value="">Any translator</option></select>';anchor.after(group);
+    const group=document.createElement("div");group.className="filter-group";group.innerHTML='<label for="translatorSelect">Fan translator</label><select id="translatorSelect"><option value="">Any translator</option></select>';anchor.after(group);
   }
 
   function collectFilters(){
@@ -251,6 +251,7 @@
   try{
     state.view=domain.preferences.libraryView(scope);
     setupAdultGate();
+    mountTranslatorFilter();
     bindControls();
     readUrl();
     if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");

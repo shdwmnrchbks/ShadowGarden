@@ -3,7 +3,7 @@
 import { translationSearchTerms, translatorNames } from "./domain/translations.js";
 import { CANONICAL_GENRES } from "./domain/catalog-taxonomy.js";
 
-export const VALID_SORTS = new Set(["recent", "title", "author", "year", "volumes"]);
+export const VALID_SORTS = new Set(["recent", "oldest", "title", "title-desc", "author", "author-desc", "year", "year-asc", "volumes", "volumes-asc"]);
 export const VALID_VOLUME_RANGES = new Set(["", "1", "2-5", "6-10", "11+"]);
 export const VALID_READING_STATUSES = new Set(["", "finished", "unfinished"]);
 
@@ -95,11 +95,22 @@ export function filterAndSort(items, state, { pinnedIds = new Set(), seriesFinis
   });
 
   filtered.sort((a, b) => {
-    if (state.sort === "title") return String(a?.title || "").localeCompare(String(b?.title || ""));
-    if (state.sort === "author") return String(a?.author || "").localeCompare(String(b?.author || "")) || String(a?.title || "").localeCompare(String(b?.title || ""));
-    if (state.sort === "year") return (Number(b?.year) || 0) - (Number(a?.year) || 0) || String(a?.title || "").localeCompare(String(b?.title || ""));
-    if (state.sort === "volumes") return arr(b?.volumes).length - arr(a?.volumes).length || String(a?.title || "").localeCompare(String(b?.title || ""));
-    return latestAddedTime(b) - latestAddedTime(a) || String(a?.title || "").localeCompare(String(b?.title || ""));
+    const titleA = String(a?.title || ""), titleB = String(b?.title || "");
+    const authorA = String(a?.author || ""), authorB = String(b?.author || "");
+    if (state.sort === "title") return titleA.localeCompare(titleB);
+    if (state.sort === "title-desc") return titleB.localeCompare(titleA);
+    if (state.sort === "author") return authorA.localeCompare(authorB) || titleA.localeCompare(titleB);
+    if (state.sort === "author-desc") return authorB.localeCompare(authorA) || titleA.localeCompare(titleB);
+    if (state.sort === "year") return (Number(b?.year) || 0) - (Number(a?.year) || 0) || titleA.localeCompare(titleB);
+    if (state.sort === "year-asc") return (Number(a?.year) || Number.POSITIVE_INFINITY) - (Number(b?.year) || Number.POSITIVE_INFINITY) || titleA.localeCompare(titleB);
+    if (state.sort === "volumes") return arr(b?.volumes).length - arr(a?.volumes).length || titleA.localeCompare(titleB);
+    if (state.sort === "volumes-asc") return arr(a?.volumes).length - arr(b?.volumes).length || titleA.localeCompare(titleB);
+    if (state.sort === "oldest") {
+      const aTime = latestAddedTime(a) || Number.POSITIVE_INFINITY;
+      const bTime = latestAddedTime(b) || Number.POSITIVE_INFINITY;
+      return aTime - bTime || titleA.localeCompare(titleB);
+    }
+    return latestAddedTime(b) - latestAddedTime(a) || titleA.localeCompare(titleB);
   });
   return filtered;
 }

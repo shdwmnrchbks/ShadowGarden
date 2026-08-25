@@ -82,7 +82,7 @@ for (const marker of ["position:fixed!important", "top:62px;bottom:0;height:auto
 for (const marker of ["Shadow Garden Test Architecture", "Unit", "Service / integration", "DOM", "Browser smoke", "Shared fixtures", "Read → Continue → Finished → Read Again", "Permanent R8 guard"]) if (!architecture.includes(marker)) fail(`TEST_ARCHITECTURE.md is missing ${marker}`);
 if (!docsIndex.includes("TEST_ARCHITECTURE.md") || !architectureIndex.includes("TEST_ARCHITECTURE.md")) fail("documentation indexes must include TEST_ARCHITECTURE.md");
 if (!roadmap.includes("R8. Test architecture and fixtures | ✅ Done")) fail("Refactor roadmap must record R8 complete");
-if (!roadmap.includes("R9. Build and deployment cleanup | ⬜ Planned")) fail("R9 must remain the next planned refactor milestone");
+if (!roadmap.includes("R9. Build and deployment cleanup |")) fail("R9 milestone must remain present after R8");
 if (!semverAtLeast(pkg.version, "1.23.0")) fail(`R8 requires v1.23.0 or newer, found ${pkg.version}`);
 
 if (failures.length) {

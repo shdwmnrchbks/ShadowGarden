@@ -1,4 +1,4 @@
-# Shadow Garden v1.23.0
+# Shadow Garden v1.24.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
@@ -52,12 +52,13 @@ Production: `https://shadowgarden-bon.pages.dev/`
 - Signed EPUB tickets normalize only under `/media/shadow-garden/books/`; R8 added a permanent traversal/namespace regression case.
 - Existing `/media/*`, `/book-access`, `/human-access`, `/admin-access`, and `/admin-api/*` URLs and security contracts remain unchanged.
 
-### CSS and design system
+### CSS and navigation
 
 - Public Library/Series styling uses semantic `library-features`, `public-components`, `public-artwork`, and `library-layout` owners instead of release-history `current`/version/alignment sheets.
 - Reader completion/settings and targeted presentation fixes live in `reader-completion.css` and `reader-presentation.css`; Page Map, Continuous rail, image focus, accessibility, themes, and end-page styles remain feature-owned.
 - Garden Keeper runtime styling uses explicit Series Editor, workspace layout, components, version, and banner-presentation owners.
 - Main/Adult palettes, Reader Garden/Night/Black/Paper themes, Adult Reader chrome, focus-visible, reduced motion, increased contrast, and forced-colors contracts remain intact.
+- Responsive navigation is body-portaled and viewport-fixed on mobile, with a pinned open header, stable 72px/62px layout compensation, drawer-owned link presentation, locked background touch scrolling, and independently scrollable drawer content.
 - Historical public/Reader/runtime-Keeper patch/version CSS files are deleted and guarded from returning. Two R0-frozen Keeper direct paths remain selector-free import aliases until final R10 entrypoint cleanup.
 
 ### Test architecture
@@ -65,9 +66,19 @@ Production: `https://shadowgarden-bon.pages.dev/`
 - Four deterministic layers: `tests/unit/`, `tests/service/`, `tests/dom/`, and `tests/browser/`.
 - Node 22's built-in test runner powers all layers; R8 adds no test framework or headless-browser dependency.
 - Shared fixtures cover Main/Adult shelves, single/multi-volume series, deliberately long metadata, visual cover/map/illustration XHTML pages, normal chapter XHTML, reading-state variants, and valid/tampered/expired media tickets.
-- Priority browser-contract smoke covers **Read → Continue → Finished → Read Again**, bookmark preservation, Adult isolation, Pages vs Continuous input, image-focus isolation, and Garden Keeper composition/unlock boundaries.
+- Priority browser-contract smoke covers **Read → Continue → Finished → Read Again**, bookmark preservation, Adult isolation, Pages vs Continuous input, image-focus isolation, Garden Keeper composition/unlock boundaries, and the reconciled real-device mobile navigation contract.
 - Service tests exercise real media-ticket, Keeper-session, validation, and Garden Health modules offline.
-- `npm test` runs all behavioral layers; `npm run check` combines Security Milestones 1–9, R0–R8 guardrails, and the behavioral suite before every production build.
+- `npm test` runs all behavioral layers; `npm run check` combines Security Milestones 1–9, R0–R9 guardrails, and the behavioral suite before every production build.
+
+### Build and deployment
+
+- Node **22.x** is the explicit project runtime in `.nvmrc`, `package.json`, and CI.
+- `package-lock.json` is committed at npm lockfile version 3; CI uses `npm ci` against the exact locked transitive tree.
+- All five direct dependencies remain after an ownership audit: B2 desktop tooling, Cloudflare B2 signing, EPUB.js, XML parsing, and ZIP handling each have live owners.
+- `tools/lib/build-context.mjs` centralizes release version, commit, branch, and deterministic build timestamp for asset stamping, generated catalogs, and deployment metadata.
+- `tools/preview.mjs` provides dependency-free local preview instead of resolving an undeclared `npx serve` CLI.
+- R9 deliberately keeps the native static/module architecture and **does not add a bundler** without a measured need.
+- GitHub Actions remain read-only and pinned to immutable current action SHAs.
 
 ## Security baseline
 
@@ -79,7 +90,7 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The full codebase refactor is incremental: `main` remains deployable, completed security/persistence contracts remain protected by CI, and each milestone replaces duplicate ownership rather than layering another patch.
 
-**R0–R8 are complete. R9 — build and deployment cleanup is next.**
+**R0–R9 are complete. R10 — final cutover and v2 baseline is next.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -88,6 +99,8 @@ The full codebase refactor is incremental: `main` remains deployable, completed 
 - R6 Pages Functions service ownership: [`docs/architecture/FUNCTIONS_LAYER.md`](./docs/architecture/FUNCTIONS_LAYER.md)
 - R7 CSS/design-system ownership: [`docs/architecture/DESIGN_SYSTEM.md`](./docs/architecture/DESIGN_SYSTEM.md)
 - R8 layered tests/fixtures: [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITECTURE.md)
+- Reconciled mobile navigation: [`docs/architecture/MOBILE_NAVIGATION.md`](./docs/architecture/MOBILE_NAVIGATION.md)
+- R9 build/deployment ownership: [`docs/architecture/BUILD_DEPLOYMENT.md`](./docs/architecture/BUILD_DEPLOYMENT.md)
 - Full plan: [`docs/roadmaps/REFACTOR_ROADMAP.md`](./docs/roadmaps/REFACTOR_ROADMAP.md)
 
 ### Current architecture
@@ -112,15 +125,6 @@ Main / Adult Library                 Series
   progress · bookmarks · preferences
   storage · urls · format
 
-Public CSS
-  site + nav + adult/series feature layers
-      |
-      +--> library-features
-      +--> public-components
-      +--> public-artwork
-      +--> library-layout
-      +--> shared reading-status / volume-actions / symbols
-
 Reader bootstrap
       |
       v
@@ -137,7 +141,6 @@ reader/app.js
       |
       +--> shared domain/state
       +--> signed /media/* source
-      +--> Reader-scoped CSS/theme owners
 
 Garden Keeper
       |
@@ -151,8 +154,6 @@ admin/core.js + admin/app.js
   ├─ Trash & Recovery
   ├─ Abuse Watch
   └─ version + shell UI
-      |
-      +--> semantic Keeper CSS owners
       |
       v
 single AdminClient
@@ -180,10 +181,23 @@ Regression architecture
       |
       +--> shared deterministic fixtures/helpers
       +--> tools/run-tests.mjs
-      +--> tools/check-r8.mjs
+
+Build/deployment architecture
+      |
+      v
+package.json + package-lock.json
+      |
+      +--> npm ci / Node 22
+      +--> tools/lib/build-context.mjs
+      |
+      v
+ tools/build.mjs + tools/write-source.mjs
+      |
+      v
+    generated dist/
 ```
 
-R4/R4.1 established the Reader application and stabilized real-device input. R5 replaced the Garden Keeper browser patch stack with explicit workflow ownership. R6 made Pages Function routes thin over explicit services. R7 replaced historical CSS override/version ownership with semantic surface owners. R8 adds reusable deterministic behavioral coverage around those owners and caught/tightened the signed-EPUB books-namespace boundary.
+R4/R4.1 established the Reader application and stabilized real-device input. R5 replaced the Garden Keeper browser patch stack with explicit workflow ownership. R6 made Pages Function routes thin over explicit services. R7 replaced historical CSS override/version ownership with semantic surface owners. R8 added reusable deterministic behavioral coverage and caught/tightened the signed-EPUB books-namespace boundary. The v1.23.x real-device navigation fixes were reconciled back into R7/R8 ownership, and R9 locks and makes the existing build/deployment path deterministic without adding a bundler.
 
 ## Repository layout
 
@@ -191,32 +205,15 @@ R4/R4.1 established the Reader application and stabilized real-device input. R5 
 .
 ├─ README.md
 ├─ CHANGELOG.md
+├─ package.json
+├─ package-lock.json
 ├─ docs/
 │  ├─ architecture/
 │  ├─ roadmaps/
 │  ├─ security/
 │  └─ style/
 ├─ src/
-│  ├─ index.html
-│  ├─ nsfw.html
-│  ├─ series.html
-│  ├─ reader.html
-│  ├─ admin.html
-│  └─ assets/
-│     ├─ css/
-│     └─ js/
-│        ├─ admin/
-│        ├─ domain/
-│        ├─ public/
-│        └─ reader/
 ├─ functions/
-│  ├─ services/
-│  ├─ _lib/
-│  ├─ media/[[path]].js
-│  ├─ book-access.js
-│  ├─ human-access.js
-│  ├─ admin-access.js
-│  └─ admin-api/*.js
 ├─ tests/
 │  ├─ unit/
 │  ├─ service/
@@ -225,9 +222,13 @@ R4/R4.1 established the Reader application and stabilized real-device input. R5 
 │  ├─ fixtures/
 │  └─ helpers/
 └─ tools/
+   ├─ lib/
+   │  ├─ asset-versioning.mjs
+   │  └─ build-context.mjs
    ├─ run-tests.mjs
    ├─ build.mjs
    ├─ write-source.mjs
+   ├─ preview.mjs
    └─ check*.mjs
 ```
 
@@ -271,10 +272,10 @@ Shadow Garden remains compatible with the free `pages.dev` deployment; a custom 
 
 ## Development and validation
 
-Use Node.js 22.
+Use Node.js 22 and the committed lockfile.
 
 ```bash
-npm install
+npm ci
 npm test
 npm run test:unit
 npm run test:service
@@ -285,7 +286,7 @@ npm run build
 npm run preview
 ```
 
-Pull requests and `main` run `.github/workflows/verify.yml`, which executes the complete repository/security/refactor regression suite and a production build before changes are accepted.
+Pull requests and `main` run `.github/workflows/verify.yml`, which uses `npm ci`, executes the complete repository/security/refactor regression suite, and performs a production build before changes are accepted.
 
 Optional desktop B2 utilities:
 

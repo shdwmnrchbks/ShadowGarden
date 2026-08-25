@@ -6,11 +6,11 @@ import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { XMLParser } from "fast-xml-parser";
 import { stampAssetVersions } from "./lib/asset-versioning.mjs";
+import { loadBuildContext } from "./lib/build-context.mjs";
 
 const ROOT=process.cwd(), SRC=path.join(ROOT,"src"), LIB=path.join(ROOT,"library"), DIST=path.join(ROOT,"dist");
-const packageData=JSON.parse(await fs.readFile(path.join(ROOT,"package.json"),"utf8"));
-const ASSET_VERSION=String(packageData.version||"").trim();
-if(!ASSET_VERSION)throw new Error("package.json version is required for asset cache-busting");
+const buildContext=await loadBuildContext();
+const ASSET_VERSION=buildContext.version;
 const parser=new XMLParser({ignoreAttributes:false,attributeNamePrefix:"@_",removeNSPrefix:true,trimValues:true});
 const arr=v=>v==null?[]:Array.isArray(v)?v:[v];
 const txt=v=>typeof v==="string"||typeof v==="number"?String(v):v?.["#text"]?String(v["#text"]):"";
@@ -115,7 +115,7 @@ for(const {seriesName,folderNsfw,volumes:vols0} of groups.values()){
   catalog.push({id:sid,title:seriesOverride.title||seriesName,author:seriesOverride.author||first.author||"",year:seriesOverride.year||((years.length&&Math.min(...years))||""),status:seriesOverride.status||"",description:seriesOverride.description||first.description||"",tags,cover:seriesOverride.cover||outVolumes.find(v=>v.cover)?.cover||"",nsfw:isNsfw,volumes:outVolumes});
 }
 catalog.sort((a,b)=>a.title.localeCompare(b.title));
-const mainCatalog=catalog.filter(s=>!s.nsfw),adultCatalog=catalog.filter(s=>s.nsfw),generatedAt=new Date().toISOString();
+const mainCatalog=catalog.filter(s=>!s.nsfw),adultCatalog=catalog.filter(s=>s.nsfw),generatedAt=buildContext.builtAt;
 await fs.writeFile(path.join(DIST,"data","catalog.json"),JSON.stringify({generatedAt,series:mainCatalog},null,2));
 await fs.writeFile(path.join(DIST,"data","adult-catalog.json"),JSON.stringify({generatedAt,series:adultCatalog},null,2));
 console.log(`Built Shadow Garden: ${mainCatalog.length} main series, ${adultCatalog.length} adult series, ${catalog.reduce((n,s)=>n+s.volumes.length,0)} volumes.`);

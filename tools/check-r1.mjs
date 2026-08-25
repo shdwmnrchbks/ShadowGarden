@@ -39,11 +39,11 @@ for(const entry of await fs.readdir(ROOT,{withFileTypes:true})){
 }
 
 if(nvmrc.trim()!=="22")fail(".nvmrc must pin Node 22");
-if(!workflow.includes("node-version: 22"))fail("GitHub Actions must use Node 22");
-for(const marker of [
-  "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
-  "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020"
-])if(!workflow.includes(marker))fail(`CI action is not pinned to the R1 immutable revision: ${marker}`);
+if(!workflow.includes("node-version: 22"))fail("GitHub Actions must use Node 22 for project commands");
+for(const action of ["actions/checkout","actions/setup-node"]){
+  const match=workflow.match(new RegExp(`uses: ${action.replace("/","\\/")}@([0-9a-f]{40})`));
+  if(!match)fail(`${action} must remain pinned to an immutable 40-character commit SHA`);
+}
 if(!workflow.includes("run: npm run build"))fail("GitHub Actions must verify the production build after repository checks");
 
 for(const marker of ["MODULE_CONVENTIONS.md","BUILD_CONTRACT.md","r1-legacy-source-exceptions.json"]){
@@ -52,7 +52,7 @@ for(const marker of ["MODULE_CONVENTIONS.md","BUILD_CONTRACT.md","r1-legacy-sour
 for(const marker of ["One owner per responsibility","Forbidden names for new permanent source","DOM ownership","State ownership","CSS ownership"]){
   if(!conventions.includes(marker))fail(`module conventions are missing ${marker}`);
 }
-for(const marker of ["Authored vs generated","dist/","Node 22","Asset cache-busting","package.json#version","deferred to R9"]){
+for(const marker of ["Authored vs generated","dist/","Node 22","Asset cache-busting","package.json#version","Finalized dependency policy","npm ci"]){
   if(!buildContract.includes(marker))fail(`build contract is missing ${marker}`);
 }
 
@@ -70,7 +70,7 @@ if(!stamped.includes('/assets/js/app.js?v=9.8.7'))fail("asset version helper did
 if(!stamped.includes('/assets/css/site.css?v=9.8.7'))fail("asset version helper did not add a local CSS query");
 if(!stamped.includes('/assets/img/cover.webp'))fail("asset version helper must not version images");
 if(!stamped.includes('https://example.com/assets/x.js?v=remote'))fail("asset version helper must not rewrite remote asset URLs");
-for(const marker of ["stampAssetVersions","ASSET_VERSION","package.json","Stamped ${stampedAssets}"]){
+for(const marker of ["stampAssetVersions","ASSET_VERSION","loadBuildContext","Stamped ${stampedAssets}"]){
   if(!buildSource.includes(marker))fail(`build must retain centralized asset versioning marker ${marker}`);
 }
 

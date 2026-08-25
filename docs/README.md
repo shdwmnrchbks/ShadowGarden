@@ -9,7 +9,8 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 - [`architecture/PERSISTENCE_CONTRACTS.md`](./architecture/PERSISTENCE_CONTRACTS.md) — browser persistence, IndexedDB, cookie, and migration contracts.
 - [`architecture/HTTP_STORAGE_CONTRACTS.md`](./architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and Backblaze B2 namespace contracts.
 - [`architecture/MODULE_CONVENTIONS.md`](./architecture/MODULE_CONVENTIONS.md) — post-R1 module naming, ownership, DOM/state, and placement rules.
-- [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning.
+- [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning; finalized by R9.
+- [`architecture/BUILD_DEPLOYMENT.md`](./architecture/BUILD_DEPLOYMENT.md) — R9 locked dependency tree, `npm ci`, deterministic build context, deployment metadata, no-bundler decision, and dependency-free preview server.
 - [`architecture/DOMAIN_LAYER.md`](./architecture/DOMAIN_LAYER.md) — R2 canonical catalog, identity, progress, bookmarks, reading-state, preferences, URL, and formatting services.
 - [`architecture/PUBLIC_UI_LAYER.md`](./architecture/PUBLIC_UI_LAYER.md) — R3 Library/Series controllers, renderers, shared volume actions, and removed public repair layers.
 - [`architecture/READER_LAYER.md`](./architecture/READER_LAYER.md) — R4/R4.1 authorized Reader session, app/controllers, Page/Continuous adapters, split Pages input vs image-focus ownership, native Continuous touch invariant, and retained EPUB.js compatibility boundaries.
@@ -23,7 +24,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## Active roadmap
 
-- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R8 are complete; R9 build and deployment cleanup is next.
+- [`roadmaps/REFACTOR_ROADMAP.md`](./roadmaps/REFACTOR_ROADMAP.md) — active full-codebase refactor plan leading toward the next major architecture baseline. R0–R9 are complete; R10 final cutover and v2 baseline is next.
 
 ## Completed roadmaps
 
@@ -43,4 +44,4 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## Files intentionally kept at repository root
 
-The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning belongs under `docs/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning belongs under `docs/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` is now an intentional committed root file under the finalized R9 dependency contract.

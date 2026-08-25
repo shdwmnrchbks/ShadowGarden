@@ -39,6 +39,7 @@ test("mobile Library and Adult filters enter collapsed with wrapped removable ac
   assert.match(css,/text-overflow:ellipsis/);
   assert.match(css,/active-filter-pill-label/);
   assert.match(css,/\.active-filter-tags\{width:100%;max-width:100%;flex-wrap:wrap;align-items:flex-start;overflow:visible\}/);
+  assert.match(css,/\.active-filter-tags \.active-filter-pill-label\{max-width:min\(68vw,250px\)\}/);
   assert.equal(css.includes(".active-filter-tags{flex-wrap:nowrap"),false,"mobile filter pills must not return to a clipped single-row rail");
 });
 

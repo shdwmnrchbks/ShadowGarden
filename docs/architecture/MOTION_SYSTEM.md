@@ -1,6 +1,6 @@
 # Shadow Garden Motion System
 
-Shadow Garden motion is progressive enhancement. It explains where UI came from, where it moved, and what state changed; it never owns navigation, reading state, catalog state, workflow state, API requests, or persistence.
+Shadow Garden motion is progressive enhancement. It explains where UI came from, where it moved, and what state changed; it never owns navigation, reading state, catalog state, or persistence. Slice 4 extends that rule explicitly to workflow state and API requests.
 
 ## Timing contract
 

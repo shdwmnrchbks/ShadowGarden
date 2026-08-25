@@ -13,11 +13,11 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: fix-library-result-focus-v2.1.2
           fetch-depth: 0
-      - uses: actions/setup-node@1e60f620b9541d401f3c0b8f7a5f58c0f7f8b3a1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
       - name: Apply controller and release metadata

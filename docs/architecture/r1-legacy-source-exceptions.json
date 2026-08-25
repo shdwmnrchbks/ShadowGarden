@@ -1,11 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "baseline": "v1.15.14",
-  "grandfatheredPatchStyleFiles": [
-    "src/assets/js/admin-series-editor-polish.js",
-    "src/assets/js/admin-upload-polish.js",
-    "src/assets/css/admin-series-editor-polish.css"
-  ],
+  "grandfatheredPatchStyleFiles": [],
   "removedDeadFiles": [
     "src/assets/js/library-continue-meta.js",
     "src/assets/js/library-series-polish.js",
@@ -28,6 +24,22 @@
     "src/assets/css/reader-polish.css",
     "src/assets/css/reader-v1.10.1.css",
     "src/assets/css/admin-current.css",
-    "src/assets/css/admin-v1.9.4.css"
+    "src/assets/css/admin-v1.9.4.css",
+    "src/assets/js/admin.js",
+    "src/assets/js/admin-audio.js",
+    "src/assets/js/admin-preflight.js",
+    "src/assets/js/admin-batch-safety.js",
+    "src/assets/js/admin-maintenance.js",
+    "src/assets/js/admin-bootstrap.js",
+    "src/assets/js/admin-security.js",
+    "src/assets/js/admin-series-status.js",
+    "src/assets/js/admin-series-banner.js",
+    "src/assets/js/admin-series-editor-polish.js",
+    "src/assets/js/admin-overhaul.js",
+    "src/assets/js/admin-abuse.js",
+    "src/assets/js/admin-backup-history.js",
+    "src/assets/js/admin-upload-polish.js",
+    "src/assets/css/admin-series-editor-polish.css",
+    "src/assets/css/admin-overhaul.css"
   ]
 }

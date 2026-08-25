@@ -53,9 +53,9 @@
     </section>
 
     <section id="catalogSection" class="catalog-layout" aria-label="Library catalog">
-      <aside class="filters" aria-label="Library filters">
+      <aside class="filters filters-mobile-initial-collapsed" aria-label="Library filters">
         <div class="filter-head"><strong>Filter archive</strong><button id="clearFilters" type="button">Reset</button></div>
-        <div class="search-stack"><div class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search library"><button id="filterToggle" class="filter-toggle mobile-filter-toggle" type="button" hidden aria-expanded="true" aria-label="Expand library filters" title="Expand filters">▼</button></div><div id="activeTags" class="active-filter-tags" aria-label="Active library filters"></div><p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p></div>
+        <div class="search-stack"><div class="search-field"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="Title, author, tag, volume…" autocomplete="off" aria-label="Search library"><button id="filterToggle" class="filter-toggle mobile-filter-toggle" type="button" aria-expanded="false" aria-label="Expand library filters" title="Expand filters">▼</button></div><div id="activeTags" class="active-filter-tags" aria-label="Active library filters"></div><p class="search-hint">Multiple words narrow results together. Tag filters are exact.</p></div>
         <div class="filter-group"><label for="authorSelect">Author</label><select id="authorSelect"><option value="">Any author</option></select></div>
         <div class="filter-group"><label for="yearSelect">Year</label><select id="yearSelect"><option value="">Any year</option></select></div>
         <div class="filter-group"><label for="volumeCountSelect">Volume count</label><select id="volumeCountSelect"><option value="">Any size</option><option value="1">Single volume</option><option value="2-5">2–5 volumes</option><option value="6-10">6–10 volumes</option><option value="11+">11+ volumes</option></select></div>

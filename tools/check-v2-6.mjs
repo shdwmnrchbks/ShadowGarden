@@ -40,7 +40,8 @@ assert.match(spec, /page\.locator\(['"]\.brand-mark['"]\)/, 'mobile navigation E
 assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'View Transition ready rejection must be observed');
 assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'View Transition finished rejection must be observed');
 assert.match(motion, /observeTransitionPromise\(transition\?\.updateCallbackDone\)/, 'View Transition update callback rejection must be observed');
-assert.match(motion, /guardTransition\(viewTransition\)/, 'cross-document pagereveal transitions must use the same rejection guard');
+assert.match(motion, /addEventListener\(["']pageswap["'],event=>guardTransition\(event\.viewTransition\)\)/, 'outgoing cross-document transitions must be guarded');
+assert.match(motion, /guardTransition\(viewTransition\)/, 'incoming pagereveal transitions must use the same rejection guard');
 assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'native View Transition completion and skip rejection must both clear navigation hints');
 assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped native View Transition rejections unhandled');
 

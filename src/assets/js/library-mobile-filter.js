@@ -17,6 +17,7 @@
   headActions.className='filter-head-actions';
   clear.before(headActions);
   headActions.appendChild(clear);
+  let mobileInitialized=false;
 
   function readCollapsed(){return preferences.mobileFiltersCollapsed(scope)}
   function writeCollapsed(collapsed){preferences.setMobileFiltersCollapsed(scope,collapsed)}
@@ -56,6 +57,13 @@
       headActions.appendChild(toggle);
       placeActiveTags(false);
       return;
+    }
+    /* Every mobile Library entry starts from the same compact baseline. This avoids a
+       stale per-scope preference making Adult open while Main is collapsed. The user's
+       toggle choice still persists for the lifetime of the current page and across tabs. */
+    if(!mobileInitialized){
+      mobileInitialized=true;
+      writeCollapsed(true);
     }
     const collapsed=readCollapsed();
     panel.classList.toggle('filters-collapsed',collapsed);

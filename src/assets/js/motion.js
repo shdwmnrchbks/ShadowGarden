@@ -10,20 +10,43 @@
     window.dispatchEvent(new CustomEvent("sg:motionchange",{detail:{reduced:reduced()}}));
   };
 
+  const skippedTransition=error=>error?.name==="AbortError"||/transition was skipped/i.test(String(error?.message||error||""));
+  const observeTransitionPromise=promise=>{
+    if(!promise||typeof promise.catch!=="function")return;
+    promise.catch(error=>{if(!skippedTransition(error))console.warn("View transition promise rejected",error)});
+  };
+  const guardTransition=transition=>{
+    observeTransitionPromise(transition?.ready);
+    observeTransitionPromise(transition?.finished);
+    observeTransitionPromise(transition?.updateCallbackDone);
+    return transition;
+  };
+  const observeCrossDocumentFinished=transition=>{
+    const finished=transition?.finished;
+    if(finished&&typeof finished.then==="function")finished.then(()=>{},error=>{if(!skippedTransition(error))console.warn("Cross-document view transition rejected",error)});
+    return finished;
+  };
+  const skipTraverseTransition=event=>{
+    const transition=event?.viewTransition;
+    if(!transition||event?.activation?.navigationType!=="traverse")return false;
+    try{transition.skipTransition()}catch{}
+    return true;
+  };
+
   const fallbackTransition=update=>{
     let result;
-    try{result=update?.()}catch(error){return {finished:Promise.reject(error),ready:Promise.reject(error),updateCallbackDone:Promise.reject(error),skipTransition(){}}}
+    try{result=update?.()}catch(error){return guardTransition({finished:Promise.reject(error),ready:Promise.reject(error),updateCallbackDone:Promise.reject(error),skipTransition(){}})}
     const done=Promise.resolve(result);
-    return {finished:done,ready:Promise.resolve(),updateCallbackDone:done,skipTransition(){}};
+    return guardTransition({finished:done,ready:Promise.resolve(),updateCallbackDone:done,skipTransition(){}});
   };
 
   const transition=(update,{types=[]}={})=>{
     if(reduced()||typeof document.startViewTransition!=="function")return fallbackTransition(update);
     try{
       if(types.length){
-        try{return document.startViewTransition({update,types})}catch{}
+        try{return guardTransition(document.startViewTransition({update,types}))}catch{}
       }
-      return document.startViewTransition(update);
+      return guardTransition(document.startViewTransition(update));
     }catch{
       return fallbackTransition(update);
     }
@@ -72,9 +95,14 @@
       writeNavigationHint({direction:directionFor(url,anchor),target:url.pathname});
     },true);
     window.addEventListener("sg:navigationintent",event=>writeNavigationHint(event.detail||{}));
+    window.addEventListener("pageswap",event=>{
+      if(skipTraverseTransition(event))return;
+      observeCrossDocumentFinished(event.viewTransition);
+    });
     window.addEventListener("pagereveal",event=>{
-      const finished=event.viewTransition?.finished;
-      if(finished&&typeof finished.finally==="function")finished.finally(clearNavigationHint);
+      if(skipTraverseTransition(event)){clearNavigationHint();return}
+      const finished=observeCrossDocumentFinished(event.viewTransition);
+      if(finished&&typeof finished.then==="function")finished.then(clearNavigationHint,clearNavigationHint);
       else window.setTimeout(clearNavigationHint,520);
     });
     window.addEventListener("pageshow",()=>window.setTimeout(clearNavigationHint,720),{once:true});

@@ -46,3 +46,19 @@ test("Keeper public entrypoint exposes only R5 composition roots directly", asyn
     assert.equal(html.includes(retiredDirect), false, retiredDirect);
   }
 });
+
+test("R10 Keeper cutover uses semantic CSS and Upload presentation owners only", async () => {
+  const [html, app, presentation] = await Promise.all([
+    read("src/admin.html"),
+    read("src/assets/js/admin/app.js"),
+    read("src/assets/js/admin-upload-presentation.js")
+  ]);
+  assert.match(html, /\/assets\/css\/admin-series-editor\.css/);
+  assert.match(html, /\/assets\/css\/admin-layout\.css/);
+  assert.equal(html.includes("admin-series-editor-polish.css"), false);
+  assert.equal(html.includes("admin-overhaul.css"), false);
+  assert.match(app, /\/assets\/js\/admin-upload-presentation\.js/);
+  assert.equal(app.includes("admin-upload-polish.js"), false);
+  assert.match(presentation, /scheduleEditorRestore/);
+  assert.match(presentation, /enhanceSeriesChooser/);
+});

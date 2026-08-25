@@ -73,12 +73,13 @@ test("any result filter fades Recently Added on desktop and mobile without reser
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
 
-test("desktop grid cards do not reserve an empty second title line and translator matches author hierarchy",async()=>{
+test("grid cards do not reserve an empty second title line on any viewport and translator matches author hierarchy",async()=>{
   const [layout,features]=await Promise.all([
     read("src/assets/css/library-layout.css"),
     read("src/assets/css/library-features.css")
   ]);
-  assert.match(layout,/@media\(min-width:721px\)\{[\s\S]*\.catalog-grid:not\(\.compact\) \.series-card>\.card-copy h2\{[\s\S]*min-height:0!important/);
+  assert.match(layout,/\.catalog-grid:not\(\.compact\) \.series-card>\.card-copy h2\{[^}]*min-height:0!important/);
+  assert.equal(layout.includes("@media(min-width:721px){\n  .catalog-grid:not(.compact) .series-card>.card-copy h2"),false,"grid title spacing fix must apply to mobile too");
   assert.match(features,/\.card-translator\{[^}]*color:var\(--dim\)!important[^}]*font-weight:400!important/);
   assert.equal(features.includes(".card-translator{margin-top:-2px"),false);
   assert.equal(features.includes("color:var(--gold)!important"),false);

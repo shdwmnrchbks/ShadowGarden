@@ -68,28 +68,13 @@
 /assets/js/admin/*
   Cache-Control: no-store
 
-/assets/js/admin-bootstrap.js
-  Cache-Control: no-store
-
-/assets/js/admin-security.js
-  Cache-Control: no-store
-
-/assets/js/admin-abuse.js
-  Cache-Control: no-store
-
-/assets/js/admin-series-status.js
-  Cache-Control: no-store
-
 /assets/js/admin-upload-workflow.js
   Cache-Control: no-store
 
 /assets/js/admin-upload-completion.js
   Cache-Control: no-store
 
-/assets/js/admin-upload-polish.js
-  Cache-Control: no-store
-
-/assets/js/admin-backup-history.js
+/assets/js/admin-upload-presentation.js
   Cache-Control: no-store
 
 /assets/css/library-features.css
@@ -120,12 +105,6 @@
   Cache-Control: no-store
 
 /assets/css/reader-presentation.css
-  Cache-Control: no-store
-
-/assets/css/admin-series-editor-polish.css
-  Cache-Control: no-store
-
-/assets/css/admin-overhaul.css
   Cache-Control: no-store
 
 /assets/css/admin-series-editor.css

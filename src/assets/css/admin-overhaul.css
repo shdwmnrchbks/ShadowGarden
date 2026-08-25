@@ -1,2 +1,0 @@
-/* R7 compatibility alias for the frozen admin.html cascade slot. Remove at R10 after legacy entrypoint cutover. */
-@import url("/assets/css/admin-layout.css?v=1.22.0");

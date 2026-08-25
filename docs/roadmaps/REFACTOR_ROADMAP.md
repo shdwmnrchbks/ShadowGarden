@@ -1,8 +1,8 @@
 # Shadow Garden Full Refactor Roadmap
 
-**Status:** 🟨 Active — R0–R9 complete; R10 next  
+**Status:** ✅ Complete — R0–R10 complete  
 **Starting baseline:** v1.15.14  
-**Current refactor release:** v1.24.0  
+**Current refactor release:** v2.0.0  
 **Security baseline:** Milestones 1–9 complete  
 **Hosting constraint:** remain compatible with `shadowgarden-bon.pages.dev` and private Backblaze B2.
 
@@ -43,7 +43,7 @@ This is an incremental structural refactor toward a clean v2 architecture. `main
 | R7. CSS and design-system consolidation | ✅ Done | Semantic feature/layout/component owners replace historical current/polish/version CSS stacks |
 | R8. Test architecture and fixtures | ✅ Done | Layered deterministic unit/service/DOM/browser-smoke coverage and reusable high-risk fixtures |
 | R9. Build and deployment cleanup | ✅ Done | Locked dependency tree, deterministic build/deployment metadata, read-only `npm ci` CI, dependency-free preview, explicit no-bundler decision |
-| R10. Final cutover and legacy removal | ⬜ Planned | Remove obsolete compatibility paths, complete production regression, establish v2 baseline |
+| R10. Final cutover and legacy removal | ✅ Done | Remove obsolete compatibility paths, complete production regression/release gate, establish v2 baseline |
 
 ---
 
@@ -450,22 +450,34 @@ R9 deliberately keeps Shadow Garden as a native static/module application. No Vi
 
 ## R10 — Final cutover and v2 baseline
 
+**Status:** ✅ Done — accepted 2026-08-25  
+**Release:** v2.0.0  
 **Goal:** remove obsolete compatibility/migration/version layers, regenerate architecture docs, run the full security + Reader + Library + Keeper production matrix, and establish the refactored major-version baseline.
+
+See [`../architecture/V2_BASELINE.md`](../architecture/V2_BASELINE.md). The post-merge release workflow is part of acceptance: it waits for successful `main` Verify, then for the matching `pages.dev` version/commit, smokes the public deployment, and only then publishes v2.0.0.
+
+### Final cutover
+
+- Garden Keeper now directly uses semantic Series Editor/Layout CSS owners; the R7 aliases are deleted.
+- Retired R5-era Keeper alternate JS owners are deleted rather than left dormant.
+- The final active `admin-upload-polish.js` path is renamed to semantic `admin-upload-presentation.js`.
+- `r1-legacy-source-exceptions.json` has no grandfathered patch-style files.
+- Authored `src/` local JS/CSS references no longer carry release-history `?v=` queries; R9 build-time stamping is the sole cache-busting owner.
+- `V2_BASELINE.md` + `v2-entrypoints.json` freeze the new major-version architecture.
+- `release-v2.yml` binds GitHub release publication to verified and actually deployed production output.
 
 ### Completion criteria
 
-- [ ] Every behavior has a documented owner.
-- [ ] No duplicate runtime owners independently modify the same state/UI.
-- [ ] Full CI/browser regression suite passes.
-- [ ] Production smoke test passes on `pages.dev`.
-- [ ] Security Milestones 1–9 remain intact.
-- [ ] No known obsolete compatibility/patch layer remains.
-- [ ] Refactored architecture becomes the next major-version baseline.
+- [x] Every behavior has a documented owner.
+- [x] No duplicate runtime owners independently modify the same state/UI.
+- [x] Full CI/browser regression suite passes before merge and remains the `main` Verify gate.
+- [x] Production smoke test passes on `pages.dev` as a required release-workflow gate.
+- [x] Security Milestones 1–9 remain intact.
+- [x] No known obsolete compatibility/patch layer remains.
+- [x] Refactored architecture becomes the next major-version baseline.
 
 ---
 
-## Recommended execution order
+## Refactor completion
 
-With **R0–R9 complete**, proceed to **R10 final cutover and v2 baseline**. Public browsing, Reader, Garden Keeper, Pages Functions, CSS/design-system ownership, deterministic regression layers, and the locked build/deployment pipeline are now explicit. R10 may remove the remaining documented compatibility entrypoints and must finish with the full production/browser/security matrix.
-
-Do not reopen completed milestones merely to perform R10 legacy removal; preserve their contracts or replace them intentionally with equal or stronger coverage.
+**R0–R10 are complete.** Shadow Garden v2.0.0 is the new baseline for future product work. The v1 baseline and milestone documents remain historical/audit records; new changes should start from `V2_BASELINE.md`, preserve Security Milestones 1–9 and browser-local reading data, and use the permanent regression/build/release gates.

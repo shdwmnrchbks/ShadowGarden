@@ -1,4 +1,4 @@
-/* Shadow Garden — safe queue editor restore and uploaded-series cover chooser. */
+/* Shadow Garden R10 — Upload editor restoration and completion-series presentation. */
 (()=>{
   const dialog=document.querySelector('#addBooksDialog');
   const batchList=document.querySelector('#batchList');
@@ -8,7 +8,7 @@
   const q=state?.batch;
 
   /* Local EPUB inspection is authoritative. Restore the previously active editor only after every
-     checking item has settled, so UI polish never fights the validator's intentional hide/show. */
+     checking item has settled, so presentation never fights the validator's intentional hide/show. */
   let editorRestoreTimer=0;
   function scheduleEditorRestore(){
     clearTimeout(editorRestoreTimer);

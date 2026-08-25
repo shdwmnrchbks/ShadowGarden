@@ -68,7 +68,7 @@ Dependency changes require an explicit PR, synchronized manifest/lockfile, and t
 
 `package.json#version` is the single deploy-time cache-busting version for local JavaScript and CSS assets.
 
-Authored v1 files can still contain historical `?v=...` query strings. Rather than requiring repetitive source edits, `tools/build.mjs` runs the shared asset-versioning helper after copying `src/` to `dist/` and rewrites local `/assets/*.js` and `/assets/*.css` references to:
+R10 removes historical local `?v=...` query strings from authored v2 source. `tools/build.mjs` remains the sole cache-busting owner: after copying `src/` to `dist/`, the shared asset-versioning helper stamps local `/assets/*.js` and `/assets/*.css` references to:
 
 ```text
 ?v=<package.json version>

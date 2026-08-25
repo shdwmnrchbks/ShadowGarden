@@ -54,12 +54,15 @@ test("Library and Adult filters keep wrapped removable active-filter pills direc
   assert.equal(css.includes(".active-filter-tags{flex-wrap:nowrap"),false,"filter pills must not return to a clipped single-row rail");
 });
 
-test("long search text cannot widen the Search Filter panel or its selectors",async()=>{
+test("long search text cannot widen the Search Filter panel, Search field, or selectors",async()=>{
   const css=await read("src/assets/css/library-features.css");
   assert.match(css,/\.catalog-layout,\.catalog-main,\.filters,\.filters>\*,\.search-stack,\.search-field,\.filter-group\{min-width:0;max-width:100%\}/);
   assert.match(css,/\.filters,\.search-stack,\.search-field,\.filter-group\{width:100%\}/);
   assert.match(css,/\.search-field\{overflow:hidden\}/);
-  assert.match(css,/\.search-field input,\.filter-group select\{width:100%;min-width:0;max-width:100%\}/);
+  assert.match(css,/\.search-field>span\{flex:0 0 auto\}/);
+  assert.match(css,/\.search-field input\{flex:1 1 0;width:0;min-width:0;max-width:100%\}/);
+  assert.match(css,/\.filter-group select\{width:100%;min-width:0;max-width:100%\}/);
+  assert.equal(css.includes(".search-field input,.filter-group select{width:100%"),false,"Search input must not claim the full flex row width alongside icon/toggle siblings");
 });
 
 test("any result filter fades Recently Added on desktop and mobile without reserving catalog space",async()=>{

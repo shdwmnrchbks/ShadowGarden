@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 2.2.0 — Reading Suggestions & Random Series Banners
+- Kept Continue as the Library banner priority, then suggest the next unread volume when a previously started series has a next volume available.
+- Added a random Read suggestion fallback so Main and Adult Library banners remain useful even when there is no active reading trail.
+- Reused the suggested volume cover as the Library hero artwork and kept the suggestion stable for the current page session.
+- Made Random the default Series banner mode, choosing from available volume covers once per Series page load while preserving explicit pinned banner selections.
+- Updated Garden Keeper Series Banner controls to expose Random as the default choice with a representative random preview.
+- Added unit/DOM/browser regression coverage for suggestion priority, random fallback, random banner selection, and Keeper banner semantics.
+
 ## 2.1.6 — Search Grid Track Containment
 - Fixed the remaining long-query Search/Filter expansion by replacing intrinsic `auto` grid tracks with shrinkable `minmax(0,1fr)` tracks.
 - Applied shrink-safe filter tracks on desktop, tablet, and mobile while preserving the existing responsive column counts.

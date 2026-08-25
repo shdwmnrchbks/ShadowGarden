@@ -86,7 +86,8 @@ for(const marker of ['BOOK_ID_PATTERN','shadow-garden-book-id-v1','stableVolumeI
 for(const marker of ['../domain/progress.js','../domain/bookmarks.js','READER_SETTINGS_KEY = "sg-reader-settings"','canonicalIdentity'])if(!readerStorage.includes(marker))fail(`Reader storage contract lost ${marker}`);
 if(!readerVisual.includes('CACHE_DB="shadow-garden-visual-pages"')||!readerVisual.includes('CACHE_STORE="books"'))fail("Visual Page Cache IndexedDB contract drifted");
 if(!pageMap.includes('DB_NAME = "shadow-garden-reader"')||!pageMap.includes('STORE_NAME = "page-maps"'))fail("Page Map IndexedDB contract drifted");
-for(const marker of ['preferences.libraryView','latestActiveEntry'])if(!library.includes(marker))fail(`Library must consume canonical R2 persistence/state owner ${marker}`);
+for(const marker of ['preferences.libraryView','readingStatus.libraryBannerEntry'])if(!library.includes(marker))fail(`Library must consume canonical R2 persistence/state owner ${marker}`);
+for(const marker of ['latestActiveEntry(seriesList)','nextStartedSeriesEntry(seriesList)','randomSeriesSuggestionEntry(seriesList'])if(!readingState.includes(marker))fail(`R2 Library banner selection contract lost ${marker}`);
 if(!library.includes('preferences.pinnedIds')&&!library.includes('preferences?.pinnedIds'))fail("Library must consume canonical R2 persistence/state owner preferences.pinnedIds");
 if(!mobileFilter.includes('preferences.mobileFiltersCollapsed'))fail("mobile filter persistence must be owned by R2 preferences");
 for(const marker of ['preferences.pinnedIds','preferences.pinnedNavCollapsed'])if(!navPinned.includes(marker))fail(`pinned navigation persistence must be owned by R2 preferences: ${marker}`);

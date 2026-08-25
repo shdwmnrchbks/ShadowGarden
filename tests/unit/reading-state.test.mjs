@@ -71,3 +71,51 @@ test("preferred series entry selects newest active volume before unread/finished
     assert.equal(readingState.preferredSeriesEntry(series)?.volume.number, 1);
   } finally { env.restore(); }
 });
+
+test("Library banner prefers Continue, then the next unread volume of a started series", () => {
+  const env = installBrowserEnv();
+  try {
+    const started = {
+      id: "started-series",
+      title: "Started Series",
+      volumes: [
+        { number: 1, bookId: "bk_1111111111111111111111", file: "bk_1111111111111111111111" },
+        { number: 2, bookId: "bk_2222222222222222222223", file: "bk_2222222222222222222223" }
+      ]
+    };
+    const other = {
+      id: "other-series",
+      title: "Other Series",
+      volumes: [{ number: 1, bookId: "bk_3333333333333333333333", file: "bk_3333333333333333333333" }]
+    };
+
+    readingState.setVolumeFinished(started.id, started.volumes[0], true, 0);
+    let banner = readingState.libraryBannerEntry([started, other], 0.99);
+    assert.equal(banner?.mode, "suggestion");
+    assert.equal(banner?.suggestion, "next");
+    assert.equal(banner?.series.id, started.id);
+    assert.equal(banner?.volume.number, 2);
+
+    progress.writeProgress(other.volumes[0].file, { page: 8, percentage: 0.08, updatedAt: 500 });
+    banner = readingState.libraryBannerEntry([started, other], 0);
+    assert.equal(banner?.mode, "continue");
+    assert.equal(banner?.series.id, other.id);
+  } finally { env.restore(); }
+});
+
+test("Library banner uses a deterministic random series suggestion when nothing has started", () => {
+  const env = installBrowserEnv();
+  try {
+    const series = [
+      { id: "first", title: "First", volumes: [{ number: 1, bookId: "bk_4444444444444444444444", file: "bk_4444444444444444444444" }] },
+      { id: "second", title: "Second", volumes: [{ number: 1, bookId: "bk_5555555555555555555555", file: "bk_5555555555555555555555" }] }
+    ];
+    const first = readingState.libraryBannerEntry(series, 0);
+    const second = readingState.libraryBannerEntry(series, 0.999);
+    assert.equal(first?.mode, "suggestion");
+    assert.equal(first?.suggestion, "random");
+    assert.equal(first?.series.id, "first");
+    assert.equal(second?.series.id, "second");
+    assert.equal(first?.state, readingState.STATES.UNREAD);
+  } finally { env.restore(); }
+});

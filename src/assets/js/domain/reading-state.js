@@ -161,6 +161,70 @@ export function latestActiveEntry(seriesList) {
   return candidates[0] || null;
 }
 
+function readableEntry(entry) {
+  return Boolean(entry?.volume?.file || entry?.volume?.bookId);
+}
+
+function finishedAt(seriesId, entry, finishedState) {
+  if (entry?.state !== STATES.FINISHED) return 0;
+  let latest = 0;
+  for (const id of volumeAliases(seriesId, entry.volume, entry.index)) {
+    const stamp = Number(finishedState?.[id]) || 0;
+    if (stamp > latest) latest = stamp;
+    else if (!stamp && markerFinished(id)) latest = Math.max(latest, 1);
+  }
+  return latest;
+}
+
+export function nextStartedSeriesEntry(seriesList) {
+  const candidates = [], finishedState = load();
+  for (const series of Array.isArray(seriesList) ? seriesList : []) {
+    const entries = volumeEntries(series);
+    if (!entries.length || entries.some(entry => entry.state === STATES.IN_PROGRESS)) continue;
+    let lastFinished = -1, activityAt = 0;
+    for (const entry of entries) {
+      if (entry.state !== STATES.FINISHED) continue;
+      lastFinished = Math.max(lastFinished, entry.index);
+      activityAt = Math.max(activityAt, finishedAt(series?.id, entry, finishedState), Number(entry.progress?.updatedAt) || 0);
+    }
+    if (lastFinished < 0) continue;
+    const next = entries[lastFinished + 1];
+    if (!next || next.state !== STATES.UNREAD || !readableEntry(next)) continue;
+    candidates.push({ series, ...next, updatedAt: activityAt, suggestion: "next" });
+  }
+  candidates.sort((a, b) => b.updatedAt - a.updatedAt || String(a.series?.title || "").localeCompare(String(b.series?.title || "")));
+  return candidates[0] || null;
+}
+
+function randomUnit(value) {
+  const sampled = typeof value === "function" ? Number(value()) : Number(value);
+  const fallback = Number.isFinite(sampled) ? sampled : Math.random();
+  return Math.min(0.999999999, Math.max(0, fallback));
+}
+
+export function randomSeriesSuggestionEntry(seriesList, randomValue = Math.random) {
+  const candidates = [];
+  for (const series of Array.isArray(seriesList) ? seriesList : []) {
+    const entries = volumeEntries(series).filter(readableEntry);
+    if (!entries.length) continue;
+    const entry = entries.find(item => item.state === STATES.IN_PROGRESS) || entries.find(item => item.state === STATES.UNREAD) || entries[0];
+    if (entry) candidates.push({ series, ...entry, suggestion: "random" });
+  }
+  if (!candidates.length) return null;
+  const unfinished = candidates.filter(candidate => candidate.state !== STATES.FINISHED);
+  const pool = unfinished.length ? unfinished : candidates;
+  return pool[Math.floor(randomUnit(randomValue) * pool.length)] || pool[0] || null;
+}
+
+export function libraryBannerEntry(seriesList, randomValue = Math.random) {
+  const current = latestActiveEntry(seriesList);
+  if (current) return { ...current, mode: "continue" };
+  const next = nextStartedSeriesEntry(seriesList);
+  if (next) return { ...next, mode: "suggestion" };
+  const suggestion = randomSeriesSuggestionEntry(seriesList, randomValue);
+  return suggestion ? { ...suggestion, mode: "suggestion" } : null;
+}
+
 export function isReadingStorageKey(key) {
   const value = String(key || "");
   return value === KEY || value.startsWith(MARKER_PREFIX) || isProgressStorageKey(value);

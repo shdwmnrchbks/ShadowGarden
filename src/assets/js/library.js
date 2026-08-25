@@ -5,6 +5,7 @@
   const arr=value=>Array.isArray(value)?value:[];
   const state={catalog:null,items:[],filtered:[],query:"",author:"",translator:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
   let searchTimer=0;
+  const suggestionRandom=Math.random();
 
   const domain=await import("/assets/js/domain/index.js");
   const model=await import("/assets/js/library-model.js");
@@ -177,7 +178,7 @@
   }
 
   function renderContinue(){
-    const current=readingStatus.latestActiveEntry(state.items);
+    const current=readingStatus.libraryBannerEntry(state.items,suggestionRandom);
     renderers.renderReadingBanner($("#continuePanel"),document.querySelector(".library-intro"),current,dependencies);
   }
 

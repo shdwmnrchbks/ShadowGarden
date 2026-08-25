@@ -11,14 +11,23 @@ function volumeArtwork(series, volume) {
   return String(volume?.cover || volume?.coverThumb || series?.cover || series?.coverThumb || "");
 }
 
-function bannerVolume(series, identity) {
+function randomUnit(value) {
+  const sampled = typeof value === "function" ? Number(value()) : Number(value);
+  const fallback = Number.isFinite(sampled) ? sampled : Math.random();
+  return Math.min(0.999999999, Math.max(0, fallback));
+}
+
+export function selectBannerVolume(series, identity, randomValue = Math.random) {
   const volumes = arr(series?.volumes);
   const selected = String(series?.bannerBookId || "");
-  if (identity.isBookId(selected)) {
+  if (identity?.isBookId?.(selected)) {
     const match = volumes.find(volume => String(volume?.bookId || volume?.file || "") === selected);
     if (match) return match;
   }
-  return volumes[0] || null;
+  const covered = volumes.filter(volume => volume?.cover || volume?.coverThumb);
+  const pool = covered.length ? covered : volumes;
+  if (!pool.length) return null;
+  return pool[Math.floor(randomUnit(randomValue) * pool.length)] || pool[0] || null;
 }
 
 function tagLinks(series, urls, format) {
@@ -75,7 +84,7 @@ function volumeCard(series, entry, dependencies) {
 }
 
 export function seriesMarkup(series, dependencies) {
-  const { readingState, preferences, urls, format, identity, translations } = dependencies;
+  const { readingState, preferences, urls, format, identity, translations, bannerRandom } = dependencies;
   const esc = format.escapeHtml;
   const volumes = arr(series?.volumes);
   const first = volumes[0];
@@ -86,7 +95,7 @@ export function seriesMarkup(series, dependencies) {
   const startAction = startEntry ? volumeActionFor(series, startEntry.volume, startEntry.index) : null;
   const audioAlignedUrl = series?.audioAlignedUrl || volumes.find(volume => volume?.audioAlignedUrl)?.audioAlignedUrl || "";
   const cover = series?.cover || first?.cover || series?.coverThumb || first?.coverThumb || "";
-  const backdrop = volumeArtwork(series, bannerVolume(series, identity)) || series?.coverThumb || first?.coverThumb || cover;
+  const backdrop = volumeArtwork(series, selectBannerVolume(series, identity, bannerRandom)) || series?.coverThumb || first?.coverThumb || cover;
   const primaryTranslator = translations.primaryTranslator(series);
   const translatorSummary = primaryTranslator ? `<p class="series-translator-summary"><span>Fan translation</span>${translatorLink(series, primaryTranslator, urls, format, translations)}</p>` : "";
 

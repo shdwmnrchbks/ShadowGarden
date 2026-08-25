@@ -6,6 +6,7 @@
 
   const id=new URLSearchParams(location.search).get("id")||"";
   const requestedAdult=window.__SG_SERIES_ROUTE_ADULT__===true||String(id).startsWith("adult-");
+  const bannerRandom=Math.random();
   let domain=null;
   let series=null;
   let rendering=false;
@@ -25,7 +26,7 @@
     rendering=true;
     try{
       const {seriesMarkup}=await import("/assets/js/series-renderers.js");
-      root.innerHTML=seriesMarkup(series,domain);
+      root.innerHTML=seriesMarkup(series,{...domain,bannerRandom});
       root.setAttribute("aria-busy","false");
     }finally{rendering=false}
   }

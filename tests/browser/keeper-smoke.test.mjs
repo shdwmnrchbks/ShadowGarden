@@ -63,3 +63,28 @@ test("R10 Keeper cutover uses semantic CSS and Upload presentation owners only",
   assert.match(presentation, /scheduleEditorRestore/);
   assert.match(presentation, /enhanceSeriesChooser/);
 });
+
+test("Keeper Series banner defaults to Random while explicit volume covers remain pinnable", async () => {
+  const [workflow, seriesController, seriesRenderer, libraryController, readingState] = await Promise.all([
+    read("src/assets/js/admin/library-workflow.js"),
+    read("src/assets/js/series.js"),
+    read("src/assets/js/series-renderers.js"),
+    read("src/assets/js/library.js"),
+    read("src/assets/js/domain/reading-state.js")
+  ]);
+  assert.match(workflow, /Random — any volume cover/);
+  assert.match(workflow, /Random is the default/);
+  assert.match(workflow, /bannerRandomChoice/);
+  assert.match(workflow, /bannerBookId:next/);
+  assert.match(workflow, /Random banner restored/);
+  assert.match(seriesController, /const bannerRandom=Math\.random\(\)/);
+  assert.match(seriesController, /seriesMarkup\(series,\{\.\.\.domain,bannerRandom\}\)/);
+  assert.match(seriesRenderer, /selectBannerVolume\(series, identity, bannerRandom\)/);
+  assert.match(seriesRenderer, /identity\?\.isBookId\?\.\(selected\)/);
+  assert.match(libraryController, /const suggestionRandom=Math\.random\(\)/);
+  assert.match(libraryController, /readingStatus\.libraryBannerEntry\(state\.items,suggestionRandom\)/);
+  assert.match(readingState, /export function libraryBannerEntry\(seriesList, randomValue = Math\.random\)/);
+  const bannerSelector = readingState.slice(readingState.indexOf("export function libraryBannerEntry"));
+  assert.ok(bannerSelector.indexOf("latestActiveEntry(seriesList)") < bannerSelector.indexOf("nextStartedSeriesEntry(seriesList)"));
+  assert.ok(bannerSelector.indexOf("nextStartedSeriesEntry(seriesList)") < bannerSelector.indexOf("randomSeriesSuggestionEntry(seriesList"));
+});

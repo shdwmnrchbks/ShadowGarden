@@ -9,6 +9,7 @@ import * as urls from "../../src/assets/js/domain/urls.js";
 import { normalizeCatalogShape } from "../../src/assets/js/domain/catalog.js";
 import { recentlyAdded } from "../../src/assets/js/library-model.js";
 import { renderReadingBanner, renderRecentlyAdded, seriesCard } from "../../src/assets/js/library-renderers.js";
+import { selectBannerVolume } from "../../src/assets/js/series-renderers.js";
 import { installBrowserEnv } from "../helpers/browser-env.mjs";
 import { FakeElement, installFakeDocument } from "../helpers/fake-dom.mjs";
 
@@ -64,10 +65,12 @@ test("reading banner owns artwork and canonical action without post-render repai
       volume,
       index: 0,
       progress: readingState.volumeProgress(series.id, volume, 0),
-      state: readingState.volumeState(series.id, volume, 0)
+      state: readingState.volumeState(series.id, volume, 0),
+      mode: "continue"
     }, { readingState, format });
 
     assert.equal(panel.dataset.readingState, "in-progress");
+    assert.equal(panel.dataset.readingMode, "continue");
     assert.equal(panel.classList.contains("hidden"), false);
     assert.match(panel.innerHTML, />Continue</);
     assert.match(panel.innerHTML, /Volume 1 · 10%/);
@@ -78,4 +81,49 @@ test("reading banner owns artwork and canonical action without post-render repai
     restoreDocument();
     env.restore();
   }
+});
+
+test("reading banner turns an idle Library into a Read suggestion with matching artwork", async () => {
+  const env = installBrowserEnv();
+  const restoreDocument = installFakeDocument();
+  try {
+    const main = normalizeCatalogShape(await fixture("catalog-main.json")).catalog;
+    const series = main.series[0];
+    const volume = series.volumes[0];
+    const panel = new FakeElement("div");
+    panel.classList.add("hidden");
+    const intro = new FakeElement("section");
+    renderReadingBanner(panel, intro, {
+      series,
+      volume,
+      index: 0,
+      progress: null,
+      state: readingState.STATES.UNREAD,
+      mode: "suggestion",
+      suggestion: "random"
+    }, { readingState, format });
+
+    assert.equal(panel.dataset.readingMode, "suggestion");
+    assert.match(panel.innerHTML, /Read suggestion/);
+    assert.match(panel.innerHTML, />Read</);
+    assert.ok(intro.querySelector(":scope > .intro-banner-art"));
+  } finally {
+    restoreDocument();
+    env.restore();
+  }
+});
+
+test("Series banner defaults to seeded random covered volumes but explicit choices stay pinned", () => {
+  const identity = { isBookId: value => /^bk_/.test(String(value || "")) };
+  const series = {
+    volumes: [
+      { number: 1, bookId: "bk_111", cover: "/one.jpg" },
+      { number: 2, bookId: "bk_222", cover: "/two.jpg" },
+      { number: 3, bookId: "bk_333", cover: "/three.jpg" }
+    ]
+  };
+  assert.equal(selectBannerVolume(series, identity, 0)?.number, 1);
+  assert.equal(selectBannerVolume(series, identity, 0.999)?.number, 3);
+  series.bannerBookId = "bk_222";
+  assert.equal(selectBannerVolume(series, identity, 0.999)?.number, 2);
 });

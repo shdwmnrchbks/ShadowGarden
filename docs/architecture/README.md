@@ -62,10 +62,16 @@ R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs 
 - `tests/unit/` covers pure/domain and browser-local state/model/input behavior.
 - `tests/service/` exercises real server modules for signed media tickets, Keeper bearer + signed-session authorization, upload/catalog validation, and Garden Health without external network calls.
 - `tests/dom/` exercises public renderer ownership with narrow deterministic DOM doubles.
-- `tests/browser/` provides browser-contract smoke coverage for Main/Adult/Series/Reader/Keeper entrypoints, visual EPUB XHTML pages, Pages vs Continuous input behavior, isolated image focus, and the priority **Read → Continue → Finished → Read Again** flow.
+- `tests/browser/` provides browser-contract smoke coverage for Main/Adult/Series/Reader/Keeper entrypoints, visual EPUB XHTML pages, Pages vs Continuous input behavior, isolated image focus, the priority **Read → Continue → Finished → Read Again** flow, and the reconciled mobile-navigation viewport/scroll-lock contract.
 - Shared fixtures cover Main/Adult, single/multi-volume, long metadata, visual cover/map/illustration pages, reading-state variants, and valid/tampered/expired media tickets.
 - R8's service tests exposed and corrected a signed-ticket namespace gap: EPUB tickets now normalize only under `/media/shadow-garden/books/`, so a normalized traversal cannot escape the canonical books namespace.
 - The suite uses Node 22's built-in test runner; R8 adds no test framework or headless-browser dependency. A deliberate dependency/browser-runner decision remains R9/R10 work.
+
+## Reconciled real-device navigation contract
+
+- [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) records the v1.23.1–v1.23.5 mobile drawer corrections without creating another refactor milestone.
+- `nav.js` owns body-level drawer portal/lifecycle/accessibility state; `nav.css` owns viewport geometry, fixed-open header, header-space compensation, Main/Adult presentation, touch behavior, and document/background scroll locking.
+- `tests/browser/mobile-nav-viewport.test.mjs` permanently guards those corrections under R8's browser-contract layer.
 
 ## Permanent guardrails
 
@@ -78,6 +84,6 @@ R6 preserves the high-risk boundary that M8 public cooldown enforcement belongs 
 - `tools/check-r5.mjs` protects the Garden Keeper shell/client/session ownership and isolated workflows.
 - `tools/check-r6.mjs` protects thin Functions routes, explicit service ownership, storage/validation boundaries, and the signed Range/M8 security separation.
 - `tools/check-r7.mjs` protects semantic CSS cascade order, surface ownership, accessibility/variant rules, cache freshness, and retirement of historical patch/version layers.
-- `tools/check-r8.mjs` protects the four test layers, required fixture families, priority reading/Reader/Keeper/security smoke coverage, package scripts, documentation, and v1.23.0 milestone status.
+- `tools/check-r8.mjs` protects the four test layers, required fixture families, priority reading/Reader/Keeper/security smoke coverage, package scripts, documentation, and v1.23.0 milestone status; post-R8 real-device navigation behavior is additionally guarded by the browser smoke suite.
 
 Later milestones may replace a frozen implementation only when the new owner is intentional, documented here, and covered by equivalent or stronger regression checks.

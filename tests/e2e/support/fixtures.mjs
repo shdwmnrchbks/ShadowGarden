@@ -16,6 +16,7 @@ async function fulfillJson(route, value) {
 }
 
 async function installFixtureRoutes(page) {
+  await page.addInitScript(() => localStorage.setItem('sg-adult-ack', '1'));
   await page.route('**/data/source.json', route => fulfillJson(route, { mode: 'local' }));
   await page.route('**/data/catalog.json', route => fulfillJson(route, mainCatalog));
   await page.route('**/data/adult-catalog.json', route => fulfillJson(route, adultCatalog));

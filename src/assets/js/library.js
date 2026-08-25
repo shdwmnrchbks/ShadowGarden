@@ -251,6 +251,7 @@
   try{
     state.view=domain.preferences.libraryView(scope);
     setupAdultGate();
+    mountTranslatorFilter();
     bindControls();
     readUrl();
     if(!window.ShadowGardenData)throw new Error("Catalog data source is unavailable");

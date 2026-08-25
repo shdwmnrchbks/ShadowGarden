@@ -3,7 +3,7 @@
   const MAX_BYTES=50*1024*1024;
   const KNOWN_FONT_OBFUSCATION=new Set(["http://www.idpf.org/2008/embedding","http://ns.adobe.com/pdf/enc#RC"]);
   const readableTypes=new Set(["application/xhtml+xml","text/html","image/svg+xml"]);
-  const inputIds=["seriesInput","volumeInput","yearInput","titleInput","authorInput","tagsInput","descriptionInput","adultInput","audioAlignedInput","translationStatusInput","translatorNameInput","translatorGroupInput","translatorUrlInput","translatorCoverageInput"];
+  const inputIds=["seriesInput","volumeInput","yearInput","titleInput","authorInput","tagsInput","descriptionInput","adultInput","audioAlignedInput","translationStatusInput","translatorNameInput","translatorUrlInput","translatorCoverageInput"];
   const q={items:[],activeId:null,library:null,running:false,editorSync:false,objectUrl:""};
 
   state.batch=q;
@@ -76,6 +76,29 @@
     return refs;
   }
 
+  function epubTranslatorNames(opf){
+    const refinedRoles=new Map();
+    for(const meta of localElements(opf,"meta")){
+      if(normalizeText(meta.getAttribute("property"))!=="role")continue;
+      const refines=String(meta.getAttribute("refines")||"").trim();
+      if(refines.startsWith("#"))refinedRoles.set(refines.slice(1),normalizeText(meta.textContent));
+    }
+    const translatorRole=value=>{
+      const role=normalizeText(value);if(!role)return false;
+      const tail=role.split(/[:\/#]/).filter(Boolean).pop()||"";
+      return role==="trl"||role==="translator"||tail==="trl"||tail==="translator";
+    };
+    const names=[],seen=new Set();
+    for(const node of localElements(opf,"contributor")){
+      const id=node.getAttribute("id")||"";
+      const nsRole=typeof node.getAttributeNS==="function"?node.getAttributeNS("http://www.idpf.org/2007/opf","role"):"";
+      const role=node.getAttribute("role")||node.getAttribute("opf:role")||nsRole||refinedRoles.get(id)||"";
+      if(!translatorRole(role))continue;
+      const name=String(node.textContent||"").trim();if(!name)continue;
+      const key=normalizeText(name);if(seen.has(key))continue;seen.add(key);names.push(name);
+    }
+    return names;
+  }
   async function inspect(file){
     if(file.size>MAX_BYTES)return{file,validation:failed("File exceeds the 50 MB mobile upload limit",fmtSize(file.size))};
     const bytes=await file.arrayBuffer();
@@ -105,6 +128,7 @@
 
     const title=firstText(opf,"title")||file.name.replace(/\.epub$/i,"");
     const author=firstText(opf,"creator"),date=firstText(opf,"date"),language=firstText(opf,"language"),publisher=firstText(opf,"publisher");
+    const translatorNames=epubTranslatorNames(opf);
     const description=cleanHtml(firstText(opf,"description")),tags=[...new Set(texts(opf,"subject"))];
     const series=metaByName(opf,"calibre:series")||metaByProperty(opf,"belongs-to-collection")||inferSeries(title);
     const number=detectVolume(title,file.name,opf);
@@ -183,7 +207,7 @@
     for(const item of manifest.filter(x=>x.overlay))if(!manifestById.has(item.overlay))addIssue(r,"warning","Media-overlay reference is missing",`${item.href} → ${item.overlay}`);
 
     const sha256=hex(await digestPromise);
-    return{file,title,author,date,year:parseInt(date.slice(0,4))||"",language,publisher,description,tags,series,number,coverBlob,coverExt,sha256,validation:finish(r)};
+    return{file,title,author,date,year:parseInt(date.slice(0,4))||"",language,publisher,description,tags,series,number,coverBlob,coverExt,sha256,translations:translatorNames.slice(0,1).map(name=>({name})),validation:finish(r)};
   }
 
   function seriesEntries(){return[
@@ -297,7 +321,7 @@
     item.adult=$("#adultInput").checked;
     item.audioAlignedUrl=$("#audioAlignedInput")?.value.trim()||"";
     item.translationStatus=$("#translationStatusInput")?.value||"";
-    const translation={name:$("#translatorNameInput")?.value.trim()||"",group:$("#translatorGroupInput")?.value.trim()||"",url:$("#translatorUrlInput")?.value.trim()||"",coverage:$("#translatorCoverageInput")?.value.trim()||""};item.translations=translation.name||translation.group?[translation]:[];
+    const translation={name:$("#translatorNameInput")?.value.trim()||"",url:$("#translatorUrlInput")?.value.trim()||"",coverage:$("#translatorCoverageInput")?.value.trim()||""};item.translations=translation.name?[translation]:[];
     evaluateDuplicate(item);
     renderQueue();
   }
@@ -326,7 +350,7 @@
     $("#tagsInput").value=item.tags.join(", ");$("#descriptionInput").value=item.description;$("#adultInput").checked=item.adult;
     if($("#audioAlignedInput"))$("#audioAlignedInput").value=item.audioAlignedUrl||"";
     if($("#translationStatusInput"))$("#translationStatusInput").value=item.translationStatus||"";
-    const translation=item.translations?.[0]||{};if($("#translatorNameInput"))$("#translatorNameInput").value=translation.name||"";if($("#translatorGroupInput"))$("#translatorGroupInput").value=translation.group||"";if($("#translatorUrlInput"))$("#translatorUrlInput").value=translation.url||"";if($("#translatorCoverageInput"))$("#translatorCoverageInput").value=translation.coverage||"";
+    const translation=item.translations?.[0]||{};if($("#translatorNameInput"))$("#translatorNameInput").value=translation.name||"";if($("#translatorUrlInput"))$("#translatorUrlInput").value=translation.url||"";if($("#translatorCoverageInput"))$("#translatorCoverageInput").value=translation.coverage||"";
     $("#previewTitle").textContent=item.title;$("#previewSeries").textContent=`${item.series} · Volume ${item.number}`;
     if(q.objectUrl){URL.revokeObjectURL(q.objectUrl);q.objectUrl=""}
     if(item.coverBlob){q.objectUrl=URL.createObjectURL(item.coverBlob);$("#coverPreview").src=q.objectUrl;$("#coverPreview").classList.remove("hidden");$("#coverFallback").classList.add("hidden")}
@@ -371,7 +395,7 @@
       q.items.push(item);renderQueue();
       try{
         const meta=await inspect(file);
-        Object.assign(item,meta,{file,status:"queued",metaReady:Boolean(meta.title),adult:false,audioAlignedUrl:"",translationStatus:"",translations:[]});
+        Object.assign(item,meta,{file,status:"queued",metaReady:Boolean(meta.title),adult:false,audioAlignedUrl:"",translationStatus:meta.translationStatus||"",translations:arr(meta.translations)});
         if(meta.validation?.status==="fail")item.action="skip";
       }catch(error){
         console.error(error);item.validation=failed("EPUB inspection failed",error.message);item.status="failed";item.error=error.message;item.action="skip";

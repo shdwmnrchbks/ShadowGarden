@@ -1,8 +1,8 @@
 import { test, expect } from '../support/fixtures.mjs';
 
 async function waitForCatalog(page) {
-  await expect(page.locator('#catalogGrid')).toHaveAttribute('aria-busy', 'false');
   await expect(page.locator('.catalog-skeleton-card')).toHaveCount(0);
+  await expect(page.locator('#resultCount')).not.toHaveText(/Opening the .* archive/);
 }
 
 test('Main and Adult libraries hydrate from isolated fixture catalogs', async ({ page, browserDiagnostics }) => {

@@ -87,6 +87,8 @@
     const container=$("#activeTags");
     if(!container)return;
     const pills=[];
+    const query=state.query.trim();
+    if(query)pills.push(filterPill(`Search: ${query}`,"query",`search ${query}`));
     if(state.author)pills.push(filterPill(`Author: ${state.author}`,"author",`author filter ${state.author}`));
     if(state.year)pills.push(filterPill(`Year: ${state.year}`,"year",`year filter ${state.year}`));
     if(state.volumeRange){
@@ -101,7 +103,8 @@
   }
 
   function clearNamedFilter(key){
-    if(key==="author")state.author="";
+    if(key==="query")state.query="";
+    else if(key==="author")state.author="";
     else if(key==="year")state.year="";
     else if(key==="volumeRange")state.volumeRange="";
     else if(key==="readingStatus")state.readingStatus="";
@@ -198,7 +201,7 @@
   }
 
   function bindControls(){
-    $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;syncMobileResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
+    $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;renderActiveFilters();syncMobileResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
     $("#authorSelect")?.addEventListener("change",event=>{state.author=event.target.value;apply({historyMode:"push"})});
     $("#yearSelect")?.addEventListener("change",event=>{state.year=event.target.value;apply({historyMode:"push"})});
     $("#volumeCountSelect")?.addEventListener("change",event=>{state.volumeRange=event.target.value;apply({historyMode:"push"})});

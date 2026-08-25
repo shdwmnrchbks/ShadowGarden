@@ -1,0 +1,30 @@
+name: Finalize v2.4 release
+
+on:
+  push:
+    branches:
+      - release-v2.4.0
+    paths:
+      - tools/tmp-finalize-v2.4.py
+      - .github/workflows/finalize-v2.4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: release-v2.4.0
+      - name: Finalize release metadata
+        run: python3 tools/tmp-finalize-v2.4.py
+      - name: Commit release metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm tools/tmp-finalize-v2.4.py .github/workflows/finalize-v2.4.yml
+          git add package.json package-lock.json CHANGELOG.md
+          git commit -m "Finalize Shadow Garden v2.4.0"
+          git push origin HEAD:release-v2.4.0

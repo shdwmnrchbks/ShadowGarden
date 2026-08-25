@@ -37,13 +37,16 @@ assert.match(spec, /mobile navigation remains viewport-owned across resize and r
 assert.match(spec, /browserDiagnostics/);
 assert.match(spec, /page\.locator\(['"]\.brand-mark['"]\)/, 'mobile navigation E2E must use a stable locator while its accessible name changes');
 
-assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'View Transition ready rejection must be observed');
-assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'View Transition finished rejection must be observed');
-assert.match(motion, /observeTransitionPromise\(transition\?\.updateCallbackDone\)/, 'View Transition update callback rejection must be observed');
-assert.match(motion, /addEventListener\(["']pageswap["'],event=>guardTransition\(event\.viewTransition\)\)/, 'outgoing cross-document transitions must be guarded');
-assert.match(motion, /guardTransition\(viewTransition\)/, 'incoming pagereveal transitions must use the same rejection guard');
-assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'native View Transition completion and skip rejection must both clear navigation hints');
-assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped native View Transition rejections unhandled');
+assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'same-document View Transition ready rejection must be observed');
+assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'same-document View Transition finished rejection must be observed');
+assert.match(motion, /observeTransitionPromise\(transition\?\.updateCallbackDone\)/, 'same-document View Transition update callback rejection must be observed');
+assert.match(motion, /event\?\.activation\?\.navigationType!==["']traverse["']/, 'cross-document Back/Forward detection must use navigationType traverse');
+assert.match(motion, /transition\.skipTransition\(\)/, 'cross-document Back/Forward transitions must be explicitly skipped');
+assert.match(motion, /observeCrossDocumentFinished\(event\.viewTransition\)/, 'normal cross-document transitions may observe finished only');
+assert.doesNotMatch(motion, /guardTransition\(event\.viewTransition\)/, 'cross-document transitions must not read ready/updateCallbackDone on already-skipped Chromium transitions');
+assert.doesNotMatch(motion, /guardTransition\(viewTransition\)/, 'pagereveal must not apply the same-document promise guard to cross-document transitions');
+assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'cross-document completion or skip must clear navigation hints');
+assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped View Transition rejections unhandled');
 
 assert.match(roadmap, /Active release:\*\* v2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);

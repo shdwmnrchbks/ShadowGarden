@@ -4,20 +4,20 @@
   "pages": {
     "mainLibrary": {
       "html": "src/index.html",
-      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/library-features.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/library-layout.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
-      "scripts": ["/assets/js/nav.js", "/assets/js/data-source.js", "/assets/js/library.js", "/assets/js/nav-pinned.js", "/assets/js/library-mobile-filter.js", "/assets/js/library-footer-version.js", "/assets/js/site-a11y.js", "/assets/js/ui-direction-triangles.js"],
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/motion.css", "/assets/css/library-motion.css", "/assets/css/library-features.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/library-layout.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/js/motion.js", "/assets/js/library-motion.js", "/assets/js/nav.js", "/assets/js/data-source.js", "/assets/js/library.js", "/assets/js/nav-pinned.js", "/assets/js/library-mobile-filter.js", "/assets/js/library-footer-version.js", "/assets/js/site-a11y.js", "/assets/js/ui-direction-triangles.js"],
       "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/library-model.js", "/assets/js/library-renderers.js", "/assets/js/public/volume-actions.js"]
     },
     "adultLibrary": {
       "html": "src/nsfw.html",
-      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/adult.css", "/assets/css/library-features.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/library-layout.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
-      "scripts": ["/assets/js/nav.js", "/assets/js/data-source.js", "/assets/js/library.js", "/assets/js/nav-pinned.js", "/assets/js/library-mobile-filter.js", "/assets/js/library-footer-version.js", "/assets/js/site-a11y.js", "/assets/js/ui-direction-triangles.js"],
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/motion.css", "/assets/css/library-motion.css", "/assets/css/adult.css", "/assets/css/library-features.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/library-layout.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/js/motion.js", "/assets/js/library-motion.js", "/assets/js/nav.js", "/assets/js/data-source.js", "/assets/js/library.js", "/assets/js/nav-pinned.js", "/assets/js/library-mobile-filter.js", "/assets/js/library-footer-version.js", "/assets/js/site-a11y.js", "/assets/js/ui-direction-triangles.js"],
       "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/library-model.js", "/assets/js/library-renderers.js", "/assets/js/public/volume-actions.js"]
     },
     "series": {
       "html": "src/series.html",
-      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/adult.css", "/assets/css/series-extra.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
-      "scripts": ["/assets/js/nav.js", "/assets/js/site-a11y.js", "/assets/js/data-source.js", "/assets/js/book-access.js", "/assets/js/series.js", "/assets/js/nav-pinned.js", "/assets/js/ui-direction-triangles.js"],
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/motion.css", "/assets/css/library-motion.css", "/assets/css/adult.css", "/assets/css/series-extra.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/js/motion.js", "/assets/js/nav.js", "/assets/js/site-a11y.js", "/assets/js/data-source.js", "/assets/js/book-access.js", "/assets/js/series.js", "/assets/js/nav-pinned.js", "/assets/js/ui-direction-triangles.js"],
       "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/series-renderers.js", "/assets/js/public/volume-actions.js"]
     },
     "reader": {

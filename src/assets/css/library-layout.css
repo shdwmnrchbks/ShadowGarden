@@ -89,6 +89,36 @@ html.sg-library-initial-compact .catalog-skeleton-cover{width:68px;height:100%;a
 .adult-library .catalog-skeleton-card{border-color:rgba(210,160,173,.13);background:rgba(183,121,139,.018)}.adult-library .catalog-skeleton-cover,.adult-library .catalog-skeleton-line{background-color:rgba(210,160,173,.07)}
 @keyframes sg-skeleton-sweep{to{transform:translateX(110%)}}
 
+/* v2.4 plan completion — keep the mobile Search row stationary while the controls
+   unfold underneath it. First paint still uses the flash-free display:none contract in
+   library-features.css; these rules take over only after JavaScript removes that marker. */
+@media(max-width:720px){
+  .filters:not(.filters-mobile-initial-collapsed)>.filter-head,
+  .filters:not(.filters-mobile-initial-collapsed)>.filter-group,
+  .filters:not(.filters-mobile-initial-collapsed) .search-hint{
+    overflow:hidden;
+    opacity:1;
+    transform:translateY(0);
+    visibility:visible;
+    transition:max-height .22s ease,opacity .16s ease,transform .18s ease,padding .22s ease,margin .22s ease,border-color .18s ease;
+  }
+  .filters:not(.filters-mobile-initial-collapsed)>.filter-head{max-height:64px}
+  .filters:not(.filters-mobile-initial-collapsed)>.filter-group{max-height:420px}
+  .filters:not(.filters-mobile-initial-collapsed) .search-hint{max-height:42px}
+  .filters.filters-collapsed:not(.filters-mobile-initial-collapsed)>.filter-head{display:flex!important;max-height:0;min-height:0;padding-top:0;padding-bottom:0;margin:0;border-color:transparent;opacity:0;transform:translateY(-5px);visibility:hidden;pointer-events:none}
+  .filters.filters-collapsed:not(.filters-mobile-initial-collapsed)>.filter-group{display:grid!important;max-height:0;min-height:0;margin:0;padding-top:0;padding-bottom:0;opacity:0;transform:translateY(-5px);visibility:hidden;pointer-events:none}
+  .filters.filters-collapsed:not(.filters-mobile-initial-collapsed) .search-hint{display:block!important;max-height:0;min-height:0;margin:0;padding:0;opacity:0;transform:translateY(-5px);visibility:hidden;pointer-events:none}
+  .filters:not(.filters-collapsed):not(.filters-mobile-initial-collapsed){row-gap:12px}
+  .filters .search-stack{order:-2}
+  .filters .filter-head{order:-1}
+}
+
+/* Strong, consistent keyboard affordances for the Library interaction surface. */
+.filters select:focus-visible,.search-field:focus-within,.genre-chips button:focus-visible,.active-filter-tags button:focus-visible,.view-switch button:focus-visible,.recent-view-all:focus-visible,.catalog-sentinel button:focus-visible{
+  outline:2px solid color-mix(in srgb,var(--leaf2) 72%,transparent);
+  outline-offset:2px;
+}
+
 @media(max-width:720px){
   .catalog-grid.compact .series-card{
     --sg-compact-cover-width:74px;
@@ -139,4 +169,7 @@ html.sg-library-initial-compact .catalog-skeleton-cover{width:68px;height:100%;a
   }
   html.sg-library-initial-compact .catalog-skeleton-card{grid-template-columns:70px minmax(0,1fr)}html.sg-library-initial-compact .catalog-skeleton-cover{width:70px}
 }
-@media(prefers-reduced-motion:reduce){.catalog-skeleton-cover::after,.catalog-skeleton-line::after,.series-loading-block::after{animation:none}}
+@media(prefers-reduced-motion:reduce){
+  .catalog-skeleton-cover::after,.catalog-skeleton-line::after,.series-loading-block::after{animation:none}
+  .filters:not(.filters-mobile-initial-collapsed)>.filter-head,.filters:not(.filters-mobile-initial-collapsed)>.filter-group,.filters:not(.filters-mobile-initial-collapsed) .search-hint{transition:none}
+}

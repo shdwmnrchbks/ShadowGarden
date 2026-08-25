@@ -28,10 +28,16 @@
   function readCollapsed(){return preferences.mobileFiltersCollapsed(scope)}
   function writeCollapsed(collapsed){preferences.setMobileFiltersCollapsed(scope,collapsed)}
 
-  function placeToggle(collapsed){
-    if(!mobileQuery.matches)return;
-    if(collapsed)searchField.appendChild(toggle);
-    else headActions.appendChild(toggle);
+  /* Keep Search + toggle as the stable mobile anchor. Expanded controls always unfold
+     below that row instead of moving the toggle between two different containers. */
+  function placeStructure(){
+    if(mobileQuery.matches){
+      if(toggle.parentElement!==searchField)searchField.appendChild(toggle);
+      if(head.previousElementSibling!==searchStack)searchStack.insertAdjacentElement('afterend',head);
+    }else{
+      if(head.nextElementSibling!==searchStack)panel.insertBefore(head,searchStack);
+      headActions.appendChild(toggle);
+    }
   }
 
   function placeActiveTags(collapsed){
@@ -46,16 +52,16 @@
     toggle.setAttribute('aria-label',collapsed?'Expand library filters':'Collapse library filters');
     toggle.title=collapsed?'Expand filters':'Collapse filters';
     toggle.textContent=collapsed?'▼':'▲';
-    placeToggle(collapsed);
+    placeStructure();
     placeActiveTags(collapsed);
   }
 
   function apply(){
+    placeStructure();
     if(!mobileQuery.matches){
       panel.classList.remove('filters-collapsed');
       toggle.hidden=true;
       toggle.setAttribute('aria-expanded','true');
-      headActions.appendChild(toggle);
       placeActiveTags(false);
       return;
     }

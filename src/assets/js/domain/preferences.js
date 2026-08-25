@@ -8,6 +8,9 @@ export const ADULT_ACK_KEY = "sg-adult-ack";
 export const VIEW_PREFIX = "sg-view:";
 export const SORT_PREFIX = "sg-sort:";
 export const MOBILE_FILTER_PREFIX = "sg-mobile-filters-collapsed:";
+export const LIBRARY_SORTS = Object.freeze([
+  "recent", "oldest", "title", "title-desc", "author", "author-desc", "year", "year-asc", "volumes", "volumes-asc"
+]);
 
 function cleanScope(scope) {
   return String(scope || "main").trim() || "main";
@@ -52,11 +55,11 @@ export function setLibraryView(scope = "main", view = "grid") {
 
 export function librarySort(scope = "main") {
   const value = readText(sortKey(scope), "recent");
-  return ["recent", "title", "author", "year", "volumes"].includes(value) ? value : "recent";
+  return LIBRARY_SORTS.includes(value) ? value : "recent";
 }
 
 export function setLibrarySort(scope = "main", sort = "recent") {
-  const value = ["recent", "title", "author", "year", "volumes"].includes(sort) ? sort : "recent";
+  const value = LIBRARY_SORTS.includes(sort) ? sort : "recent";
   return writeText(sortKey(scope), value);
 }
 

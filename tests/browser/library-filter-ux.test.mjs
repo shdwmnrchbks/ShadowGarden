@@ -19,14 +19,20 @@ test("mobile Library and Adult filters enter collapsed and expose removable acti
   assert.match(mobile,/mobileInitialized/);
   assert.match(mobile,/filters-collapsed/);
 
-  for(const key of ["author","year","volumeRange","readingStatus","pinnedOnly"]){
-    assert.match(controller,new RegExp(`data-clear-filter=\\"\\$\\{esc\\(key\\)\\}\\"|${key}`));
-  }
+  for(const marker of [
+    'filterPill(`Author: ${state.author}`,"author"',
+    'filterPill(`Year: ${state.year}`,"year"',
+    'filterPill(`Volumes: ${labels[state.volumeRange]||state.volumeRange}`,"volumeRange"',
+    'filterPill(`Reading: ${state.readingStatus==="finished"?"Finished":"Unfinished"}`,"readingStatus"',
+    'filterPill("Pinned only","pinnedOnly"'
+  ])assert.ok(controller.includes(marker),`missing active filter pill contract: ${marker}`);
+
   assert.match(controller,/active-filter-pill-label/);
   assert.match(controller,/data-remove-tag/);
   assert.match(controller,/clearNamedFilter/);
   assert.match(css,/text-overflow:ellipsis/);
   assert.match(css,/active-filter-pill-label/);
+  assert.match(css,/overflow-x:auto/);
 });
 
 test("mobile filtering immediately fades Recently Added so catalog results move into focus",async()=>{

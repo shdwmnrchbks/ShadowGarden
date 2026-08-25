@@ -1,0 +1,39 @@
+name: Reconcile v2.2 R0 guard
+
+on:
+  push:
+    paths:
+      - ".github/workflows/reconcile-v2.2-r0-guard.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feature-read-suggestions-random-banners-v2.2.0
+      - name: Follow the v2.2 R2 banner owner from R0
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tools/check-r0.mjs')
+          text=p.read_text()
+          old="for(const marker of ['preferences.libraryView','latestActiveEntry'])if(!library.includes(marker))fail(`Library must consume canonical R2 persistence/state owner ${marker}`);"
+          new="for(const marker of ['preferences.libraryView','readingStatus.libraryBannerEntry'])if(!library.includes(marker))fail(`Library must consume canonical R2 persistence/state owner ${marker}`);\nfor(const marker of ['latestActiveEntry(seriesList)','nextStartedSeriesEntry(seriesList)','randomSeriesSuggestionEntry(seriesList'])if(!readingState.includes(marker))fail(`R2 Library banner selection contract lost ${marker}`);"
+          if old not in text:
+              raise SystemExit('R0 Library owner marker not found')
+          if text.count(old)!=1:
+              raise SystemExit('R0 Library owner marker is not unique')
+          p.write_text(text.replace(old,new,1))
+          PY
+          rm .github/workflows/reconcile-v2.2-r0-guard.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/check-r0.mjs .github/workflows/reconcile-v2.2-r0-guard.yml
+          git commit -m "Reconcile R0 with v2.2 Library banner owner"
+          git push origin HEAD:feature-read-suggestions-random-banners-v2.2.0

@@ -148,8 +148,8 @@
         "/assets/css/admin-preflight.css",
         "/assets/css/admin-batch.css",
         "/assets/css/admin-maintenance.css",
-        "/assets/css/admin-series-editor-polish.css",
-        "/assets/css/admin-overhaul.css",
+        "/assets/css/admin-series-editor.css",
+        "/assets/css/admin-layout.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -174,7 +174,7 @@
         "/assets/js/admin-batch-editor.js",
         "/assets/js/admin-upload-workflow.js",
         "/assets/js/admin-upload-completion.js",
-        "/assets/js/admin-upload-polish.js",
+        "/assets/js/admin-upload-presentation.js",
         "/assets/js/admin/upload-events.js",
         "/assets/js/admin/shell.js",
         "/assets/js/site-flavor.js",

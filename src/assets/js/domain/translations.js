@@ -14,16 +14,15 @@ export function normalizeTranslationStatus(value){return STATUS_ALIASES.get(text
 export function normalizeTranslationCredit(value){
   if(typeof value==="string")value={name:value};
   if(!value||typeof value!=="object")return null;
-  let name=text(value.name,160),group=text(value.group,160);
-  if(!name&&group){name=group;group=""}
+  const name=text(value.name,160);
   if(!name)return null;
   let url="";
   const raw=text(value.url,2000);
   if(raw){
     try{const parsed=new URL(raw);if(["http:","https:"].includes(parsed.protocol))url=parsed.href}catch{}
   }
-  const coverage=text(value.coverage,300),note=text(value.note,500);
-  return {name,...(group?{group}:{}),...(url?{url}:{}),...(coverage?{coverage}:{}),...(note?{note}:{})};
+  const coverage=text(value.coverage,300);
+  return {name,...(url?{url}:{}),...(coverage?{coverage}:{})};
 }
 
 export function normalizeTranslations(value){
@@ -31,7 +30,7 @@ export function normalizeTranslations(value){
   for(const raw of arr(value)){
     const credit=normalizeTranslationCredit(raw);
     if(!credit)continue;
-    const key=[credit.name,credit.group||"",credit.url||"",credit.coverage||"",credit.note||""].join("\u0000").toLowerCase();
+    const key=[credit.name,credit.url||"",credit.coverage||""].join("\u0000").toLowerCase();
     if(seen.has(key))continue;
     seen.add(key);out.push(credit);
     if(out.length>=24)break;
@@ -39,11 +38,7 @@ export function normalizeTranslations(value){
   return out;
 }
 
-export function creditDisplayName(credit){
-  const item=normalizeTranslationCredit(credit);
-  if(!item)return"";
-  return item.group&&item.group.toLowerCase()!==item.name.toLowerCase()?`${item.name} · ${item.group}`:item.name;
-}
+export function creditDisplayName(credit){return normalizeTranslationCredit(credit)?.name||""}
 
 export function effectiveVolumeTranslations(series,volume){
   const own=normalizeTranslations(volume?.translations);
@@ -53,15 +48,15 @@ export function effectiveVolumeTranslations(series,volume){
 export function translatorNames(series){
   const out=[],seen=new Set();
   const add=value=>{const v=text(value,160);if(!v)return;const key=v.toLowerCase();if(seen.has(key))return;seen.add(key);out.push(v)};
-  for(const credit of normalizeTranslations(series?.translations)){add(credit.name);add(credit.group)}
-  for(const volume of arr(series?.volumes))for(const credit of normalizeTranslations(volume?.translations)){add(credit.name);add(credit.group)}
+  for(const credit of normalizeTranslations(series?.translations))add(credit.name);
+  for(const volume of arr(series?.volumes))for(const credit of normalizeTranslations(volume?.translations))add(credit.name);
   return out;
 }
 
 export function translationSearchTerms(series){
   const values=[normalizeTranslationStatus(series?.translationStatus)];
-  for(const credit of normalizeTranslations(series?.translations))values.push(credit.name,credit.group,credit.coverage,credit.note);
-  for(const volume of arr(series?.volumes))for(const credit of normalizeTranslations(volume?.translations))values.push(credit.name,credit.group,credit.coverage,credit.note);
+  for(const credit of normalizeTranslations(series?.translations))values.push(credit.name,credit.coverage);
+  for(const volume of arr(series?.volumes))for(const credit of normalizeTranslations(volume?.translations))values.push(credit.name,credit.coverage);
   return values.filter(Boolean);
 }
 

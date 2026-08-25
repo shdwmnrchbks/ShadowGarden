@@ -102,3 +102,25 @@ test("Reader confirms external HTTP links before opening a new browser tab", asy
   assert.match(presentation, /body\.adult-reader \.reader-external-dialog/);
   assert.match(presentation, /body\.reader-theme-paper \.reader-external-dialog/);
 });
+
+test("Reader interaction controller adds external affordance, staged loading, mobile chrome reveal, tap feedback, and reduced-motion fallbacks", async () => {
+  const [controller, bootstrap, presentation] = await Promise.all([
+    fs.readFile(new URL("../../src/assets/js/reader/interaction-controller.js", import.meta.url), "utf8"),
+    fs.readFile(new URL("../../src/assets/js/reader-bootstrap.js", import.meta.url), "utf8"),
+    fs.readFile(new URL("../../src/assets/css/reader-presentation.css", import.meta.url), "utf8")
+  ]);
+  assert.match(bootstrap, /installReaderInteractionController/);
+  assert.match(bootstrap, /Authorizing|Opening the EPUB/);
+  assert.match(controller, /sg-external-link/);
+  assert.match(controller, /External link — opens after confirmation/);
+  assert.match(controller, /Preparing chapters/);
+  assert.match(controller, /Mapping pages for this device/);
+  assert.match(controller, /Laying out the page/);
+  assert.match(controller, /reader-chrome-hidden/);
+  assert.match(controller, /3200/);
+  assert.match(controller, /iframe/);
+  assert.match(presentation, /reader-flow-paginated\.reader-chrome-hidden \.reader-topbar/);
+  assert.match(presentation, /reader-flow-paginated\.reader-chrome-hidden \.reader-bottombar/);
+  assert.match(presentation, /\.reader-icon:active/);
+  assert.match(presentation, /@media\(prefers-reduced-motion:reduce\)/);
+});

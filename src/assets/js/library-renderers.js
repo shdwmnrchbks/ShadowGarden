@@ -55,19 +55,24 @@ function formatDate(value, format) {
   catch { return String(value || ""); }
 }
 
+function recentCopy(series, title, added, esc, format) {
+  return `<div class="recent-volume-copy"><strong>${esc(title)}</strong><span class="recent-volume-series">${esc(series?.title || "Untitled series")}</span><span class="recent-volume-added">Added ${esc(formatDate(added, format))}</span></div>`;
+}
+
 export function recentVolumeCard(entry, index, { readingState, urls, format }) {
   const esc = format.escapeHtml;
   const { series, volume, volumeIndex } = entry;
   const cover = volumeCover(series, volume);
   const title = volume?.title || `Volume ${volume?.number ?? "—"}`;
+  const copy = recentCopy(series, title, volume?.added, esc, format);
   if (!volume?.file) {
-    return `<a class="recent-volume" href="${urls.seriesUrl(series?.id)}"><div class="recent-volume-cover">${cover ? `<img src="${esc(cover)}" alt="${esc(title)} cover" loading="${index < 4 ? "eager" : "lazy"}" decoding="async">` : ""}<div class="recent-volume-fallback ${cover ? "hidden" : ""}">${esc(title)}</div><span class="recent-volume-badge">NEW</span></div><div class="recent-volume-copy"><strong>${esc(title)}</strong><span>${esc(series?.title)} · ${esc(formatDate(volume?.added, format))}</span></div></a>`;
+    return `<a class="recent-volume" href="${urls.seriesUrl(series?.id)}"><div class="recent-volume-cover">${cover ? `<img src="${esc(cover)}" alt="${esc(title)} cover" loading="${index < 4 ? "eager" : "lazy"}" decoding="async">` : ""}<div class="recent-volume-fallback ${cover ? "hidden" : ""}">${esc(title)}</div><span class="recent-volume-badge">NEW</span></div>${copy}</a>`;
   }
   const action = volumeActionFor(series, volume, volumeIndex);
   const progress = readingState.volumeProgress(series?.id, volume, volumeIndex);
   const percent = Math.round((Number(progress?.percentage) || 0) * 100);
   const badge = action.state === readingState.STATES.FINISHED ? "✓ FINISHED" : action.state === readingState.STATES.IN_PROGRESS ? `CONTINUE · ${percent}%` : volume?.number != null ? `VOL ${volume.number}` : "READ";
-  return `<a class="recent-volume" ${attrs(action, esc)} href="${action.href}" aria-label="${esc(action.label)} ${esc(title)} — ${esc(series?.title)}"><div class="recent-volume-cover">${cover ? `<img src="${esc(cover)}" alt="${esc(title)} cover" loading="${index < 4 ? "eager" : "lazy"}" decoding="async" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">` : ""}<div class="recent-volume-fallback ${cover ? "hidden" : ""}">${esc(title)}</div><span class="recent-volume-badge">${esc(badge)}</span></div><div class="recent-volume-copy"><strong>${esc(title)}</strong><span>${esc(series?.title)} · ${esc(formatDate(volume?.added, format))}</span></div></a>`;
+  return `<a class="recent-volume" ${attrs(action, esc)} href="${action.href}" aria-label="${esc(action.label)} ${esc(title)} — ${esc(series?.title)}"><div class="recent-volume-cover">${cover ? `<img src="${esc(cover)}" alt="${esc(title)} cover" loading="${index < 4 ? "eager" : "lazy"}" decoding="async" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">` : ""}<div class="recent-volume-fallback ${cover ? "hidden" : ""}">${esc(title)}</div><span class="recent-volume-badge">${esc(badge)}</span></div>${copy}</a>`;
 }
 
 export function renderRecentlyAdded(section, container, entries, dependencies) {

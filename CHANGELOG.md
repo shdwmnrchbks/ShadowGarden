@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 2.0.3 — Adult Series First-Paint Hotfix
+- Applied Adult Series route scope before the visible Series shell is parsed, eliminating the brief Main-theme loading frame.
+- Made the initial Series back control scope-aware so Adult routes show “Back to Adult Library” from first paint instead of repainting after catalog startup.
+- Kept loaded `series.nsfw` metadata authoritative for the final scope and preserved the frozen R10 external entrypoint baseline.
+
 ## 2.0.2 — Mobile Filter Layout Hotfix
 - Fixed narrow-screen active filter pills so Search, Author, Year, Volume, Reading state, Pinned-only, and tags wrap inside the mobile viewport instead of clipping in a horizontal rail.
 - Added the active search query as the first removable filter pill and kept long pill labels ellipsized.

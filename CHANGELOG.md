@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 2.3.1 — Unified Series Editor Save
+- Remove the redundant series-level **Save translation credits** action from Garden Keeper.
+- Save translation status and translator credits atomically with the existing **Save series** action.
+- Keep per-volume translation override saves unchanged because they belong to the individual volume editor.
+- Preserve backward compatibility for older management clients that omit translation fields.
+
 ## 2.3.0 — Canonical Catalog Taxonomy
 - Adopt the Novel Updates genre vocabulary as Shadow Garden's controlled 35-genre list while keeping descriptive Tags flexible.
 - Normalize EPUB `dc:subject` metadata during local preflight and again at the server catalog boundary, collapsing publisher aliases such as `Fiction/Fantasy/General` and `Fantasy Fiction` into `Fantasy`.

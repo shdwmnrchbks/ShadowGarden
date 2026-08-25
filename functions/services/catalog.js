@@ -2,6 +2,7 @@
 import { bookIdForFile, isBookId, volumeBookId } from "../_lib/book-id.js";
 import { canonicalizeSeriesStatus, normalizeSeriesStatus, withSeriesStatusTag } from "../_lib/series-status.js";
 import { CANONICAL_GENRES, normalizeSeriesTaxonomy } from "../_lib/catalog-taxonomy.js";
+import { normalizeTranslationStatus, validateTranslationCredits } from "../_lib/translations.js";
 import { requireAdmin } from "./auth.js";
 import { json, parseJson } from "./http.js";
 import { deleteObject, getTextObject, putObject, validObjectKey, writeClient } from "./storage.js";
@@ -235,11 +236,16 @@ export async function handleLibraryPost({ request, env }) {
     const series = found.series;
     if (action === "update-series") {
       const audioAlignedUrl = externalUrl(input.audioAlignedUrl); if (audioAlignedUrl === null) return json({ ok: false, error: "Audio-aligned EPUB folder URL must use http:// or https://" }, 400);
+      const hasTranslationMetadata=Object.prototype.hasOwnProperty.call(input,"translationStatus")||Object.prototype.hasOwnProperty.call(input,"translations");
+      const rawTranslationStatus=hasTranslationMetadata?clean(input.translationStatus,80):"",translationStatus=hasTranslationMetadata?normalizeTranslationStatus(rawTranslationStatus):"",translationCredits=hasTranslationMetadata?validateTranslationCredits(input.translations):{ok:true,value:[]};
+      if(rawTranslationStatus&&!translationStatus)return json({ok:false,error:"Unknown translation status"},400);
+      if(!translationCredits.ok)return json({ok:false,error:translationCredits.error},400);
       await snapshotCatalogs(aws, data.main, data.adult, "update-series");
       const status = normalizeSeriesStatus(input.status);
       series.title = clean(input.title, 300) || series.title; series.author = clean(input.author, 240); series.year = Number(input.year) || ""; series.status = status;
       const taxonomy = normalizeSeriesTaxonomy({ genres: input.genres, tags: input.tags });
       series.description = clean(input.description, 12000); series.genres = taxonomy.genres; series.tags = withSeriesStatusTag(taxonomy.tags, status); series.audioAlignedUrl = audioAlignedUrl;
+      if(hasTranslationMetadata){if(translationStatus)series.translationStatus=translationStatus;else delete series.translationStatus;if(translationCredits.value.length)series.translations=translationCredits.value;else delete series.translations;}
       for (const volume of arr(series.volumes)) delete volume.audioAlignedUrl;
       const requestedAdult = Boolean(input.adult);
       if (requestedAdult !== found.adult) {

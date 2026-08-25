@@ -97,7 +97,8 @@
     async function saveSeries(){
       if(!state.activeSeriesId)return;const button=$("#saveSeries"),old=button.textContent,title=$("#manageTitle").value.trim()||"Series";button.disabled=true;button.textContent="Saving…";
       try{
-        const result=await client.request("/admin-api/library",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"update-series",id:state.activeSeriesId,title:$("#manageTitle").value,author:$("#manageAuthor").value,year:$("#manageYear").value,status:normalizeSeriesStatus($("#manageStatus").value),genres:$("#manageGenres").value.split(",").map(value=>value.trim()).filter(Boolean),tags:$("#manageTags").value.split(",").map(value=>value.trim()).filter(Boolean),description:$("#manageDescription").value,audioAlignedUrl:$("#manageAudioAlignedUrl").value.trim(),adult:$("#manageAdult").checked})});
+        const translationPayload=keeper.workflows.get("translations")?.instance?.seriesPayload?.()||{};
+        const result=await client.request("/admin-api/library",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"update-series",id:state.activeSeriesId,title:$("#manageTitle").value,author:$("#manageAuthor").value,year:$("#manageYear").value,status:normalizeSeriesStatus($("#manageStatus").value),genres:$("#manageGenres").value.split(",").map(value=>value.trim()).filter(Boolean),tags:$("#manageTags").value.split(",").map(value=>value.trim()).filter(Boolean),description:$("#manageDescription").value,audioAlignedUrl:$("#manageAudioAlignedUrl").value.trim(),adult:$("#manageAdult").checked,...translationPayload})});
         updateManagement(result);const changed=result.changedId||state.activeSeriesId;state.activeSeriesId=null;bannerSeriesId=changed;dialog.close();keeper.ui.toast(`Saved “${title}”.`);
       }catch(error){alert(error.message)}finally{button.disabled=false;button.textContent=old}
     }

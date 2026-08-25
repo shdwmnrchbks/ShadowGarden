@@ -65,10 +65,11 @@ test("R10 Keeper cutover uses semantic CSS and Upload presentation owners only",
 });
 
 test("Keeper Series banner defaults to Random while explicit volume covers remain pinnable", async () => {
-  const [workflow, seriesController, seriesRenderer] = await Promise.all([
+  const [workflow, seriesController, seriesRenderer, libraryController] = await Promise.all([
     read("src/assets/js/admin/library-workflow.js"),
     read("src/assets/js/series.js"),
-    read("src/assets/js/series-renderers.js")
+    read("src/assets/js/series-renderers.js"),
+    read("src/assets/js/library.js")
   ]);
   assert.match(workflow, /Random — any volume cover/);
   assert.match(workflow, /Random is the default/);
@@ -79,4 +80,6 @@ test("Keeper Series banner defaults to Random while explicit volume covers remai
   assert.match(seriesController, /seriesMarkup\(series,\{\.\.\.domain,bannerRandom\}\)/);
   assert.match(seriesRenderer, /selectBannerVolume\(series, identity, bannerRandom\)/);
   assert.match(seriesRenderer, /identity\?\.isBookId\?\.\(selected\)/);
+  assert.match(libraryController, /const suggestionRandom=Math\.random\(\)/);
+  assert.match(libraryController, /readingStatus\.libraryBannerEntry\(state\.items,suggestionRandom\)/);
 });

@@ -125,3 +125,20 @@ export function filterOptions(items) {
   const popularTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 16).map(([tag]) => tag);
   return { authors, translators, years, genres, tags, popularTags, tagCounts };
 }
+
+
+function cloneState(state) {
+  return { ...state, tags: new Set(state?.tags || []) };
+}
+
+export function contextualFilterOptions(items, state, dependencies = {}) {
+  const base = filterOptions(items);
+  const count = patch => filterAndSort(items, Object.assign(cloneState(state), patch), dependencies).length;
+  const authorCounts = new Map(base.authors.map(value => [value, count({ author: value })]));
+  const translatorCounts = new Map(base.translators.map(value => [value, count({ translator: value })]));
+  const genreCounts = new Map(base.genres.map(value => [value, count({ genre: value })]));
+  const yearCounts = new Map(base.years.map(value => [value, count({ year: value })]));
+  const volumeCounts = new Map(VALID_VOLUME_RANGES.size ? [...VALID_VOLUME_RANGES].filter(Boolean).map(value => [value, count({ volumeRange: value })]) : []);
+  const tagCounts = new Map(base.tags.map(value => { const tags = new Set(state?.tags || []); tags.add(value); return [value, count({ tags })]; }));
+  return { ...base, authorCounts, translatorCounts, genreCounts, yearCounts, volumeCounts, tagCounts };
+}

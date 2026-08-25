@@ -1,0 +1,41 @@
+name: Finalize v2.1.4
+
+on:
+  push:
+    branches: [fix-filter-intrinsic-width-v2.1.4]
+    paths:
+      - ".github/workflows/finalize-v2.1.4.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix-filter-intrinsic-width-v2.1.4
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+      - name: Finalize release metadata
+        run: |
+          npm version 2.1.4 --no-git-tag-version
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('CHANGELOG.md')
+          text=path.read_text()
+          marker='# Shadow Garden Changelog\n\n'
+          entry='''## 2.1.4 — Filter Intrinsic Width Guard\n- Prevented very long Search text from widening the Search/Filter panel or the Author, Fan translator, Year, Volume count, and other selectors.\n- Constrained the Library filter layout, search stack, search field, and native selects to their owning container with explicit shrink-safe width rules.\n- Kept long search text inside the input instead of allowing its intrinsic content width to affect the surrounding grid.\n- Added browser regression coverage for long-query filter width containment.\n\n'''
+          if marker not in text:
+              raise SystemExit('changelog marker not found')
+          path.write_text(text.replace(marker,marker+entry,1))
+          PY
+          rm .github/workflows/finalize-v2.1.4.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json CHANGELOG.md .github/workflows/finalize-v2.1.4.yml
+          git commit -m "Finalize v2.1.4 filter width containment"
+          git push origin HEAD:fix-filter-intrinsic-width-v2.1.4

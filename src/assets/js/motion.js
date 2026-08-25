@@ -84,6 +84,7 @@
       writeNavigationHint({direction:directionFor(url,anchor),target:url.pathname});
     },true);
     window.addEventListener("sg:navigationintent",event=>writeNavigationHint(event.detail||{}));
+    window.addEventListener("pageswap",event=>guardTransition(event.viewTransition));
     window.addEventListener("pagereveal",event=>{
       const viewTransition=event.viewTransition;
       guardTransition(viewTransition);

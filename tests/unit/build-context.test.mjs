@@ -1,8 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs/promises";
 import { loadBuildContext } from "../../tools/lib/build-context.mjs";
 
 const KEYS = ["CF_PAGES_COMMIT_SHA", "GITHUB_SHA", "CF_PAGES_BRANCH", "GITHUB_REF_NAME", "SOURCE_DATE_EPOCH"];
+const pkg = JSON.parse(await fs.readFile(new URL("../../package.json", import.meta.url), "utf8"));
 
 async function withEnv(values, fn) {
   const previous = Object.fromEntries(KEYS.map(key => [key, process.env[key]]));
@@ -26,7 +28,7 @@ test("build context honors explicit deployment identity and SOURCE_DATE_EPOCH", 
   }, async () => {
     const context = await loadBuildContext();
     assert.equal(context.name, "Shadow Garden");
-    assert.equal(context.version, "1.24.0");
+    assert.equal(context.version, pkg.version);
     assert.equal(context.commit, "0123456789abcdef0123456789abcdef01234567");
     assert.equal(context.shortCommit, "0123456");
     assert.equal(context.branch, "main");

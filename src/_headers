@@ -23,6 +23,18 @@
 /assets/js/reading-status.js
   Cache-Control: no-store
 
+/assets/js/motion.js
+  Cache-Control: no-store
+
+/assets/js/library-motion.js
+  Cache-Control: no-store
+
+/assets/js/series-motion.js
+  Cache-Control: no-store
+
+/assets/js/reader-motion.js
+  Cache-Control: no-store
+
 /assets/js/reader/*
   Cache-Control: no-store
 
@@ -75,6 +87,21 @@
   Cache-Control: no-store
 
 /assets/js/admin-upload-presentation.js
+  Cache-Control: no-store
+
+/assets/css/motion.css
+  Cache-Control: no-store
+
+/assets/css/library-motion.css
+  Cache-Control: no-store
+
+/assets/css/series-motion.css
+  Cache-Control: no-store
+
+/assets/css/reader-motion.css
+  Cache-Control: no-store
+
+/assets/css/admin-motion.css
   Cache-Control: no-store
 
 /assets/css/library-features.css

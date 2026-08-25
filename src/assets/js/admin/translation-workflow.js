@@ -16,11 +16,9 @@
 
     function creditRow(credit={}){
       return `<div class="keeper-translation-row" data-translation-row>
-        <label><span>Translator</span><input data-t-name type="text" value="${esc(credit.name||"")}" placeholder="Translator name"></label>
-        <label><span>Group</span><input data-t-group type="text" value="${esc(credit.group||"")}" placeholder="Optional group"></label>
+        <label class="wide"><span>Translator</span><input data-t-name type="text" value="${esc(credit.name||"")}" placeholder="Translator name"></label>
         <label class="wide"><span>Source URL</span><input data-t-url type="url" inputmode="url" value="${esc(credit.url||"")}" placeholder="https://translator.example/"></label>
         <label class="wide"><span>Coverage</span><input data-t-coverage type="text" value="${esc(credit.coverage||"")}" placeholder="e.g. Chapters 1–627 or Volumes 1–4"></label>
-        <label class="wide"><span>Note</span><input data-t-note type="text" value="${esc(credit.note||"")}" placeholder="Optional attribution note"></label>
         <button class="translation-remove" data-translation-remove type="button" aria-label="Remove translation credit">×</button>
       </div>`;
     }
@@ -28,11 +26,9 @@
     function serialize(root){
       return[...root.querySelectorAll("[data-translation-row]")].map(row=>({
         name:row.querySelector("[data-t-name]")?.value.trim()||"",
-        group:row.querySelector("[data-t-group]")?.value.trim()||"",
         url:row.querySelector("[data-t-url]")?.value.trim()||"",
-        coverage:row.querySelector("[data-t-coverage]")?.value.trim()||"",
-        note:row.querySelector("[data-t-note]")?.value.trim()||""
-      })).filter(item=>item.name||item.group);
+        coverage:row.querySelector("[data-t-coverage]")?.value.trim()||""
+      })).filter(item=>item.name);
     }
 
     function installSeriesEditor(){
@@ -46,7 +42,7 @@
         <div><span>FAN TRANSLATION</span><h3>Translation provenance</h3></div>
         <label><span>Translation status</span><select id="manageTranslationStatus">${statuses.map(value=>`<option value="${value}">${value||"Not set"}</option>`).join("")}</select></label>
       </div>
-      <p class="field-note">Credit fan translators or groups and record chapter/volume coverage. Multiple rows support hand-offs between translators.</p>
+      <p class="field-note">Credit fan translators and record chapter/volume coverage. Multiple rows support hand-offs between translators.</p>
       <div id="manageTranslations" class="keeper-translation-list"></div>
       <div class="keeper-translation-actions"><button id="addTranslationCredit" class="admin-secondary" type="button">＋ Add translator</button><button id="saveTranslationCredits" class="admin-primary inline-button" type="button">Save translation credits</button></div>`;
       volumeHead.before(section);

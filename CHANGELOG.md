@@ -1,5 +1,12 @@
 # Shadow Garden Changelog
 
+## 2.1.2 — Library Result Focus & Card Spacing
+- Extended the New Growth / Recently Added fade-and-collapse behavior to desktop whenever search text or a result filter is active, so filtered catalog results move into view immediately on every viewport.
+- Relocated active Search/Filter pills directly below the search bar and before Author in both Main and Adult libraries, while preserving the collapsed mobile presentation.
+- Rebalanced Library card translator attribution to the same muted visual hierarchy as the author instead of accenting it more strongly.
+- Removed the reserved second title line from non-compact desktop grid cards so one-line series titles no longer leave a large gap before author metadata.
+- Expanded browser regression coverage for cross-viewport result focus, pill placement, translator hierarchy, and desktop grid spacing.
+
 ## 2.1.1 — Translation Metadata Cleanup
 - Removed the duplicate Series Translation Credits panel; the compact Series information attribution is now the sole series-level translation credit presentation.
 - Translator names now open their configured source URL when available and fall back to the Library translator filter when no source URL is stored.

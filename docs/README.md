@@ -17,6 +17,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 - [`architecture/FUNCTIONS_LAYER.md`](./architecture/FUNCTIONS_LAYER.md) — R6 thin Pages Function routes, explicit auth/media/catalog/storage/validation/abuse/http services, and preserved security boundaries.
 - [`architecture/DESIGN_SYSTEM.md`](./architecture/DESIGN_SYSTEM.md) — R7 semantic CSS ownership, public/Reader/Keeper cascade contracts, variants, accessibility, and retired historical style layers.
 - [`architecture/TEST_ARCHITECTURE.md`](./architecture/TEST_ARCHITECTURE.md) — R8 layered unit/service/DOM/browser-smoke testing, shared deterministic fixtures, priority reading flow, and test ownership.
+- [`architecture/MOBILE_NAVIGATION.md`](./architecture/MOBILE_NAVIGATION.md) — reconciled v1.23.1–v1.23.5 mobile drawer viewport, fixed-header, layout-compensation, presentation, accessibility, and background-scroll-lock contract owned jointly by R7 navigation and R8 browser smoke.
 - [`architecture/v1-entrypoints.json`](./architecture/v1-entrypoints.json) — machine-readable baseline/intentional-replacement entrypoint contract.
 - [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — remaining grandfathered patch-style source plus refactor-proven removals.
 

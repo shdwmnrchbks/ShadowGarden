@@ -7,4 +7,7 @@
 .volume-cover-link{display:block;color:inherit;text-decoration:none;border-radius:8px;outline:none}
 .volume-cover-link .volume-cover{transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;cursor:pointer}
 .volume-cover-link:hover .volume-cover,.volume-cover-link:focus-visible .volume-cover{transform:translateY(-2px);border-color:var(--line2);box-shadow:0 14px 30px rgba(0,0,0,.24)}
+.series-back-adult{display:none}
+.adult-library .series-back-main{display:none}
+.adult-library .series-back-adult{display:inline}
 @media(max-width:720px){.volume-actions{gap:5px}.volume-actions a{padding:6px 7px;font-size:.64rem}}

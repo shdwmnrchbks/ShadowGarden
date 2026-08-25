@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 2.1.3 — Grid Title Spacing Parity
+- Extended the v2.1.2 grid-card title spacing correction to mobile as well as desktop.
+- Grid cards no longer reserve an unused second title line on any viewport; Compact view remains unchanged.
+- Updated browser regression coverage so the spacing rule cannot become desktop-only again.
+
 ## 2.1.2 — Library Result Focus & Card Spacing
 - Extended the New Growth / Recently Added fade-and-collapse behavior to desktop whenever search text or a result filter is active, so filtered catalog results move into view immediately on every viewport.
 - Relocated active Search/Filter pills directly below the search bar and before Author in both Main and Adult libraries, while preserving the collapsed mobile presentation.

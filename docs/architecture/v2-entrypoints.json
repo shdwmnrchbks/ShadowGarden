@@ -1,0 +1,36 @@
+{
+  "baselineVersion": "2.0.0",
+  "milestone": "R10",
+  "pages": {
+    "mainLibrary": {
+      "html": "src/index.html",
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/library-features.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/library-layout.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/js/nav.js", "/assets/js/data-source.js", "/assets/js/library.js", "/assets/js/nav-pinned.js", "/assets/js/library-mobile-filter.js", "/assets/js/library-footer-version.js", "/assets/js/site-a11y.js", "/assets/js/ui-direction-triangles.js"],
+      "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/library-model.js", "/assets/js/library-renderers.js", "/assets/js/public/volume-actions.js"]
+    },
+    "adultLibrary": {
+      "html": "src/nsfw.html",
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/adult.css", "/assets/css/library-features.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/library-layout.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/js/nav.js", "/assets/js/data-source.js", "/assets/js/library.js", "/assets/js/nav-pinned.js", "/assets/js/library-mobile-filter.js", "/assets/js/library-footer-version.js", "/assets/js/site-a11y.js", "/assets/js/ui-direction-triangles.js"],
+      "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/library-model.js", "/assets/js/library-renderers.js", "/assets/js/public/volume-actions.js"]
+    },
+    "series": {
+      "html": "src/series.html",
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/adult.css", "/assets/css/series-extra.css", "/assets/css/public-components.css", "/assets/css/public-artwork.css", "/assets/css/reading-status.css", "/assets/css/volume-actions.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/js/nav.js", "/assets/js/site-a11y.js", "/assets/js/data-source.js", "/assets/js/book-access.js", "/assets/js/series.js", "/assets/js/nav-pinned.js", "/assets/js/ui-direction-triangles.js"],
+      "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/series-renderers.js", "/assets/js/public/volume-actions.js"]
+    },
+    "reader": {
+      "html": "src/reader.html",
+      "styles": ["/assets/css/reader.css", "/assets/css/reader-continuous-rail.css", "/assets/css/reader-page-map.css", "/assets/css/reader-completion.css", "/assets/css/reader-end-page.css", "/assets/css/reading-status.css", "/assets/css/reader-image-focus.css", "/assets/css/reader-a11y.css", "/assets/css/reader-interface-themes.css", "/assets/css/reader-presentation.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/vendor/jszip.min.js", "/assets/vendor/epub.min.js", "/assets/js/data-source.js", "/assets/js/book-access.js", "/assets/js/reader-continuous-rail.js", "/assets/js/reader-epub-adapter.js", "/assets/js/reader-visual-cache.js", "/assets/js/reader-paginated-visual-fit.js", "/assets/js/reader-continuous-core.js", "/assets/js/reader-a11y.js", "/assets/js/ui-direction-triangles.js", "/assets/js/reader-bootstrap.js"],
+      "runtimeLoaded": ["/assets/js/domain/index.js", "/assets/js/reader/app.js", "/assets/js/reader/book-session.js", "/assets/js/reader/storage.js", "/assets/js/reader/theme.js", "/assets/js/reader/toc.js", "/assets/js/reader/page-map.js", "/assets/js/reader/settings.js", "/assets/js/reader/progress-controller.js", "/assets/js/reader/bookmarks-controller.js", "/assets/js/reader/page-navigation-input.js", "/assets/js/reader/image-focus.js", "/assets/js/reader/completion.js", "/assets/js/reader/paginated.js", "/assets/js/reader/continuous.js", "/assets/js/reader/rendition.js"]
+    },
+    "gardenKeeper": {
+      "html": "src/admin.html",
+      "styles": ["/assets/css/site.css", "/assets/css/nav.css", "/assets/css/admin.css", "/assets/css/admin-preflight.css", "/assets/css/admin-batch.css", "/assets/css/admin-maintenance.css", "/assets/css/admin-series-editor.css", "/assets/css/admin-layout.css", "/assets/css/ui-symbols.css"],
+      "scripts": ["/assets/vendor/jszip.min.js", "/assets/js/admin/core.js", "/assets/js/admin/app.js"],
+      "runtimeLoaded": ["/assets/css/admin-components.css", "/assets/css/admin-version.css", "/assets/css/admin-presentation.css", "/assets/js/admin/upload-fields.js", "/assets/js/admin/auth-session.js", "/assets/js/admin/library-workflow.js", "/assets/js/admin/maintenance-workflow.js", "/assets/js/admin/history-workflow.js", "/assets/js/admin/trash-workflow.js", "/assets/js/admin/abuse-workflow.js", "/assets/js/admin/version.js", "/assets/js/admin-batch.js", "/assets/js/admin/upload-safety.js", "/assets/js/admin-batch-editor.js", "/assets/js/admin-upload-workflow.js", "/assets/js/admin-upload-completion.js", "/assets/js/admin-upload-presentation.js", "/assets/js/admin/upload-events.js", "/assets/js/admin/shell.js", "/assets/js/site-flavor.js", "/assets/js/ui-direction-triangles.js"]
+    }
+  }
+}

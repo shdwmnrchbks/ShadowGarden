@@ -78,7 +78,7 @@ jobs:
             marker="$2"
             file="$smoke_dir/page.html"
             echo "Smoke $PRODUCTION$path"
-            curl --silent --show-error --fail --max-time 20 \
+            curl --silent --show-error --fail --location --max-time 20 \
               --output "$file" "$PRODUCTION$path"
             grep -Fq "$marker" "$file"
           }
@@ -89,7 +89,7 @@ jobs:
           smoke_page /reader.html 'id="viewer"'
 
           robots="$smoke_dir/robots.txt"
-          curl --silent --show-error --fail --max-time 20 \
+          curl --silent --show-error --fail --location --max-time 20 \
             --output "$robots" "$PRODUCTION/robots.txt"
           grep -Fq 'Disallow: /media/' "$robots"
 

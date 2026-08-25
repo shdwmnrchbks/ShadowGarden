@@ -14,6 +14,10 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
   const volumes = arr(series?.volumes).length;
   const aboveFold = index < 6;
   const finished = readingState.seriesFinished(series);
+  const entries = readingState.volumeEntries(series);
+  const active = entries.find(entry => entry.state === readingState.STATES.IN_PROGRESS) || null;
+  const activePercent = active ? Math.max(1, Math.min(99, Math.round((Number(active.progress?.percentage) || 0) * 100))) : 0;
+  const visualProgress = finished ? 100 : activePercent;
   const pinned = preferences.isPinned(series?.id);
   const href = urls.seriesUrl(series?.id);
   const translator = translations?.primaryTranslator(series);
@@ -26,6 +30,7 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
       <span class="volume-pill">${volumes} ${volumes === 1 ? "VOL" : "VOLS"}</span>
       ${series?.nsfw ? `<span class="adult-pill">18+</span>` : ""}
       ${finished ? `<span class="finished-series-badge">✓ Finished</span>` : ""}
+      ${visualProgress ? `<span class="cover-reading-progress" aria-hidden="true"><span style="width:${visualProgress}%"></span></span>` : ""}
     </div>
     <div class="card-copy">
       <h2>${esc(series?.title)}</h2>

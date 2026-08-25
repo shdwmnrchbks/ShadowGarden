@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 2.1.4 — Filter Intrinsic Width Guard
+- Prevented very long Search text from widening the Search/Filter panel or the Author, Fan translator, Year, Volume count, and other selectors.
+- Constrained the Library filter layout, search stack, search field, and native selects to their owning container with explicit shrink-safe width rules.
+- Kept long search text inside the input instead of allowing its intrinsic content width to affect the surrounding grid.
+- Added browser regression coverage for long-query filter width containment.
+
 ## 2.1.3 — Grid Title Spacing Parity
 - Extended the v2.1.2 grid-card title spacing correction to mobile as well as desktop.
 - Grid cards no longer reserve an unused second title line on any viewport; Compact view remains unchanged.

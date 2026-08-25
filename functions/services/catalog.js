@@ -1,6 +1,7 @@
 /* Shadow Garden R6 — canonical catalog, backup, Trash, banner, and maintenance service. */
 import { bookIdForFile, isBookId, volumeBookId } from "../_lib/book-id.js";
 import { canonicalizeSeriesStatus, normalizeSeriesStatus, withSeriesStatusTag } from "../_lib/series-status.js";
+import { CANONICAL_GENRES, normalizeSeriesTaxonomy } from "../_lib/catalog-taxonomy.js";
 import { requireAdmin } from "./auth.js";
 import { json, parseJson } from "./http.js";
 import { deleteObject, getTextObject, putObject, validObjectKey, writeClient } from "./storage.js";
@@ -174,14 +175,15 @@ export async function handleCatalogPost({ request, env }) {
     await snapshotCatalogs(aws, data.main, data.adult, input.duplicatePolicy === "replace" && existing >= 0 ? "replace-volume" : "add-volume");
     if (!series) {
       series = { id: sid, title: input.seriesName, author: input.author, year: input.year, status: requestedStatus, description: input.description,
-        tags: withSeriesStatusTag(input.incomingTags, requestedStatus), cover, coverThumb, audioAlignedUrl: input.audioAlignedUrl, ...(input.translationStatus ? { translationStatus: input.translationStatus } : {}), ...(input.translations.length ? { translations: input.translations } : {}), nsfw: input.adult, volumes: [] };
+        genres: input.incomingGenres, tags: withSeriesStatusTag(input.incomingTags, requestedStatus), cover, coverThumb, audioAlignedUrl: input.audioAlignedUrl, ...(input.translationStatus ? { translationStatus: input.translationStatus } : {}), ...(input.translations.length ? { translations: input.translations } : {}), nsfw: input.adult, volumes: [] };
       target.series.push(series);
     } else {
       canonicalizeSeriesStatus(series);
       if (!input.targetSeriesId) {
         series.title = input.seriesName || series.title; series.author = input.author || series.author; series.year = input.year || series.year;
         if (input.rawStatus) series.status = requestedStatus; series.description = input.description || series.description;
-        series.tags = withSeriesStatusTag([...arr(series.tags), ...input.incomingTags], series.status);
+        const taxonomy = normalizeSeriesTaxonomy({ genres: [...arr(series.genres), ...input.incomingGenres], tags: [...arr(series.tags), ...input.incomingTags] });
+        series.genres = taxonomy.genres; series.tags = withSeriesStatusTag(taxonomy.tags, series.status);
       }
       const legacyAudioUrl = arr(series.volumes).find(volume => volume.audioAlignedUrl)?.audioAlignedUrl || "";
       if (!series.audioAlignedUrl && legacyAudioUrl) series.audioAlignedUrl = legacyAudioUrl;
@@ -236,7 +238,8 @@ export async function handleLibraryPost({ request, env }) {
       await snapshotCatalogs(aws, data.main, data.adult, "update-series");
       const status = normalizeSeriesStatus(input.status);
       series.title = clean(input.title, 300) || series.title; series.author = clean(input.author, 240); series.year = Number(input.year) || ""; series.status = status;
-      series.description = clean(input.description, 12000); series.tags = withSeriesStatusTag(input.tags, status); series.audioAlignedUrl = audioAlignedUrl;
+      const taxonomy = normalizeSeriesTaxonomy({ genres: input.genres, tags: input.tags });
+      series.description = clean(input.description, 12000); series.genres = taxonomy.genres; series.tags = withSeriesStatusTag(taxonomy.tags, status); series.audioAlignedUrl = audioAlignedUrl;
       for (const volume of arr(series.volumes)) delete volume.audioAlignedUrl;
       const requestedAdult = Boolean(input.adult);
       if (requestedAdult !== found.adult) {
@@ -326,9 +329,30 @@ export async function handleBackupPost({ request, env }) {
   } catch (error) { console.error("Catalog backup deletion failed", error); return json({ ok: false, error: "Could not delete catalog backup", detail: String(error?.message || error) }, 502); }
 }
 
+function catalogTaxonomyAudit(data) {
+  const changes=[];
+  for (const [scope,catalog] of [["main",data.main],["adult",data.adult]]) for (const series of arr(catalog.series)) {
+    const next=normalizeSeriesTaxonomy(series), tags=withSeriesStatusTag(next.tags,normalizeSeriesStatus(series.status));
+    const beforeGenres=arr(series.genres),beforeTags=arr(series.tags);
+    if (JSON.stringify(beforeGenres)===JSON.stringify(next.genres)&&JSON.stringify(beforeTags)===JSON.stringify(tags)) continue;
+    changes.push({scope,id:series.id||"",title:series.title||"Untitled",beforeGenres,beforeTags,genres:next.genres,tags});
+  }
+  return {canonicalGenreCount:CANONICAL_GENRES.length,totalSeries:arr(data.main.series).length+arr(data.adult.series).length,affectedSeries:changes.length,preview:changes.slice(0,30)};
+}
+
+function applyCatalogTaxonomy(data) {
+  let changed=0;
+  for (const catalog of [data.main,data.adult]) for (const series of arr(catalog.series)) {
+    const next=normalizeSeriesTaxonomy(series),tags=withSeriesStatusTag(next.tags,normalizeSeriesStatus(series.status));
+    if (JSON.stringify(arr(series.genres))===JSON.stringify(next.genres)&&JSON.stringify(arr(series.tags))===JSON.stringify(tags)) continue;
+    series.genres=next.genres;series.tags=tags;changed++;
+  }
+  return changed;
+}
+
 async function maintenancePayload(aws) {
   const [data, trash, backups] = await Promise.all([loadCatalogPair(aws), loadTrash(aws), listBackups(aws)]);
-  return { ok: true, generatedAt: new Date().toISOString(), health: catalogHealth(data, trash), backups, trash: arr(trash.items).map(item => ({
+  return { ok: true, generatedAt: new Date().toISOString(), health: catalogHealth(data, trash), taxonomy: catalogTaxonomyAudit(data), backups, trash: arr(trash.items).map(item => ({
     id: item.id, type: item.type, scope: item.scope, seriesId: item.seriesId, title: item.title, subtitle: item.subtitle || "", removedAt: item.removedAt
   })) };
 }
@@ -348,6 +372,13 @@ export async function handleMaintenancePost({ request, env }) {
   try {
     const aws = writeClient(env);
     if (action === "check-objects") return json({ ok: true, ...(await checkObjectBatch(aws, input.keys)) });
+    if (action === "normalize-taxonomy") {
+      const data=await loadCatalogPair(aws),audit=catalogTaxonomyAudit(data);
+      if (!audit.affectedSeries) return json({ ...(await maintenancePayload(aws)), normalizedTaxonomy: 0 });
+      await snapshotCatalogs(aws,data.main,data.adult,"normalize-catalog-taxonomy");
+      const changed=applyCatalogTaxonomy(data);await saveCatalogPair(aws,data.main,data.adult);await invalidateCatalogCache(request);
+      return json({ ...(await maintenancePayload(aws)), normalizedTaxonomy: changed });
+    }
     if (action === "create-backup") {
       const data = await loadCatalogPair(aws), backup = await snapshotCatalogs(aws, data.main, data.adult, clean(input.reason, 120) || "manual-backup");
       return json({ ...(await maintenancePayload(aws)), createdBackup: backup });

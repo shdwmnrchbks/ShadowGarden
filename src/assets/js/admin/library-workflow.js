@@ -50,12 +50,12 @@
       if(!state.management)return;const query=state.manageQuery.trim().toLowerCase();
       const items=managementSeries().filter(({series,scope})=>{
         if(state.manageScope!=="all"&&state.manageScope!==scope)return false;if(!query)return true;
-        return[series.title,series.author,...arr(series.tags),...arr(series.volumes).map(volume=>volume.title)].filter(Boolean).join(" ").toLowerCase().includes(query);
+        return[series.title,series.author,...arr(series.genres),...arr(series.tags),...arr(series.volumes).map(volume=>volume.title)].filter(Boolean).join(" ").toLowerCase().includes(query);
       }).sort((left,right)=>String(left.series.title||"").localeCompare(String(right.series.title||"")));
       $("#manageEmpty")?.classList.toggle("hidden",items.length>0);
       list.innerHTML=items.map(({series,scope})=>{
         const cover=series.coverThumb||series.cover||arr(series.volumes).find(volume=>volume.coverThumb)?.coverThumb||arr(series.volumes).find(volume=>volume.cover)?.cover||"";
-        return `<article class="manager-card"><div class="manager-card-cover">${cover?`<img src="${esc(cover)}" alt="${esc(series.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:'<span>✦</span>'}</div><div class="manager-card-copy"><div class="manager-card-title"><div><strong>${esc(series.title||"Untitled")}</strong><span>${esc(series.author||"Unknown author")}</span></div><span class="manager-scope ${scope}">${scope==="adult"?"18+":"MAIN"}</span></div><div class="manager-card-meta"><span>${arr(series.volumes).length} ${arr(series.volumes).length===1?"volume":"volumes"}</span>${series.year?`<span>${esc(series.year)}</span>`:""}${arr(series.tags)[0]?`<span>${esc(arr(series.tags)[0])}</span>`:""}${seriesAudioUrl(series)?"<span>Audio folder linked</span>":""}</div><div class="manager-card-actions"><button class="manager-add" type="button" data-manager-add="${esc(series.id)}">＋ Add book</button><button class="admin-secondary manager-open" type="button" data-manager-open="${esc(series.id)}">Manage series</button></div></div></article>`;
+        return `<article class="manager-card"><div class="manager-card-cover">${cover?`<img src="${esc(cover)}" alt="${esc(series.title)} cover" loading="lazy" decoding="async" fetchpriority="low">`:'<span>✦</span>'}</div><div class="manager-card-copy"><div class="manager-card-title"><div><strong>${esc(series.title||"Untitled")}</strong><span>${esc(series.author||"Unknown author")}</span></div><span class="manager-scope ${scope}">${scope==="adult"?"18+":"MAIN"}</span></div><div class="manager-card-meta"><span>${arr(series.volumes).length} ${arr(series.volumes).length===1?"volume":"volumes"}</span>${series.year?`<span>${esc(series.year)}</span>`:""}${(arr(series.genres)[0]||arr(series.tags)[0])?`<span>${esc(arr(series.genres)[0]||arr(series.tags)[0])}</span>`:""}${seriesAudioUrl(series)?"<span>Audio folder linked</span>":""}</div><div class="manager-card-actions"><button class="manager-add" type="button" data-manager-add="${esc(series.id)}">＋ Add book</button><button class="admin-secondary manager-open" type="button" data-manager-open="${esc(series.id)}">Manage series</button></div></div></article>`;
       }).join("");
     }
 
@@ -89,7 +89,7 @@
 
     async function openSeriesEditor(id){
       const item=findManagedSeries(id);if(!item)return;state.activeSeriesId=id;const {series,scope}=item;
-      $("#seriesEditorHeading").textContent=series.title||"Edit series";$("#manageTitle").value=series.title||"";$("#manageAuthor").value=series.author||"";$("#manageYear").value=series.year||"";$("#manageStatus").value=normalizeSeriesStatus(series.status);$("#manageTags").value=arr(series.tags).join(", ");$("#manageDescription").value=series.description||"";$("#manageAudioAlignedUrl").value=seriesAudioUrl(series);$("#manageAdult").checked=scope==="adult";
+      $("#seriesEditorHeading").textContent=series.title||"Edit series";$("#manageTitle").value=series.title||"";$("#manageAuthor").value=series.author||"";$("#manageYear").value=series.year||"";$("#manageStatus").value=normalizeSeriesStatus(series.status);$("#manageGenres").value=arr(series.genres).join(", ");$("#manageTags").value=arr(series.tags).join(", ");$("#manageDescription").value=series.description||"";$("#manageAudioAlignedUrl").value=seriesAudioUrl(series);$("#manageAdult").checked=scope==="adult";
       const cover=series.cover||arr(series.volumes).find(volume=>volume.cover)?.cover||"";$("#managerCover").classList.toggle("hidden",!cover);$("#managerCoverFallback").classList.toggle("hidden",Boolean(cover));if(cover)$("#managerCover").src=cover;
       renderManagedVolumes(series);if(!dialog.open)dialog.showModal();bannerSeriesId=id;void loadBannerChoices(id);
     }
@@ -97,7 +97,7 @@
     async function saveSeries(){
       if(!state.activeSeriesId)return;const button=$("#saveSeries"),old=button.textContent,title=$("#manageTitle").value.trim()||"Series";button.disabled=true;button.textContent="Saving…";
       try{
-        const result=await client.request("/admin-api/library",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"update-series",id:state.activeSeriesId,title:$("#manageTitle").value,author:$("#manageAuthor").value,year:$("#manageYear").value,status:normalizeSeriesStatus($("#manageStatus").value),tags:$("#manageTags").value.split(",").map(value=>value.trim()).filter(Boolean),description:$("#manageDescription").value,audioAlignedUrl:$("#manageAudioAlignedUrl").value.trim(),adult:$("#manageAdult").checked})});
+        const result=await client.request("/admin-api/library",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"update-series",id:state.activeSeriesId,title:$("#manageTitle").value,author:$("#manageAuthor").value,year:$("#manageYear").value,status:normalizeSeriesStatus($("#manageStatus").value),genres:$("#manageGenres").value.split(",").map(value=>value.trim()).filter(Boolean),tags:$("#manageTags").value.split(",").map(value=>value.trim()).filter(Boolean),description:$("#manageDescription").value,audioAlignedUrl:$("#manageAudioAlignedUrl").value.trim(),adult:$("#manageAdult").checked})});
         updateManagement(result);const changed=result.changedId||state.activeSeriesId;state.activeSeriesId=null;bannerSeriesId=changed;dialog.close();keeper.ui.toast(`Saved “${title}”.`);
       }catch(error){alert(error.message)}finally{button.disabled=false;button.textContent=old}
     }

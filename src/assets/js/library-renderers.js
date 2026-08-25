@@ -31,7 +31,7 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
       <h2>${esc(series?.title)}</h2>
       <p>${esc(series?.author || "Unknown author")}</p>
       ${translatorLabel ? `<p class="card-translator">TL · ${esc(translatorLabel)}${translationStatus ? ` · ${esc(translationStatus)}` : ""}</p>` : ""}
-      <div class="card-meta"><span>${series?.year || "—"}</span><span>${finished ? "Finished" : esc(arr(series?.tags)[0] || "")}</span></div>
+      <div class="card-meta"><span>${series?.year || "—"}</span><span>${finished ? "Finished" : esc(arr(series?.genres)[0] || arr(series?.tags)[0] || "")}</span></div>
     </div>
     <div class="compact-card-badges" aria-label="Series badges">
       ${finished ? '<span class="compact-card-badge finished">✓ Finished</span>' : ""}

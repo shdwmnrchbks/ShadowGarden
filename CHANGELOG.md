@@ -1,5 +1,12 @@
 # Shadow Garden Changelog
 
+## 2.3.0 — Canonical Catalog Taxonomy
+- Adopt the Novel Updates genre vocabulary as Shadow Garden's controlled 35-genre list while keeping descriptive Tags flexible.
+- Normalize EPUB `dc:subject` metadata during local preflight and again at the server catalog boundary, collapsing publisher aliases such as `Fiction/Fantasy/General` and `Fantasy Fiction` into `Fantasy`.
+- Split Garden Keeper Series/New Books metadata into separate Genres and Tags fields and add a dedicated public Genre filter/deep link.
+- Add an audit-first Garden Maintenance migration for existing catalogs; a backup is created before normalization and unknown descriptive values are preserved as Tags.
+- Add permanent browser/server taxonomy ownership and normalization tests.
+
 ## 2.2.1 — Mobile Filter First Paint
 - Main and Adult Library Search/Filter panels now render collapsed from the initial mobile HTML/CSS state instead of expanding until JavaScript and catalog initialization finish.
 - Desktop first paint remains expanded, while the mobile filter toggle is available immediately and hands off to the canonical R2 runtime/persistence owner.

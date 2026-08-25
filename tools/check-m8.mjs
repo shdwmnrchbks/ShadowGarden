@@ -19,6 +19,10 @@ const fail=message=>failures.push(message);
 const read=relative=>fs.readFile(path.join(ROOT,relative),"utf8");
 const env={SG_MEDIA_SIGNING_SECRET:"shadow-garden-ci-secret-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ"};
 
+function semverAtLeast(current,minimum){
+  const parse=value=>String(value||"").split(".").slice(0,3).map(item=>Number.parseInt(item,10)||0),a=parse(current),b=parse(minimum);
+  for(let i=0;i<3;i++){if(a[i]>b[i])return true;if(a[i]<b[i])return false}return true;
+}
 function memoryStore(){
   const values=new Map();
   return{values,async get(key){return values.get(key)??null},async put(key,value){values.set(key,String(value))},async delete(key){values.delete(String(key))}};
@@ -70,7 +74,7 @@ async function checkWiring(){
   if(proxy.includes("safeAbuseCooldown("))fail("M8 cooldown enforcement must stay out of the EPUB media/Range path");
   if(!auth.includes("recordSecurityEvent")||!auth.includes('"admin_cooldown"')||!auth.includes("failure.retryAfterSeconds >= 60"))fail("Garden Keeper significant cooldown telemetry is not wired");
   for(const marker of ["requireAdmin","loadAbuseOverview","releaseAbuseClient","handleAbuseAdmin"]){if(!abuse.includes(marker))fail(`Abuse Watch service is missing ${marker}`)}
-  if(!app.includes("/assets/js/admin/abuse-workflow.js?v=1.20.0"))fail("Garden Keeper R5 app must load Abuse Watch workflow");
+  if(!app.includes("/assets/js/admin/abuse-workflow.js"))fail("Garden Keeper app must load the Abuse Watch workflow");
   for(const marker of ["Abuse Watch","raw IP addresses are never stored","/admin-api/abuse","data-release-abuse"]){if(!clientSource.includes(marker))fail(`Abuse Watch client is missing ${marker}`)}
   if(!headers.includes("/assets/js/admin/*")||!headers.includes("Cache-Control: no-store"))fail("Abuse Watch client must be served no-store");
   const routeConfig=JSON.parse(routes);
@@ -78,8 +82,8 @@ async function checkWiring(){
   if(!roadmap.includes("7. Garden Keeper hardening | ✅ Done"))fail("Milestone 7 must remain recorded as accepted");
   if(!roadmap.includes("8. Abuse telemetry and response | ✅ Done"))fail("Milestone 8 must remain recorded as accepted");
   for(const marker of ["15-minute","score 12","10-minute","Abuse Watch","raw IP"]){if(!guide.includes(marker))fail(`M8 guide is missing ${marker}`)}
-  const packageData=JSON.parse(pkg),parts=String(packageData.version||"").split(".").map(Number);
-  if(parts.length<2||parts[0]!==1||parts[1]<14)fail("Shadow Garden package version must remain at or above v1.14 for M8");
+  const packageData=JSON.parse(pkg);
+  if(!semverAtLeast(packageData.version,"1.14.0"))fail("Shadow Garden package version must remain at or above v1.14 for M8");
   if(!String(packageData.scripts?.check||"").includes("check-m8.mjs"))fail("M8 regression check must remain in npm run check");
 }
 

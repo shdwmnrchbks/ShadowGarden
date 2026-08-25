@@ -82,6 +82,8 @@ export function renderReadingBanner(panel, intro, current, { readingState, forma
   if (!current) {
     panel.replaceChildren();
     panel.classList.add("hidden");
+    delete panel.dataset.readingState;
+    delete panel.dataset.readingMode;
     oldArt?.remove();
     return;
   }
@@ -92,8 +94,13 @@ export function renderReadingBanner(panel, intro, current, { readingState, forma
   const title = String(volume?.title || `Volume ${volume?.number ?? index + 1}`);
   const number = String(volume?.number ?? index + 1);
   const percent = Math.round((Number(progress?.percentage) || 0) * 100);
+  const mode = current.mode === "suggestion" ? "suggestion" : "continue";
+  const context = mode === "continue"
+    ? `${series?.title || "Untitled series"} · Volume ${number} · ${percent}%`
+    : `${current.suggestion === "next" ? "Next in series" : "Read suggestion"} · ${series?.title || "Untitled series"} · Volume ${number}`;
   panel.dataset.readingState = state;
-  panel.innerHTML = `<div class="continue-mark${cover ? " continue-cover" : ""}">${cover ? `<img src="${esc(cover)}" alt="" loading="eager" decoding="async">` : "✦"}</div><div><strong>${esc(title)}</strong><span>${esc(series?.title || "Untitled series")} · Volume ${esc(number)} · ${percent}%</span></div><a ${attrs(action, esc)} href="${action.href}">${esc(action.label)}</a>`;
+  panel.dataset.readingMode = mode;
+  panel.innerHTML = `<div class="continue-mark${cover ? " continue-cover" : ""}">${cover ? `<img src="${esc(cover)}" alt="" loading="eager" decoding="async">` : "✦"}</div><div><strong>${esc(title)}</strong><span>${esc(context)}</span></div><a ${attrs(action, esc)} href="${action.href}">${esc(action.label)}</a>`;
   panel.classList.remove("hidden");
 
   if (intro && cover) {

@@ -175,12 +175,16 @@
         "/assets/js/admin/app.js"
       ],
       "runtimeLoaded": [
+        "/assets/css/motion.css",
         "/assets/css/admin-components.css",
         "/assets/css/admin-version.css",
         "/assets/css/admin-presentation.css",
+        "/assets/css/admin-motion.css",
+        "/assets/js/motion.js",
         "/assets/js/admin/upload-fields.js",
         "/assets/js/admin/auth-session.js",
         "/assets/js/admin/library-workflow.js",
+        "/assets/js/admin/translation-workflow.js",
         "/assets/js/admin/maintenance-workflow.js",
         "/assets/js/admin/history-workflow.js",
         "/assets/js/admin/trash-workflow.js",
@@ -193,7 +197,9 @@
         "/assets/js/admin-upload-completion.js",
         "/assets/js/admin-upload-presentation.js",
         "/assets/js/admin/upload-events.js",
+        "/assets/js/admin/editor-interactions.js",
         "/assets/js/admin/shell.js",
+        "/assets/js/admin/motion.js",
         "/assets/js/site-flavor.js",
         "/assets/js/ui-direction-triangles.js"
       ]

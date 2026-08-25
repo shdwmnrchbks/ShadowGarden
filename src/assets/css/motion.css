@@ -25,10 +25,22 @@
 @keyframes sg-motion-fade-out{from{opacity:1}to{opacity:0}}
 @keyframes sg-motion-rise-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes sg-motion-soft-scale-in{from{opacity:0;transform:scale(.985)}to{opacity:1;transform:scale(1)}}
+@keyframes sg-motion-forward-old{to{opacity:0;transform:translateX(-12px)}}
+@keyframes sg-motion-forward-new{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes sg-motion-backward-old{to{opacity:0;transform:translateX(12px)}}
+@keyframes sg-motion-backward-new{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes sg-motion-lateral-old{to{opacity:0;transform:translateY(4px)}}
+@keyframes sg-motion-lateral-new{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 
 @supports(view-transition-name:root){
   ::view-transition-old(root){animation:sg-motion-fade-out var(--sg-motion-fast) var(--sg-ease-exit) both}
   ::view-transition-new(root){animation:sg-motion-fade-in var(--sg-motion-page) var(--sg-ease-enter) both}
+  html[data-sg-nav-direction="forward"]::view-transition-old(root){animation:sg-motion-forward-old var(--sg-motion-fast) var(--sg-ease-exit) both}
+  html[data-sg-nav-direction="forward"]::view-transition-new(root){animation:sg-motion-forward-new var(--sg-motion-page) var(--sg-ease-enter) both}
+  html[data-sg-nav-direction="backward"]::view-transition-old(root){animation:sg-motion-backward-old var(--sg-motion-fast) var(--sg-ease-exit) both}
+  html[data-sg-nav-direction="backward"]::view-transition-new(root){animation:sg-motion-backward-new var(--sg-motion-page) var(--sg-ease-enter) both}
+  html[data-sg-nav-direction="lateral"]::view-transition-old(root){animation:sg-motion-lateral-old var(--sg-motion-fast) var(--sg-ease-exit) both}
+  html[data-sg-nav-direction="lateral"]::view-transition-new(root){animation:sg-motion-lateral-new var(--sg-motion-page) var(--sg-ease-enter) both}
 }
 
 @media(prefers-reduced-motion:reduce){

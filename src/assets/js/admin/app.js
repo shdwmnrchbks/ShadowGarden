@@ -10,7 +10,8 @@
   const loadStyle=href=>{if(document.querySelector(`link[href^="${href.split("?")[0]}"]`))return;const link=document.createElement("link");link.rel="stylesheet";link.href=href;link.dataset.keeperStyle="1";document.head.appendChild(link)};
 
   async function boot(){
-    loadStyle("/assets/css/admin-components.css");loadStyle("/assets/css/admin-version.css");loadStyle("/assets/css/admin-presentation.css");
+    loadStyle("/assets/css/motion.css");loadStyle("/assets/css/admin-components.css");loadStyle("/assets/css/admin-version.css");loadStyle("/assets/css/admin-presentation.css");loadStyle("/assets/css/admin-motion.css");
+    await loadScript("/assets/js/motion.js");
 
     for(const src of [
       "/assets/js/admin/upload-fields.js",
@@ -39,9 +40,10 @@
     ])await loadScript(src);
 
     await loadScript("/assets/js/admin/shell.js");
+    await loadScript("/assets/js/admin/motion.js");
     await Promise.all([loadScript("/assets/js/site-flavor.js"),loadScript("/assets/js/ui-direction-triangles.js")]);
 
-    for(const name of ["version","session","library","translations","maintenance","history","trash","abuse","shell"])await keeper.initializeWorkflow(name);
+    for(const name of ["version","session","library","translations","maintenance","history","trash","abuse","shell","motion"])await keeper.initializeWorkflow(name);
 
     keeper.events.addEventListener("library:invalidate",()=>{
       const workflow=keeper.workflows.get("library")?.instance;if(workflow&&keeper.client.isAuthorized())void workflow.refresh();

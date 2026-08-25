@@ -57,6 +57,7 @@
     longPressStart=null;
     suppressNextClick=true;
     setOpen(false);
+    window.dispatchEvent(new CustomEvent('sg:navigationintent',{detail:{direction:'forward',target:adminPath}}));
     window.location.assign(adminPath);
   };
 

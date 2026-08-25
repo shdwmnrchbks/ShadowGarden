@@ -105,8 +105,10 @@ for(const marker of ["Shadow Garden v2.0.0","R0–R10","Security","Upgrade and d
 
 for(const marker of [
   "workflow_run:","Verify Shadow Garden","conclusion == 'success'","head_branch == 'main'","contents: write","github.event.workflow_run.head_sha",
-  "https://shadowgarden-bon.pages.dev","/data/version.json","deployed_commit","/nsfw.html","/series.html","/reader.html","gh release create","docs/releases/v2.0.0.md"
+  "https://shadowgarden-bon.pages.dev","/data/version.json","deployed_commit","/nsfw.html","/series.html","/reader.html",
+  "NOTES=\"docs/releases/v${VERSION}.md\"","gh release view","steps.existing.outputs.exists != 'true'","gh release create","--notes-file \"$NOTES\""
 ])if(!releaseWorkflow.includes(marker))fail(`v2 release workflow is missing ${marker}`);
+if(releaseWorkflow.includes('if [ "$VERSION" != "2.0.0" ]'))fail("v2 release workflow must not remain pinned to v2.0.0");
 
 if(failures.length){
   console.error(`Shadow Garden R10 final-cutover check failed with ${failures.length} problem${failures.length===1?"":"s"}:`);

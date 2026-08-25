@@ -4,12 +4,13 @@ import fs from 'node:fs/promises';
 const read = file => fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
 const json = async file => JSON.parse(await read(file));
 
-const [pkg, lock, config, workflow, spec, roadmap] = await Promise.all([
+const [pkg, lock, config, workflow, spec, motion, roadmap] = await Promise.all([
   json('tests/e2e/package.json'),
   json('tests/e2e/package-lock.json'),
   read('tests/e2e/playwright.config.mjs'),
   read('.github/workflows/e2e.yml'),
   read('tests/e2e/specs/library.spec.mjs'),
+  read('src/assets/js/motion.js'),
   read('docs/roadmaps/CURRENT_ROADMAP.md')
 ]);
 
@@ -34,6 +35,10 @@ assert.match(spec, /Main and Adult libraries hydrate from isolated fixture catal
 assert.match(spec, /search, compact view, and Back navigation restore rendered Library state/);
 assert.match(spec, /mobile navigation remains viewport-owned across resize and reduced motion/);
 assert.match(spec, /browserDiagnostics/);
+assert.match(spec, /page\.locator\(['"]\.brand-mark['"]\)/, 'mobile navigation E2E must use a stable locator while its accessible name changes');
+
+assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'native View Transition completion and skip rejection must both clear navigation hints');
+assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped native View Transition rejections unhandled');
 
 assert.match(roadmap, /Active release:\*\* v2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);

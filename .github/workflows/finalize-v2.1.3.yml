@@ -1,0 +1,51 @@
+name: Finalize v2.1.3
+
+on:
+  push:
+    branches: [fix-grid-title-spacing-v2.1.3]
+    paths:
+      - ".github/workflows/finalize-v2.1.3.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: fix-grid-title-spacing-v2.1.3
+          fetch-depth: 0
+      - name: Synchronize v2.1.3 metadata
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          pkg=Path('package.json')
+          text=pkg.read_text()
+          old='"version": "2.1.2"'
+          if text.count(old) != 1:
+              raise SystemExit('unexpected package.json version count')
+          pkg.write_text(text.replace(old,'"version": "2.1.3"',1))
+
+          lock=Path('package-lock.json')
+          text=lock.read_text()
+          if text.count(old) < 2:
+              raise SystemExit('expected package-lock root version fields not found')
+          lock.write_text(text.replace(old,'"version": "2.1.3"',2))
+
+          changelog=Path('CHANGELOG.md')
+          body=changelog.read_text()
+          marker='# Shadow Garden Changelog\n\n'
+          entry='''## 2.1.3 — Grid Title Spacing Parity\n- Extended the v2.1.2 grid-card title spacing correction to mobile as well as desktop.\n- Grid cards no longer reserve an unused second title line on any viewport; Compact view remains unchanged.\n- Updated browser regression coverage so the spacing rule cannot become desktop-only again.\n\n'''
+          if marker not in body:
+              raise SystemExit('changelog marker not found')
+          changelog.write_text(body.replace(marker,marker+entry,1))
+          PY
+          rm .github/workflows/finalize-v2.1.3.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json CHANGELOG.md .github/workflows/finalize-v2.1.3.yml
+          git commit -m "Finalize v2.1.3 grid spacing parity"
+          git push origin HEAD:fix-grid-title-spacing-v2.1.3

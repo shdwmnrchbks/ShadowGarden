@@ -1,5 +1,6 @@
 /* Shadow Garden R6 — canonical request/catalog validation service. */
 import { headObject, validObjectKey } from "./storage.js";
+import { normalizeTranslationStatus, validateTranslationCredits } from "../_lib/translations.js";
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 export const ALLOWED_UPLOAD_PREFIXES = Object.freeze(["shadow-garden/books/", "shadow-garden/covers/"]);
@@ -60,11 +61,14 @@ export function normalizeCatalogVolumeInput(input = {}) {
   const seriesName = clean(input.series, 240), title = clean(input.title, 300);
   const epubKey = clean(input.epubKey, 700), coverKey = clean(input.coverKey, 700), coverThumbKey = clean(input.coverThumbKey, 700);
   const audioAlignedUrl = externalUrl(input.audioAlignedUrl), replaceTargetFile = clean(input.replaceTargetFile, 1000);
+  const rawTranslationStatus=clean(input.translationStatus,80),translationStatus=normalizeTranslationStatus(rawTranslationStatus),translationCredits=validateTranslationCredits(input.translations);
   if (!seriesName || !title) return { ok: false, status: 400, error: "Series and title are required" };
   if (!validObjectKey(epubKey, ["shadow-garden/books/"]) || !epubKey.endsWith(".epub")) return { ok: false, status: 400, error: "Invalid EPUB key" };
   if (coverKey && !validObjectKey(coverKey, ["shadow-garden/covers/"])) return { ok: false, status: 400, error: "Invalid cover key" };
   if (coverThumbKey && !validObjectKey(coverThumbKey, ["shadow-garden/covers/"])) return { ok: false, status: 400, error: "Invalid cover thumbnail key" };
   if (audioAlignedUrl === null) return { ok: false, status: 400, error: "Audio-aligned EPUB folder URL must use http:// or https://" };
+  if (rawTranslationStatus && !translationStatus) return { ok: false, status: 400, error: "Unknown translation status" };
+  if (!translationCredits.ok) return { ok: false, status: 400, error: translationCredits.error };
   if (replaceTargetFile && !replaceTargetFile.startsWith("/media/shadow-garden/books/")) return { ok: false, status: 400, error: "Invalid replacement target" };
   let number = Number(input.number); if (!Number.isFinite(number) || number <= 0) number = 9999;
   return { ok: true, value: {
@@ -72,7 +76,7 @@ export function normalizeCatalogVolumeInput(input = {}) {
     author: clean(input.author, 240), epubKey, coverKey, coverThumbKey, description: clean(input.description, 12000),
     language: clean(input.language, 40), publisher: clean(input.publisher, 240), date: clean(input.date, 40),
     rawStatus: clean(input.status, 80), incomingTags: arr(input.tags).map(value => clean(value, 80)).filter(Boolean),
-    size: Math.max(0, Number(input.size) || 0), audioAlignedUrl, sha256: safeHash(input.sha256),
+    size: Math.max(0, Number(input.size) || 0), audioAlignedUrl, translationStatus, translations: translationCredits.value, sha256: safeHash(input.sha256),
     originalFilename: clean(input.originalFilename, 500), replaceTargetFile,
     duplicatePolicy: ["reject", "replace", "separate"].includes(input.duplicatePolicy) ? input.duplicatePolicy : "replace", number,
     year: Number(input.year) || Number.parseInt(clean(input.date, 40).slice(0, 4)) || ""

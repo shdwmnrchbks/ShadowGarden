@@ -174,7 +174,7 @@ export async function handleCatalogPost({ request, env }) {
     await snapshotCatalogs(aws, data.main, data.adult, input.duplicatePolicy === "replace" && existing >= 0 ? "replace-volume" : "add-volume");
     if (!series) {
       series = { id: sid, title: input.seriesName, author: input.author, year: input.year, status: requestedStatus, description: input.description,
-        tags: withSeriesStatusTag(input.incomingTags, requestedStatus), cover, coverThumb, audioAlignedUrl: input.audioAlignedUrl, nsfw: input.adult, volumes: [] };
+        tags: withSeriesStatusTag(input.incomingTags, requestedStatus), cover, coverThumb, audioAlignedUrl: input.audioAlignedUrl, ...(input.translationStatus ? { translationStatus: input.translationStatus } : {}), ...(input.translations.length ? { translations: input.translations } : {}), nsfw: input.adult, volumes: [] };
       target.series.push(series);
     } else {
       canonicalizeSeriesStatus(series);
@@ -186,6 +186,8 @@ export async function handleCatalogPost({ request, env }) {
       const legacyAudioUrl = arr(series.volumes).find(volume => volume.audioAlignedUrl)?.audioAlignedUrl || "";
       if (!series.audioAlignedUrl && legacyAudioUrl) series.audioAlignedUrl = legacyAudioUrl;
       if (input.audioAlignedUrl) series.audioAlignedUrl = input.audioAlignedUrl;
+      if (input.translationStatus) series.translationStatus = input.translationStatus;
+      if (input.translations.length) series.translations = input.translations;
     }
     canonicalizeSeriesStatus(series);
 
@@ -195,6 +197,7 @@ export async function handleCatalogPost({ request, env }) {
       cover: cover || (replacing ? previous?.cover || "" : ""), coverThumb: coverThumb || (replacing ? previous?.coverThumb || "" : ""),
       author: input.author, language: input.language, date: input.date, size: input.size,
       added: replacing && previous?.added ? previous.added : new Date().toISOString().slice(0, 10), publisher: input.publisher, description: input.description,
+      ...(replacing && previous?.translations ? { translations: previous.translations } : {}),
       ...(input.sha256 ? { sha256: input.sha256 } : {}), ...(input.originalFilename ? { originalFilename: input.originalFilename } : {}) };
     if (replacing) {
       const previousWasSeriesCover = Boolean(previous?.cover && series.cover === previous.cover), previousWasSeriesThumb = Boolean(previous?.coverThumb && series.coverThumb === previous.coverThumb);

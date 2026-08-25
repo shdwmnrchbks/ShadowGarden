@@ -26,6 +26,10 @@ This directory records both the **R0 frozen v1.15.14 starting baseline** and the
 
 - [`PUBLIC_UI_LAYER.md`](./PUBLIC_UI_LAYER.md) — Library/Series controllers, query/render ownership, shared volume actions, refresh lifecycle and removed post-render repair layers introduced in v1.17.0.
 
+## v2.1 fan-translation provenance
+
+- [`TRANSLATION_METADATA.md`](./TRANSLATION_METADATA.md) — structured fan translator/group credits, translation status, series-to-volume inheritance, Library filtering, Series attribution, and Garden Keeper write ownership.
+
 ## R4 + R4.1 Reader application
 
 - [`READER_LAYER.md`](./READER_LAYER.md) — authorized Reader session, orchestrator/controllers, Page/Continuous adapters, canonical Page Map/state ownership, Pages-only navigation input and isolated image focus.

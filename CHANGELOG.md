@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 2.1.5 — Search Flex Width Containment
+- Fixed the remaining long-query Search bar expansion by making the text input the shrinkable flex child instead of giving it 100% width beside the search icon and filter toggle.
+- Preserved fixed space for Search field siblings while constraining long text to the input viewport.
+- Strengthened browser regression coverage to reject a full-width Search input inside the flex row.
+
 ## 2.1.4 — Filter Intrinsic Width Guard
 - Prevented very long Search text from widening the Search/Filter panel or the Author, Fan translator, Year, Volume count, and other selectors.
 - Constrained the Library filter layout, search stack, search field, and native selects to their owning container with explicit shrink-safe width rules.

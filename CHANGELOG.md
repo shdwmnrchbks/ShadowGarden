@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 2.1.6 — Search Grid Track Containment
+- Fixed the remaining long-query Search/Filter expansion by replacing intrinsic `auto` grid tracks with shrinkable `minmax(0,1fr)` tracks.
+- Applied shrink-safe filter tracks on desktop, tablet, and mobile while preserving the existing responsive column counts.
+- Constrained the active-filter pill rail so an unbroken Search pill cannot contribute an oversized intrinsic width.
+- Strengthened browser regression coverage for grid-track-level long-query containment.
+
 ## 2.1.5 — Search Flex Width Containment
 - Fixed the remaining long-query Search bar expansion by making the text input the shrinkable flex child instead of giving it 100% width beside the search icon and filter toggle.
 - Preserved fixed space for Search field siblings while constraining long text to the input viewport.

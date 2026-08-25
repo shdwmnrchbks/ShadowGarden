@@ -62,6 +62,11 @@ test("long search text cannot widen the Search Filter panel, Search field, or se
   assert.match(css,/\.search-field>span\{flex:0 0 auto\}/);
   assert.match(css,/\.search-field input\{flex:1 1 0;width:0;min-width:0;max-width:100%\}/);
   assert.match(css,/\.filter-group select\{width:100%;min-width:0;max-width:100%\}/);
+  assert.match(css,/\.search-stack\{display:grid;grid-template-columns:minmax\(0,1fr\);gap:6px\}/);
+  assert.match(css,/\.filters\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(css,/@media\(max-width:980px\)\{[^}]*\.filters\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}/);
+  assert.match(css,/@media\(max-width:720px\)\{[\s\S]*?\.filters\{grid-template-columns:minmax\(0,1fr\)\}/);
+  assert.match(css,/\.active-filter-tags\{display:flex;flex-wrap:wrap;gap:6px;min-width:0;max-width:100%;min-height:0\}/);
   assert.equal(css.includes(".search-field input,.filter-group select{width:100%"),false,"Search input must not claim the full flex row width alongside icon/toggle siblings");
 });
 

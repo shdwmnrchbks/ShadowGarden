@@ -9,6 +9,7 @@ test("Keeper composition root registers isolated first-class workflows", async (
   for (const owner of [
     "admin/auth-session.js",
     "admin/library-workflow.js",
+    "admin/translation-workflow.js",
     "admin/maintenance-workflow.js",
     "admin/history-workflow.js",
     "admin/trash-workflow.js",
@@ -16,7 +17,7 @@ test("Keeper composition root registers isolated first-class workflows", async (
     "admin/version.js",
     "admin/shell.js"
   ]) assert.ok(app.includes(owner), owner);
-  assert.match(app, /for\(const name of \["version","session","library","maintenance","history","trash","abuse","shell"\]\)await keeper\.initializeWorkflow\(name\)/);
+  assert.match(app, /for\(const name of \["version","session","library","translations","maintenance","history","trash","abuse","shell"\]\)await keeper\.initializeWorkflow\(name\)/);
   assert.match(app, /admin-components\.css/);
   assert.match(app, /admin-presentation\.css/);
   assert.equal(app.includes("admin-current.css"), false);

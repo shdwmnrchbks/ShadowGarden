@@ -3,6 +3,7 @@
 import { isBookId, volumeMatchesIdentity } from "./book-identity.js";
 import { migrateLegacyBookmarks } from "./bookmarks.js";
 import { migrateLegacyProgress } from "./progress.js";
+import { normalizeTranslationStatus, normalizeTranslations } from "./translations.js";
 
 const STATUS_ALIASES = new Map([
   ["complete", "Complete"], ["completed", "Complete"], ["finished", "Complete"],
@@ -28,12 +29,17 @@ export function normalizeCatalogShape(catalog) {
       status
     ])];
     const volumes = (Array.isArray(item?.volumes) ? item.volumes : []).map(volume => {
+      const next = { ...(volume || {}) }, credits = normalizeTranslations(volume?.translations);
+      if (credits.length) next.translations = credits; else delete next.translations;
       const bookId = String(volume?.bookId || "");
-      if (!isBookId(bookId)) return volume;
+      if (!isBookId(bookId)) return next;
       bookIds.push(bookId);
-      return { ...volume, file: bookId };
+      return { ...next, file: bookId };
     });
-    return { ...item, status, tags, volumes };
+    const next = { ...item, status, tags, volumes }, translationStatus = normalizeTranslationStatus(item?.translationStatus), credits = normalizeTranslations(item?.translations);
+    if (translationStatus) next.translationStatus = translationStatus; else delete next.translationStatus;
+    if (credits.length) next.translations = credits; else delete next.translations;
+    return next;
   });
   return { catalog: { ...value, series }, bookIds };
 }

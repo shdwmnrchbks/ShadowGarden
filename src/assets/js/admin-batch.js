@@ -3,7 +3,7 @@
   const MAX_BYTES=50*1024*1024;
   const KNOWN_FONT_OBFUSCATION=new Set(["http://www.idpf.org/2008/embedding","http://ns.adobe.com/pdf/enc#RC"]);
   const readableTypes=new Set(["application/xhtml+xml","text/html","image/svg+xml"]);
-  const inputIds=["seriesInput","volumeInput","yearInput","titleInput","authorInput","tagsInput","descriptionInput","adultInput","audioAlignedInput"];
+  const inputIds=["seriesInput","volumeInput","yearInput","titleInput","authorInput","tagsInput","descriptionInput","adultInput","audioAlignedInput","translationStatusInput","translatorNameInput","translatorGroupInput","translatorUrlInput","translatorCoverageInput"];
   const q={items:[],activeId:null,library:null,running:false,editorSync:false,objectUrl:""};
 
   state.batch=q;
@@ -296,6 +296,8 @@
     item.description=$("#descriptionInput").value.trim();
     item.adult=$("#adultInput").checked;
     item.audioAlignedUrl=$("#audioAlignedInput")?.value.trim()||"";
+    item.translationStatus=$("#translationStatusInput")?.value||"";
+    const translation={name:$("#translatorNameInput")?.value.trim()||"",group:$("#translatorGroupInput")?.value.trim()||"",url:$("#translatorUrlInput")?.value.trim()||"",coverage:$("#translatorCoverageInput")?.value.trim()||""};item.translations=translation.name||translation.group?[translation]:[];
     evaluateDuplicate(item);
     renderQueue();
   }
@@ -323,6 +325,8 @@
     $("#seriesInput").value=item.series;$("#volumeInput").value=item.number;$("#yearInput").value=item.year;$("#titleInput").value=item.title;$("#authorInput").value=item.author;
     $("#tagsInput").value=item.tags.join(", ");$("#descriptionInput").value=item.description;$("#adultInput").checked=item.adult;
     if($("#audioAlignedInput"))$("#audioAlignedInput").value=item.audioAlignedUrl||"";
+    if($("#translationStatusInput"))$("#translationStatusInput").value=item.translationStatus||"";
+    const translation=item.translations?.[0]||{};if($("#translatorNameInput"))$("#translatorNameInput").value=translation.name||"";if($("#translatorGroupInput"))$("#translatorGroupInput").value=translation.group||"";if($("#translatorUrlInput"))$("#translatorUrlInput").value=translation.url||"";if($("#translatorCoverageInput"))$("#translatorCoverageInput").value=translation.coverage||"";
     $("#previewTitle").textContent=item.title;$("#previewSeries").textContent=`${item.series} · Volume ${item.number}`;
     if(q.objectUrl){URL.revokeObjectURL(q.objectUrl);q.objectUrl=""}
     if(item.coverBlob){q.objectUrl=URL.createObjectURL(item.coverBlob);$("#coverPreview").src=q.objectUrl;$("#coverPreview").classList.remove("hidden");$("#coverFallback").classList.add("hidden")}
@@ -363,11 +367,11 @@
     for(const file of chosen){
       const sameLocal=q.items.find(x=>x.file.name===file.name&&x.file.size===file.size&&x.file.lastModified===file.lastModified);
       if(sameLocal)continue;
-      const item={id:uid(),file,status:"checking",action:"new",progress:0,metaReady:false,adult:false,audioAlignedUrl:""};
+      const item={id:uid(),file,status:"checking",action:"new",progress:0,metaReady:false,adult:false,audioAlignedUrl:"",translationStatus:"",translations:[]};
       q.items.push(item);renderQueue();
       try{
         const meta=await inspect(file);
-        Object.assign(item,meta,{file,status:"queued",metaReady:Boolean(meta.title),adult:false,audioAlignedUrl:""});
+        Object.assign(item,meta,{file,status:"queued",metaReady:Boolean(meta.title),adult:false,audioAlignedUrl:"",translationStatus:"",translations:[]});
         if(meta.validation?.status==="fail")item.action="skip";
       }catch(error){
         console.error(error);item.validation=failed("EPUB inspection failed",error.message);item.status="failed";item.error=error.message;item.action="skip";
@@ -424,7 +428,7 @@
     const replaceTargetFile=item.action==="replace"&&!item.duplicate?.batch?item.duplicate.volume.file:"";
     const result=await api("/admin-api/catalog",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
       adult:item.adult,series:item.series,title:item.title,author:item.author,number:item.number,year:item.year,description:item.description,tags:item.tags,
-      audioAlignedUrl:item.audioAlignedUrl,date:item.date,language:item.language,publisher:item.publisher,size:item.file.size,epubKey,coverKey,coverThumbKey,
+      audioAlignedUrl:item.audioAlignedUrl,translationStatus:item.translationStatus,translations:item.translations,date:item.date,language:item.language,publisher:item.publisher,size:item.file.size,epubKey,coverKey,coverThumbKey,
       sha256:item.sha256,originalFilename:item.file.name,duplicatePolicy:item.action==="replace"?"replace":item.action==="separate"?"separate":"reject",replaceTargetFile
     })});
     item.status="done";item.progress=100;item.progressLabel="Uploaded successfully";item.result=result;

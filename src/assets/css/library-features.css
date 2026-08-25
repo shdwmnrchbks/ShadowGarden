@@ -43,3 +43,8 @@
   .active-filter-tags{width:100%;max-width:100%;flex-wrap:wrap;align-items:flex-start;overflow:visible}.active-filter-tags button{flex:0 1 auto;max-width:100%}.active-filter-tags .active-filter-pill-label{max-width:min(68vw,250px)}.mobile-collapsed-tags{margin-top:8px}
 }
 @media(prefers-reduced-motion:reduce){.recent-section{transition-duration:.01ms}}
+
+/* v2.1 translation attribution */
+.card-translator{margin-top:-2px!important;color:var(--gold)!important;font-size:.68rem!important;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adult-library .card-translator{color:var(--adult-accent,#c98299)!important}
+@media(max-width:720px){.card-translator{max-width:100%;font-size:.64rem!important}}

@@ -17,6 +17,7 @@ test("Adult Series shell chooses its wine theme and back label before visible co
   assert.match(html,/document\.body\.classList\.add\("adult-library"\)/);
   assert.match(html,/theme\.content="#10090c"/);
   assert.ok(html.indexOf(scopeMarker)<html.indexOf('<header class="site-header">'),"Adult scope must be applied before the visible Series header is parsed");
+  assert.ok(html.indexOf(scopeMarker)<html.indexOf('class="loading-screen"'),"Adult scope must exist before the loading screen can paint");
 
   assert.match(html,/class="series-back-main">◀ Back to archive<\/span>/);
   assert.match(html,/class="series-back-adult">◀ Back to Adult Library<\/span>/);

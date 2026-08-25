@@ -10,6 +10,12 @@
   trigger.setAttribute('aria-expanded','false');
   trigger.setAttribute('aria-label','Open navigation');
 
+  /* The sticky header uses backdrop-filter, which creates a containing block for fixed
+     descendants in mobile Chromium. Keep the drawer as a body-level overlay so its
+     fixed top/bottom anchors always resolve against the viewport instead of the header. */
+  nav.classList.add('site-nav-drawer');
+  document.body.appendChild(nav);
+
   const backdrop=document.createElement('div');
   backdrop.className='site-nav-backdrop';
   backdrop.hidden=true;

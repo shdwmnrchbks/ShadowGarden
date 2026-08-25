@@ -53,10 +53,12 @@ test('mobile navigation remains viewport-owned across resize and reduced motion'
   await waitForCatalog(page);
 
   const header = page.locator('.site-header');
-  const menu = page.getByRole('button', { name: 'Open navigation' });
+  const menu = page.locator('.brand-mark');
+  await expect(menu).toHaveAttribute('aria-label', 'Open navigation');
   await expect(menu).toHaveAttribute('aria-expanded', 'false');
   await menu.click();
 
+  await expect(menu).toHaveAttribute('aria-label', 'Close navigation');
   await expect(menu).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#siteNav')).toHaveClass(/site-nav-drawer/);
   await expect(page.locator('#siteNav')).toBeVisible();
@@ -73,6 +75,7 @@ test('mobile navigation remains viewport-owned across resize and reduced motion'
   expect(Math.abs((after?.y || 0) - (before?.y || 0))).toBeLessThan(2);
 
   await menu.click();
+  await expect(menu).toHaveAttribute('aria-label', 'Open navigation');
   await expect(menu).toHaveAttribute('aria-expanded', 'false');
   await expect(page.locator('html')).not.toHaveClass(/site-nav-open/);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);

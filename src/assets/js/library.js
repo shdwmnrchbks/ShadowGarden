@@ -4,7 +4,6 @@
   const scope=document.body.dataset.libraryScope||"main";
   const arr=value=>Array.isArray(value)?value:[];
   const state={catalog:null,items:[],filtered:[],query:"",author:"",translator:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
-  const mobileFilterQuery=window.matchMedia("(max-width: 720px)");
   let searchTimer=0;
 
   const domain=await import("/assets/js/domain/index.js");
@@ -81,8 +80,8 @@
     return Boolean(state.query.trim()||state.author||state.translator||state.tags.size||state.year||state.volumeRange||state.readingStatus||state.pinnedOnly);
   }
 
-  function syncMobileResultFocus(){
-    $("#recentSection")?.classList.toggle("mobile-results-focus",mobileFilterQuery.matches&&hasActiveResultFilter());
+  function syncResultFocus(){
+    $("#recentSection")?.classList.toggle("results-focus",hasActiveResultFilter());
   }
 
   function filterPill(label,key,title=label){
@@ -137,7 +136,7 @@
     document.querySelectorAll(".view-switch button").forEach(button=>{const active=button.dataset.view===state.view;button.classList.toggle("active",active);button.setAttribute("aria-pressed",active?"true":"false")});
     document.querySelectorAll("#readingStatusChips [data-reading-status]").forEach(button=>button.classList.toggle("active",button.dataset.readingStatus===state.readingStatus));
     renderActiveFilters();
-    syncMobileResultFocus();
+    syncResultFocus();
   }
 
   function batchSize(){return state.view==="compact"?60:36}
@@ -214,7 +213,7 @@
   }
 
   function bindControls(){
-    $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;renderActiveFilters();syncMobileResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
+    $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;renderActiveFilters();syncResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
     $("#authorSelect")?.addEventListener("change",event=>{state.author=event.target.value;apply({historyMode:"push"})});
     $("#translatorSelect")?.addEventListener("change",event=>{state.translator=event.target.value;apply({historyMode:"push"})});
     $("#yearSelect")?.addEventListener("change",event=>{state.year=event.target.value;apply({historyMode:"push"})});
@@ -237,8 +236,6 @@
     window.addEventListener("popstate",()=>{readUrl();model.validateFilterState(state,state.items);apply()});
     window.addEventListener(readingStatus.EVENT,refreshReadingUi);
     window.addEventListener("pageshow",refreshReadingUi);
-    if(typeof mobileFilterQuery.addEventListener==="function")mobileFilterQuery.addEventListener("change",syncMobileResultFocus);
-    else mobileFilterQuery.addListener?.(syncMobileResultFocus);
     window.addEventListener("storage",event=>{
       if(readingStatus.isReadingStorageKey(event.key)){refreshReadingUi();return}
       if(domain.preferences.isPreferenceStorageKey(event.key)){

@@ -34,7 +34,8 @@
       "/assets/js/admin-upload-workflow.js",
       "/assets/js/admin-upload-completion.js",
       "/assets/js/admin-upload-presentation.js",
-      "/assets/js/admin/upload-events.js"
+      "/assets/js/admin/upload-events.js",
+      "/assets/js/admin/editor-interactions.js"
     ])await loadScript(src);
 
     await loadScript("/assets/js/admin/shell.js");

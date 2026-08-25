@@ -13,4 +13,9 @@
 .reading-status-chips button.active{border-color:rgba(97,203,129,.45);background:rgba(41,119,64,.16);color:#a7e7b9}
 .compact-card-badge.finished{border-color:rgba(96,204,129,.35)!important;background:rgba(36,112,58,.18)!important;color:#98dfaa!important}
 .catalog-grid.compact .finished-series-badge{display:none!important}
-@media(max-width:720px){.volume-finished-toggle{min-height:52px;padding:11px 12px}.finished-series-badge{font-size:.54rem}}
+
+/* v2.4 — quiet progress rails and scannable Series volume states. */
+.cover-reading-progress{position:absolute;z-index:3;left:0;right:0;bottom:0;height:3px;overflow:hidden;border-radius:0 0 inherit inherit;background:rgba(0,0,0,.32);pointer-events:none}.cover-reading-progress>span{display:block;height:100%;background:var(--leaf2);box-shadow:0 0 9px rgba(151,128,208,.32)}
+.adult-library .cover-reading-progress>span{background:var(--adult-accent-strong,#d98ca3);box-shadow:0 0 9px rgba(217,140,163,.28)}
+.volume-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}.volume-title-row .volume-title{min-width:0}.volume-state-pill{flex:0 0 auto;margin-top:2px;padding:4px 7px;border:1px solid var(--line);border-radius:999px;color:var(--dim);font-size:.56rem;font-weight:750;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}.volume-state-pill.progress,.volume-state-pill.up-next{border-color:var(--line2);color:var(--leaf2);background:rgba(162,135,211,.07)}.volume-state-pill.finished{border-color:rgba(96,204,129,.34);color:#98dfaa;background:rgba(36,112,58,.12)}.volume-card.is-up-next{border-color:var(--line2);box-shadow:0 0 0 1px rgba(162,135,211,.06),0 16px 32px rgba(0,0,0,.13)}.adult-library .volume-state-pill.progress,.adult-library .volume-state-pill.up-next{color:var(--adult-accent-strong,#e0a8b8);background:rgba(190,119,139,.07)}.adult-library .volume-card.is-up-next{border-color:var(--adult-border-strong,rgba(190,119,139,.34))}
+@media(max-width:720px){.volume-finished-toggle{min-height:52px;padding:11px 12px}.finished-series-badge{font-size:.54rem}.volume-title-row{gap:6px}.volume-state-pill{font-size:.52rem;padding:4px 6px}}

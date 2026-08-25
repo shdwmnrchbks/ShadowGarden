@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#090d0b">
   <meta name="description" content="Shadow Garden — a dark, curated EPUB library.">
   <title>Shadow Garden — Library</title>
+  <script>(()=>{try{if(localStorage.getItem("sg-view:main")==="compact")document.documentElement.classList.add("sg-library-initial-compact")}catch{}})();</script>
   <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/css/site.css">
   <link rel="stylesheet" href="/assets/css/nav.css">
@@ -66,9 +67,9 @@
       <div class="catalog-main">
         <section id="recentSection" class="recent-section hidden" aria-labelledby="recentHeading"><div class="recent-head"><div><p class="kicker">NEW GROWTH</p><h2 id="recentHeading">Recently Added</h2></div><button id="recentViewAll" class="recent-view-all" type="button">View newest in archive ▶</button></div><div id="recentVolumes" class="recent-volumes"></div></section>
         <div class="catalog-bar"><p id="resultCount" role="status" aria-live="polite" aria-atomic="true">Opening the main archive…</p><div class="view-switch" role="group" aria-label="View style"><button class="active" data-view="grid" type="button" aria-pressed="true">Grid</button><button data-view="compact" type="button" aria-pressed="false">Compact</button></div></div>
-        <div id="catalogGrid" class="catalog-grid"></div>
+        <div id="catalogGrid" class="catalog-grid" aria-busy="true"><div class="catalog-skeleton-card" aria-hidden="true"><div class="catalog-skeleton-cover"></div><div class="catalog-skeleton-copy"><i class="catalog-skeleton-line title"></i><i class="catalog-skeleton-line short"></i><i class="catalog-skeleton-line meta"></i></div></div><div class="catalog-skeleton-card" aria-hidden="true"><div class="catalog-skeleton-cover"></div><div class="catalog-skeleton-copy"><i class="catalog-skeleton-line title"></i><i class="catalog-skeleton-line short"></i><i class="catalog-skeleton-line meta"></i></div></div><div class="catalog-skeleton-card" aria-hidden="true"><div class="catalog-skeleton-cover"></div><div class="catalog-skeleton-copy"><i class="catalog-skeleton-line title"></i><i class="catalog-skeleton-line short"></i><i class="catalog-skeleton-line meta"></i></div></div><div class="catalog-skeleton-card" aria-hidden="true"><div class="catalog-skeleton-cover"></div><div class="catalog-skeleton-copy"><i class="catalog-skeleton-line title"></i><i class="catalog-skeleton-line short"></i><i class="catalog-skeleton-line meta"></i></div></div><div class="catalog-skeleton-card" aria-hidden="true"><div class="catalog-skeleton-cover"></div><div class="catalog-skeleton-copy"><i class="catalog-skeleton-line title"></i><i class="catalog-skeleton-line short"></i><i class="catalog-skeleton-line meta"></i></div></div><div class="catalog-skeleton-card" aria-hidden="true"><div class="catalog-skeleton-cover"></div><div class="catalog-skeleton-copy"><i class="catalog-skeleton-line title"></i><i class="catalog-skeleton-line short"></i><i class="catalog-skeleton-line meta"></i></div></div></div>
         <div id="catalogSentinel" class="catalog-sentinel hidden"><button id="loadMore" type="button">Load more</button></div>
-        <div id="emptyState" class="empty-state hidden" role="status"><span aria-hidden="true">✦</span><h2>The Garden is quiet.</h2><p id="emptyMessage">No shelf answers the current path.</p></div>
+        <div id="emptyState" class="empty-state hidden" role="status"><span aria-hidden="true">✦</span><h2>The Garden is quiet.</h2><p id="emptyMessage">No shelf answers the current path.</p><div id="emptyActions" class="empty-filter-actions"></div></div>
       </div>
     </section>
   </main>

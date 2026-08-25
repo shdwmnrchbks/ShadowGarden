@@ -14,6 +14,10 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
   const volumes = arr(series?.volumes).length;
   const aboveFold = index < 6;
   const finished = readingState.seriesFinished(series);
+  const entries = readingState.volumeEntries(series);
+  const active = entries.find(entry => entry.state === readingState.STATES.IN_PROGRESS) || null;
+  const activePercent = active ? Math.max(1, Math.min(99, Math.round((Number(active.progress?.percentage) || 0) * 100))) : 0;
+  const visualProgress = finished ? 100 : activePercent;
   const pinned = preferences.isPinned(series?.id);
   const href = urls.seriesUrl(series?.id);
   const translator = translations?.primaryTranslator(series);
@@ -26,6 +30,7 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
       <span class="volume-pill">${volumes} ${volumes === 1 ? "VOL" : "VOLS"}</span>
       ${series?.nsfw ? `<span class="adult-pill">18+</span>` : ""}
       ${finished ? `<span class="finished-series-badge">✓ Finished</span>` : ""}
+      ${visualProgress ? `<span class="cover-reading-progress" aria-hidden="true"><span style="width:${visualProgress}%"></span></span>` : ""}
     </div>
     <div class="card-copy">
       <h2>${esc(series?.title)}</h2>
@@ -100,7 +105,8 @@ export function renderReadingBanner(panel, intro, current, { readingState, forma
     : `${current.suggestion === "next" ? "Next in series" : "Read suggestion"} · ${series?.title || "Untitled series"} · Volume ${number}`;
   panel.dataset.readingState = state;
   panel.dataset.readingMode = mode;
-  panel.innerHTML = `<div class="continue-mark${cover ? " continue-cover" : ""}">${cover ? `<img src="${esc(cover)}" alt="" loading="eager" decoding="async">` : "✦"}</div><div><strong>${esc(title)}</strong><span>${esc(context)}</span></div><a ${attrs(action, esc)} href="${action.href}">${esc(action.label)}</a>`;
+  const reroll = mode === "suggestion" && current.suggestion === "random" ? `<button class="another-suggestion" type="button" data-another-suggestion aria-label="Show another reading suggestion">Another suggestion ↻</button>` : "";
+  panel.innerHTML = `<div class="continue-mark${cover ? " continue-cover" : ""}">${cover ? `<img src="${esc(cover)}" alt="" loading="eager" decoding="async">` : "✦"}</div><div><strong>${esc(title)}</strong><span>${esc(context)}</span></div><div class="continue-actions"><a ${attrs(action, esc)} href="${action.href}">${esc(action.label)}</a>${reroll}</div>`;
   panel.classList.remove("hidden");
 
   if (intro && cover) {

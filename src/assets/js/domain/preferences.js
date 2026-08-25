@@ -6,6 +6,7 @@ export const PINNED_KEY = "sg-pinned";
 export const PINNED_NAV_COLLAPSED_KEY = "sg-pinned-nav-collapsed";
 export const ADULT_ACK_KEY = "sg-adult-ack";
 export const VIEW_PREFIX = "sg-view:";
+export const SORT_PREFIX = "sg-sort:";
 export const MOBILE_FILTER_PREFIX = "sg-mobile-filters-collapsed:";
 
 function cleanScope(scope) {
@@ -14,6 +15,10 @@ function cleanScope(scope) {
 
 export function viewKey(scope = "main") {
   return `${VIEW_PREFIX}${cleanScope(scope)}`;
+}
+
+export function sortKey(scope = "main") {
+  return `${SORT_PREFIX}${cleanScope(scope)}`;
 }
 
 export function mobileFilterKey(scope = "main") {
@@ -45,6 +50,16 @@ export function setLibraryView(scope = "main", view = "grid") {
   return writeText(viewKey(scope), view === "compact" ? "compact" : "grid");
 }
 
+export function librarySort(scope = "main") {
+  const value = readText(sortKey(scope), "recent");
+  return ["recent", "title", "author", "year", "volumes"].includes(value) ? value : "recent";
+}
+
+export function setLibrarySort(scope = "main", sort = "recent") {
+  const value = ["recent", "title", "author", "year", "volumes"].includes(sort) ? sort : "recent";
+  return writeText(sortKey(scope), value);
+}
+
 export function mobileFiltersCollapsed(scope = "main") {
   const saved = readText(mobileFilterKey(scope), "");
   return saved === "" ? true : saved !== "0";
@@ -72,5 +87,5 @@ export function setAdultAcknowledged(acknowledged = true) {
 
 export function isPreferenceStorageKey(key) {
   const value = String(key || "");
-  return value === PINNED_KEY || value === PINNED_NAV_COLLAPSED_KEY || value === ADULT_ACK_KEY || value.startsWith(VIEW_PREFIX) || value.startsWith(MOBILE_FILTER_PREFIX);
+  return value === PINNED_KEY || value === PINNED_NAV_COLLAPSED_KEY || value === ADULT_ACK_KEY || value.startsWith(VIEW_PREFIX) || value.startsWith(SORT_PREFIX) || value.startsWith(MOBILE_FILTER_PREFIX);
 }

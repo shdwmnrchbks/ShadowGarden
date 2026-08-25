@@ -1,11 +1,15 @@
 /* Shadow Garden R4 — protected Reader startup. */
 import { createAuthorizedBookSession, finalizeBookSession } from "./reader/book-session.js";
 import { startReader } from "./reader/app.js";
+import { installReaderInteractionController } from "./reader/interaction-controller.js";
+
+const interactions=installReaderInteractionController();
 
 (async()=>{
   try{
     const session=await createAuthorizedBookSession();
     if(!session)return;
+    interactions.stage("Opening the EPUB…","epub");
     await startReader(session);
     finalizeBookSession(session);
   }catch(error){

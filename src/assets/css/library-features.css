@@ -53,3 +53,12 @@
 
 /* v2.1 translation attribution: intentionally equal visual weight to the author. */
 .card-translator{margin-top:4px!important;color:var(--dim)!important;font-weight:400!important}
+
+
+/* v2.4 interaction polish — discovery feedback, filter actions, and suggestion agency. */
+.active-filter-tags .active-filter-clear-all{border-style:dashed;color:var(--muted);background:transparent}.active-filter-tags .active-filter-clear-all:hover{color:var(--leaf2)}
+.empty-filter-actions{margin-top:14px;display:flex;flex-wrap:wrap;justify-content:center;gap:7px}.empty-filter-actions:empty{display:none}.empty-filter-actions button{padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:rgba(255,255,255,.025);cursor:pointer}.empty-filter-actions button:hover,.empty-filter-actions button:focus-visible{color:var(--leaf2);border-color:var(--line2);outline:none}.empty-filter-actions .empty-reset{border-style:dashed}
+.catalog-grid{transition:opacity .16s ease,transform .16s ease}.catalog-grid.is-updating{opacity:.45;transform:translateY(3px)}
+.continue-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.continue-actions>a{white-space:nowrap}.another-suggestion{padding:7px 9px;border:0;color:var(--dim);background:transparent;cursor:pointer;font-size:.66rem}.another-suggestion:hover,.another-suggestion:focus-visible{color:var(--leaf2);outline:none}
+.adult-library .active-filter-tags .active-filter-clear-all,.adult-library .empty-filter-actions button{color:#9b7984}.adult-library .empty-filter-actions button:hover,.adult-library .empty-filter-actions button:focus-visible,.adult-library .another-suggestion:hover,.adult-library .another-suggestion:focus-visible{color:var(--adult-accent-strong);border-color:var(--adult-border-strong)}
+@media(prefers-reduced-motion:reduce){.catalog-grid{transition:none}.catalog-grid.is-updating{transform:none}}

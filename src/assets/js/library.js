@@ -5,7 +5,7 @@
   const arr=value=>Array.isArray(value)?value:[];
   const state={catalog:null,items:[],filtered:[],query:"",author:"",translator:"",genre:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
   let searchTimer=0;
-  const suggestionRandom=Math.random();
+  let suggestionRandom=Math.random();
 
   const domain=await import("/assets/js/domain/index.js");
   const model=await import("/assets/js/library-model.js");
@@ -39,13 +39,14 @@
   }
 
   function collectFilters(){
-    const options=model.filterOptions(state.items);
+    const options=model.contextualFilterOptions(state.items,state,{pinnedIds:domain.preferences.pinnedIds(),seriesFinished:readingStatus.seriesFinished});
     mountTranslatorFilter();mountGenreFilter();
-    $("#authorSelect").innerHTML='<option value="">Any author</option>'+options.authors.map(author=>`<option value="${esc(author)}">${esc(author)}</option>`).join("");
-    $("#translatorSelect").innerHTML='<option value="">Any translator</option>'+options.translators.map(translator=>`<option value="${esc(translator)}">${esc(translator)}</option>`).join("");
-    $("#genreSelect").innerHTML='<option value="">Any genre</option>'+options.genres.map(genre=>`<option value="${esc(genre)}">${esc(genre)}</option>`).join("");
-    $("#yearSelect").innerHTML='<option value="">Any year</option>'+options.years.map(year=>`<option value="${esc(year)}">${esc(year)}</option>`).join("");
-    $("#tagSelect").innerHTML='<option value="">Add a tag…</option>'+options.tags.map(tag=>`<option value="${esc(tag)}">${esc(tag)}</option>`).join("");
+    $("#authorSelect").innerHTML='<option value="">Any author</option>'+options.authors.map(author=>{const count=options.authorCounts.get(author)||0;return `<option value="${esc(author)}" ${!count&&state.author!==author?"disabled":""}>${esc(author)} (${count})</option>`}).join("");
+    $("#translatorSelect").innerHTML='<option value="">Any translator</option>'+options.translators.map(translator=>{const count=options.translatorCounts.get(translator)||0;return `<option value="${esc(translator)}" ${!count&&state.translator!==translator?"disabled":""}>${esc(translator)} (${count})</option>`}).join("");
+    $("#genreSelect").innerHTML='<option value="">Any genre</option>'+options.genres.map(genre=>{const count=options.genreCounts.get(genre)||0;return `<option value="${esc(genre)}" ${!count&&state.genre!==genre?"disabled":""}>${esc(genre)} (${count})</option>`}).join("");
+    $("#yearSelect").innerHTML='<option value="">Any year</option>'+options.years.map(year=>{const count=options.yearCounts.get(year)||0;return `<option value="${esc(year)}" ${!count&&state.year!==year?"disabled":""}>${esc(year)} (${count})</option>`}).join("");
+    if($("#volumeCountSelect")){const labels={"1":"Single volume","2-5":"2–5 volumes","6-10":"6–10 volumes","11+":"11+ volumes"};$("#volumeCountSelect").innerHTML=`<option value="">Any size</option>`+[...model.VALID_VOLUME_RANGES].filter(Boolean).map(value=>{const count=options.volumeCounts.get(value)||0;return `<option value="${value}" ${!count&&state.volumeRange!==value?"disabled":""}>${labels[value]} (${count})</option>`}).join("")}
+    $("#tagSelect").innerHTML='<option value="">Add a tag…</option>'+options.tags.map(tag=>{const count=options.tagCounts.get(tag)||0;return `<option value="${esc(tag)}" ${!count&&!state.tags.has(tag)?"disabled":""}>${esc(tag)} (${count})</option>`}).join("");
     $("#genreChips").innerHTML=options.popularTags.map(tag=>`<button type="button" data-tag="${esc(tag)}">${esc(tag)}</button>`).join("");
     mountReadingStatusFilter();
   }
@@ -60,10 +61,10 @@
     state.year=params.get("year")||"";
     state.volumeRange=params.get("vols")||"";
     state.readingStatus=model.VALID_READING_STATUSES.has(params.get("reading"))?params.get("reading"):"";
-    state.sort=model.VALID_SORTS.has(params.get("sort"))?params.get("sort"):"recent";
+    state.sort=model.VALID_SORTS.has(params.get("sort"))?params.get("sort"):domain.preferences.librarySort(scope);
     state.pinnedOnly=params.get("pinned")==="1";
     const view=params.get("view");
-    if(view==="grid"||view==="compact")state.view=view;
+    if(view==="grid"||view==="compact")state.view=view;else state.view=domain.preferences.libraryView(scope);
   }
 
   function writeUrl(mode="replace"){
@@ -101,6 +102,10 @@
     return `<button type="button" data-remove-tag="${esc(tag)}" title="Remove ${esc(tag)}"><span class="active-filter-pill-label">${esc(tag)}</span><span class="active-filter-remove" aria-hidden="true">×</span></button>`;
   }
 
+  function activeFilterCount(){
+    return Number(Boolean(state.query.trim()))+Number(Boolean(state.author))+Number(Boolean(state.translator))+Number(Boolean(state.genre))+Number(Boolean(state.year))+Number(Boolean(state.volumeRange))+Number(Boolean(state.readingStatus))+Number(Boolean(state.pinnedOnly))+state.tags.size;
+  }
+
   function renderActiveFilters(){
     const container=$("#activeTags");
     if(!container)return;
@@ -118,6 +123,7 @@
     if(state.readingStatus)pills.push(filterPill(`Reading: ${state.readingStatus==="finished"?"Finished":"Unfinished"}`,"readingStatus","reading status filter"));
     if(state.pinnedOnly)pills.push(filterPill("Pinned only","pinnedOnly","pinned-only filter"));
     [...state.tags].sort((a,b)=>a.localeCompare(b)).forEach(tag=>pills.push(tagPill(tag)));
+    if(activeFilterCount()>=2)pills.push(`<button type="button" class="active-filter-clear-all" data-clear-all-filters title="Clear all result filters"><span class="active-filter-pill-label">Clear all</span><span aria-hidden="true">↺</span></button>`);
     container.innerHTML=pills.join("");
     document.querySelectorAll("#genreChips button").forEach(button=>button.classList.toggle("active",state.tags.has(button.dataset.tag)));
   }
@@ -170,15 +176,24 @@
     updateResultCount();
   }
 
+  function renderEmptyActions(){
+    const root=$("#emptyActions");if(!root)return;
+    if(state.filtered.length||!activeFilterCount()){root.replaceChildren();return}
+    const actions=[];
+    const add=(label,key)=>actions.push(`<button type="button" data-clear-filter="${esc(key)}">${esc(label)} ×</button>`);
+    if(state.query.trim())add(`Search: ${state.query.trim()}`,"query");if(state.author)add(`Author: ${state.author}`,"author");if(state.translator)add(`Translator: ${state.translator}`,"translator");if(state.genre)add(`Genre: ${state.genre}`,"genre");if(state.year)add(`Year: ${state.year}`,"year");if(state.volumeRange)add("Volume count","volumeRange");if(state.readingStatus)add("Reading state","readingStatus");if(state.pinnedOnly)add("Pinned only","pinnedOnly");[...state.tags].forEach(tag=>actions.push(`<button type="button" data-remove-tag="${esc(tag)}">${esc(tag)} ×</button>`));
+    actions.push('<button type="button" class="empty-reset" data-clear-all-filters>Reset all filters</button>');root.innerHTML=actions.join("");
+  }
+
   function apply({historyMode=null,preserveCount=false}={}){
     const previousCount=preserveCount?state.renderedCount:0;
     state.filtered=model.filterAndSort(state.items,state,{pinnedIds:domain.preferences.pinnedIds(),seriesFinished:readingStatus.seriesFinished});
-    state.renderedCount=0;
+    state.renderedCount=0;collectFilters();
     const grid=$("#catalogGrid");
-    if(grid){grid.innerHTML="";grid.classList.toggle("compact",state.view==="compact")}
+    if(grid){grid.classList.add("is-updating");grid.innerHTML="";grid.classList.toggle("compact",state.view==="compact");requestAnimationFrame(()=>grid.classList.remove("is-updating"))}
     $("#emptyState")?.classList.toggle("hidden",state.filtered.length>0);
     if($("#emptyMessage"))$("#emptyMessage").textContent=state.items.length?"No series match these filters.":"No seeds have taken root in the Garden yet.";
-    syncControls();
+    syncControls();renderEmptyActions();
     const target=Math.max(batchSize(),previousCount);
     do{appendBatch()}while(state.renderedCount<Math.min(target,state.filtered.length));
     if(historyMode)writeUrl(historyMode);
@@ -224,14 +239,23 @@
     reset?.addEventListener("click",()=>{domain.preferences.setAdultAcknowledged(false);gate?.classList.remove("hidden");document.body.classList.add("adult-locked")});
   }
 
+  function handleFilterAction(event){
+    const clearAll=event.target.closest("[data-clear-all-filters]");if(clearAll){clearFilters({historyMode:"push"});return true}
+    const remove=event.target.closest("[data-remove-tag]");if(remove){state.tags.delete(remove.dataset.removeTag);apply({historyMode:"push"});return true}
+    const clear=event.target.closest("[data-clear-filter]");if(clear&&clearNamedFilter(clear.dataset.clearFilter)){apply({historyMode:"push"});return true}
+    const reroll=event.target.closest("[data-another-suggestion]");if(reroll){suggestionRandom=Math.random();renderContinue();return true}
+    return false;
+  }
+
   function bindControls(){
+    $("#activeTags")?.addEventListener("click",handleFilterAction);$("#emptyActions")?.addEventListener("click",handleFilterAction);$("#continuePanel")?.addEventListener("click",handleFilterAction);
     $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;renderActiveFilters();syncResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
     $("#authorSelect")?.addEventListener("change",event=>{state.author=event.target.value;apply({historyMode:"push"})});
     $("#translatorSelect")?.addEventListener("change",event=>{state.translator=event.target.value;apply({historyMode:"push"})});
     $("#genreSelect")?.addEventListener("change",event=>{state.genre=event.target.value;apply({historyMode:"push"})});
     $("#yearSelect")?.addEventListener("change",event=>{state.year=event.target.value;apply({historyMode:"push"})});
     $("#volumeCountSelect")?.addEventListener("change",event=>{state.volumeRange=event.target.value;apply({historyMode:"push"})});
-    $("#sortSelect")?.addEventListener("change",event=>{state.sort=event.target.value;apply({historyMode:"push"})});
+    $("#sortSelect")?.addEventListener("change",event=>{state.sort=event.target.value;domain.preferences.setLibrarySort(scope,state.sort);apply({historyMode:"push"})});
     $("#tagSelect")?.addEventListener("change",event=>{const tag=event.target.value;if(tag)state.tags.add(tag);event.target.value="";apply({historyMode:"push"})});
     $("#genreChips")?.addEventListener("click",event=>{const button=event.target.closest("button[data-tag]");if(!button)return;const tag=button.dataset.tag;if(state.tags.has(tag))state.tags.delete(tag);else state.tags.add(tag);apply({historyMode:"push"})});
     document.querySelector(".filters")?.addEventListener("click",event=>{const button=event.target.closest("button[data-reading-status]");if(!button)return;const value=button.dataset.readingStatus;state.readingStatus=state.readingStatus===value?"":value;apply({historyMode:"push"})});

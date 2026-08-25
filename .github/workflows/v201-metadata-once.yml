@@ -1,0 +1,69 @@
+name: Reconcile v2.0.1 metadata once
+
+on:
+  push:
+    branches:
+      - fix-mobile-filter-reader-links-v2.0.1
+    paths:
+      - .github/workflows/v201-metadata-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: fix-mobile-filter-reader-links-v2.0.1
+
+      - name: Reconcile package, lock, baseline guard, and changelog
+        run: |
+          node <<'NODE'
+          const fs=require('node:fs');
+          const version='2.0.1';
+
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          pkg.version=version;
+          fs.writeFileSync('package.json',JSON.stringify(pkg,null,2)+'\n');
+
+          const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          lock.version=version;
+          lock.packages[''].version=version;
+          fs.writeFileSync('package-lock.json',JSON.stringify(lock,null,2)+'\n');
+
+          const r10Path='tools/check-r10.mjs';
+          let r10=fs.readFileSync(r10Path,'utf8');
+          const anchor='const exists=async file=>{try{await fs.access(path.join(ROOT,file));return true}catch{return false}};\n';
+          const helper='const semverAtLeast=(current,minimum)=>{\n  const parse=value=>String(value||"0").split(".").slice(0,3).map(item=>Number.parseInt(item,10)||0);\n  const a=parse(current),b=parse(minimum);\n  for(let i=0;i<3;i++){if(a[i]>b[i])return true;if(a[i]<b[i])return false}\n  return true;\n};\n';
+          if(!r10.includes('const semverAtLeast=')){
+            if(!r10.includes(anchor))throw new Error('R10 helper insertion anchor changed');
+            r10=r10.replace(anchor,anchor+helper);
+          }
+          const oldCheck='if(pkg.version!=="2.0.0")fail(`R10 v2 baseline requires package version 2.0.0, found ${pkg.version}`);';
+          const newCheck='if(!semverAtLeast(pkg.version,"2.0.0"))fail(`R10 v2 baseline requires package version 2.0.0 or newer, found ${pkg.version}`);';
+          if(r10.includes(oldCheck))r10=r10.replace(oldCheck,newCheck);
+          else if(!r10.includes(newCheck))throw new Error('R10 version assertion changed unexpectedly');
+          fs.writeFileSync(r10Path,r10);
+
+          const changelogPath='CHANGELOG.md';
+          let changelog=fs.readFileSync(changelogPath,'utf8');
+          if(!changelog.includes('## 2.0.1 — Mobile Filter & Reader Link UX')){
+            const entry=`# Shadow Garden Changelog\n\n## 2.0.1 — Mobile Filter & Reader Link UX\n- Normalized Main and Adult mobile Search/Filter entry to the same collapsed baseline.\n- While mobile search text or result filters are active, New Growth / Recently Added now fades away so matching catalog results move into view immediately.\n- Expanded the active tag rail into removable, ellipsized pills for Author, Year, Volume range, Reading status, Pinned-only, and tag filters.\n- Reader HTTP/HTTPS links now show a Shadow Garden-themed “Leave the Garden?” confirmation before opening safely in a new browser tab; internal EPUB links remain unchanged.\n\n`;
+            if(!changelog.startsWith('# Shadow Garden Changelog\n'))throw new Error('Changelog heading changed');
+            changelog=entry+changelog.slice('# Shadow Garden Changelog\n\n'.length);
+            fs.writeFileSync(changelogPath,changelog);
+          }
+
+          fs.rmSync('.github/workflows/v201-metadata-once.yml');
+          NODE
+
+      - name: Commit reconciled v2.0.1 metadata
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json tools/check-r10.mjs CHANGELOG.md .github/workflows/v201-metadata-once.yml
+          git commit -m "Finalize v2.0.1 metadata"
+          git push origin HEAD:fix-mobile-filter-reader-links-v2.0.1

@@ -21,6 +21,17 @@
     observeTransitionPromise(transition?.updateCallbackDone);
     return transition;
   };
+  const observeCrossDocumentFinished=transition=>{
+    const finished=transition?.finished;
+    if(finished&&typeof finished.then==="function")finished.then(()=>{},error=>{if(!skippedTransition(error))console.warn("Cross-document view transition rejected",error)});
+    return finished;
+  };
+  const skipTraverseTransition=event=>{
+    const transition=event?.viewTransition;
+    if(!transition||event?.activation?.navigationType!=="traverse")return false;
+    try{transition.skipTransition()}catch{}
+    return true;
+  };
 
   const fallbackTransition=update=>{
     let result;
@@ -84,11 +95,13 @@
       writeNavigationHint({direction:directionFor(url,anchor),target:url.pathname});
     },true);
     window.addEventListener("sg:navigationintent",event=>writeNavigationHint(event.detail||{}));
-    window.addEventListener("pageswap",event=>guardTransition(event.viewTransition));
+    window.addEventListener("pageswap",event=>{
+      if(skipTraverseTransition(event))return;
+      observeCrossDocumentFinished(event.viewTransition);
+    });
     window.addEventListener("pagereveal",event=>{
-      const viewTransition=event.viewTransition;
-      guardTransition(viewTransition);
-      const finished=viewTransition?.finished;
+      if(skipTraverseTransition(event)){clearNavigationHint();return}
+      const finished=observeCrossDocumentFinished(event.viewTransition);
       if(finished&&typeof finished.then==="function")finished.then(clearNavigationHint,clearNavigationHint);
       else window.setTimeout(clearNavigationHint,520);
     });

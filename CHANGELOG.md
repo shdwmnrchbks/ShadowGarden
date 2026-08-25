@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 2.0.2 — Mobile Filter Layout Hotfix
+- Fixed narrow-screen active filter pills so Search, Author, Year, Volume, Reading state, Pinned-only, and tags wrap inside the mobile viewport instead of clipping in a horizontal rail.
+- Added the active search query as the first removable filter pill and kept long pill labels ellipsized.
+- Removed reserved mobile spacing when New Growth / Recently Added is hidden for active search/filter results while preserving its fade/collapse motion.
+
 ## 2.0.1 — Mobile Filter & Reader Link UX
 - Normalized Main and Adult mobile Search/Filter entry to the same collapsed baseline.
 - While mobile search text or result filters are active, New Growth / Recently Added now fades away so matching catalog results move into view immediately.

@@ -1,9 +1,10 @@
 # Garden Keeper Application Layer
 
 **Refactor milestone:** R5 — Garden Keeper decomposition  
-**Release:** v1.20.0
+**Original release:** v1.20.0  
+**Final cutover:** R10 / v2.0.0
 
-R5 replaces Garden Keeper's page-wide bootstrap/enhancement chain with an explicit application root and feature-owned workflows. The Cloudflare Pages Functions and Backblaze B2 contracts are intentionally unchanged; backend service decomposition belongs to R6.
+R5 replaced Garden Keeper's page-wide bootstrap/enhancement chain with an explicit application root and feature-owned workflows. R10 removes the remaining dead R5-era owners and patch-style pathnames so the v2 source tree now matches that architecture directly.
 
 ## Composition
 
@@ -22,12 +23,12 @@ The client owns:
 
 - Bearer `SG_ADMIN_TOKEN` attachment for `/admin-api/*` requests.
 - `credentials: "same-origin"` so the signed `sg_admin_session` cookie accompanies protected requests.
-- normalized JSON/error handling and bounded request timeouts;
-- opaque `cv_...` cover-object naming and catalog payload rewrite for uploaded cover derivatives;
-- the private in-memory authorization latch used by browser workflows;
+- normalized JSON/error handling and bounded request timeouts.
+- opaque `cv_...` cover-object naming and catalog payload rewrite for uploaded cover derivatives.
+- the private in-memory authorization latch used by browser workflows.
 - upload context normalization required by the existing batch engine.
 
-A compatibility `window.api` / `window.uploadObject` facade remains only for the contained Upload engine. Those facades delegate directly to `AdminClient` and are not replaced by later scripts.
+A compatibility `window.api` / `window.uploadObject` facade remains only for the contained Upload engine. Those facades delegate directly to `AdminClient` and are not replaced by later scripts. This is a live compatibility boundary, not an obsolete patch owner.
 
 ## Authentication/session
 
@@ -59,29 +60,29 @@ The server-authoritative failed-unlock cooldown, HMAC network identity, raw-IP p
 - series banner selection from volume covers;
 - direct Add Book entry into the shell's targeted Upload context.
 
-The old `admin-audio.js`, `admin-series-status.js`, `admin-series-banner.js`, `admin-series-editor-polish.js`, `admin-overhaul.js`, and original `admin.js` are no longer Garden Keeper entrypoint owners.
+R10 deletes the old `admin-audio.js`, `admin-series-status.js`, `admin-series-banner.js`, `admin-series-editor-polish.js`, `admin-overhaul.js`, and original `admin.js` files rather than leaving them as dormant alternate implementations.
 
 ## Upload workflow
 
-Upload is intentionally a composed workflow because local EPUB validation and batch editing are substantial subsystems. Its internal order is explicit in `admin/app.js`:
+Upload remains intentionally composed because local EPUB validation and batch editing are substantial subsystems. Its final v2 internal order is explicit in `admin/app.js`:
 
 1. `admin-batch.js` — batch queue, local reader-focused EPUB inspection, duplicate detection, catalog/upload transaction.
 2. `admin/upload-safety.js` — replacement guard and actionable queue guidance.
 3. `admin-batch-editor.js` — multi-EPUB editor selector.
 4. `admin-upload-workflow.js` — stateful uploading/completion presentation and queue removal affordances.
 5. `admin-upload-completion.js` — terminal transaction handoff.
-6. `admin-upload-polish.js` — editor restoration and uploaded-series chooser enrichment.
+6. `admin-upload-presentation.js` — editor restoration and uploaded-series chooser enrichment.
 7. `admin/upload-events.js` — emits the explicit `upload:completed` lifecycle event.
 
-These pieces are contained inside Upload. They no longer replace the shared API client, authentication owner, Library/Series renderer, or shell. Request resilience moved into `AdminClient`; the old `admin-batch-safety.js` API-wrapper layer is not loaded.
+R10 renames the last active `admin-upload-polish.js` path to `admin-upload-presentation.js`. The behavior is unchanged; only ownership is made semantic. The old `admin-preflight.js` and `admin-batch-safety.js` layers are deleted because the current batch engine and `admin/upload-safety.js` already own those responsibilities.
 
 ## Maintenance workflow
 
-`admin/maintenance-workflow.js` owns Garden Health, deep B2 verification, catalog/object metrics, and cover optimization. Cover uploads use the shared client's opaque-cover contract. Maintenance no longer rewrites Library deletion behavior.
+`admin/maintenance-workflow.js` owns Garden Health, deep B2 verification, catalog/object metrics, and cover optimization. Cover uploads use the shared client's opaque-cover contract. R10 deletes the old `admin-maintenance.js` implementation.
 
 ## History workflow
 
-`admin/history-workflow.js` owns Catalog History: loading snapshots, manual backup creation, restore, and authenticated backup deletion. A restore invalidates Library data through an explicit application event.
+`admin/history-workflow.js` owns Catalog History: loading snapshots, manual backup creation, restore, and authenticated backup deletion. A restore invalidates Library data through an explicit application event. R10 deletes `admin-backup-history.js`.
 
 ## Trash workflow
 
@@ -89,17 +90,17 @@ These pieces are contained inside Upload. They no longer replace the shared API 
 
 ## Abuse workflow
 
-`admin/abuse-workflow.js` owns Abuse Watch telemetry and explicit public-cooldown release. It continues to display only HMAC-derived network identifiers supplied by the server; no raw network identity is introduced in the browser.
+`admin/abuse-workflow.js` owns Abuse Watch telemetry and explicit public-cooldown release. It continues to display only HMAC-derived network identifiers supplied by the server; no raw network identity is introduced in the browser. R10 deletes the retired `admin-abuse.js` owner.
 
 ## Version and reusable UI primitives
 
 `admin/version.js` is the deployed-version component. Reusable state-pill, upload/file/status messaging, and toast primitives live under `ShadowGardenKeeper.ui` in `admin/core.js`. Dialog navigation/context belongs to `admin/shell.js` rather than being patched into unrelated workflows.
 
-CSS consolidation is deliberately deferred to R7; current visual stylesheets remain while JavaScript ownership changes underneath them.
+The obsolete `admin-bootstrap.js` and `admin-security.js` files are deleted in R10. `admin/core.js` + `admin/app.js` are the only Garden Keeper browser entrypoints in v2.
 
 ## Security invariants
 
-R5 must not weaken any existing boundary:
+The v2 cutover must not weaken any existing boundary:
 
 - `/admin-api/*` requires the admin bearer token and signed admin session server-side.
 - UI state alone cannot authorize a request.
@@ -110,11 +111,12 @@ R5 must not weaken any existing boundary:
 - private EPUB/B2 paths are not made public by the Keeper refactor.
 - public Library, Series, Reader, signed media tickets, Range handling, and browser-local reading data are unchanged.
 
-## R5 acceptance
+## Final R5/R10 acceptance
 
 - Workflows initialize independently through `admin/app.js` and the shell registry.
 - One admin client owns bearer/session/error behavior.
 - Unlock requires `/admin-access` plus protected `/admin-api/status` validation before the client latch opens.
 - Library/Series edit, Upload, Maintenance, Catalog History, Trash, and Abuse Watch each have explicit owners.
-- R5 remains frontend-only; Pages Functions service extraction is reserved for R6.
-- `tools/check-r5.mjs` guards the composition and ownership contracts.
+- No retired R5 browser owner remains in `src/assets/js/`.
+- The active Upload presentation helper has a semantic filename.
+- `tools/check-r5.mjs` and `tools/check-r10.mjs` guard the final composition and ownership contracts.

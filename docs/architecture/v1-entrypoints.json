@@ -80,6 +80,7 @@
         "/assets/css/library-motion.css",
         "/assets/css/adult.css",
         "/assets/css/series-extra.css",
+        "/assets/css/series-motion.css",
         "/assets/css/public-components.css",
         "/assets/css/public-artwork.css",
         "/assets/css/reading-status.css",
@@ -88,6 +89,7 @@
       ],
       "scripts": [
         "/assets/js/motion.js",
+        "/assets/js/series-motion.js",
         "/assets/js/nav.js",
         "/assets/js/site-a11y.js",
         "/assets/js/data-source.js",
@@ -106,6 +108,7 @@
       "html": "src/reader.html",
       "styles": [
         "/assets/css/reader.css",
+        "/assets/css/motion.css",
         "/assets/css/reader-continuous-rail.css",
         "/assets/css/reader-page-map.css",
         "/assets/css/reader-completion.css",
@@ -115,6 +118,7 @@
         "/assets/css/reader-a11y.css",
         "/assets/css/reader-interface-themes.css",
         "/assets/css/reader-presentation.css",
+        "/assets/css/reader-motion.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -127,6 +131,8 @@
         "/assets/js/reader-visual-cache.js",
         "/assets/js/reader-paginated-visual-fit.js",
         "/assets/js/reader-continuous-core.js",
+        "/assets/js/motion.js",
+        "/assets/js/reader-motion.js",
         "/assets/js/reader-a11y.js",
         "/assets/js/ui-direction-triangles.js",
         "/assets/js/reader-bootstrap.js"

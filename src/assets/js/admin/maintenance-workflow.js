@@ -5,7 +5,7 @@
 
   keeper.registerWorkflow("maintenance",()=>{
     const view=$("#maintenanceView");if(!view)return{};
-    let snapshot=null,loading=false,optimizing=false,deepChecking=false;
+    let snapshot=null,loading=false,optimizing=false,deepChecking=false,normalizingTaxonomy=false;
     const safe=value=>esc(String(value??""));
     const setPill=(element,text,kind="")=>keeper.ui.setPill(element,text,kind);
     const metric=(label,value)=>`<div class="maintenance-metric"><strong>${safe(value)}</strong><span>${safe(label)}</span></div>`;
@@ -26,12 +26,19 @@
       const rank={error:0,warning:1,info:2},sorted=issues.sort((a,b)=>(rank[a.severity]??3)-(rank[b.severity]??3)).slice(0,100);
       list.innerHTML=sorted.map(issue=>`<div class="maintenance-item health-issue" data-severity="${safe(issue.severity||"info")}"><span class="health-mark">${issue.severity==="error"?"!":issue.severity==="warning"?"△":"i"}</span><div class="maintenance-item-copy"><strong>${safe(issue.title||issue.code||"Health note")}</strong><span>${safe(issue.detail||"")}</span></div></div>`).join("")+(issues.length>100?`<div class="maintenance-empty">${issues.length-100} additional health notes are not shown.</div>`:"");
     }
+    function renderTaxonomy(data){
+      const audit=data?.taxonomy||{},stateEl=$("#taxonomyMaintenanceState"),detail=$("#taxonomyMaintenanceDetail"),preview=$("#taxonomyMaintenancePreview"),button=$("#normalizeCatalogTaxonomy"),count=Number(audit.affectedSeries)||0;
+      setPill(stateEl,count?`${count} REVIEW`:"CURRENT",count?"":"ready");
+      if(detail)detail.textContent=count?`${count} of ${audit.totalSeries||0} series will be normalized into ${audit.canonicalGenreCount||35} canonical genres plus descriptive tags. A backup is created before changes are written.`:`All ${audit.totalSeries||0} series already follow the canonical genre/tag taxonomy.`;
+      if(preview)preview.innerHTML=arr(audit.preview).map(item=>`<div class="maintenance-item"><div class="maintenance-item-copy"><strong>${safe(item.title)}</strong><span>${safe([...arr(item.beforeGenres),...arr(item.beforeTags)].join(" · ")||"No taxonomy")} → ${safe([...arr(item.genres),...arr(item.tags)].join(" · ")||"No taxonomy")}</span></div></div>`).join("")||(count?'<div class="maintenance-empty">No preview rows available.</div>':'<div class="maintenance-empty maintenance-good">No taxonomy changes are pending.</div>');
+      if(button){button.disabled=normalizingTaxonomy||!count;button.textContent=normalizingTaxonomy?"Normalizing…":count?`Normalize ${count} series`:"Taxonomy is current"}
+    }
     function renderCovers(data){
       const candidates=arr(data?.health?.optimizationCandidates),stateEl=$("#coverMaintenanceState"),detail=$("#coverMaintenanceDetail"),button=$("#optimizeLegacyCovers");
       if(!candidates.length){setPill(stateEl,"CURRENT","ready");if(detail)detail.innerHTML='<span class="maintenance-good">All cataloged covers already have lightweight thumbnails.</span>';if(button){button.disabled=true;button.textContent="Covers are current"}return}
       setPill(stateEl,`${candidates.length} FOUND`);if(detail)detail.textContent=`${candidates.length} legacy cover${candidates.length===1?"":"s"} can be upgraded to a ~1000px WebP detail image plus a 480px WebP thumbnail.`;if(button){button.disabled=optimizing;button.textContent=optimizing?"Optimizing…":`Optimize ${candidates.length} legacy cover${candidates.length===1?"":"s"}`}
     }
-    function render(data){snapshot=data;renderSummary(data);renderHealth(data);renderCovers(data);keeper.events.dispatchEvent(new CustomEvent("maintenance:data",{detail:{data}}))}
+    function render(data){snapshot=data;renderSummary(data);renderHealth(data);renderTaxonomy(data);renderCovers(data);keeper.events.dispatchEvent(new CustomEvent("maintenance:data",{detail:{data}}))}
 
     async function load(force=false){
       if(loading)return;if(snapshot&&!force){render(snapshot);return}loading=true;setPill($("#gardenHealthState"),"LOADING");
@@ -46,6 +53,12 @@
       deepChecking=true;const button=$("#deepHealthCheck"),progress=$("#deepHealthProgress"),missing=[];button.disabled=true;button.textContent="Checking B2…";let checked=0;
       try{for(let index=0;index<keys.length;index+=25){const batch=keys.slice(index,index+25);setProgress(progress,`Checking B2 objects ${checked+1}–${Math.min(keys.length,checked+batch.length)} of ${keys.length}…`,checked/keys.length*100);const result=await action("check-objects",{keys:batch});checked+=Number(result.checked)||batch.length;missing.push(...arr(result.missing))}setProgress(progress,missing.length?`${missing.length} missing B2 object${missing.length===1?"":"s"} found.`:`All ${checked} referenced B2 objects were found.`,100);renderHealth(snapshot,{checked,missing})}
       catch(error){console.error(error);setProgress(progress,`Deep check failed: ${error.message}`,0)}finally{deepChecking=false;button.disabled=false;button.textContent="Deep B2 check"}
+    }
+
+    async function normalizeTaxonomy(){
+      if(normalizingTaxonomy||!snapshot?.taxonomy?.affectedSeries)return;const count=Number(snapshot.taxonomy.affectedSeries)||0;
+      if(!confirm(`Normalize genre/tag metadata for ${count} series?\n\nShadow Garden will create a catalog backup first. Recognized EPUB/publisher aliases move into canonical Genres; unknown descriptive values remain Tags.`))return;
+      normalizingTaxonomy=true;renderTaxonomy(snapshot);try{const result=await action("normalize-taxonomy");render(result);keeper.state.management=null;keeper.events.dispatchEvent(new Event("library:invalidate"));keeper.ui.toast(`Normalized taxonomy for ${result.normalizedTaxonomy||count} series.`)}catch(error){alert(error.message)}finally{normalizingTaxonomy=false;renderTaxonomy(snapshot)}
     }
 
     async function optimizeCovers(){
@@ -65,7 +78,7 @@
       }catch(error){console.error(error);setProgress(progress,`Cover maintenance failed: ${error.message}`,0)}finally{optimizing=false;renderCovers(snapshot);try{await wakeLock?.release()}catch{}}
     }
 
-    $("#refreshMaintenance")?.addEventListener("click",()=>{invalidate();void load(true)});$("#deepHealthCheck")?.addEventListener("click",()=>void deepCheck());$("#optimizeLegacyCovers")?.addEventListener("click",()=>void optimizeCovers());
+    $("#refreshMaintenance")?.addEventListener("click",()=>{invalidate();void load(true)});$("#deepHealthCheck")?.addEventListener("click",()=>void deepCheck());$("#normalizeCatalogTaxonomy")?.addEventListener("click",()=>void normalizeTaxonomy());$("#optimizeLegacyCovers")?.addEventListener("click",()=>void optimizeCovers());
     keeper.events.addEventListener("maintenance:opened",()=>void load(true));keeper.events.addEventListener("trash:changed",invalidate);keeper.events.addEventListener("history:changed",invalidate);keeper.events.addEventListener("session:locked",invalidate);
     return{load,refresh:()=>load(true),invalidate,get snapshot(){return snapshot}};
   });

@@ -1,6 +1,7 @@
 /* Shadow Garden R6 — canonical request/catalog validation service. */
 import { headObject, validObjectKey } from "./storage.js";
 import { normalizeTranslationStatus, validateTranslationCredits } from "../_lib/translations.js";
+import { classifySubjects } from "../_lib/catalog-taxonomy.js";
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 export const ALLOWED_UPLOAD_PREFIXES = Object.freeze(["shadow-garden/books/", "shadow-garden/covers/"]);
@@ -62,6 +63,7 @@ export function normalizeCatalogVolumeInput(input = {}) {
   const epubKey = clean(input.epubKey, 700), coverKey = clean(input.coverKey, 700), coverThumbKey = clean(input.coverThumbKey, 700);
   const audioAlignedUrl = externalUrl(input.audioAlignedUrl), replaceTargetFile = clean(input.replaceTargetFile, 1000);
   const rawTranslationStatus=clean(input.translationStatus,80),translationStatus=normalizeTranslationStatus(rawTranslationStatus),translationCredits=validateTranslationCredits(input.translations);
+  const taxonomy=classifySubjects([...arr(input.genres).map(value=>clean(value,80)),...arr(input.tags).map(value=>clean(value,80))]);
   if (!seriesName || !title) return { ok: false, status: 400, error: "Series and title are required" };
   if (!validObjectKey(epubKey, ["shadow-garden/books/"]) || !epubKey.endsWith(".epub")) return { ok: false, status: 400, error: "Invalid EPUB key" };
   if (coverKey && !validObjectKey(coverKey, ["shadow-garden/covers/"])) return { ok: false, status: 400, error: "Invalid cover key" };
@@ -75,7 +77,7 @@ export function normalizeCatalogVolumeInput(input = {}) {
     adult: Boolean(input.adult), seriesName, targetSeriesId: clean(input.targetSeriesId, 180), title,
     author: clean(input.author, 240), epubKey, coverKey, coverThumbKey, description: clean(input.description, 12000),
     language: clean(input.language, 40), publisher: clean(input.publisher, 240), date: clean(input.date, 40),
-    rawStatus: clean(input.status, 80), incomingTags: arr(input.tags).map(value => clean(value, 80)).filter(Boolean),
+    rawStatus: clean(input.status, 80), incomingGenres: taxonomy.genres, incomingTags: taxonomy.tags,
     size: Math.max(0, Number(input.size) || 0), audioAlignedUrl, translationStatus, translations: translationCredits.value, sha256: safeHash(input.sha256),
     originalFilename: clean(input.originalFilename, 500), replaceTargetFile,
     duplicatePolicy: ["reject", "replace", "separate"].includes(input.duplicatePolicy) ? input.duplicatePolicy : "replace", number,

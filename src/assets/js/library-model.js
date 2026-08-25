@@ -1,6 +1,7 @@
 /* Shadow Garden R3 — Library catalog query/filter/sort model. */
 
 import { translationSearchTerms, translatorNames } from "./domain/translations.js";
+import { CANONICAL_GENRES } from "./domain/catalog-taxonomy.js";
 
 export const VALID_SORTS = new Set(["recent", "title", "author", "year", "volumes"]);
 export const VALID_VOLUME_RANGES = new Set(["", "1", "2-5", "6-10", "11+"]);
@@ -48,6 +49,7 @@ export function seriesHaystack(series) {
     series?.author,
     series?.description,
     ...translationSearchTerms(series),
+    ...arr(series?.genres),
     ...arr(series?.tags),
     ...arr(series?.volumes).flatMap(volume => [volume?.title, volume?.number, volume?.year])
   ].filter(Boolean).join(" "));
@@ -57,10 +59,12 @@ export function validateFilterState(state, items) {
   const authors = new Set(items.map(series => String(series?.author || "").trim()).filter(Boolean));
   const translators = new Set(items.flatMap(translatorNames));
   const years = new Set(items.map(series => String(series?.year || "")).filter(Boolean));
+  const genres = new Set(items.flatMap(series => arr(series?.genres).map(String)));
   const tags = new Set(items.flatMap(series => arr(series?.tags).map(String)));
   if (state.author && !authors.has(state.author)) state.author = "";
   if (state.translator && !translators.has(state.translator)) state.translator = "";
   if (state.year && !years.has(state.year)) state.year = "";
+  if (state.genre && !genres.has(state.genre)) state.genre = "";
   state.tags = new Set([...state.tags].filter(tag => tags.has(tag)));
   if (!VALID_VOLUME_RANGES.has(state.volumeRange)) state.volumeRange = "";
   if (!VALID_READING_STATUSES.has(state.readingStatus)) state.readingStatus = "";
@@ -78,6 +82,7 @@ export function filterAndSort(items, state, { pinnedIds = new Set(), seriesFinis
     }
     if (state.author && String(series?.author || "").trim() !== state.author) return false;
     if (state.translator && !translatorNames(series).includes(state.translator)) return false;
+    if (state.genre && !arr(series?.genres).map(String).includes(state.genre)) return false;
     const seriesTags = new Set(arr(series?.tags).map(String));
     if ([...state.tags].some(tag => !seriesTags.has(tag))) return false;
     if (state.year && String(series?.year || "") !== state.year) return false;
@@ -112,9 +117,11 @@ export function filterOptions(items) {
   const authors = [...new Set(items.map(series => String(series?.author || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const translators = [...new Set(items.flatMap(translatorNames))].sort((a, b) => a.localeCompare(b));
   const years = [...new Set(items.map(series => String(series?.year || "")).filter(Boolean))].sort((a, b) => Number(b) - Number(a));
+  const presentGenres=new Set(items.flatMap(series=>arr(series?.genres).map(String)));
+  const genres=CANONICAL_GENRES.filter(genre=>presentGenres.has(genre));
   const tagCounts = new Map();
   items.forEach(series => new Set(arr(series?.tags).map(String)).forEach(tag => tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)));
   const tags = [...tagCounts.keys()].sort((a, b) => a.localeCompare(b));
   const popularTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 16).map(([tag]) => tag);
-  return { authors, translators, years, tags, popularTags, tagCounts };
+  return { authors, translators, years, genres, tags, popularTags, tagCounts };
 }

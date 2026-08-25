@@ -3,7 +3,7 @@
   const $=selector=>document.querySelector(selector);
   const scope=document.body.dataset.libraryScope||"main";
   const arr=value=>Array.isArray(value)?value:[];
-  const state={catalog:null,items:[],filtered:[],query:"",author:"",translator:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
+  const state={catalog:null,items:[],filtered:[],query:"",author:"",translator:"",genre:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
   let searchTimer=0;
   const suggestionRandom=Math.random();
 
@@ -33,11 +33,17 @@
     const group=document.createElement("div");group.className="filter-group";group.innerHTML='<label for="translatorSelect">Fan translator</label><select id="translatorSelect"><option value="">Any translator</option></select>';anchor.after(group);
   }
 
+  function mountGenreFilter(){
+    if($("#genreSelect"))return;const anchor=$("#translatorSelect")?.closest(".filter-group")||$("#authorSelect")?.closest(".filter-group");if(!anchor)return;
+    const group=document.createElement("div");group.className="filter-group";group.innerHTML='<label for="genreSelect">Genre</label><select id="genreSelect"><option value="">Any genre</option></select>';anchor.after(group);
+  }
+
   function collectFilters(){
     const options=model.filterOptions(state.items);
-    mountTranslatorFilter();
+    mountTranslatorFilter();mountGenreFilter();
     $("#authorSelect").innerHTML='<option value="">Any author</option>'+options.authors.map(author=>`<option value="${esc(author)}">${esc(author)}</option>`).join("");
     $("#translatorSelect").innerHTML='<option value="">Any translator</option>'+options.translators.map(translator=>`<option value="${esc(translator)}">${esc(translator)}</option>`).join("");
+    $("#genreSelect").innerHTML='<option value="">Any genre</option>'+options.genres.map(genre=>`<option value="${esc(genre)}">${esc(genre)}</option>`).join("");
     $("#yearSelect").innerHTML='<option value="">Any year</option>'+options.years.map(year=>`<option value="${esc(year)}">${esc(year)}</option>`).join("");
     $("#tagSelect").innerHTML='<option value="">Add a tag…</option>'+options.tags.map(tag=>`<option value="${esc(tag)}">${esc(tag)}</option>`).join("");
     $("#genreChips").innerHTML=options.popularTags.map(tag=>`<button type="button" data-tag="${esc(tag)}">${esc(tag)}</button>`).join("");
@@ -49,6 +55,7 @@
     state.query=params.get("q")||"";
     state.author=params.get("author")||"";
     state.translator=params.get("translator")||"";
+    state.genre=params.get("genre")||"";
     state.tags=new Set(params.getAll("tag").filter(Boolean));
     state.year=params.get("year")||"";
     state.volumeRange=params.get("vols")||"";
@@ -61,10 +68,11 @@
 
   function writeUrl(mode="replace"){
     const url=new URL(location.href),params=url.searchParams;
-    ["q","author","translator","tag","year","vols","reading","sort","pinned","view"].forEach(key=>params.delete(key));
+    ["q","author","translator","genre","tag","year","vols","reading","sort","pinned","view"].forEach(key=>params.delete(key));
     if(state.query.trim())params.set("q",state.query.trim());
     if(state.author)params.set("author",state.author);
     if(state.translator)params.set("translator",state.translator);
+    if(state.genre)params.set("genre",state.genre);
     [...state.tags].sort((a,b)=>a.localeCompare(b)).forEach(tag=>params.append("tag",tag));
     if(state.year)params.set("year",state.year);
     if(state.volumeRange)params.set("vols",state.volumeRange);
@@ -78,7 +86,7 @@
   }
 
   function hasActiveResultFilter(){
-    return Boolean(state.query.trim()||state.author||state.translator||state.tags.size||state.year||state.volumeRange||state.readingStatus||state.pinnedOnly);
+    return Boolean(state.query.trim()||state.author||state.translator||state.genre||state.tags.size||state.year||state.volumeRange||state.readingStatus||state.pinnedOnly);
   }
 
   function syncResultFocus(){
@@ -101,6 +109,7 @@
     if(query)pills.push(filterPill(`Search: ${query}`,"query",`search ${query}`));
     if(state.author)pills.push(filterPill(`Author: ${state.author}`,"author",`author filter ${state.author}`));
     if(state.translator)pills.push(filterPill(`Translator: ${state.translator}`,"translator",`translator filter ${state.translator}`));
+    if(state.genre)pills.push(filterPill(`Genre: ${state.genre}`,"genre",`genre filter ${state.genre}`));
     if(state.year)pills.push(filterPill(`Year: ${state.year}`,"year",`year filter ${state.year}`));
     if(state.volumeRange){
       const labels={"1":"Single volume","2-5":"2–5 volumes","6-10":"6–10 volumes","11+":"11+ volumes"};
@@ -117,6 +126,7 @@
     if(key==="query")state.query="";
     else if(key==="author")state.author="";
     else if(key==="translator")state.translator="";
+    else if(key==="genre")state.genre="";
     else if(key==="year")state.year="";
     else if(key==="volumeRange")state.volumeRange="";
     else if(key==="readingStatus")state.readingStatus="";
@@ -129,6 +139,7 @@
     if($("#searchInput"))$("#searchInput").value=state.query;
     if($("#authorSelect"))$("#authorSelect").value=state.author;
     if($("#translatorSelect"))$("#translatorSelect").value=state.translator;
+    if($("#genreSelect"))$("#genreSelect").value=state.genre;
     if($("#yearSelect"))$("#yearSelect").value=state.year;
     if($("#volumeCountSelect"))$("#volumeCountSelect").value=state.volumeRange;
     if($("#sortSelect"))$("#sortSelect").value=state.sort;
@@ -201,7 +212,7 @@
   }
 
   function clearFilters({historyMode="push"}={}){
-    state.query="";state.author="";state.translator="";state.tags=new Set();state.year="";state.volumeRange="";state.readingStatus="";state.sort="recent";state.pinnedOnly=false;
+    state.query="";state.author="";state.translator="";state.genre="";state.tags=new Set();state.year="";state.volumeRange="";state.readingStatus="";state.sort="recent";state.pinnedOnly=false;
     apply({historyMode});
   }
 
@@ -217,6 +228,7 @@
     $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;renderActiveFilters();syncResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
     $("#authorSelect")?.addEventListener("change",event=>{state.author=event.target.value;apply({historyMode:"push"})});
     $("#translatorSelect")?.addEventListener("change",event=>{state.translator=event.target.value;apply({historyMode:"push"})});
+    $("#genreSelect")?.addEventListener("change",event=>{state.genre=event.target.value;apply({historyMode:"push"})});
     $("#yearSelect")?.addEventListener("change",event=>{state.year=event.target.value;apply({historyMode:"push"})});
     $("#volumeCountSelect")?.addEventListener("change",event=>{state.volumeRange=event.target.value;apply({historyMode:"push"})});
     $("#sortSelect")?.addEventListener("change",event=>{state.sort=event.target.value;apply({historyMode:"push"})});

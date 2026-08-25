@@ -3,8 +3,9 @@
   const MAX_BYTES=50*1024*1024;
   const KNOWN_FONT_OBFUSCATION=new Set(["http://www.idpf.org/2008/embedding","http://ns.adobe.com/pdf/enc#RC"]);
   const readableTypes=new Set(["application/xhtml+xml","text/html","image/svg+xml"]);
-  const inputIds=["seriesInput","volumeInput","yearInput","titleInput","authorInput","tagsInput","descriptionInput","adultInput","audioAlignedInput","translationStatusInput","translatorNameInput","translatorUrlInput","translatorCoverageInput"];
+  const inputIds=["seriesInput","volumeInput","yearInput","titleInput","authorInput","genresInput","tagsInput","descriptionInput","adultInput","audioAlignedInput","translationStatusInput","translatorNameInput","translatorUrlInput","translatorCoverageInput"];
   const q={items:[],activeId:null,library:null,running:false,editorSync:false,objectUrl:""};
+  const taxonomyPromise=import("/assets/js/domain/catalog-taxonomy.js");
 
   state.batch=q;
 
@@ -129,7 +130,8 @@
     const title=firstText(opf,"title")||file.name.replace(/\.epub$/i,"");
     const author=firstText(opf,"creator"),date=firstText(opf,"date"),language=firstText(opf,"language"),publisher=firstText(opf,"publisher");
     const translatorNames=epubTranslatorNames(opf);
-    const description=cleanHtml(firstText(opf,"description")),tags=[...new Set(texts(opf,"subject"))];
+    const description=cleanHtml(firstText(opf,"description")),rawSubjects=[...new Set(texts(opf,"subject"))];
+    const taxonomy=await taxonomyPromise,classifiedSubjects=taxonomy.classifySubjects(rawSubjects),genres=classifiedSubjects.genres,tags=classifiedSubjects.tags;
     const series=metaByName(opf,"calibre:series")||metaByProperty(opf,"belongs-to-collection")||inferSeries(title);
     const number=detectVolume(title,file.name,opf);
     if(!firstText(opf,"title"))addIssue(r,"warning","Missing title metadata","The filename will be used.");
@@ -207,7 +209,7 @@
     for(const item of manifest.filter(x=>x.overlay))if(!manifestById.has(item.overlay))addIssue(r,"warning","Media-overlay reference is missing",`${item.href} → ${item.overlay}`);
 
     const sha256=hex(await digestPromise);
-    return{file,title,author,date,year:parseInt(date.slice(0,4))||"",language,publisher,description,tags,series,number,coverBlob,coverExt,sha256,translations:translatorNames.slice(0,1).map(name=>({name})),validation:finish(r)};
+    return{file,title,author,date,year:parseInt(date.slice(0,4))||"",language,publisher,description,genres,tags,rawSubjects,series,number,coverBlob,coverExt,sha256,translations:translatorNames.slice(0,1).map(name=>({name})),validation:finish(r)};
   }
 
   function seriesEntries(){return[
@@ -316,6 +318,7 @@
     item.year=Number($("#yearInput").value)||"";
     item.title=$("#titleInput").value.trim();
     item.author=$("#authorInput").value.trim();
+    item.genres=$("#genresInput").value.split(",").map(x=>x.trim()).filter(Boolean);
     item.tags=$("#tagsInput").value.split(",").map(x=>x.trim()).filter(Boolean);
     item.description=$("#descriptionInput").value.trim();
     item.adult=$("#adultInput").checked;
@@ -347,7 +350,7 @@
     const item=q.items.find(x=>x.id===id);if(!item||!item.metaReady)return;
     q.activeId=id;q.editorSync=true;
     $("#seriesInput").value=item.series;$("#volumeInput").value=item.number;$("#yearInput").value=item.year;$("#titleInput").value=item.title;$("#authorInput").value=item.author;
-    $("#tagsInput").value=item.tags.join(", ");$("#descriptionInput").value=item.description;$("#adultInput").checked=item.adult;
+    $("#genresInput").value=(item.genres||[]).join(", ");$("#tagsInput").value=item.tags.join(", ");$("#descriptionInput").value=item.description;$("#adultInput").checked=item.adult;
     if($("#audioAlignedInput"))$("#audioAlignedInput").value=item.audioAlignedUrl||"";
     if($("#translationStatusInput"))$("#translationStatusInput").value=item.translationStatus||"";
     const translation=item.translations?.[0]||{};if($("#translatorNameInput"))$("#translatorNameInput").value=translation.name||"";if($("#translatorUrlInput"))$("#translatorUrlInput").value=translation.url||"";if($("#translatorCoverageInput"))$("#translatorCoverageInput").value=translation.coverage||"";
@@ -451,7 +454,7 @@
     item.progress=82;item.progressLabel=`${index}/${total} · Updating catalog`;renderQueue();
     const replaceTargetFile=item.action==="replace"&&!item.duplicate?.batch?item.duplicate.volume.file:"";
     const result=await api("/admin-api/catalog",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
-      adult:item.adult,series:item.series,title:item.title,author:item.author,number:item.number,year:item.year,description:item.description,tags:item.tags,
+      adult:item.adult,series:item.series,title:item.title,author:item.author,number:item.number,year:item.year,description:item.description,genres:item.genres,tags:item.tags,
       audioAlignedUrl:item.audioAlignedUrl,translationStatus:item.translationStatus,translations:item.translations,date:item.date,language:item.language,publisher:item.publisher,size:item.file.size,epubKey,coverKey,coverThumbKey,
       sha256:item.sha256,originalFilename:item.file.name,duplicatePolicy:item.action==="replace"?"replace":item.action==="separate"?"separate":"reject",replaceTargetFile
     })});

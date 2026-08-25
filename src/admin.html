@@ -147,7 +147,8 @@
               <label class="admin-field"><span>Year</span><input id="yearInput" type="number" min="0" max="9999" inputmode="numeric"></label>
               <label class="admin-field wide"><span>Book title</span><input id="titleInput" type="text" required></label>
               <label class="admin-field wide"><span>Author</span><input id="authorInput" type="text"></label>
-              <label class="admin-field wide"><span>Genres / tags</span><input id="tagsInput" type="text" placeholder="Fantasy, Adventure, Romance"></label>
+              <label class="admin-field wide"><span>Genres</span><input id="genresInput" type="text" placeholder="Fantasy, Adventure, Romance"><small class="field-note">Canonical Novel Updates genres. EPUB subjects are normalized here automatically.</small></label>
+              <label class="admin-field wide"><span>Tags</span><input id="tagsInput" type="text" placeholder="Academy, Reincarnation, Light Novel"><small class="field-note">Flexible descriptive tags. Unknown EPUB subjects are preserved here for review.</small></label>
               <label class="admin-field wide"><span>Description</span><textarea id="descriptionInput" rows="5"></textarea></label>
             </div>
 
@@ -216,6 +217,17 @@
             <div id="coverMaintenanceProgress" class="maintenance-progress hidden"></div>
           </section>
 
+          <section class="admin-card maintenance-card" id="taxonomyMaintenanceCard">
+            <div class="admin-card-head">
+              <div><span>TAXONOMY</span><h2>Genre & Tag Audit</h2></div>
+              <strong id="taxonomyMaintenanceState" class="state-pill">LOADING</strong>
+            </div>
+            <p class="maintenance-copy">Preview how legacy EPUB subjects and mixed tags map into canonical Novel Updates Genres plus flexible Tags. Unknown descriptive values are preserved.</p>
+            <div id="taxonomyMaintenanceDetail" class="maintenance-callout">Loading taxonomy audit…</div>
+            <div id="taxonomyMaintenancePreview" class="maintenance-list"></div>
+            <button id="normalizeCatalogTaxonomy" class="admin-primary" type="button">Normalize catalog taxonomy</button>
+          </section>
+
           <section class="admin-card maintenance-card" id="backupMaintenanceCard">
             <div class="admin-card-head">
               <div><span>BACKUPS</span><h2>Catalog History</h2></div>
@@ -254,7 +266,8 @@
           <label class="admin-field wide"><span>Author</span><input id="manageAuthor" type="text"></label>
           <label class="admin-field"><span>Year</span><input id="manageYear" type="number" min="0" max="9999"></label>
           <label class="admin-field"><span>Status</span><input id="manageStatus" type="text" placeholder="Ongoing, Complete…"></label>
-          <label class="admin-field wide"><span>Genres / tags</span><input id="manageTags" type="text"></label>
+          <label class="admin-field wide"><span>Genres</span><input id="manageGenres" type="text" placeholder="Fantasy, Romance"><small class="field-note">Restricted to Shadow Garden's canonical Novel Updates genre vocabulary.</small></label>
+          <label class="admin-field wide"><span>Tags</span><input id="manageTags" type="text" placeholder="Academy, Reincarnation, Light Novel"></label>
           <label class="admin-field wide"><span>Description</span><textarea id="manageDescription" rows="5"></textarea></label>
         </div>
         <label class="adult-toggle">

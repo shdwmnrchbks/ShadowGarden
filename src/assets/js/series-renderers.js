@@ -34,11 +34,9 @@ function tagLinks(series, urls, format) {
   const esc = format.escapeHtml;
   const adult = Boolean(series?.nsfw) || String(series?.id || "").startsWith("adult-");
   const base = urls.libraryUrl(adult);
-  return arr(series?.tags).map(tag => {
-    const value = String(tag || "");
-    const href = `${base}?tag=${encodeURIComponent(value)}`;
-    return `<a class="tag" href="${href}" title="Show ${esc(value)} in ${adult ? "Adult Library" : "Library"}">${esc(value)}</a>`;
-  }).join("");
+  const genres=arr(series?.genres).map(genre=>{const value=String(genre||"");const href=`${base}?genre=${encodeURIComponent(value)}`;return `<a class="tag genre" href="${href}" title="Show ${esc(value)} genre in ${adult ? "Adult Library" : "Library"}">${esc(value)}</a>`});
+  const tags=arr(series?.tags).map(tag=>{const value=String(tag||"");const href=`${base}?tag=${encodeURIComponent(value)}`;return `<a class="tag" href="${href}" title="Show ${esc(value)} in ${adult ? "Adult Library" : "Library"}">${esc(value)}</a>`});
+  return [...genres,...tags].join("");
 }
 
 function translatorFilterHref(series, value, urls) {

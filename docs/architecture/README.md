@@ -96,3 +96,5 @@ R10 establishes v2.0.0 and removes the final known obsolete compatibility/patch 
 - `tools/check-r10.mjs` — v2 manifest, legacy tombstones, source cache-version cleanup, docs/release gate and final major-version baseline.
 
 Future work starts from [`V2_BASELINE.md`](./V2_BASELINE.md). A v1/R0 implementation may only be restored when it is an intentional compatibility requirement with explicit ownership and regression coverage; obsolete duplicate owners must not return.
+
+- `CATALOG_TAXONOMY.md` — canonical Novel Updates genres and catalog taxonomy ownership.

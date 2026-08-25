@@ -51,3 +51,5 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 ## Files intentionally kept at repository root
 
 The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning belongs under `docs/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` is an intentional committed root file under the R9 dependency contract.
+
+- `architecture/CATALOG_TAXONOMY.md` — canonical Novel Updates genres, flexible tags, EPUB normalization, and audit-first migration.

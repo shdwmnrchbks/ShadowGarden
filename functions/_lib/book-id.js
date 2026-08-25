@@ -8,6 +8,24 @@ function base64Url(bytes) {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
+function publicTranslationCredits(value) {
+  if (!Array.isArray(value)) return null;
+  const credits = value.map(raw => {
+    const name = String(raw?.name || "").trim();
+    if (!name) return null;
+    const url = String(raw?.url || "").trim(), coverage = String(raw?.coverage || "").trim();
+    return { name, ...(url ? { url } : {}), ...(coverage ? { coverage } : {}) };
+  }).filter(Boolean);
+  return credits.length ? credits : null;
+}
+
+function publicTranslationShape(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const { translations: _translations, ...rest } = source;
+  const translations = publicTranslationCredits(source.translations);
+  return translations ? { ...rest, translations } : rest;
+}
+
 export function isBookId(value) {
   return BOOK_ID.test(String(value || ""));
 }
@@ -42,9 +60,10 @@ export async function publicCatalogShape(catalog) {
     const volumes = await Promise.all((Array.isArray(item?.volumes) ? item.volumes : []).map(async volume => {
       const bookId = await volumeBookId(volume);
       const { file: _file, sha256: _sha256, originalFilename: _originalFilename, ...rest } = volume || {};
-      return bookId ? { ...rest, bookId } : rest;
+      const publicVolume = publicTranslationShape(rest);
+      return bookId ? { ...publicVolume, bookId } : publicVolume;
     }));
-    return { ...item, volumes };
+    return { ...publicTranslationShape(item), volumes };
   }));
   return { ...source, series };
 }

@@ -30,7 +30,7 @@ for(const retired of ["src/assets/js/library-series-polish.js","src/assets/js/li
   if(await exists(retired))fail(`R3 retired ownership layer returned: ${retired}`);
 }
 
-for(const marker of ["library-model.js","library-renderers.js","public/volume-actions.js","pageshow","preserveCount:true","preferences.libraryView","readingStatus.latestActiveEntry"]){if(!library.includes(marker))fail(`Library controller is missing ${marker}`)}
+for(const marker of ["library-model.js","library-renderers.js","public/volume-actions.js","pageshow","preserveCount:true","preferences.libraryView","readingStatus.libraryBannerEntry"]){if(!library.includes(marker))fail(`Library controller is missing ${marker}`)}
 if(library.includes("MutationObserver"))fail("Library controller must not use post-render MutationObserver repair");
 for(const marker of ["filterAndSort","recentlyAdded","filterOptions","validateFilterState"]){if(!libraryModel.includes(marker))fail(`Library query model is missing ${marker}`)}
 for(const marker of ["compact-card-badges","renderRecentlyAdded","renderReadingBanner","recent-volume","data-volume-action","CONTINUE ·","✓ FINISHED"]){if(!libraryRenderers.includes(marker))fail(`Library renderer is missing ${marker}`)}

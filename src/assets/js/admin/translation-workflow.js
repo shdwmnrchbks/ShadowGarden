@@ -24,7 +24,7 @@
     }
 
     function serialize(root){
-      return[...root.querySelectorAll("[data-translation-row]")].map(row=>({
+      return[...(root?.querySelectorAll("[data-translation-row]")||[])].map(row=>({
         name:row.querySelector("[data-t-name]")?.value.trim()||"",
         url:row.querySelector("[data-t-url]")?.value.trim()||"",
         coverage:row.querySelector("[data-t-coverage]")?.value.trim()||""
@@ -42,9 +42,9 @@
         <div><span>FAN TRANSLATION</span><h3>Translation provenance</h3></div>
         <label><span>Translation status</span><select id="manageTranslationStatus">${statuses.map(value=>`<option value="${value}">${value||"Not set"}</option>`).join("")}</select></label>
       </div>
-      <p class="field-note">Credit fan translators and record chapter/volume coverage. Multiple rows support hand-offs between translators.</p>
+      <p class="field-note">Credit fan translators and record chapter/volume coverage. Multiple rows support hand-offs between translators. Changes are saved with <strong>Save series</strong>.</p>
       <div id="manageTranslations" class="keeper-translation-list"></div>
-      <div class="keeper-translation-actions"><button id="addTranslationCredit" class="admin-secondary" type="button">＋ Add translator</button><button id="saveTranslationCredits" class="admin-primary inline-button" type="button">Save translation credits</button></div>`;
+      <div class="keeper-translation-actions"><button id="addTranslationCredit" class="admin-secondary" type="button">＋ Add translator</button></div>`;
       volumeHead.before(section);
     }
     installSeriesEditor();
@@ -86,15 +86,9 @@
       if(add)add.closest("[data-volume-translation-editor]")?.querySelector("[data-volume-translations]")?.insertAdjacentHTML("beforeend",creditRow());
     });
 
-    async function saveSeriesCredits(){
-      const series=currentSeries();if(!series)return;
-      const button=$("#saveTranslationCredits"),old=button.textContent;button.disabled=true;button.textContent="Saving…";
-      try{
-        await client.request("/admin-api/translations",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:series.id,target:"series",translationStatus:$("#manageTranslationStatus").value,translations:serialize($("#manageTranslations"))})});
-        keeper.ui.toast("Translation credits saved.");keeper.events.dispatchEvent(new Event("library:invalidate"));
-      }catch(error){alert(error.message)}finally{button.disabled=false;button.textContent=old}
+    function seriesPayload(){
+      return{translationStatus:$("#manageTranslationStatus")?.value||"",translations:serialize($("#manageTranslations"))};
     }
-    $("#saveTranslationCredits")?.addEventListener("click",saveSeriesCredits);
 
     volumeRoot.addEventListener("click",async event=>{
       const button=event.target.closest("[data-save-volume-translation]");if(!button)return;
@@ -107,6 +101,6 @@
     });
 
     keeper.events.addEventListener("library:changed",()=>{if(dialog.open)queueMicrotask(sync)});
-    return{sync};
+    return{sync,seriesPayload};
   });
 })();

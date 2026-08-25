@@ -9,9 +9,16 @@
   const activeTags=document.getElementById('activeTags');
   if(!panel||!toggle||!head||!clear||!searchField||!searchStack)return;
 
+  const mobileQuery=window.matchMedia('(max-width: 720px)');
+  if(mobileQuery.matches){
+    panel.classList.add('filters-collapsed');
+    toggle.hidden=false;
+    toggle.setAttribute('aria-expanded','false');
+  }
+  panel.classList.remove('filters-mobile-initial-collapsed');
+
   const {preferences}=await import('/assets/js/domain/index.js');
   const scope=document.body.dataset.libraryScope||'main';
-  const mobileQuery=window.matchMedia('(max-width: 720px)');
   const headActions=document.createElement('span');
   headActions.className='filter-head-actions';
   clear.before(headActions);

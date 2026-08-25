@@ -54,6 +54,28 @@ test("Library and Adult filters keep wrapped removable active-filter pills direc
   assert.equal(css.includes(".active-filter-tags{flex-wrap:nowrap"),false,"filter pills must not return to a clipped single-row rail");
 });
 
+test("mobile Search Filter is collapsed on first paint before deferred Library initialization",async()=>{
+  const [mobile,css,mainHtml,adultHtml]=await Promise.all([
+    read("src/assets/js/library-mobile-filter.js"),
+    read("src/assets/css/library-features.css"),
+    read("src/index.html"),
+    read("src/nsfw.html")
+  ]);
+
+  for(const html of [mainHtml,adultHtml]){
+    assert.match(html,/class="filters filters-mobile-initial-collapsed"/);
+    assert.match(html,/id="filterToggle"[^>]*aria-expanded="false"/);
+    assert.equal(/id="filterToggle"[^>]*\shidden(?:\s|>)/.test(html),false,"mobile toggle must not wait on JavaScript to become visible");
+  }
+  assert.match(css,/@media\(min-width:721px\)\{\.mobile-filter-toggle\{display:none!important\}\}/);
+  assert.match(css,/@media\(max-width:720px\)\{[\s\S]*?\.filters\.filters-mobile-initial-collapsed>\.filter-head,[^\n]*display:none!important/);
+  assert.match(css,/\.filters\.filters-mobile-initial-collapsed\{display:block;gap:0\}/);
+  const handoff="panel.classList.remove('filters-mobile-initial-collapsed')";
+  const domainImport="await import('/assets/js/domain/index.js')";
+  assert.ok(mobile.indexOf(handoff)>=0&&mobile.indexOf(handoff)<mobile.indexOf(domainImport),"first-paint marker must hand off before the async domain import");
+  assert.match(mobile,/if\(mobileQuery\.matches\)\{[\s\S]*?panel\.classList\.add\('filters-collapsed'\)/);
+});
+
 test("long search text cannot widen the Search Filter panel, Search field, or selectors",async()=>{
   const css=await read("src/assets/css/library-features.css");
   assert.match(css,/\.catalog-layout,\.catalog-main,\.filters,\.filters>\*,\.search-stack,\.search-field,\.filter-group\{min-width:0;max-width:100%\}/);

@@ -1,5 +1,10 @@
 # Shadow Garden Changelog
 
+## 2.2.1 — Mobile Filter First Paint
+- Main and Adult Library Search/Filter panels now render collapsed from the initial mobile HTML/CSS state instead of expanding until JavaScript and catalog initialization finish.
+- Desktop first paint remains expanded, while the mobile filter toggle is available immediately and hands off to the canonical R2 runtime/persistence owner.
+- Added browser regression coverage for the no-flash mobile loading state.
+
 ## 2.2.0 — Reading Suggestions & Random Series Banners
 - Kept Continue as the Library banner priority, then suggest the next unread volume when a previously started series has a next volume available.
 - Added a random Read suggestion fallback so Main and Adult Library banners remain useful even when there is no active reading trail.

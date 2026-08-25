@@ -1,15 +1,15 @@
 # Shadow Garden Mobile Navigation Contract
 
-**Reconciled after:** v1.23.5  
+**Reconciled after:** v2.4.0  
 **Ownership:** R7 navigation/design-system owner + R8 browser-smoke regression owner  
 **Status:** Active contract
 
-The v1.23.1–v1.23.5 real-device corrections exposed browser-specific behavior that was not fully represented by the original R7/R8 documentation. This document folds those lessons back into the architecture without creating a new refactor milestone.
+The v1.23.1–v1.23.5 real-device corrections established the body-level drawer portal. The v2.4 UX completion pass keeps that portal while removing the later fixed-header/body-padding compensation so opening navigation no longer changes document geometry.
 
 ## Ownership
 
 - `src/assets/js/nav.js` owns drawer lifecycle, body-level portal placement, accessibility state, focus trapping, backdrop creation, and the `site-nav-open` document state.
-- `src/assets/css/nav.css` owns drawer/header/backdrop presentation, viewport geometry, Main/Adult variants, touch/overscroll behavior, and open-state layout compensation.
+- `src/assets/css/nav.css` owns drawer/header/backdrop presentation, viewport geometry, Main/Adult variants, touch/overscroll behavior, and layout-stable open-state presentation.
 - `tests/browser/mobile-nav-viewport.test.mjs` is the permanent R8 browser-contract regression for this behavior.
 - No page-specific stylesheet or post-render repair layer may independently reposition or restyle the navigation drawer.
 
@@ -28,16 +28,19 @@ The portaled drawer therefore owns true viewport-fixed geometry:
 
 The drawer must not return to `position:absolute`, calculated `100dvh` heights, or a fixed descendant of the filtered header.
 
-## Header contract
+## Header and layout-stability contract
 
-While navigation is open, `.site-header` becomes a true fixed viewport header above both drawer and backdrop.
+The site header remains `position: sticky` and stays in normal document flow when navigation opens. Opening the drawer may raise its z-index or add visual separation, but it must not change the header to `position: fixed` and must not add compensating top padding to `<body>`.
 
-Because switching the header from sticky to fixed removes its box from normal document flow, `body.site-nav-open` preserves the same amount of layout space:
+This preserves the page's geometry exactly across open/close transitions:
 
-- 72px at the normal header size;
-- 62px at the mobile breakpoint.
+- no sticky-to-fixed header mode switch;
+- no 72px/62px body-padding compensation;
+- no scroll-position scripting;
+- stable scrollbar allocation through `scrollbar-gutter: stable`;
+- drawer/backdrop geometry continues to begin immediately below the visible header.
 
-This compensation prevents the background page from snapping upward when the drawer opens and back downward when it closes. Scroll-position scripting is not used for this purpose.
+The background page therefore does not jump when the drawer opens or closes.
 
 ## Background scroll-lock contract
 
@@ -61,7 +64,9 @@ Drawer links/buttons therefore explicitly own:
 - no default underline;
 - transparent base background;
 - pointer/focus behavior;
-- hover/focus/active treatment.
+- hover/focus/active treatment;
+- a visible current-page indicator;
+- keyboard-visible focus treatment.
 
 The Adult surface preserves its rose/wine variant through `.adult-library .site-nav-drawer...` selectors.
 
@@ -82,12 +87,14 @@ The existing navigation accessibility behavior remains required:
 `tests/browser/mobile-nav-viewport.test.mjs` must continue to guard at least:
 
 - body-level drawer portal ownership;
-- fixed header and viewport-fixed drawer geometry;
-- desktop/mobile header-space compensation;
-- drawer-owned non-underlined link presentation;
+- sticky header remaining in document flow;
+- rejection of fixed-header/body-padding compensation;
+- viewport-fixed drawer geometry on desktop and mobile;
+- stable scrollbar allocation;
+- drawer-owned link/active/focus presentation;
 - `<html>` + `<body>` open-state scroll locking;
 - non-pannable backdrop;
 - vertically pannable drawer;
 - rejection of the retired `absolute + 100dvh` implementation.
 
-These checks are part of R8's browser-contract layer even though the real-device corrections landed after v1.23.0. Future navigation changes should extend this owner/test pair rather than adding another hotfix stylesheet or competing input owner.
+These checks are part of R8's browser-contract layer even though the real-device corrections and v2.4 reconciliation landed after the original R8 milestone. Future navigation changes should extend this owner/test pair rather than adding another hotfix stylesheet or competing input owner.

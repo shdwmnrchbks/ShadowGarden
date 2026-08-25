@@ -74,7 +74,7 @@
     window.addEventListener("sg:navigationintent",event=>writeNavigationHint(event.detail||{}));
     window.addEventListener("pagereveal",event=>{
       const finished=event.viewTransition?.finished;
-      if(finished&&typeof finished.finally==="function")finished.finally(clearNavigationHint);
+      if(finished&&typeof finished.then==="function")finished.then(clearNavigationHint,clearNavigationHint);
       else window.setTimeout(clearNavigationHint,520);
     });
     window.addEventListener("pageshow",()=>window.setTimeout(clearNavigationHint,720),{once:true});

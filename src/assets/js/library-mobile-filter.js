@@ -7,7 +7,6 @@
   const searchField=panel?.querySelector('.search-field');
   const searchStack=panel?.querySelector('.search-stack');
   const activeTags=document.getElementById('activeTags');
-  const tagPicker=activeTags?.parentElement;
   if(!panel||!toggle||!head||!clear||!searchField||!searchStack)return;
 
   const {preferences}=await import('/assets/js/domain/index.js');
@@ -29,14 +28,9 @@
   }
 
   function placeActiveTags(collapsed){
-    if(!activeTags||!tagPicker)return;
-    if(mobileQuery.matches&&collapsed){
-      searchField.insertAdjacentElement('afterend',activeTags);
-      activeTags.classList.add('mobile-collapsed-tags');
-    }else{
-      tagPicker.appendChild(activeTags);
-      activeTags.classList.remove('mobile-collapsed-tags');
-    }
+    if(!activeTags)return;
+    searchField.insertAdjacentElement('afterend',activeTags);
+    activeTags.classList.toggle('mobile-collapsed-tags',mobileQuery.matches&&collapsed);
   }
 
   function syncToggle(collapsed){

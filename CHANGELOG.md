@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 2.1.1 — Translation Metadata Cleanup
+- Removed the duplicate Series Translation Credits panel; the compact Series information attribution is now the sole series-level translation credit presentation.
+- Translator names now open their configured source URL when available and fall back to the Library translator filter when no source URL is stored.
+- Matched Series Status and Translation Status dropdown presentation to the styled Series Banner selector.
+- Added EPUB contributor-role scanning so EPUB3 refined MARC relator `trl` metadata and legacy `opf:role="trl"` metadata prefill the upload translator credit.
+- Retired Translation Group and Attribution Note from browser/server normalization, Keeper editing, upload fields, search terms, and public catalog output.
+- Fixed Translator filter initialization so selecting a translator produces the expected removable active-filter pill and applies the filter.
+
 ## 2.1.0 — Fan Translation Provenance
 - Added structured fan translator/group attribution with optional source URLs, coverage notes, multiple hand-offs, and distinct translation status.
 - Added Translator/Group Library filtering, translator-aware search, active-filter pills, catalog-card attribution, and Series Translation Credits with Main/Adult deep links.

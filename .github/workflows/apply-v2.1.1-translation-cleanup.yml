@@ -1,0 +1,37 @@
+name: Apply v2.1.1 translation cleanup
+
+on:
+  push:
+    branches:
+      - fix-translation-metadata-v2.1.1
+    paths:
+      - tools/apply-v2.1.1-translation-cleanup.mjs
+      - .github/workflows/apply-v2.1.1-translation-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix-translation-metadata-v2.1.1
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+      - name: Apply cleanup
+        run: node tools/apply-v2.1.1-translation-cleanup.mjs
+      - name: Remove one-shot helpers
+        run: rm tools/apply-v2.1.1-translation-cleanup.mjs .github/workflows/apply-v2.1.1-translation-cleanup.yml
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix translation metadata cleanup and EPUB import"
+          git push origin HEAD:fix-translation-metadata-v2.1.1

@@ -5,7 +5,7 @@
   if(!root)return;
 
   const id=new URLSearchParams(location.search).get("id")||"";
-  const requestedAdult=String(id).startsWith("adult-");
+  const requestedAdult=window.__SG_SERIES_ROUTE_ADULT__===true||String(id).startsWith("adult-");
   let domain=null;
   let series=null;
   let rendering=false;
@@ -14,7 +14,7 @@
     document.body.classList.toggle("adult-library",Boolean(adult));
     const home=$(".brand-home"),back=$("#headerBack"),adultNav=$(".adult-nav-link"),mainNav=$(".main-nav-link"),themeMeta=document.querySelector('meta[name="theme-color"]');
     if(home){home.href=domain.urls.libraryUrl(adult);home.setAttribute("aria-label",adult?"Shadow Garden Adult Library home":"Shadow Garden home")}
-    if(back){back.href=domain.urls.libraryUrl(adult);back.textContent=adult?"← Back to Adult Library":"← Back to archive"}
+    if(back)back.href=domain.urls.libraryUrl(adult);
     if(adultNav){adultNav.classList.toggle("active",Boolean(adult));adult?adultNav.setAttribute("aria-current","page"):adultNav.removeAttribute("aria-current")}
     if(mainNav){mainNav.classList.toggle("active",!adult);!adult?mainNav.setAttribute("aria-current","page"):mainNav.removeAttribute("aria-current")}
     if(themeMeta)themeMeta.content=adult?"#10090c":"#09080d";

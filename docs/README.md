@@ -6,7 +6,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 - [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**, currently starting with v2.6.0 Reliability & Real-Browser Testing and continuing through performance/scale, Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
 
-Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are indexed under [`archive/README.md`](./archive/README.md).
+Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
 ## Architecture contracts
 
@@ -34,7 +34,7 @@ Completed or superseded plans must not remain marked as current. Historical road
 
 ## Releases
 
-Release notes remain in `docs/releases/`; milestone planning records are archived separately.
+Release notes remain in `docs/releases/`; completed milestone planning records are also preserved in the planning archive.
 
 - [`releases/v2.0.0.md`](./releases/v2.0.0.md) — v2 architecture baseline release.
 - [`releases/v2.4.0.md`](./releases/v2.4.0.md) — Interaction & UX Polish release.
@@ -43,7 +43,7 @@ Release notes remain in `docs/releases/`; milestone planning records are archive
 ## Archived roadmaps and milestones
 
 - [`archive/README.md`](./archive/README.md) — canonical index for completed roadmaps and milestone records.
-- Historical compatibility paths under `roadmaps/`, `security/`, and the old v2.5 motion planning paths under `releases/` are intentionally retained as small archive pointers so old documentation links do not break.
+- Historical source paths under `roadmaps/`, `security/`, and the v2.5 motion planning paths under `releases/` remain as compatibility mirrors because CI checks and older documentation intentionally reference them. They are completed historical records, not active plans.
 
 ## Product/design guidance
 
@@ -51,4 +51,4 @@ Release notes remain in `docs/releases/`; milestone planning records are archive
 
 ## Repository-root policy
 
-The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning belongs under `docs/archive/`; active planning belongs under `docs/roadmaps/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs under `docs/roadmaps/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.

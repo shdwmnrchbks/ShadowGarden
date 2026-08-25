@@ -30,6 +30,6 @@ Milestones 1–4 are represented by the completed security roadmap/baseline hist
 
 Actual release notes remain under [`../releases/`](../releases/) and architecture contracts remain under [`../architecture/`](../architecture/). Only planning and milestone records are archived here.
 
-## Compatibility paths
+## Compatibility mirrors
 
-The former planning locations under `docs/roadmaps/`, `docs/security/`, and the v2.5 motion planning paths under `docs/releases/` are retained as short archive pointers. This keeps historical links usable while ensuring only one roadmap is presented as current work.
+The former completed planning files under `docs/roadmaps/`, `docs/security/`, and the v2.5 motion planning paths under `docs/releases/` remain unchanged as compatibility mirrors. Existing CI guards and historical links intentionally read those paths. The copies under `docs/archive/` are the canonical planning archive, while [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) is the only active roadmap.

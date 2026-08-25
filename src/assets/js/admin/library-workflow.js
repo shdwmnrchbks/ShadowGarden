@@ -5,7 +5,7 @@
 
   keeper.registerWorkflow("library",()=>{
     const list=$("#seriesManagerList"),dialog=$("#seriesEditor");if(!list||!dialog)return{};
-    let bannerChoices=[],bannerSeriesId="",bannerSerial=0;
+    let bannerChoices=[],bannerSeriesId="",bannerSerial=0,bannerRandomChoice=null;
 
     function installEditorFields(){
       const status=$("#manageStatus");
@@ -17,7 +17,7 @@
         const field=document.createElement("label");field.className="admin-field wide";field.innerHTML='<span>Audio-aligned EPUB folder URL (optional)</span><input id="manageAudioAlignedUrl" type="url" inputmode="url" placeholder="https://example.com/series-audio-epubs/"><small class="field-note">One external folder link for the entire series.</small>';manageDescription.before(field);
       }
       if(manageDescription&&!$("#manageBannerField")){
-        const field=document.createElement("label");field.id="manageBannerField";field.className="admin-field wide manage-banner-field";field.innerHTML='<span>Series banner</span><select id="manageBanner" aria-describedby="manageBannerState"><option value="">Loading volume covers…</option></select><div class="manage-banner-preview"><img id="manageBannerPreview" class="hidden" alt="Selected banner cover preview"><div class="manage-banner-preview-copy"><strong id="manageBannerPreviewTitle">Default banner</strong><small id="manageBannerState" class="manage-banner-state">Defaults to the first volume cover. Changes save immediately.</small></div></div>';manageDescription.before(field);
+        const field=document.createElement("label");field.id="manageBannerField";field.className="admin-field wide manage-banner-field";field.innerHTML='<span>Series banner</span><select id="manageBanner" aria-describedby="manageBannerState"><option value="">Loading volume covers…</option></select><div class="manage-banner-preview"><img id="manageBannerPreview" class="hidden" alt="Random banner cover preview"><div class="manage-banner-preview-copy"><strong id="manageBannerPreviewTitle">Random banner</strong><small id="manageBannerState" class="manage-banner-state">Random is the default. A volume cover is chosen when the Series page opens.</small></div></div>';manageDescription.before(field);
       }
     }
     installEditorFields();
@@ -68,21 +68,21 @@
     function bannerState(message,kind=""){const node=$("#manageBannerState");if(!node)return;node.textContent=message;if(kind)node.dataset.kind=kind;else delete node.dataset.kind}
     function syncBannerPreview(){
       const select=$("#manageBanner"),image=$("#manageBannerPreview"),title=$("#manageBannerPreviewTitle");if(!select||!image||!title)return;
-      const choice=select.value?bannerChoices.find(item=>item.bookId===select.value):bannerChoices[0];title.textContent=choice?(select.value?bannerLabel(choice):`Default — ${bannerLabel(choice)}`):"No volume cover available";
+      const choice=select.value?bannerChoices.find(item=>item.bookId===select.value):bannerRandomChoice;title.textContent=choice?(select.value?bannerLabel(choice):`Random preview — ${bannerLabel(choice)}`):"Random banner";
       if(choice?.cover){image.src=choice.cover;image.classList.remove("hidden")}else{image.removeAttribute("src");image.classList.add("hidden")}
     }
     async function loadBannerChoices(id){
       const select=$("#manageBanner");if(!id||!select)return;const serial=++bannerSerial;select.disabled=true;select.innerHTML='<option value="">Loading volume covers…</option>';bannerState("Loading banner choices…","saving");
       try{
-        const data=await client.request(`/admin-api/series-banner?id=${encodeURIComponent(id)}`);if(serial!==bannerSerial)return;bannerSeriesId=data.id||id;bannerChoices=arr(data.choices);select.replaceChildren();
-        const defaultOption=document.createElement("option");defaultOption.value="";defaultOption.textContent=bannerChoices[0]?`Default — ${bannerLabel(bannerChoices[0])}`:"Default — first volume cover";select.append(defaultOption);
+        const data=await client.request(`/admin-api/series-banner?id=${encodeURIComponent(id)}`);if(serial!==bannerSerial)return;bannerSeriesId=data.id||id;bannerChoices=arr(data.choices);const covered=bannerChoices.filter(choice=>choice.cover);const previewPool=covered.length?covered:bannerChoices;bannerRandomChoice=previewPool.length?previewPool[Math.floor(Math.random()*previewPool.length)]:null;select.replaceChildren();
+        const defaultOption=document.createElement("option");defaultOption.value="";defaultOption.textContent="Random — any volume cover";select.append(defaultOption);
         for(const choice of bannerChoices){const option=document.createElement("option");option.value=choice.bookId;option.textContent=bannerLabel(choice);select.append(option)}
-        select.value=bannerChoices.some(choice=>choice.bookId===data.current)?data.current:"";select.dataset.savedValue=select.value;select.disabled=!bannerChoices.length;syncBannerPreview();bannerState(bannerChoices.length?"Defaults to Volume 1. Select another volume to save it as the banner.":"This series has no volume cover available.");
+        select.value=bannerChoices.some(choice=>choice.bookId===data.current)?data.current:"";select.dataset.savedValue=select.value;select.disabled=!bannerChoices.length;syncBannerPreview();bannerState(bannerChoices.length?"Random is the default. A volume cover is chosen when the Series page opens; select a volume to pin it instead.":"This series has no volume cover available.");
       }catch(error){if(serial!==bannerSerial)return;select.disabled=true;select.innerHTML='<option value="">Banner choices unavailable</option>';bannerState(error.message,"error")}
     }
     async function saveBanner(){
       const select=$("#manageBanner");if(!bannerSeriesId||!select)return;const next=select.value,previous=select.dataset.savedValue||"";syncBannerPreview();select.disabled=true;bannerState("Saving banner selection…","saving");
-      try{const data=await client.request("/admin-api/series-banner",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:bannerSeriesId,bannerBookId:next})});bannerSeriesId=data.id||bannerSeriesId;select.dataset.savedValue=next;bannerState(next?"Banner saved. This volume cover will be used on the Series page.":"Default restored. The first volume cover will be used.","saved")}
+      try{const data=await client.request("/admin-api/series-banner",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:bannerSeriesId,bannerBookId:next})});bannerSeriesId=data.id||bannerSeriesId;select.dataset.savedValue=next;bannerState(next?"Banner saved. This volume cover will stay pinned on the Series page.":"Random banner restored. A volume cover will be chosen when the Series page opens.","saved")}
       catch(error){select.value=previous;syncBannerPreview();bannerState(error.message,"error")}
       finally{select.disabled=!bannerChoices.length}
     }

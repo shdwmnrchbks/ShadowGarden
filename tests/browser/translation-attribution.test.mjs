@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 const read=file=>fs.readFile(new URL(`../../${file}`,import.meta.url),"utf8");
 
-test("Library and Series expose fan translators as first-class filterable provenance",async()=>{
+test("Library and Series expose compact translator attribution with working filters and source links",async()=>{
   const [library,model,cards,series,css]=await Promise.all([
     read("src/assets/js/library.js"),
     read("src/assets/js/library-model.js"),
@@ -15,22 +15,26 @@ test("Library and Series expose fan translators as first-class filterable proven
   assert.match(library,/id="translatorSelect"/);
   assert.match(library,/params\.get\("translator"\)/);
   assert.match(library,/Translator: \$\{state\.translator\}/);
+  assert.match(library,/setupAdultGate\(\);\s*mountTranslatorFilter\(\);\s*bindControls\(\);/);
   assert.match(model,/translatorNames\(series\)/);
   assert.match(cards,/card-translator/);
-  assert.match(series,/Translation Credits/);
-  assert.match(series,/translator=\$\{encodeURIComponent/);
-  assert.match(series,/translation-source/);
+  assert.match(series,/series-translator-summary/);
+  assert.match(series,/if \(normalized\?\.url\)/);
   assert.match(series,/target="_blank" rel="noopener noreferrer"/);
+  assert.match(series,/translator=\$\{encodeURIComponent/);
   assert.match(series,/volume-translator/);
-  assert.match(css,/translation-panel/);
+  assert.equal(series.includes("Translation Credits"),false);
+  assert.equal(series.includes("translation-panel"),false);
+  assert.equal(css.includes("translation-panel"),false);
 });
 
-test("Garden Keeper owns editable series credits, translation status and per-volume overrides",async()=>{
-  const [app,workflow,route,service]=await Promise.all([
+test("Garden Keeper owns simplified credits, styled statuses and per-volume overrides",async()=>{
+  const [app,workflow,route,service,presentation]=await Promise.all([
     read("src/assets/js/admin/app.js"),
     read("src/assets/js/admin/translation-workflow.js"),
     read("functions/admin-api/translations.js"),
-    read("functions/services/translations.js")
+    read("functions/services/translations.js"),
+    read("src/assets/css/admin-presentation.css")
   ]);
   assert.match(app,/admin\/translation-workflow\.js/);
   assert.match(app,/"translations"/);
@@ -38,6 +42,9 @@ test("Garden Keeper owns editable series credits, translation status and per-vol
   assert.match(workflow,/Translation override/);
   assert.match(workflow,/translationStatus/);
   assert.match(workflow,/\/admin-api\/translations/);
+  assert.equal(workflow.includes("data-t-group"),false);
+  assert.equal(workflow.includes("data-t-note"),false);
+  assert.match(presentation,/#manageStatus,#manageTranslationStatus,#translationStatusInput/);
   assert.match(route,/handleTranslationsPost/);
   assert.match(service,/snapshotCatalogs/);
   assert.match(service,/update-volume-translation-override/);

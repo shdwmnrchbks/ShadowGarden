@@ -8,7 +8,7 @@ function attrs(action, esc) {
   return `data-volume-action="open" data-volume-state="${esc(action.state)}" data-series-id="${esc(action.seriesId)}" data-book-id="${esc(action.bookId)}" data-volume-title="${esc(action.title)}"`;
 }
 
-export function seriesCard(series, index, { readingState, preferences, urls, format }) {
+export function seriesCard(series, index, { readingState, preferences, urls, format, translations }) {
   const esc = format.escapeHtml;
   const cover = seriesCover(series);
   const volumes = arr(series?.volumes).length;
@@ -16,6 +16,9 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
   const finished = readingState.seriesFinished(series);
   const pinned = preferences.isPinned(series?.id);
   const href = urls.seriesUrl(series?.id);
+  const translator = translations?.primaryTranslator(series);
+  const translationStatus = translations?.normalizeTranslationStatus(series?.translationStatus) || "";
+  const translatorLabel = translator ? translations.creditDisplayName(translator) : "";
   return `<a class="series-card ${finished ? "is-finished" : ""}" href="${href}">
     <div class="cover">
       ${cover ? `<img src="${esc(cover)}" alt="${esc(series?.title)} cover" loading="${aboveFold ? "eager" : "lazy"}" decoding="async" fetchpriority="${index < 2 ? "high" : "low"}" onerror="this.style.display='none';this.nextElementSibling.classList.remove('hidden')">` : ""}
@@ -27,6 +30,7 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
     <div class="card-copy">
       <h2>${esc(series?.title)}</h2>
       <p>${esc(series?.author || "Unknown author")}</p>
+      ${translatorLabel ? `<p class="card-translator">TL · ${esc(translatorLabel)}${translationStatus ? ` · ${esc(translationStatus)}` : ""}</p>` : ""}
       <div class="card-meta"><span>${series?.year || "—"}</span><span>${finished ? "Finished" : esc(arr(series?.tags)[0] || "")}</span></div>
     </div>
     <div class="compact-card-badges" aria-label="Series badges">

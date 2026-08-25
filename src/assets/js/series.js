@@ -21,6 +21,13 @@
     if(themeMeta)themeMeta.content=adult?"#10090c":"#09080d";
   }
 
+  function syncBackToTop(){
+    const button=$("#seriesBackToTop");if(!button)return;
+    const visible=window.scrollY>Math.max(640,window.innerHeight*.8);
+    button.hidden=!visible;
+    button.classList.toggle("visible",visible);
+  }
+
   async function render(){
     if(!series||rendering)return;
     rendering=true;
@@ -28,11 +35,14 @@
       const {seriesMarkup}=await import("/assets/js/series-renderers.js");
       root.innerHTML=seriesMarkup(series,{...domain,bannerRandom});
       root.setAttribute("aria-busy","false");
+      syncBackToTop();
     }finally{rendering=false}
   }
 
   function bindControllerEvents(){
     root.addEventListener("click",event=>{
+      const backTop=event.target.closest?.("#seriesBackToTop");
+      if(backTop){window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});return}
       const button=event.target.closest?.("#pinButton");
       if(!button||!series)return;
       const on=!domain.preferences.isPinned(series.id);
@@ -41,6 +51,8 @@
       button.textContent=on?"◆ Pinned":"◇ Pin to Garden";
     });
 
+    let scrollTick=false;
+    window.addEventListener("scroll",()=>{if(scrollTick)return;scrollTick=true;requestAnimationFrame(()=>{scrollTick=false;syncBackToTop()})},{passive:true});
     window.addEventListener(domain.readingState.EVENT,()=>void render());
     window.addEventListener("storage",event=>{
       if(domain.readingState.isReadingStorageKey(event.key)||event.key===domain.preferences.PINNED_KEY)void render();

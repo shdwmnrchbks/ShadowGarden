@@ -74,3 +74,31 @@ test("Reader source keeps image pinch/pan isolated from live EPUB document touch
   assert.match(imageFocus, /mode:"pan"/);
   assert.match(continuous, /scrolled-doc|continuous/i);
 });
+
+test("Reader confirms external HTTP links before opening a new browser tab", async () => {
+  const [adapter, readerHtml, presentation] = await Promise.all([
+    fs.readFile(new URL("../../src/assets/js/reader-epub-adapter.js", import.meta.url), "utf8"),
+    fs.readFile(new URL("../../src/reader.html", import.meta.url), "utf8"),
+    fs.readFile(new URL("../../src/assets/css/reader-presentation.css", import.meta.url), "utf8")
+  ]);
+
+  assert.match(adapter, /function externalHttpHref/);
+  assert.match(adapter, /\^https\?:\\\/\\\//);
+  assert.match(adapter, /anchor\?\.getAttribute\?\.\("href"\)/);
+  assert.match(adapter, /installExternalLinkGuard/);
+  assert.match(adapter, /hooks\?\.content\?\.register/);
+  assert.match(adapter, /event\.preventDefault\(\)/);
+  assert.match(adapter, /event\.stopImmediatePropagation\(\)/);
+  assert.match(adapter, /window\.open\(href,"_blank","noopener,noreferrer"\)/);
+  assert.match(adapter, /return"";/, "relative and fragment hrefs must fall through to EPUB internal navigation");
+
+  for (const id of ["externalLinkDialog", "externalLinkHeading", "externalLinkDestination", "externalLinkCancel", "externalLinkOpen"]) {
+    assert.match(readerHtml, new RegExp(`id="${id}"`));
+  }
+  assert.match(readerHtml, /PATH BEYOND THE GARDEN/);
+  assert.match(readerHtml, /Leave the Garden\?/);
+  assert.match(presentation, /\.reader-external-dialog/);
+  assert.match(presentation, /\.reader-external-dialog::backdrop/);
+  assert.match(presentation, /body\.adult-reader \.reader-external-dialog/);
+  assert.match(presentation, /body\.reader-theme-paper \.reader-external-dialog/);
+});

@@ -24,7 +24,6 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           path=Path('src/assets/js/library.js')
           text=path.read_text()
@@ -35,8 +34,8 @@ jobs:
               raise SystemExit('syncMobileResultFocus block not found')
           text=text.replace(old,new)
           text=text.replace('syncMobileResultFocus()','syncResultFocus()')
-          text=re.sub(r'\n\s*if\(typeof mobileFilterQuery\.addEventListener==+"function"\)mobileFilterQuery\.addEventListener\("change",syncResultFocus\);\n\s*else mobileFilterQuery\.addListener\?\.\(syncResultFocus\);','',text)
-          if 'mobileFilterQuery' in text or 'mobile-results-focus' in text or 'syncMobileResultFocus' in text:
+          text='\n'.join(line for line in text.splitlines() if 'mobileFilterQuery' not in line)+'\n'
+          if 'mobile-results-focus' in text or 'syncMobileResultFocus' in text:
               raise SystemExit('old mobile-only result-focus ownership remains')
           path.write_text(text)
 

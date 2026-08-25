@@ -27,6 +27,7 @@
     open=Boolean(next);
     nav.classList.toggle('nav-open',open);
     trigger.classList.toggle('menu-open',open);
+    document.documentElement.classList.toggle('site-nav-open',open);
     document.body.classList.toggle('site-nav-open',open);
     trigger.setAttribute('aria-expanded',String(open));
     trigger.setAttribute('aria-label',open?'Close navigation':'Open navigation');

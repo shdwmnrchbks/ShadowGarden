@@ -37,7 +37,7 @@ Reasons:
 - no measured load-time, module-count, or deployment-size problem requires another transformation layer;
 - introducing a bundler immediately before R10 would enlarge the regression surface for Reader and Functions without a demonstrated benefit.
 
-R10 may revisit this only if production measurements identify a concrete problem that bundling solves.
+R10 completed without finding a measured problem that warrants bundling, so the v2 baseline keeps this native/static decision. Future changes may revisit it only with production evidence and equivalent regression coverage.
 
 ## Dependency audit
 
@@ -109,7 +109,7 @@ The build then copies the locked vendor browser assets:
 - `node_modules/epubjs/dist/epub.min.js` → `dist/assets/vendor/epub.min.js`
 - `node_modules/jszip/dist/jszip.min.js` → `dist/assets/vendor/jszip.min.js`
 
-Source HTML/JS/CSS may retain historical query strings; deployment output is normalized by the build rather than by repetitive manual edits.
+R10 removes historical local query strings from authored HTML/JS/CSS. Deployment output is still version-stamped centrally by the build, so source files never need manual release query bumps.
 
 ## Source and deployment metadata
 

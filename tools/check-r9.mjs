@@ -97,7 +97,7 @@ for (const marker of [
 if (!buildContract.includes("package-lock.json") || !buildContract.includes("npm ci") || !buildContract.includes("BUILD_DEPLOYMENT.md")) fail("BUILD_CONTRACT.md must record the finalized R9 lockfile/install boundary");
 if (!docsIndex.includes("BUILD_DEPLOYMENT.md") || !architectureIndex.includes("BUILD_DEPLOYMENT.md")) fail("documentation indexes must include BUILD_DEPLOYMENT.md");
 if (!roadmap.includes("R9. Build and deployment cleanup | ✅ Done")) fail("Refactor roadmap must record R9 complete");
-if (!roadmap.includes("R10. Final cutover and legacy removal | ⬜ Planned")) fail("R10 must remain the next planned refactor milestone");
+if (!roadmap.includes("R10. Final cutover and legacy removal |")) fail("R10 milestone must remain present after R9");
 if (!roadmap.includes("**Release:** v1.24.0")) fail("Refactor roadmap must record the R9 v1.24.0 release");
 if (!gitignore.split(/\r?\n/).includes("dist/")) fail("dist/ must remain ignored/generated");
 if (!gitignore.split(/\r?\n/).includes("node_modules/")) fail("node_modules/ must remain ignored/generated");

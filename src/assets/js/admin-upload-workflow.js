@@ -12,7 +12,7 @@
   let mode='edit',sessionIds=[],completedSeries=[],completionSnapshot={successes:[],failures:[]},finishing=false;
 
   if(!document.querySelector('link[href*="/assets/css/admin-components.css"]')){
-    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/admin-components.css?v=1.22.0';link.dataset.adminComponents='1';document.head.appendChild(link);
+    const link=document.createElement('link');link.rel='stylesheet';link.href='/assets/css/admin-components.css';link.dataset.adminComponents='1';document.head.appendChild(link);
   }
   document.querySelector('#openSeries')?.classList.add('sg-legacy-open-series');
 

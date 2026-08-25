@@ -1,5 +1,14 @@
 # Shadow Garden Changelog
 
+## 2.0.0 — R10 Final Cutover & v2 Baseline
+- Completed the R0–R10 full-codebase refactor and established `V2_BASELINE.md` plus `v2-entrypoints.json` as the new architecture contract.
+- Removed the remaining dormant R5 Garden Keeper alternate owners and the two R7 Keeper CSS compatibility aliases.
+- Renamed the final active `admin-upload-polish.js` path to semantic `admin-upload-presentation.js`.
+- Cleared the R1 grandfathered patch-style source list; retired paths remain permanent tombstones.
+- Removed authored local JS/CSS `?v=` release-history queries; generated `dist/` asset stamping remains the sole cache-busting owner.
+- Preserved Security Milestones 1–9, browser-local reading state, Reader Pages/Continuous input contracts, mobile drawer stabilization, private B2 and signed media/Range delivery.
+- Added a verified v2 release gate: successful main Verify → matching Cloudflare production version/commit → public production smoke → GitHub v2.0.0 release.
+
 ## 1.18.0 — Reader Architecture & Zoom
 - Replaced the Reader monolith/polish stack with an explicit protected book-session boundary and a single Reader application orchestrator.
 - Split Reader responsibilities into rendition, Paginated, Continuous, progress, bookmarks, completion, settings, theme, and gesture controllers.

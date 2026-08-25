@@ -1,12 +1,10 @@
 /* Shadow Garden R7 — stable compact-card columns and badge rail. */
 
-@media(min-width:721px){
-  .catalog-grid:not(.compact) .series-card>.card-copy h2{
-    min-height:0!important;
-  }
-  .catalog-grid:not(.compact) .series-card>.card-copy p{
-    margin-top:4px;
-  }
+.catalog-grid:not(.compact) .series-card>.card-copy h2{
+  min-height:0!important;
+}
+.catalog-grid:not(.compact) .series-card>.card-copy p{
+  margin-top:4px;
 }
 
 .catalog-grid.compact .series-card{

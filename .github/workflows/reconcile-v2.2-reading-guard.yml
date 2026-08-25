@@ -1,0 +1,39 @@
+name: Reconcile v2.2 reading guard
+
+on:
+  push:
+    paths:
+      - ".github/workflows/reconcile-v2.2-reading-guard.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: feature-read-suggestions-random-banners-v2.2.0
+      - name: Follow the new R2 banner selector owner
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('tools/check-reading-status.mjs')
+          text=p.read_text()
+          old='for(const marker of ["data-reading-status=\\\"finished\\\"","data-reading-status=\\\"unfinished\\\"","params.set(\\\"reading\\\"","readingStatus.latestActiveEntry","preserveCount:true","pageshow"])if(!library.includes(marker))fail(`Library controller is missing ${marker}`);'
+          new='for(const marker of ["data-reading-status=\\\"finished\\\"","data-reading-status=\\\"unfinished\\\"","params.set(\\\"reading\\\"","readingStatus.libraryBannerEntry","preserveCount:true","pageshow"])if(!library.includes(marker))fail(`Library controller is missing ${marker}`);\nfor(const marker of ["latestActiveEntry(seriesList)","nextStartedSeriesEntry(seriesList)","randomSeriesSuggestionEntry(seriesList","mode: \\\"continue\\\"","mode: \\\"suggestion\\\""])if(!stateSource.includes(marker))fail(`canonical Library banner selection is missing ${marker}`);'
+          if old not in text:
+              raise SystemExit('reading-status Library marker not found')
+          if text.count(old)!=1:
+              raise SystemExit('reading-status Library marker is not unique')
+          p.write_text(text.replace(old,new,1))
+          PY
+          rm .github/workflows/reconcile-v2.2-reading-guard.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/check-reading-status.mjs .github/workflows/reconcile-v2.2-reading-guard.yml
+          git commit -m "Reconcile reading-status guard with v2.2 banner selection"
+          git push origin HEAD:feature-read-suggestions-random-banners-v2.2.0

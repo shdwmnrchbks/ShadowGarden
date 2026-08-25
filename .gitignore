@@ -1,4 +1,7 @@
 node_modules/
 dist/
+tests/e2e/node_modules/
+tests/e2e/playwright-report/
+tests/e2e/test-results/
 .DS_Store
 .env.b2

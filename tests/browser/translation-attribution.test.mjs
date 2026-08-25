@@ -20,6 +20,7 @@ test("Library and Series expose fan translators as first-class filterable proven
   assert.match(series,/Translation Credits/);
   assert.match(series,/translator=\$\{encodeURIComponent/);
   assert.match(series,/translation-source/);
+  assert.match(series,/target="_blank" rel="noopener noreferrer"/);
   assert.match(series,/volume-translator/);
   assert.match(css,/translation-panel/);
 });

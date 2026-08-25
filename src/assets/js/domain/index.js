@@ -7,5 +7,6 @@ export * as bookmarks from "./bookmarks.js";
 export * as preferences from "./preferences.js";
 export * as readingState from "./reading-state.js";
 export * as catalog from "./catalog.js";
+export * as translations from "./translations.js";
 export * as urls from "./urls.js";
 export * as format from "./format.js";

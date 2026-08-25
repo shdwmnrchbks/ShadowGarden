@@ -2,6 +2,7 @@
   const query="(prefers-reduced-motion: reduce)";
   const preference=window.matchMedia?.(query);
   const root=document.documentElement;
+  const navigationKey="sg-motion-navigation";
 
   const reduced=()=>Boolean(preference?.matches);
   const syncPreference=()=>{
@@ -28,14 +29,61 @@
     }
   };
 
+  const routeDepth=pathname=>{
+    const path=String(pathname||"").toLowerCase();
+    if(path.endsWith("/reader.html"))return 3;
+    if(path.endsWith("/series.html")||path.endsWith("/admin.html"))return 2;
+    return 1;
+  };
+  const normalizeDirection=value=>["forward","backward","lateral"].includes(value)?value:"lateral";
+  const directionFor=(url,anchor)=>{
+    if(anchor?.classList?.contains("header-back")||anchor?.classList?.contains("reader-return"))return"backward";
+    if(anchor?.id==="openSeries")return"forward";
+    const from=routeDepth(location.pathname),to=routeDepth(url.pathname);
+    return to>from?"forward":to<from?"backward":"lateral";
+  };
+  const writeNavigationHint=detail=>{
+    const direction=normalizeDirection(detail?.direction);
+    root.dataset.sgNavDirection=direction;
+    try{sessionStorage.setItem(navigationKey,JSON.stringify({direction,target:String(detail?.target||""),at:Date.now()}))}catch{}
+    return direction;
+  };
+  const restoreNavigationHint=()=>{
+    try{
+      const raw=sessionStorage.getItem(navigationKey);if(!raw)return;
+      const hint=JSON.parse(raw);if(Date.now()-Number(hint?.at||0)>5000){sessionStorage.removeItem(navigationKey);return}
+      root.dataset.sgNavDirection=normalizeDirection(hint?.direction);
+      sessionStorage.removeItem(navigationKey);
+    }catch{}
+  };
+  const clearNavigationHint=()=>{delete root.dataset.sgNavDirection};
+
   const decorateControls=(scope=document)=>{
     const selector="button,[role='button'],a.reader-icon,a.reader-return,.volume-action,.header-back,.recent-view-all,.footer-button";
     scope.querySelectorAll?.(selector).forEach(element=>element.classList.add("sg-motion-control"));
   };
 
+  const observeNavigation=()=>{
+    document.addEventListener("click",event=>{
+      if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
+      const anchor=event.target?.closest?.("a[href]");if(!anchor||anchor.hasAttribute("download")||anchor.target==="_blank")return;
+      let url;try{url=new URL(anchor.href,location.href)}catch{return}
+      if(url.origin!==location.origin)return;
+      writeNavigationHint({direction:directionFor(url,anchor),target:url.pathname});
+    },true);
+    window.addEventListener("sg:navigationintent",event=>writeNavigationHint(event.detail||{}));
+    window.addEventListener("pagereveal",event=>{
+      const finished=event.viewTransition?.finished;
+      if(finished&&typeof finished.finally==="function")finished.finally(clearNavigationHint);
+      else window.setTimeout(clearNavigationHint,520);
+    });
+    window.addEventListener("pageshow",()=>window.setTimeout(clearNavigationHint,720),{once:true});
+  };
+
   const boot=()=>{
     syncPreference();
     decorateControls();
+    observeNavigation();
     document.documentElement.classList.add("sg-motion-ready");
     if("MutationObserver" in window){
       const observer=new MutationObserver(records=>{
@@ -49,11 +97,13 @@
     }
   };
 
+  restoreNavigationHint();
   preference?.addEventListener?.("change",syncPreference);
   window.ShadowGardenMotion=Object.freeze({
     get reduced(){return reduced()},
     transition,
-    decorateControls
+    decorateControls,
+    navigationIntent:(direction,target="")=>writeNavigationHint({direction,target})
   });
 
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});

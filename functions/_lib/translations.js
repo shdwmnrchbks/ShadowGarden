@@ -25,14 +25,13 @@ export function validateTranslationCredits(value){
   const credits=[],seen=new Set();
   for(const raw of Array.isArray(value)?value:[]){
     if(!raw||typeof raw!=="object")continue;
-    let name=clean(raw.name,160),group=clean(raw.group,160);
-    if(!name&&group){name=group;group=""}
+    const name=clean(raw.name,160);
     if(!name)continue;
     const url=external(raw.url);
     if(!url.ok)return{ok:false,error:`Translator URL for ${name} must use http:// or https://`};
-    const coverage=clean(raw.coverage,300),note=clean(raw.note,500);
-    const credit={name,...(group?{group}:{}),...(url.value?{url:url.value}:{}),...(coverage?{coverage}:{}),...(note?{note}:{})};
-    const key=[credit.name,credit.group||"",credit.url||"",credit.coverage||"",credit.note||""].join("\u0000").toLowerCase();
+    const coverage=clean(raw.coverage,300);
+    const credit={name,...(url.value?{url:url.value}:{}),...(coverage?{coverage}:{})};
+    const key=[credit.name,credit.url||"",credit.coverage||""].join("\u0000").toLowerCase();
     if(seen.has(key))continue;
     seen.add(key);credits.push(credit);
     if(credits.length>=24)break;

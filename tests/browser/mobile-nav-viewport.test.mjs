@@ -17,14 +17,13 @@ test("mobile navigation keeps viewport ownership, pinned header, stable layout, 
 
   assert.match(css, /\.site-nav-open \.site-header\{[^}]*position:fixed!important;top:0;left:0;right:0;width:100%;z-index:70/);
   assert.match(css, /body\.site-nav-open\{padding-top:72px\}/);
-  assert.match(css, /@media\(max-width:720px\)\{body\.site-nav-open\{padding-top:62px\}/);
+  assert.match(css, /@media\(max-width:720px\)\{body\.site-nav-open\{padding-top:62px\}\.site-nav-drawer\{[^}]*top:62px;bottom:0;height:auto/);
   assert.match(css, /\.site-nav-drawer\{[^}]*position:fixed!important/);
   assert.match(css, /\.site-nav-drawer\{[^}]*top:72px;bottom:0/);
   assert.match(css, /\.site-nav-drawer\{[^}]*height:auto/);
   assert.match(css, /\.site-nav-drawer\{[^}]*overflow-y:auto/);
   assert.match(css, /\.site-nav-drawer\{[^}]*overscroll-behavior:contain/);
   assert.match(css, /\.site-nav-drawer\{[^}]*touch-action:pan-y/);
-  assert.match(css, /@media\(max-width:720px\)\{[^}]*\.site-nav-drawer\{[^}]*top:62px;bottom:0;height:auto/);
   assert.match(css, /padding:18px 14px max\(18px,env\(safe-area-inset-bottom\)\)/);
 
   assert.match(css, /\.site-nav-drawer a,\.site-nav-drawer \.nav-button\{[^}]*color:var\(--muted\);text-decoration:none;background:transparent;cursor:pointer/);

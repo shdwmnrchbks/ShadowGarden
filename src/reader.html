@@ -134,6 +134,20 @@
       <p class="reader-image-focus-hint">Pinch to zoom · drag to inspect · tap again to return</p>
     </div>
 
+    <dialog id="externalLinkDialog" class="reader-external-dialog" aria-labelledby="externalLinkHeading" aria-describedby="externalLinkDescription">
+      <div class="reader-external-card">
+        <div class="reader-external-mark" aria-hidden="true">✦</div>
+        <p class="reader-external-kicker">PATH BEYOND THE GARDEN</p>
+        <h2 id="externalLinkHeading">Leave the Garden?</h2>
+        <p id="externalLinkDescription" class="reader-external-copy">This passage points to a website outside Shadow Garden. Open it in a new browser tab?</p>
+        <div class="reader-external-destination"><span>External destination</span><strong id="externalLinkDestination">External website</strong></div>
+        <div class="reader-external-actions">
+          <button id="externalLinkCancel" class="reader-external-stay" type="button">Remain Here</button>
+          <button id="externalLinkOpen" class="reader-external-open" type="button">Open New Tab ↗</button>
+        </div>
+      </div>
+    </dialog>
+
     <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
     <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>

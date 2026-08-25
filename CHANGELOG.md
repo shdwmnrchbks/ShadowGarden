@@ -1,5 +1,11 @@
 # Shadow Garden Changelog
 
+## 2.0.1 — Mobile Filter & Reader Link UX
+- Normalized Main and Adult mobile Search/Filter entry to the same collapsed baseline.
+- While mobile search text or result filters are active, New Growth / Recently Added now fades away so matching catalog results move into view immediately.
+- Expanded the active tag rail into removable, ellipsized pills for Author, Year, Volume range, Reading status, Pinned-only, and tag filters.
+- Reader HTTP/HTTPS links now show a Shadow Garden-themed “Leave the Garden?” confirmation before opening safely in a new browser tab; internal EPUB links remain unchanged.
+
 ## 2.0.0 — R10 Final Cutover & v2 Baseline
 - Completed the R0–R10 full-codebase refactor and established `V2_BASELINE.md` plus `v2-entrypoints.json` as the new architecture contract.
 - Removed the remaining dormant R5 Garden Keeper alternate owners and the two R7 Keeper CSS compatibility aliases.

@@ -6,6 +6,12 @@ const failures=[];
 const fail=message=>failures.push(message);
 const read=file=>fs.readFile(path.join(ROOT,file),"utf8");
 const exists=async file=>{try{await fs.access(path.join(ROOT,file));return true}catch{return false}};
+const semverAtLeast=(current,minimum)=>{
+  const parse=value=>String(value||"0").split(".").slice(0,3).map(item=>Number.parseInt(item,10)||0);
+  const a=parse(current),b=parse(minimum);
+  for(let i=0;i<3;i++){if(a[i]>b[i])return true;if(a[i]<b[i])return false}
+  return true;
+};
 
 function normalizeAsset(value){return String(value||"").trim().split("#")[0].split("?")[0]}
 function htmlAssets(html,kind){
@@ -43,7 +49,7 @@ const [pkgText,lockText,v2Text,legacyText,roadmap,baseline,docsIndex,architectur
 ]);
 const pkg=JSON.parse(pkgText),lock=JSON.parse(lockText),v2=JSON.parse(v2Text),legacy=JSON.parse(legacyText);
 
-if(pkg.version!=="2.0.0")fail(`R10 v2 baseline requires package version 2.0.0, found ${pkg.version}`);
+if(!semverAtLeast(pkg.version,"2.0.0"))fail(`R10 v2 baseline requires package version 2.0.0 or newer, found ${pkg.version}`);
 if(lock.version!==pkg.version||lock.packages?.[""]?.version!==pkg.version)fail("package-lock root versions must match the v2 package version");
 if(v2.baselineVersion!=="2.0.0"||v2.milestone!=="R10")fail("v2-entrypoints.json must freeze the R10 v2.0.0 baseline");
 if(!String(pkg.scripts?.check||"").includes("node tools/check-r10.mjs"))fail("tools/check-r10.mjs must remain in npm run check");

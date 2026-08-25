@@ -5,7 +5,7 @@
   const originalEpub=window.ePub;
   if(typeof originalEpub!=="function")return;
 
-  let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0,seekTimer=0,seekSerial=0;
+  let currentBook=null,currentRendition=null,currentTarget=null,viewportTimer=0,seekTimer=0,seekSerial=0,pendingExternalHref="";
   const progressByCfi=new Map();
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 
@@ -49,6 +49,79 @@
        the mobile viewport. We only normalize box sizing and author-side margins. */
     style.textContent="html,body{box-sizing:border-box!important}html{max-width:none!important}body{max-width:none!important;margin-left:0!important;margin-right:0!important}";
   }
+
+  function externalHttpHref(anchor){
+    const raw=String(anchor?.getAttribute?.("href")||"").trim();
+    if(/^https?:\/\//i.test(raw))return raw;
+    if(/^\/\//.test(raw))return `${location.protocol==="http:"?"http:":"https:"}${raw}`;
+    return"";
+  }
+
+  function externalDialogElements(){return{
+    dialog:document.getElementById("externalLinkDialog"),
+    destination:document.getElementById("externalLinkDestination"),
+    cancel:document.getElementById("externalLinkCancel"),
+    open:document.getElementById("externalLinkOpen")
+  }}
+
+  function closeExternalDialog(){
+    const {dialog}=externalDialogElements();
+    if(!dialog)return;
+    if(dialog.open&&typeof dialog.close==="function")dialog.close();
+    else dialog.removeAttribute("open");
+  }
+
+  function setupExternalDialog(){
+    const {dialog,cancel,open}=externalDialogElements();
+    if(!dialog||dialog.__sgExternalLinkReady)return Boolean(dialog);
+    dialog.__sgExternalLinkReady=true;
+    cancel?.addEventListener("click",closeExternalDialog);
+    open?.addEventListener("click",()=>{
+      const href=pendingExternalHref;
+      if(!href)return closeExternalDialog();
+      closeExternalDialog();
+      const opened=window.open(href,"_blank","noopener,noreferrer");
+      try{if(opened)opened.opener=null}catch{}
+    });
+    dialog.addEventListener("click",event=>{if(event.target===dialog)closeExternalDialog()});
+    dialog.addEventListener("close",()=>{pendingExternalHref=""});
+    return true;
+  }
+
+  function showExternalLinkConfirmation(href){
+    if(!setupExternalDialog())return;
+    const {dialog,destination,cancel,open}=externalDialogElements();
+    pendingExternalHref=href;
+    try{
+      const parsed=new URL(href);
+      if(destination)destination.textContent=parsed.hostname||href;
+      if(open)open.setAttribute("aria-label",`Open ${parsed.hostname||"external website"} in a new tab`);
+    }catch{
+      if(destination)destination.textContent=href;
+    }
+    if(typeof dialog.showModal==="function"){
+      if(!dialog.open)dialog.showModal();
+    }else dialog.setAttribute("open","");
+    requestAnimationFrame(()=>cancel?.focus?.({preventScroll:true}));
+  }
+
+  function installExternalLinkGuard(contents){
+    const doc=contents?.document||contents?.contentDocument||contents;
+    if(!doc?.documentElement||doc.documentElement.dataset.sgExternalLinks==="1")return;
+    doc.documentElement.dataset.sgExternalLinks="1";
+    doc.addEventListener("click",event=>{
+      const anchor=event.target?.closest?.("a[href]");
+      const href=externalHttpHref(anchor);
+      if(!href)return;
+      try{event.preventDefault()}catch{}
+      try{event.stopPropagation()}catch{}
+      try{event.stopImmediatePropagation()}catch{}
+      showExternalLinkConfirmation(href);
+    },{capture:true});
+  }
+
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setupExternalDialog,{once:true});
+  else setupExternalDialog();
 
   function sameHref(a,b){
     const clean=value=>String(value||"").split("#")[0].replace(/^\.\//,"");
@@ -166,14 +239,15 @@
        percentage has already been repaired from the reliable spine index when EPUB.js
        reports a missing/zero generated-location percentage. */
     try{rendition.on("relocated",location=>normalizeLocationProgress(currentBook,location))}catch{}
+    try{rendition.hooks?.content?.register?.(contents=>installExternalLinkGuard(contents))}catch(error){console.warn("External EPUB link hook unavailable",error)}
 
     try{
       rendition.on("rendered",(_,view)=>{
         if(rendition!==currentRendition)return;
         const contents=view?.contents;
-        if(contents)setTimeout(()=>normalizeMobilePage(contents),0);
+        if(contents)setTimeout(()=>{normalizeMobilePage(contents);installExternalLinkGuard(contents)},0);
         else setTimeout(()=>{
-          try{rendition.getContents?.().forEach(normalizeMobilePage)}catch{}
+          try{rendition.getContents?.().forEach(contents=>{normalizeMobilePage(contents);installExternalLinkGuard(contents)})}catch{}
         },0);
       });
     }catch{}

@@ -4,6 +4,7 @@
   const scope=document.body.dataset.libraryScope||"main";
   const arr=value=>Array.isArray(value)?value:[];
   const state={catalog:null,items:[],filtered:[],query:"",author:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
+  const mobileFilterQuery=window.matchMedia("(max-width: 720px)");
   let searchTimer=0;
 
   const domain=await import("/assets/js/domain/index.js");
@@ -66,11 +67,47 @@
     history[mode==="push"?"pushState":"replaceState"]({sgLibrary:true},"",next);
   }
 
-  function renderActiveTags(){
+  function hasActiveResultFilter(){
+    return Boolean(state.query.trim()||state.author||state.tags.size||state.year||state.volumeRange||state.readingStatus||state.pinnedOnly);
+  }
+
+  function syncMobileResultFocus(){
+    $("#recentSection")?.classList.toggle("mobile-results-focus",mobileFilterQuery.matches&&hasActiveResultFilter());
+  }
+
+  function filterPill(label,key,title=label){
+    return `<button type="button" data-clear-filter="${esc(key)}" title="Remove ${esc(title)}"><span class="active-filter-pill-label">${esc(label)}</span><span class="active-filter-remove" aria-hidden="true">×</span></button>`;
+  }
+
+  function tagPill(tag){
+    return `<button type="button" data-remove-tag="${esc(tag)}" title="Remove ${esc(tag)}"><span class="active-filter-pill-label">${esc(tag)}</span><span class="active-filter-remove" aria-hidden="true">×</span></button>`;
+  }
+
+  function renderActiveFilters(){
     const container=$("#activeTags");
     if(!container)return;
-    container.innerHTML=[...state.tags].sort((a,b)=>a.localeCompare(b)).map(tag=>`<button type="button" data-remove-tag="${esc(tag)}" title="Remove ${esc(tag)}">${esc(tag)} <span>×</span></button>`).join("");
+    const pills=[];
+    if(state.author)pills.push(filterPill(`Author: ${state.author}`,"author",`author filter ${state.author}`));
+    if(state.year)pills.push(filterPill(`Year: ${state.year}`,"year",`year filter ${state.year}`));
+    if(state.volumeRange){
+      const labels={"1":"Single volume","2-5":"2–5 volumes","6-10":"6–10 volumes","11+":"11+ volumes"};
+      pills.push(filterPill(`Volumes: ${labels[state.volumeRange]||state.volumeRange}`,"volumeRange","volume filter"));
+    }
+    if(state.readingStatus)pills.push(filterPill(`Reading: ${state.readingStatus==="finished"?"Finished":"Unfinished"}`,"readingStatus","reading status filter"));
+    if(state.pinnedOnly)pills.push(filterPill("Pinned only","pinnedOnly","pinned-only filter"));
+    [...state.tags].sort((a,b)=>a.localeCompare(b)).forEach(tag=>pills.push(tagPill(tag)));
+    container.innerHTML=pills.join("");
     document.querySelectorAll("#genreChips button").forEach(button=>button.classList.toggle("active",state.tags.has(button.dataset.tag)));
+  }
+
+  function clearNamedFilter(key){
+    if(key==="author")state.author="";
+    else if(key==="year")state.year="";
+    else if(key==="volumeRange")state.volumeRange="";
+    else if(key==="readingStatus")state.readingStatus="";
+    else if(key==="pinnedOnly")state.pinnedOnly=false;
+    else return false;
+    return true;
   }
 
   function syncControls(){
@@ -83,7 +120,8 @@
     $("#pinnedNav")?.classList.toggle("active",state.pinnedOnly);
     document.querySelectorAll(".view-switch button").forEach(button=>{const active=button.dataset.view===state.view;button.classList.toggle("active",active);button.setAttribute("aria-pressed",active?"true":"false")});
     document.querySelectorAll("#readingStatusChips [data-reading-status]").forEach(button=>button.classList.toggle("active",button.dataset.readingStatus===state.readingStatus));
-    renderActiveTags();
+    renderActiveFilters();
+    syncMobileResultFocus();
   }
 
   function batchSize(){return state.view==="compact"?60:36}
@@ -160,7 +198,7 @@
   }
 
   function bindControls(){
-    $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
+    $("#searchInput")?.addEventListener("input",event=>{state.query=event.target.value;syncMobileResultFocus();clearTimeout(searchTimer);searchTimer=setTimeout(()=>apply({historyMode:"replace"}),120)});
     $("#authorSelect")?.addEventListener("change",event=>{state.author=event.target.value;apply({historyMode:"push"})});
     $("#yearSelect")?.addEventListener("change",event=>{state.year=event.target.value;apply({historyMode:"push"})});
     $("#volumeCountSelect")?.addEventListener("change",event=>{state.volumeRange=event.target.value;apply({historyMode:"push"})});
@@ -168,7 +206,12 @@
     $("#tagSelect")?.addEventListener("change",event=>{const tag=event.target.value;if(tag)state.tags.add(tag);event.target.value="";apply({historyMode:"push"})});
     $("#genreChips")?.addEventListener("click",event=>{const button=event.target.closest("button[data-tag]");if(!button)return;const tag=button.dataset.tag;if(state.tags.has(tag))state.tags.delete(tag);else state.tags.add(tag);apply({historyMode:"push"})});
     document.querySelector(".filters")?.addEventListener("click",event=>{const button=event.target.closest("button[data-reading-status]");if(!button)return;const value=button.dataset.readingStatus;state.readingStatus=state.readingStatus===value?"":value;apply({historyMode:"push"})});
-    $("#activeTags")?.addEventListener("click",event=>{const button=event.target.closest("button[data-remove-tag]");if(!button)return;state.tags.delete(button.dataset.removeTag);apply({historyMode:"push"})});
+    $("#activeTags")?.addEventListener("click",event=>{
+      const tagButton=event.target.closest("button[data-remove-tag]");
+      if(tagButton){state.tags.delete(tagButton.dataset.removeTag);apply({historyMode:"push"});return}
+      const filterButton=event.target.closest("button[data-clear-filter]");
+      if(filterButton&&clearNamedFilter(filterButton.dataset.clearFilter))apply({historyMode:"push"});
+    });
     $("#clearFilters")?.addEventListener("click",()=>clearFilters());
     $("#pinnedNav")?.addEventListener("click",()=>{state.pinnedOnly=!state.pinnedOnly;apply({historyMode:"push"})});
     document.querySelector(".view-switch")?.addEventListener("click",event=>{const button=event.target.closest("button[data-view]");if(!button)return;state.view=button.dataset.view;domain.preferences.setLibraryView(scope,state.view);apply({historyMode:"replace"})});
@@ -177,6 +220,8 @@
     window.addEventListener("popstate",()=>{readUrl();model.validateFilterState(state,state.items);apply()});
     window.addEventListener(readingStatus.EVENT,refreshReadingUi);
     window.addEventListener("pageshow",refreshReadingUi);
+    if(typeof mobileFilterQuery.addEventListener==="function")mobileFilterQuery.addEventListener("change",syncMobileResultFocus);
+    else mobileFilterQuery.addListener?.(syncMobileResultFocus);
     window.addEventListener("storage",event=>{
       if(readingStatus.isReadingStorageKey(event.key)){refreshReadingUi();return}
       if(domain.preferences.isPreferenceStorageKey(event.key)){

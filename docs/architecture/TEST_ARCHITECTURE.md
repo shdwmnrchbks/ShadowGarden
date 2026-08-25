@@ -64,7 +64,8 @@ The browser-smoke layer verifies browser-facing entrypoints and high-risk intera
 - Adult catalog isolation during Read Again;
 - Pages horizontal swipe versus Continuous native-touch behavior;
 - image-focus pinch/pan isolation from live EPUB documents;
-- Garden Keeper composition-root and protected unlock/status boundaries.
+- Garden Keeper composition-root and protected unlock/status boundaries;
+- responsive navigation viewport ownership, fixed-open header behavior, stable background layout, portaled link presentation, and mobile background scroll locking.
 
 This layer is a deterministic browser-contract smoke suite, not a full Chromium/WebKit deployment test. R10 still owns the final real production/browser regression matrix; R9 may make a deliberate browser-runner dependency decision if it provides measurable value.
 
@@ -86,6 +87,23 @@ Fixtures contain no production secrets, private catalog data, or live storage UR
 `tests/helpers/browser-env.mjs` provides browser-local storage, location, events, and simple browser globals. `tests/helpers/fake-dom.mjs` provides narrow DOM elements/class/style behavior for renderer tests.
 
 Each test owns and restores its global state. Test files run with `--test-concurrency=1` within each layer, and the layered runner executes layers explicitly so failures identify their architectural boundary.
+
+## Post-R8 real-device stabilization coverage
+
+R8's ownership model also applies to real-device regressions discovered after the v1.23.0 milestone release. The v1.23.1–v1.23.5 mobile navigation corrections were folded into the existing browser-contract layer instead of creating one-off root guards or an R8.1 milestone.
+
+`tests/browser/mobile-nav-viewport.test.mjs` now permanently requires:
+
+- body-level drawer portal ownership, preventing fixed geometry from being trapped beneath a filtered header;
+- a true fixed header while navigation is open;
+- viewport-fixed drawer top/bottom geometry with internal vertical scrolling;
+- explicit drawer-owned non-underlined link/button presentation after portal placement;
+- open-state locking on both `<html>` and `<body>`;
+- a non-pannable backdrop and a vertically pannable drawer;
+- 72px/62px layout compensation so switching the header from sticky to fixed does not move the background page;
+- continued rejection of the retired absolute/`100dvh` drawer implementation.
+
+The corresponding runtime/design ownership is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md). Future real-device regressions should continue to strengthen the smallest existing layer that owns the behavior.
 
 ## Commands
 
@@ -121,3 +139,5 @@ The two forms are intentionally complementary:
 - Keeper authorization/workflow smoke coverage;
 - package scripts and CI integration;
 - the v1.23.0 R8 roadmap/documentation contract.
+
+Post-R8 real-device corrections remain part of the same testing architecture through focused browser-smoke regressions rather than new milestone-specific guard scripts.

@@ -25,8 +25,8 @@ Semantic layers:
 - `adult.css` — Adult gate/archive palette and Adult-specific components.
 - `library-features.css` — Recently Added, advanced filters, tag chips, load-more/sentinel behavior, and their responsive layout.
 - `public-components.css` — skip link/focus treatment, shared archive/header components, pinned navigation/card presentation, mobile filter collapse, Adult chrome parity, and public accessibility media queries.
-- `public-artwork.css` — Library banner artwork, Series backdrop artwork, compact-card badges, Continue cover, Series primary action treatment, and navigable Series tags.
-- `library-layout.css` — final compact-card column/badge-rail geometry.
+- `public-artwork.css` — Library/Series artwork, compact badges, Continue cover, Series primary actions, and navigable Series tags.
+- `library-layout.css` — final compact-card column and badge-rail geometry.
 - `series-extra.css` — Series-only layout/presentation that predates and remains independent from shared public components.
 - `reading-status.css`, `volume-actions.css`, `ui-symbols.css` — shared primitives.
 
@@ -42,6 +42,18 @@ site → nav → library-features → public-components → public-artwork
 Adult Library inserts `adult.css` after `nav.css`. Series replaces Library feature/layout sheets with `adult.css` + `series-extra.css`, then uses `public-components` and `public-artwork` in the same order.
 
 The source order deliberately matches the pre-R7 computed cascade positions of the retired sheets.
+
+### Reconciled responsive navigation contract
+
+Real-device fixes in v1.23.1–v1.23.5 did not create a new style owner. They clarified what `nav.css` and `nav.js` must own together:
+
+- `nav.js` portals the responsive drawer to `document.body` so fixed geometry is not constrained by the filtered/sticky header in mobile Chromium.
+- `nav.css` owns the fixed drawer/header/backdrop geometry and complete drawer link/button presentation because portaled controls can no longer depend on `.site-header nav ...` ancestry.
+- While open, the fixed header's removed flow space is compensated on `body.site-nav-open` (72px normally, 62px on mobile) so the background page does not jump.
+- `<html>` and `<body>` share the open-state scroll lock; the backdrop is non-pannable while the drawer remains vertically pannable/scrollable.
+- Main and Adult variants remain selector-scoped under the same `nav.css` owner.
+
+The complete contract is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) and guarded by R8's `tests/browser/mobile-nav-viewport.test.mjs`. These corrections are stabilization of the R7 owner, not a new patch stylesheet.
 
 ## Reader ownership
 
@@ -113,4 +125,4 @@ R7 preserves:
 
 `tools/check-r7.mjs` verifies semantic stylesheet order, ownership markers, deleted historical CSS, selector-free Keeper aliases, Keeper semantic runtime loading, accessibility/variant markers, cache headers, documentation state, and release version.
 
-R8 may add screenshot/browser fixture coverage, but future CSS changes must already preserve the R7 ownership contract and cannot reintroduce release-history styling layers.
+R8's browser-contract suite now additionally guards the reconciled responsive-navigation behavior. Future CSS changes must preserve the R7 ownership contract and cannot reintroduce release-history styling layers.

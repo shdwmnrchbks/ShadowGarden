@@ -1,5 +1,13 @@
 # Shadow Garden Changelog
 
+## 2.4.0 — Interaction & UX Polish
+- Make Library discovery faster with context-aware facet counts, disabled zero-result choices, persistent per-library View/Sort preferences, multi-filter Clear all, actionable empty states, subtle result transitions, and an explicit Another suggestion action for random reading suggestions.
+- Add quiet reading-progress rails to Library/Series covers, canonical Unread / Continue / Up next / Finished volume states, and a simple reduced-motion-aware Back to top control for long Series pages.
+- Polish Reader interaction with staged loading copy, external-link affordances, tap feedback, and immersive mobile chrome that auto-hides while reading and returns on interaction without obscuring Continuous-mode progress.
+- Improve Garden Keeper with dirty-aware Series editing, discard protection, persistent save controls, canonical Novel Updates Genre chips, upload review summaries, safer Trash hierarchy, and focus restoration across dialogs.
+- Replace blank or unstable Library/Series startup with geometry-matched Main/Adult skeletons that preserve persisted Compact/Grid preference and apply Adult Series theming before visible loading content can paint.
+- Keep all new transitions and loading motion compatible with `prefers-reduced-motion` and add permanent unit/browser regression coverage for the new interaction contracts.
+
 ## 2.3.1 — Unified Series Editor Save
 - Remove the redundant series-level **Save translation credits** action from Garden Keeper.
 - Save translation status and translator credits atomically with the existing **Save series** action.

@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const read = file => fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
 const json = async file => JSON.parse(await read(file));
 
-const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, bookmarks, rendition, imageFocus, imageFocusCss, motion, roadmap] = await Promise.all([
+const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, navCss, bookmarks, rendition, imageFocus, imageFocusCss, motion, roadmap] = await Promise.all([
   json('tests/e2e/package.json'),
   json('tests/e2e/package-lock.json'),
   read('tests/e2e/playwright.config.mjs'),
@@ -18,6 +18,7 @@ const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fi
   read('src/assets/js/library-renderers.js'),
   read('src/assets/js/nav.js'),
   read('src/assets/js/nav-pinned.js'),
+  read('src/assets/css/nav.css'),
   read('src/assets/js/reader/bookmarks-controller.js'),
   read('src/assets/js/reader/rendition.js'),
   read('src/assets/js/reader/image-focus.js'),
@@ -52,6 +53,7 @@ assert.match(librarySpec, /browserDiagnostics/);
 assert.match(librarySpec, /page\.locator\(['"]\.brand-mark['"]\)/, 'mobile navigation E2E must use a stable locator while its accessible name changes');
 assert.match(librarySpec, /localStorage\.setItem\(['"]sg-pinned['"]/, 'real-browser Library coverage must seed and verify pinned-series persistence');
 assert.match(librarySpec, /Show another reading suggestion/, 'real-browser Library coverage must exercise suggestion reroll');
+assert.match(librarySpec, /headerOwnsTopPoint/, 'real-browser drawer coverage must verify the header is actually painted above the body-level overlay');
 
 assert.match(libraryJs, /function suggestionIdentity\(/, 'Library controller must track the current random suggestion identity');
 assert.match(libraryJs, /for\(let attempt=0;attempt<17;attempt\+\+\)/, 'Library reroll must search deterministically for a visibly different eligible suggestion');
@@ -59,6 +61,9 @@ assert.match(libraryJs, /renderContinue\(\{reroll:true\}\)/, 'suggestion control
 assert.match(libraryRenderers, /title="Another suggestion">↻<\/button>/, 'suggestion reroll control must remain compact while keeping an accessible label');
 assert.match(navPinned, /document\.querySelector\(['"]#siteNav['"]\)/, 'pinned-series renderer must target the canonical body-level navigation drawer');
 assert.match(nav, /control\.closest\(['"]\[data-nav-keep-open\]['"]\)/, 'drawer-owned controls must not close the navigation drawer');
+assert.match(navCss, /body\.site-nav-open\{padding-top:72px\}/, 'open navigation must preserve the sticky header normal-flow height');
+assert.match(navCss, /\.site-nav-open \.site-header\{position:fixed;top:0;left:0;right:0;width:100%;z-index:70/, 'open navigation must promote the header to a viewport layer above the body-level drawer');
+assert.match(navCss, /@media\(max-width:720px\)\{body\.site-nav-open\{padding-top:62px\}/, 'mobile drawer must preserve the 62px header height without a layout jump');
 
 assert.match(readerGenerator, /application\/epub\+zip/);
 assert.match(readerGenerator, /META-INF\/container\.xml/);

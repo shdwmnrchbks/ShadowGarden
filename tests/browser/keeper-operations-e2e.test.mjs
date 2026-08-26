@@ -24,7 +24,11 @@ test('v2.6 Keeper operational workflows retain canonical owners and single-submi
     'state.purgeTrashCount',
     'state.releaseAbuseCount',
     'button.click(); button.click();',
-    "entry.headers.authorization === 'Bearer e2e-keeper-token'"
+    "entry.headers.authorization === 'Bearer e2e-keeper-token'",
+    'const diagnosticPath = entry =>',
+    "new URL(entry.sourceUrl).pathname",
+    "diagnosticPath(entry).endsWith('/assets/js/admin/abuse-workflow.js')",
+    "diagnosticPath(entry) === '/admin-api/abuse'"
   ]) assert.ok(spec.includes(marker), marker);
 
   assert.match(maintenance, /deepChecking\|\|!snapshot/, 'Maintenance deep checks must retain their in-flight guard');

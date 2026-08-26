@@ -122,17 +122,18 @@ test('Reader keyboard focus restores from drawers and forced-colors/contrast ret
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('mobile Reader controls expose labelled 44px touch targets', async ({ page, browserDiagnostics }, testInfo) => {
+test('mobile Reader controls expose labelled 44px touch targets and allow browser zoom', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile-project accessibility regression');
   await waitForReader(page);
 
+  await expect(page.locator('meta[name="viewport"]')).not.toHaveAttribute('content', /maximum-scale|user-scalable\s*=\s*no/i);
   const controls = [
     ['#tocToggle', 'Table of contents'],
     ['#bookmarkButton', 'Bookmark this location'],
     ['#settingsToggle', 'Reader settings'],
     ['#returnButton', 'Return to series'],
-    ['#prevBottom', 'Previous'],
-    ['#nextBottom', 'Next']
+    ['#prevBottom', 'Previous page'],
+    ['#nextBottom', 'Next page']
   ];
   for (const [selector, name] of controls) {
     const control = page.locator(selector);

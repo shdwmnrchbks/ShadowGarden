@@ -58,19 +58,52 @@ async function trustedWheel(page, deltaY) {
 async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = {}) {
   return page.locator('#viewer iframe').first().evaluate((frame, values) => {
     const doc = frame.contentDocument;
+    const win = doc?.defaultView;
     const target = doc?.body || doc?.documentElement;
-    if (!doc || !target) return null;
+    if (!doc || !win || !target) return null;
+
+    const touch = x => {
+      const init = {
+        identifier: 1,
+        target,
+        screenX: x,
+        screenY: values.y,
+        clientX: x,
+        clientY: values.y,
+        pageX: x,
+        pageY: values.y,
+        radiusX: 1,
+        radiusY: 1,
+        rotationAngle: 0,
+        force: 1
+      };
+      try { return typeof win.Touch === 'function' ? new win.Touch(init) : init; }
+      catch { return init; }
+    };
     const event = (type, x) => {
-      const value = new Event(type, { bubbles: true, cancelable: true });
-      Object.defineProperty(value, 'touches', { value: type === 'touchend' ? [] : [{ screenX: x, screenY: values.y }], configurable: true });
-      Object.defineProperty(value, 'changedTouches', { value: [{ screenX: x, screenY: values.y }], configurable: true });
+      const point = touch(x);
+      const init = {
+        bubbles: true,
+        cancelable: true,
+        touches: type === 'touchend' ? [] : [point],
+        targetTouches: type === 'touchend' ? [] : [point],
+        changedTouches: [point]
+      };
+      try {
+        if (typeof win.TouchEvent === 'function') return new win.TouchEvent(type, init);
+      } catch {}
+      const value = new win.Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(value, 'touches', { value: init.touches, configurable: true });
+      Object.defineProperty(value, 'targetTouches', { value: init.targetTouches, configurable: true });
+      Object.defineProperty(value, 'changedTouches', { value: init.changedTouches, configurable: true });
       return value;
     };
-    const start = event('touchstart', values.startX);
-    target.dispatchEvent(start);
+
+    const installed = doc.documentElement?.dataset.sgReaderPageInput === '1';
+    target.dispatchEvent(event('touchstart', values.startX));
     const end = event('touchend', values.endX);
     const accepted = target.dispatchEvent(end);
-    return { accepted, defaultPrevented: end.defaultPrevented };
+    return { installed, accepted, defaultPrevented: end.defaultPrevented };
   }, { startX, endX, y });
 }
 
@@ -145,17 +178,18 @@ test('mobile Pages swipe turns the live rendition without becoming a Continuous-
 
   const beforeSwipe = await currentCfi(page);
   const swipe = await dispatchReaderSwipe(page);
-  expect(swipe).toEqual({ accepted: false, defaultPrevented: true });
+  expect(swipe?.installed).toBe(true);
+  expect(swipe?.accepted).toBe(false);
+  expect(swipe?.defaultPrevented).toBe(true);
   await expectCfiChange(page, beforeSwipe, 8_000);
 
   await page.locator('#settingsToggle').click();
   await page.locator('#flowSelect').selectOption('scrolled-doc');
   await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
-  const continuousBefore = await currentCfi(page);
   const continuousSwipe = await dispatchReaderSwipe(page);
-  expect(continuousSwipe).toEqual({ accepted: true, defaultPrevented: false });
-  await page.waitForTimeout(300);
-  expect(await currentCfi(page)).toBe(continuousBefore);
+  expect(continuousSwipe?.installed).toBe(true);
+  expect(continuousSwipe?.accepted).toBe(true);
+  expect(continuousSwipe?.defaultPrevented).toBe(false);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 

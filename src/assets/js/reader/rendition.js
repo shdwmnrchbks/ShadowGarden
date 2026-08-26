@@ -28,6 +28,32 @@ export function configureSpread(rendition,flow="paginated"){
   }catch(error){console.warn("Reader spread configuration skipped",error)}
 }
 
+/* EPUB.js versions differ in whether ContinuousManager keeps `scrolled` callable after
+   internal lifecycle work. Shadow Garden's Continuous core deliberately routes scroll
+   events through manager._scrolled, so keep that debounce defensive at the rendition
+   boundary instead of allowing a late callback to throw after a flow switch/relayout. */
+export function stabilizeContinuousScrollLifecycle(rendition){
+  const manager=rendition?.manager;
+  if(!manager||manager.__sgSafeScrollLifecycle)return Boolean(manager?.__sgSafeScrollLifecycle);
+  const current=manager._scrolled;
+  if(typeof current!=="function")return false;
+  let timer=0;
+  const safe=(...args)=>{
+    clearTimeout(timer);
+    timer=setTimeout(()=>{
+      timer=0;
+      if(manager.__sgDestroyed)return;
+      const scrolled=manager.scrolled;
+      if(typeof scrolled==="function")scrolled.apply(manager,args);
+    },30);
+  };
+  safe.cancel=()=>{clearTimeout(timer);timer=0;try{current.cancel?.()}catch{}};
+  try{current.cancel?.()}catch{}
+  manager._scrolled=safe;
+  manager.__sgSafeScrollLifecycle=true;
+  return true;
+}
+
 export function createRendition({book,target,viewerId="viewer",flow="paginated",wire,onCreate,themeCss}={}){
   if(!book)throw new Error("EPUB is not open");
   const scrolled=flow==="scrolled-doc",singlePage=!scrolled&&paginatedNeedsSinglePage();
@@ -39,7 +65,10 @@ export function createRendition({book,target,viewerId="viewer",flow="paginated",
   wire?.(rendition);
   try{if(themeCss)rendition.themes.default(themeCss)}catch{}
   configureSpread(rendition,flow);
-  return rendition.display(target||undefined).then(()=>rendition);
+  return rendition.display(target||undefined).then(()=>{
+    if(scrolled)stabilizeContinuousScrollLifecycle(rendition);
+    return rendition;
+  });
 }
 
 export async function captureRenditionPosition({rendition,flow,pageMap,fallback}={}){

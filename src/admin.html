@@ -9,12 +9,17 @@
   <link rel="icon" href="/assets/icons/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/css/site.css">
   <link rel="stylesheet" href="/assets/css/nav.css">
+  <link rel="stylesheet" href="/assets/css/motion.css">
   <link rel="stylesheet" href="/assets/css/admin.css">
   <link rel="stylesheet" href="/assets/css/admin-preflight.css">
   <link rel="stylesheet" href="/assets/css/admin-batch.css">
   <link rel="stylesheet" href="/assets/css/admin-maintenance.css">
   <link rel="stylesheet" href="/assets/css/admin-series-editor.css">
   <link rel="stylesheet" href="/assets/css/admin-layout.css">
+  <link rel="stylesheet" href="/assets/css/admin-components.css">
+  <link rel="stylesheet" href="/assets/css/admin-version.css">
+  <link rel="stylesheet" href="/assets/css/admin-presentation.css">
+  <link rel="stylesheet" href="/assets/css/admin-motion.css">
   <link rel="stylesheet" href="/assets/css/ui-symbols.css">
   <script src="/assets/vendor/jszip.min.js" defer></script>
   <script src="/assets/js/admin/core.js" defer></script>
@@ -33,19 +38,19 @@
     <section id="lockedView" class="locked-view">
       <section class="admin-card auth-card" id="authCard">
         <div class="auth-mark">✦</div>
-        <p class="kicker">PRIVATE STORAGE CONSOLE</p>
+        <p class="kicker">KEEPER'S GATE</p>
         <h1>Garden Keeper</h1>
-        <p class="auth-copy">Pick up your tools before entering the Garden.</p>
+        <p class="auth-copy">The Keeper's gate is sealed. Present your key before tending the shelves.</p>
         <div class="admin-card-head auth-head">
-          <div><span>01</span><h2>Unlock the Garden</h2></div>
+          <div><span>01</span><h2>Open the Keeper's Gate</h2></div>
           <strong id="authState" class="state-pill">LOCKED</strong>
         </div>
         <label class="admin-field">
           <span>Admin token</span>
-          <input id="adminToken" type="password" autocomplete="current-password" placeholder="Password">
+          <input id="adminToken" type="password" autocomplete="current-password" placeholder="Keeper token">
         </label>
-        <p class="field-note">Kept only on this page while it remains open. It is never written to an EPUB or catalog.</p>
-        <button id="unlockButton" class="admin-primary" type="button">Unlock the Garden</button>
+        <p class="field-note">Your Keeper token remains only in this open tab. It is never planted in an EPUB or catalog.</p>
+        <button id="unlockButton" class="admin-primary" type="button">Open the Keeper's Gate</button>
       </section>
     </section>
 
@@ -58,8 +63,8 @@
           </div>
           <div class="manage-home-copy">
             <p class="kicker">GARDEN KEEPER</p>
-            <h1>Manage Library</h1>
-            <p>Edit series, add volumes, search the archive, or open the Garden's maintenance tools.</p>
+            <h1>Tend the Garden</h1>
+            <p>Tend series, plant new volumes, search the shelves, or inspect the Garden's deeper roots.</p>
           </div>
           <button id="lockButton" class="admin-ghost manage-lock" type="button" aria-label="Lock Garden Keeper" title="Lock Garden Keeper"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></button>
         </div>
@@ -80,8 +85,8 @@
           <button id="refreshLibrary" class="admin-secondary compact-button" type="button">Refresh library</button>
         </section>
 
-        <div id="manageLoading" class="admin-card manage-message">Loading the Garden…</div>
-        <div id="manageEmpty" class="admin-card manage-message hidden">No series match this view.</div>
+        <div id="manageLoading" class="admin-card manage-message">Walking the rows…</div>
+        <div id="manageEmpty" class="admin-card manage-message hidden">No shelf answers this view.</div>
         <div id="seriesManagerList" class="manager-list"></div>
       </section>
     </section>
@@ -90,7 +95,7 @@
   <dialog id="addBooksDialog" class="admin-dialog keeper-dialog keeper-add-dialog">
     <div class="dialog-shell">
       <div class="dialog-head">
-        <div><p class="kicker">NEW BOOKS</p><h2 id="addBooksHeading">Plant new seeds</h2></div>
+        <div><p class="kicker">NEW BOOKS</p><h2 id="addBooksHeading">Plant new volumes</h2></div>
         <button id="closeAddBooks" class="dialog-close" type="button" aria-label="Close New Books">×</button>
       </div>
       <div class="dialog-scroll">
@@ -102,13 +107,13 @@
         <section id="addView" class="admin-workspace">
           <section class="admin-card">
             <div class="admin-card-head">
-              <div><span>01</span><h2>Select new seeds</h2></div>
+              <div><span>01</span><h2>Choose books to plant</h2></div>
               <strong id="fileState" class="state-pill">WAITING</strong>
             </div>
             <label class="file-picker" for="epubFile">
               <input id="epubFile" type="file" multiple accept=".epub,application/epub+zip">
               <span class="file-picker-mark">＋</span>
-              <strong id="filePickerTitle">Choose EPUBs from phone</strong>
+              <strong id="filePickerTitle">Choose EPUBs from this device</strong>
               <small id="filePickerMeta">Select one or many EPUBs · 50 MB maximum per file</small>
             </label>
           </section>
@@ -120,7 +125,7 @@
             </div>
             <div class="preflight-lead">
               <span class="preflight-mark">◇</span>
-              <div><strong id="preflightTitle">Inspecting EPUB structure…</strong><p id="preflightSummary">Reader-focused checks run locally before anything is uploaded.</p></div>
+              <div><strong id="preflightTitle">Inspecting EPUB structure…</strong><p id="preflightSummary">The volume is inspected on this device before it ever reaches the private vault.</p></div>
             </div>
             <div id="preflightChecks" class="preflight-checks"></div>
             <div id="preflightStats" class="preflight-stats"></div>
@@ -132,7 +137,7 @@
 
           <section id="metadataCard" class="admin-card hidden">
             <div class="admin-card-head">
-              <div><span>02</span><h2>Temper the selected seed</h2></div>
+              <div><span>02</span><h2>Shape the selected volume</h2></div>
               <strong class="state-pill ready">EDITABLE</strong>
             </div>
 
@@ -155,18 +160,18 @@
             <label class="adult-toggle">
               <input id="adultInput" type="checkbox">
               <span class="toggle-track"><i></i></span>
-              <span><strong>18+ / Adult Library</strong><small>Keep this title out of the main archive.</small></span>
+              <span><strong>18+ / Adult Library</strong><small>Shelve this title in the restricted wing, away from the main Garden.</small></span>
             </label>
           </section>
 
           <section id="uploadCard" class="admin-card hidden">
             <div class="admin-card-head">
-              <div><span>03</span><h2>Let the batch take root beneath the shadows</h2></div>
+              <div><span>03</span><h2>Set the new growth into the Garden</h2></div>
               <strong id="uploadState" class="state-pill">READY</strong>
             </div>
             <div class="upload-status">
               <span id="statusMark">✦</span>
-              <div><strong id="statusTitle">Ready to upload</strong><p id="statusDetail">The bucket remains private. Readers receive files through Cloudflare.</p></div>
+              <div><strong id="statusTitle">Ready to upload</strong><p id="statusDetail">The private vault stays sealed. Readers receive protected copies through Cloudflare.</p></div>
             </div>
             <button id="uploadButton" class="admin-primary" type="button">Upload</button>
             <a id="openSeries" class="admin-secondary hidden" href="#">Open uploaded series ▶</a>
@@ -179,7 +184,7 @@
   <dialog id="maintenanceDialog" class="admin-dialog keeper-dialog keeper-maintenance-dialog">
     <div class="dialog-shell">
       <div class="dialog-head">
-        <div><p class="kicker">GARDEN MAINTENANCE</p><h2>Keep the roots healthy</h2></div>
+        <div><p class="kicker">GARDEN MAINTENANCE</p><h2>Tend the Garden's roots</h2></div>
         <button id="closeMaintenance" class="dialog-close" type="button" aria-label="Close Maintenance">×</button>
       </div>
       <div class="dialog-scroll">
@@ -196,7 +201,7 @@
               <div><span>HEALTH</span><h2>Garden Health</h2></div>
               <strong id="gardenHealthState" class="state-pill">LOADING</strong>
             </div>
-            <p class="maintenance-copy">Inspect catalog structure immediately, then optionally verify every referenced EPUB and cover against private B2 storage.</p>
+            <p class="maintenance-copy">Inspect the living catalogs, then trace every referenced EPUB and cover into the private vault when a deeper check is needed.</p>
             <div id="gardenHealthMetrics" class="maintenance-metrics"></div>
             <div class="maintenance-actions">
               <button id="refreshMaintenance" class="admin-secondary compact-button" type="button">Refresh health</button>
@@ -211,8 +216,8 @@
               <div><span>COVERS</span><h2>Optimize Existing Covers</h2></div>
               <strong id="coverMaintenanceState" class="state-pill">—</strong>
             </div>
-            <p class="maintenance-copy">Upgrade pre-v0.8 covers that do not have lightweight thumbnails. Processing is sequential on this device to keep memory use low.</p>
-            <div id="coverMaintenanceDetail" class="maintenance-callout">Loading cover inventory…</div>
+            <p class="maintenance-copy">Refine older covers that still lack lightweight thumbnails. Work proceeds one at a time on this device to keep memory use low.</p>
+            <div id="coverMaintenanceDetail" class="maintenance-callout">Surveying the cover beds…</div>
             <button id="optimizeLegacyCovers" class="admin-primary" type="button">Optimize legacy covers</button>
             <div id="coverMaintenanceProgress" class="maintenance-progress hidden"></div>
           </section>
@@ -233,7 +238,7 @@
               <div><span>BACKUPS</span><h2>Catalog History</h2></div>
               <strong id="backupCount" class="state-pill">0</strong>
             </div>
-            <p class="maintenance-copy">Shadow Garden snapshots both catalogs before uploads, replacements, metadata edits, Trash moves, cover maintenance, and restores. The newest 30 snapshots are retained.</p>
+            <p class="maintenance-copy">Before major changes, Shadow Garden preserves a snapshot of both catalogs. The newest 30 are kept as stepping stones back.</p>
             <button id="createCatalogBackup" class="admin-secondary" type="button">Create backup now</button>
             <div id="backupList" class="maintenance-list"></div>
           </section>
@@ -243,7 +248,7 @@
               <div><span>TRASH</span><h2>Trash & Recovery</h2></div>
               <strong id="trashCount" class="state-pill">0</strong>
             </div>
-            <p class="maintenance-copy">Removing a series or volume no longer deletes its B2 files. Restore it here, or purge it permanently when you are certain it is no longer needed.</p>
+            <p class="maintenance-copy">Removed series and volumes rest here without losing their files. Return them to the shelves, or uproot them permanently only when you are certain.</p>
             <div id="trashList" class="maintenance-list"></div>
             <button id="purgeAllTrash" class="danger-button maintenance-purge-all" type="button">Purge all Trash permanently</button>
           </section>

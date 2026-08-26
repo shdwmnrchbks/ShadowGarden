@@ -46,6 +46,35 @@ test('search, compact view, and Back navigation restore rendered Library state',
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
+test('reading suggestion reroll advances and pinned series remain available in the navigation drawer', async ({ page, browserDiagnostics }) => {
+  await page.addInitScript(() => localStorage.setItem('sg-pinned', JSON.stringify(['moonlit-single'])));
+  await page.goto('/');
+  await waitForCatalog(page);
+
+  const suggestion = page.locator('#continuePanel strong');
+  const reroll = page.getByRole('button', { name: 'Show another reading suggestion' });
+  await expect(reroll).toHaveText('↻');
+  const before = await suggestion.textContent();
+  await reroll.click();
+  await expect(suggestion).not.toHaveText(before || '');
+
+  const menu = page.locator('.brand-mark');
+  await menu.click();
+  await expect(page.locator('#siteNav')).toBeVisible();
+  const pinnedToggle = page.getByRole('button', { name: /Pinned series/ });
+  const pinnedEntry = page.locator('.nav-pinned-entry', { hasText: 'Moonlit Single' });
+  await expect(pinnedEntry).toBeVisible();
+  await expect(page.locator('.series-card[href*="moonlit-single"] .pinned-indicator')).toContainText('Pinned');
+
+  await pinnedToggle.click();
+  await expect(menu).toHaveAttribute('aria-expanded', 'true');
+  await expect(pinnedToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(pinnedEntry).toBeHidden();
+  await pinnedToggle.click();
+  await expect(pinnedEntry).toBeVisible();
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
 test('mobile navigation remains viewport-owned across resize and reduced motion', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile-project regression');
   await page.emulateMedia({ reducedMotion: 'reduce' });

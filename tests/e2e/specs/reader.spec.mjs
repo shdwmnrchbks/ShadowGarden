@@ -144,3 +144,76 @@ test('flow switching, image focus, and resize preserve a usable Reader location'
   expect(String(beforeResize?.cfi || '')).toContain('epubcfi');
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
+
+test('Continuous mobile touch movement stays uncancelled and the rendition remains vertically scrollable', async ({ page, browserDiagnostics }, testInfo) => {
+  test.skip(!testInfo.project.name.includes('mobile'), 'touch-capable mobile-project regression');
+  await waitForReader(page);
+
+  await page.locator('#settingsToggle').click();
+  await page.locator('#flowSelect').selectOption('scrolled-doc');
+  await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
+  await expect.poll(async () => page.locator('#viewer iframe').count(), { timeout: 12_000 }).toBeGreaterThan(0);
+
+  const touch = await page.locator('#viewer iframe').first().evaluate(frame => {
+    const doc = frame.contentDocument;
+    const target = doc?.body || doc?.documentElement;
+    if (!doc || !target) return null;
+    const event = (type, y) => {
+      const value = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(value, 'touches', { value: type === 'touchend' ? [] : [{ clientY: y, screenY: y }], configurable: true });
+      Object.defineProperty(value, 'changedTouches', { value: [{ clientY: y, screenY: y }], configurable: true });
+      return value;
+    };
+    target.dispatchEvent(event('touchstart', 260));
+    const move = event('touchmove', 180);
+    const accepted = target.dispatchEvent(move);
+    target.dispatchEvent(event('touchend', 180));
+    return { accepted, defaultPrevented: move.defaultPrevented, cancelable: move.cancelable };
+  });
+  expect(touch).toEqual({ accepted: true, defaultPrevented: false, cancelable: true });
+
+  const scrollable = await page.locator('#viewer').evaluate(root => {
+    const candidates = [root, ...root.querySelectorAll('*')];
+    const element = candidates.find(node => node instanceof HTMLElement && node.scrollHeight > node.clientHeight + 8);
+    if (!element) return null;
+    const before = element.scrollTop;
+    const target = Math.min(element.scrollHeight - element.clientHeight, before + 120);
+    element.scrollTop = target;
+    element.dispatchEvent(new Event('scroll', { bubbles: false }));
+    return { before, after: element.scrollTop, max: element.scrollHeight - element.clientHeight };
+  });
+  expect(scrollable).not.toBeNull();
+  expect(Number(scrollable?.max || 0)).toBeGreaterThan(8);
+  expect(Number(scrollable?.after || 0)).toBeGreaterThan(Number(scrollable?.before || 0));
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('sleep-resume ticket renewal preserves the live Reader location', async ({ page, browserDiagnostics }) => {
+  let accessRequests = 0;
+  await page.route('**/book-access', async route => {
+    if (route.request().method() === 'POST') accessRequests += 1;
+    await route.fallback();
+  });
+
+  await waitForReader(page);
+  const before = await progress(page);
+  const beforeRequests = accessRequests;
+  expect(beforeRequests).toBeGreaterThan(0);
+  expect(String(before?.cfi || '')).toContain('epubcfi');
+
+  // Advance only the synchronous cache clock during the resume event. The normal one-hour E2E
+  // ticket therefore looks expired without making the test sleep or mutating Reader state.
+  await page.evaluate(() => {
+    const realNow = Date.now;
+    const wakeAt = realNow() + (2 * 60 * 60 * 1000);
+    Date.now = () => wakeAt;
+    try { window.dispatchEvent(new Event('pageshow')); }
+    finally { Date.now = realNow; }
+  });
+
+  await expect.poll(() => accessRequests, { timeout: 8_000 }).toBeGreaterThan(beforeRequests);
+  await expect.poll(async () => String((await progress(page))?.cfi || ''), { timeout: 8_000 }).toBe(String(before?.cfi || ''));
+  await expect(page.locator('#readerLoading')).toHaveClass(/hidden/);
+  await expect(page.locator('#viewer iframe')).toHaveCount(1);
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});

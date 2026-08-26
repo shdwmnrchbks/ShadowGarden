@@ -110,7 +110,9 @@
   });
 
   nav.addEventListener('click',event=>{
-    if(event.target.closest('a,button'))window.setTimeout(()=>setOpen(false),0);
+    const control=event.target.closest('a,button');
+    if(!control||control.closest('[data-nav-keep-open]'))return;
+    window.setTimeout(()=>setOpen(false),0);
   });
   setOpen(false);
 })();

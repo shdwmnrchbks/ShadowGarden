@@ -120,7 +120,8 @@ test('Garden Keeper locked → verified → unlocked keeps modal keyboard and se
   const libraryGet = requests.find(entry => entry.path === '/admin-api/library' && entry.method === 'GET');
   expect(libraryGet?.headers?.authorization).toBe('Bearer e2e-keeper-token');
 
-  await page.locator('#openNewBooks').click();
+  const openNewBooks = page.locator('#openNewBooks');
+  await openNewBooks.click();
   const addBooks = page.locator('#addBooksDialog');
   await expect(addBooks).toBeVisible();
   await expect.poll(() => activeDialogId(page)).toBe('addBooksDialog');
@@ -130,8 +131,10 @@ test('Garden Keeper locked → verified → unlocked keeps modal keyboard and se
   }
   await page.keyboard.press('Escape');
   await expect(addBooks).not.toBeVisible();
+  await expect(openNewBooks).toBeFocused();
 
-  await page.locator('#openMaintenance').click();
+  const openMaintenance = page.locator('#openMaintenance');
+  await openMaintenance.click();
   const maintenance = page.locator('#maintenanceDialog');
   await expect(maintenance).toBeVisible();
   await expect.poll(() => activeDialogId(page)).toBe('maintenanceDialog');
@@ -142,6 +145,7 @@ test('Garden Keeper locked → verified → unlocked keeps modal keyboard and se
   }
   await page.keyboard.press('Escape');
   await expect(maintenance).not.toBeVisible();
+  await expect(openMaintenance).toBeFocused();
 
   await page.locator('#lockButton').click();
   await expect(lockedView).toBeVisible();

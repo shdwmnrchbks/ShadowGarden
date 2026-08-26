@@ -23,6 +23,8 @@ Opening motion may be slightly gentler than closing motion. Long decorative chor
 
 The runtime observes ordinary same-origin anchor clicks to classify the next transition as `forward`, `backward`, or `lateral`. The hint is stored only in `sessionStorage`, restored on the destination document, and removed after reveal. The runtime never prevents the click, calls a router, or changes the destination.
 
+Cross-document View Transition lifecycle listeners are registered before the first rendering opportunity. The small shared `motion.js` bootstrap is therefore intentionally loaded as a classic parser-blocking `<head>` script on Library, Adult Library, Series, and Reader; surface-specific motion and application scripts remain deferred. The bootstrap observes `ready`, `finished`, and `updateCallbackDone` so browser-skipped transitions remain harmless progressive-enhancement failures instead of uncaught page errors.
+
 Feature modules remain responsible for deciding *when* a transition is meaningful. The motion runtime does not become a router or state owner.
 
 ## Garden Keeper contract

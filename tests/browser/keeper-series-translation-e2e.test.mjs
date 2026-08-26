@@ -5,10 +5,11 @@ import fs from 'node:fs/promises';
 const read = relative => fs.readFile(new URL(`../../${relative}`, import.meta.url), 'utf8');
 
 test('v2.6 Keeper Series and translation real-browser contract keeps one save owner per mutation', async () => {
-  const [spec, library, translations, core] = await Promise.all([
+  const [spec, library, translations, interactions, core] = await Promise.all([
     read('tests/e2e/specs/keeper-series-translation.spec.mjs'),
     read('src/assets/js/admin/library-workflow.js'),
     read('src/assets/js/admin/translation-workflow.js'),
+    read('src/assets/js/admin/editor-interactions.js'),
     read('src/assets/js/admin/core.js')
   ]);
 
@@ -47,6 +48,10 @@ test('v2.6 Keeper Series and translation real-browser contract keeps one save ow
     /button\.disabled=true;button\.textContent="Saving…"/,
     'Volume translation saves must establish busy state before awaiting the request'
   );
+  assert.match(interactions, /kind:"manager-open",value:target\.dataset\.managerOpen/, 'Series editor focus return must remember stable manager identity');
+  assert.match(interactions, /document\.contains\(remembered\.element\)/, 'Focus return must prefer the original opener while it remains live');
+  assert.match(interactions, /document\.querySelectorAll\(`\[\$\{attribute\}\]`\)/, 'Focus return must resolve a replacement manager control after rerender');
+  assert.match(interactions, /target\.focus\(\{preventScroll:true\}\)/, 'Resolved Keeper focus targets must receive focus without scroll jumps');
   assert.match(core, /class AdminClient/, 'Keeper mutations must continue through the single AdminClient');
   assert.match(core, /headers\.set\("authorization",`Bearer \$\{this\.token\(\)\}`\)/, 'AdminClient must remain the authorization header owner');
 });

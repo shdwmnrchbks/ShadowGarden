@@ -73,9 +73,9 @@ Shadow Garden v2.6.0 does not replace the v2.0 ownership model. It strengthens a
 - `tools/lib/build-context.mjs` owns version/commit/branch/build-time context.
 - The current reusable v2 publisher additionally requires the exact main Real Browser E2E result before production smoke/release publication.
 
-## R10 final cutover and v2 release baseline
+## R10 final cutover and release gate
 
-R10 established v2.0.0 and removed the final known obsolete compatibility/patch pathnames:
+R10 established v2.0.0 and removed the final known obsolete compatibility/patch pathnames. Its v2 release baseline remains the ownership foundation beneath the current v2.6 release:
 
 - no grandfathered patch-style JS/CSS source remains;
 - no old R5 Garden Keeper alternate owner remains;

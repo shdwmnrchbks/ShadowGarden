@@ -1,10 +1,10 @@
 # Shadow Garden Documentation
 
-This is the single documentation index for Shadow Garden. Architecture contracts, current project planning, archived milestone history, release records, security history, build conventions, and design guidance live under `docs/` rather than accumulating at the repository root.
+This is the single documentation index for Shadow Garden. Architecture contracts, current project planning, archived milestone history, release records, security history, build conventions, test/accessibility contracts, and design guidance live under `docs/` rather than accumulating at the repository root.
 
 ## 🚧 Current work in progress
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**, currently starting with v2.6.0 Reliability & Real-Browser Testing and continuing through performance/scale, Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; the active release is now **v2.7.0 Performance & Scale**, followed by Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
@@ -17,14 +17,15 @@ Completed or superseded plans must not remain marked as current. Historical road
 - [`architecture/HTTP_STORAGE_CONTRACTS.md`](./architecture/HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and Backblaze B2 namespace contracts.
 - [`architecture/MODULE_CONVENTIONS.md`](./architecture/MODULE_CONVENTIONS.md) — module naming, ownership, DOM/state, and placement rules.
 - [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning.
-- [`architecture/BUILD_DEPLOYMENT.md`](./architecture/BUILD_DEPLOYMENT.md) — locked dependency tree, `npm ci`, deterministic build context, deployment metadata, no-bundler decision, and dependency-free preview server.
+- [`architecture/BUILD_DEPLOYMENT.md`](./architecture/BUILD_DEPLOYMENT.md) — locked dependency tree, `npm ci`, deterministic build context, deployment metadata, no-bundler decision, and verified v2 release-publisher contract.
 - [`architecture/DOMAIN_LAYER.md`](./architecture/DOMAIN_LAYER.md) — canonical catalog, identity, progress, bookmarks, reading-state, preferences, URL, and formatting services.
 - [`architecture/PUBLIC_UI_LAYER.md`](./architecture/PUBLIC_UI_LAYER.md) — Library/Series controllers, renderers, shared volume actions, and removed public repair layers.
 - [`architecture/READER_LAYER.md`](./architecture/READER_LAYER.md) — authorized Reader session, app/controllers, Page/Continuous adapters, input ownership, image focus, native Continuous touch invariant, and retained EPUB.js compatibility boundaries.
 - [`architecture/KEEPER_LAYER.md`](./architecture/KEEPER_LAYER.md) — Garden Keeper shell/client/workflows and explicit ownership boundaries.
 - [`architecture/FUNCTIONS_LAYER.md`](./architecture/FUNCTIONS_LAYER.md) — thin Pages Function routes, explicit services, and preserved security boundaries.
 - [`architecture/DESIGN_SYSTEM.md`](./architecture/DESIGN_SYSTEM.md) — semantic CSS/design-system ownership.
-- [`architecture/TEST_ARCHITECTURE.md`](./architecture/TEST_ARCHITECTURE.md) — deterministic unit/service/DOM/browser-contract testing and shared fixtures.
+- [`architecture/TEST_ARCHITECTURE.md`](./architecture/TEST_ARCHITECTURE.md) — deterministic unit/service/DOM/browser-contract layers plus the v2.6 Playwright real-browser matrix and generated fixtures.
+- [`architecture/ACCESSIBILITY_TESTING.md`](./architecture/ACCESSIBILITY_TESTING.md) — v2.6 accessibility scan/keyboard/zoom/contrast/touch-target contract and the boundary between application chrome and publication-owned EPUB content.
 - [`architecture/MOBILE_NAVIGATION.md`](./architecture/MOBILE_NAVIGATION.md) — reconciled mobile drawer viewport, sticky-header, accessibility, and background-scroll-lock contract.
 - [`architecture/MOTION_SYSTEM.md`](./architecture/MOTION_SYSTEM.md) — v2.5 progressive motion ownership, navigation intent, Keeper observer-only choreography, accessibility, and performance rules.
 - [`architecture/CATALOG_TAXONOMY.md`](./architecture/CATALOG_TAXONOMY.md) — canonical Novel Updates genres, flexible tags, EPUB normalization, and audit-first migration.
@@ -39,6 +40,19 @@ Release notes remain in `docs/releases/`; completed milestone planning records a
 - [`releases/v2.0.0.md`](./releases/v2.0.0.md) — v2 architecture baseline release.
 - [`releases/v2.4.0.md`](./releases/v2.4.0.md) — Interaction & UX Polish release.
 - [`releases/v2.5.0.md`](./releases/v2.5.0.md) — Motion & Continuity release.
+- [`releases/v2.6.0.md`](./releases/v2.6.0.md) — Reliability & Real-Browser Testing release.
+
+## Verification layers
+
+The permanent release baseline now combines deterministic checks with real browsers:
+
+- `npm test` — unit, service, DOM, and deterministic browser-contract layers;
+- `npm run check` — architecture/security guards plus the deterministic behavioral suite;
+- `npm run build` — repeats the full check through `prebuild` before generating production output;
+- `npm run test:e2e` — Playwright against generated production output across Chromium/Firefox/WebKit desktop and Chromium/WebKit mobile;
+- `.github/workflows/verify.yml` — complete repository checks and production build;
+- `.github/workflows/e2e.yml` — bounded real-browser matrix and retained failure artifacts;
+- `.github/workflows/release-v2.yml` — exact-main Verify + real-browser success, matching Cloudflare version/commit, production smoke, then GitHub v2 release publication.
 
 ## Archived roadmaps and milestones
 

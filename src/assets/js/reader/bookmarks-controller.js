@@ -8,7 +8,7 @@ export function createBookmarksController({storage,elements,getPosition,getCfi,g
     const fingerprint=pageMap?.fingerprint?.();
     if(fingerprint&&bookmark.pageMapFingerprint===fingerprint&&Number(bookmark.page)>0&&Number(position.page)>0)return Number(bookmark.page)===Number(position.page);
     if(Number(bookmark.sectionIndex)===Number(position.sectionIndex)&&Number(bookmark.localPage)>0&&Number(position.localPage)>0){
-      return Number(bookmark.localPage)===Number(position.localPage)&&bookmark.cfi===position.cfi;
+      return Number(bookmark.localPage)===Number(position.localPage);
     }
     return Boolean(bookmark.cfi&&position.cfi&&bookmark.cfi===position.cfi);
   }

@@ -11,12 +11,6 @@ async function waitForReader(page) {
   await expect(page.locator('#viewer iframe')).toHaveCount(1);
 }
 
-async function clickRenderedCenter(page, locator) {
-  const box = await locator.boundingBox();
-  expect(box, 'EPUB image should expose a top-level rendered box').toBeTruthy();
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-}
-
 async function storedJson(page, key) {
   return page.evaluate(storageKey => {
     try { return JSON.parse(localStorage.getItem(storageKey) || 'null'); }
@@ -37,6 +31,34 @@ async function advanceUntilProgressChanges(page, previousUpdatedAt = 0) {
     } catch {}
   }
   throw new Error('Reader progress did not advance after four page turns');
+}
+
+function intersectBoxes(box, shellBox) {
+  if (!box || !shellBox) return null;
+  const left = Math.max(box.x, shellBox.x);
+  const top = Math.max(box.y, shellBox.y);
+  const right = Math.min(box.x + box.width, shellBox.x + shellBox.width);
+  const bottom = Math.min(box.y + box.height, shellBox.y + shellBox.height);
+  if (right - left <= 2 || bottom - top <= 2) return null;
+  return { left, top, right, bottom };
+}
+
+async function revealAndClickRenderedCenter(page, locator) {
+  const shell = page.locator('#viewerShell');
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const [box, shellBox] = await Promise.all([locator.boundingBox(), shell.boundingBox()]);
+    const visible = intersectBoxes(box, shellBox);
+    if (visible) {
+      await page.mouse.click((visible.left + visible.right) / 2, (visible.top + visible.bottom) / 2);
+      return;
+    }
+
+    const before = await progress(page);
+    await page.keyboard.press('ArrowRight');
+    await expect.poll(async () => Number((await progress(page))?.updatedAt || 0), { timeout: 4_000 })
+      .toBeGreaterThan(Number(before?.updatedAt || 0));
+  }
+  throw new Error('EPUB illustration never entered the visible Reader viewport');
 }
 
 test('protected Reader session opens the deterministic EPUB in a real rendition', async ({ page, browserDiagnostics }) => {
@@ -84,18 +106,19 @@ test('Pages progress and bookmark persist through a full Reader reload', async (
 test('flow switching, image focus, and resize preserve a usable Reader location', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
 
-  const initial = await progress(page);
   const iframe = page.frameLocator('#viewer iframe');
   const illustration = iframe.getByRole('img', { name: 'A moonlit geometric garden used to test image focus' });
   await expect(illustration).toBeVisible();
-  // The coordinate click follows the native top-level pointer path. On WebKit the Reader
-  // supplies a parent-owned transparent image hit target because callbacks inside the
-  // intentionally scriptless EPUB sandbox are blocked by the engine.
-  await clickRenderedCenter(page, illustration);
+  // EPUB.js lays paginated chapters out in a horizontally wide iframe. An image can therefore
+  // be "visible" to Playwright inside the iframe while still being clipped off the Reader's
+  // current page. Turn pages until the image intersects #viewerShell, then use a native
+  // top-level pointer click. WebKit's sandbox-safe parent hit target receives that same click.
+  await revealAndClickRenderedCenter(page, illustration);
   await expect(page.locator('#imageFocus')).not.toHaveClass(/hidden/);
   await expect(page.locator('#imageFocus')).toHaveAttribute('aria-hidden', 'false');
   await page.locator('#imageFocusClose').click();
   await expect(page.locator('#imageFocus')).toHaveClass(/hidden/);
+  const initial = await progress(page);
 
   await page.locator('#settingsToggle').click();
   await expect(page.locator('#settingsDrawer')).toHaveClass(/open/);

@@ -108,6 +108,7 @@
   function showEditor(){
     mode='edit';dialog.classList.remove('sg-workflow-stage');stage.classList.add('hidden');stage.innerHTML='';
     if(!q.items.length){emptyEditor();if(typeof setUploadState==='function')setUploadState('WAITING');if(typeof setStatus==='function')setStatus('Ready to upload','Choose one or more EPUBs to begin.','✦')}
+    else if(typeof setUploadState==='function'){const ready=actionable().length;setUploadState(ready?'READY':'WAITING',ready?'ready':'')}
   }
 
   function renderUploading(){
@@ -146,7 +147,20 @@
   function finishUpload(){
     if(mode!=='uploading'||finishing)return;finishing=true;const items=sessionIds.map(id=>q.items.find(i=>i.id===id)).filter(Boolean),successes=items.filter(i=>i.status==='done'),failures=items.filter(i=>i.status==='failed'||i.validation?.status==='fail');completionSnapshot={successes:[...successes],failures:[...failures]};renderComplete(successes,failures);finishing=false;
   }
-  function syncState(){const text=String(uploadState.textContent||'').trim().toUpperCase();if(text==='UPLOADING'){beginUpload();updateUploading()}else if(text.startsWith('COMPLETE'))finishUpload()}
+  function finishSettledBatch(){
+    if(mode!=='uploading'||q.running)return false;
+    const items=sessionIds.map(id=>q.items.find(i=>i.id===id)).filter(Boolean);
+    if(!items.length||items.length!==sessionIds.length||items.some(i=>i.status!=='done'&&i.status!=='failed'&&i.validation?.status!=='fail'))return false;
+    const failures=items.filter(i=>i.status==='failed'||i.validation?.status==='fail');
+    if(typeof setUploadState==='function')setUploadState(failures.length?'COMPLETE WITH ERRORS':'COMPLETE',failures.length?'warning':'ready');
+    finishUpload();return true;
+  }
+  function syncState(){
+    const text=String(uploadState.textContent||'').trim().toUpperCase();
+    if(text==='UPLOADING'){beginUpload();updateUploading();return}
+    if(text.startsWith('COMPLETE')){finishUpload();return}
+    finishSettledBatch();
+  }
 
   /* The base uploader replaces direct queue rows on every real progress/status render. Observe
      only those direct replacements, never descendant markup that this layer decorates. */

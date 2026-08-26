@@ -20,12 +20,14 @@ test('v2.6 Garden Keeper auth and dialog lifecycle remains a real-browser contra
     "page.locator('[data-e2e-turnstile]')",
     "entry.path === '/admin-access' && entry.method === 'POST'",
     "entry.path === '/admin-api/status' && entry.method === 'POST'",
-    "page.locator('#openNewBooks').click()",
+    "const openNewBooks = page.locator('#openNewBooks')",
     "page.locator('#addBooksDialog')",
-    "page.locator('#openMaintenance').click()",
+    "const openMaintenance = page.locator('#openMaintenance')",
     "page.locator('#maintenanceDialog')",
     "page.keyboard.press('Tab')",
     "page.keyboard.press('Escape')",
+    'await expect(openNewBooks).toBeFocused()',
+    'await expect(openMaintenance).toBeFocused()',
     "page.locator('#lockButton').click()",
     'expect(browserDiagnostics).toEqual([])'
   ]) assert.ok(spec.includes(marker), marker);
@@ -36,8 +38,13 @@ test('v2.6 Garden Keeper auth and dialog lifecycle remains a real-browser contra
   assert.match(auth, /keeper\.events\.dispatchEvent\(new Event\("session:unlocked"\)\)/, 'unlock must retain the shared Keeper lifecycle event');
   assert.match(auth, /for\(const dialog of document\.querySelectorAll\("dialog\[open\]"\)\)/, 'locking must close active Keeper dialogs');
 
-  assert.match(shell, /addDialog\.showModal\(\)/, 'New Books must remain a native modal dialog');
-  assert.match(shell, /maintenanceDialog\.showModal\(\)/, 'Maintenance must remain a native modal dialog');
+  assert.match(shell, /function containDialogFocus\(dialog,event\)/, 'Keeper shell must own consistent modal keyboard containment');
+  assert.match(shell, /event\.key!=="Tab"\|\|!dialog\.open/, 'modal containment must only intercept Tab inside an open dialog');
+  assert.match(shell, /active===last\|\|!dialog\.contains\(active\)/, 'forward Tab must wrap into the modal when focus reaches or leaves its boundary');
+  assert.match(shell, /active===first\|\|!dialog\.contains\(active\)/, 'reverse Tab must wrap into the modal when focus reaches or leaves its boundary');
+  assert.match(shell, /function showKeeperDialog\(dialog,fallback\)/, 'Keeper shell must retain one modal opening path for its shell-owned dialogs');
+  assert.match(shell, /dialog\.showModal\(\)/, 'Keeper dialogs must remain native modal dialogs');
+  assert.match(shell, /dialog\.addEventListener\("close",\(\)=>restoreDialogFocus\(dialog\)\)/, 'closing a shell-owned modal must restore its opener when still visible');
   assert.match(shell, /addDialog\.addEventListener\("cancel"/, 'New Books must retain its canonical Escape/cancel owner');
 
   assert.match(core, /class AdminClient/, 'Keeper requests must continue through the single AdminClient');

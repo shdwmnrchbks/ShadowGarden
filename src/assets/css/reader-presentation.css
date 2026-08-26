@@ -79,14 +79,19 @@ body.reader-flow-scrolled .continuous-seek-text{font-weight:700;font-variant-num
 .drawer-head{font-weight:650}.drawer-tabs button{min-height:34px}.settings-panel{line-height:1.45}.settings-panel label>span{line-height:1.35}.reader-reset{font-weight:620}
 
 @media(max-width:700px){
-  body.reader-flow-paginated .reader-app{grid-template-rows:minmax(0,1fr)}
-  body.reader-flow-paginated .viewer-shell{grid-row:1;min-height:100dvh}
-  body.reader-flow-paginated .reader-topbar{position:fixed;top:0;left:0;right:0;height:54px;z-index:32;transform:translateY(0);transition:transform .2s ease,opacity .16s ease}
+  /* Mobile Reader chrome overlays a full-height reading surface in both flows. Continuous
+     previously kept the top bar as a 54px grid row, leaving a permanent blank band after
+     the bar auto-hid. Keeping the viewer full-height avoids that layout-owned gap. */
+  body.reader-flow-paginated .reader-app,
+  body.reader-flow-scrolled .reader-app{grid-template-rows:minmax(0,1fr)}
+  body.reader-flow-paginated .viewer-shell,
+  body.reader-flow-scrolled .viewer-shell{grid-row:1;min-height:100dvh}
+  body.reader-flow-paginated .reader-topbar,
+  body.reader-flow-scrolled .reader-topbar{position:fixed;top:0;left:0;right:0;height:54px;z-index:32;transform:translateY(0);transition:transform .2s ease,opacity .16s ease}
   body.reader-flow-paginated .reader-bottombar{position:fixed;left:0;right:0;bottom:0;height:48px;z-index:31;transform:translateY(0);transition:transform .2s ease,opacity .16s ease}
-  body.reader-flow-paginated.reader-chrome-hidden .reader-topbar{transform:translateY(-105%);opacity:0;pointer-events:none}
-  body.reader-flow-paginated.reader-chrome-hidden .reader-bottombar{transform:translateY(105%);opacity:0;pointer-events:none}
-  body.reader-flow-scrolled .reader-topbar{transition:transform .2s ease,opacity .16s ease}
+  body.reader-flow-paginated.reader-chrome-hidden .reader-topbar,
   body.reader-flow-scrolled.reader-chrome-hidden .reader-topbar{transform:translateY(-105%);opacity:0;pointer-events:none}
+  body.reader-flow-paginated.reader-chrome-hidden .reader-bottombar{transform:translateY(105%);opacity:0;pointer-events:none}
   .reader-topbar{column-gap:5px;padding-inline:7px}
   .reader-title{padding-inline:5px}
   .reader-title strong{font-size:.75rem}.reader-title span{font-size:.61rem}

@@ -64,7 +64,7 @@ export function createPageNavigationInput({getFlow,getSwipeTurns,turn}={}){
     doc.addEventListener("touchstart",event=>beginSwipe(event,doc),{capture:true,passive:true});
     doc.addEventListener("touchcancel",()=>{state.swipe=null},{capture:true,passive:true});
     doc.addEventListener("touchend",event=>finishSwipe(event,doc),{capture:true,passive:false});
-    doc.addEventListener("wheel",handleWheel,{capture:true,passive:false});
+    try{doc.defaultView?.addEventListener("wheel",handleWheel,{capture:true,passive:false})}catch(error){console.warn("Reader page wheel input unavailable",error)}
   }
 
   function attachRendition(rendition){

@@ -23,6 +23,15 @@ test("motion runtime progressively falls back instead of owning application stat
   assert.equal(js.includes("localStorage.setItem"),false,"motion runtime must not own persisted state");
 });
 
+test("cross-document view transitions consume every browser promise",async()=>{
+  const js=await read("src/assets/js/motion.js");
+  assert.match(js,/observeTransitionPromise\(transition\?\.ready\)/);
+  assert.match(js,/observeTransitionPromise\(transition\?\.finished\)/);
+  assert.match(js,/observeTransitionPromise\(transition\?\.updateCallbackDone\)/);
+  assert.match(js,/const observeCrossDocumentFinished=transition=>\{\s*guardTransition\(transition\);\s*return transition\?\.finished;\s*\}/);
+  assert.match(js,/observeCrossDocumentFinished\(event\.viewTransition\)/);
+});
+
 test("reduced motion collapses optional animation while keeping the update path",async()=>{
   const [css,js,doc]=await Promise.all([
     read("src/assets/css/motion.css"),

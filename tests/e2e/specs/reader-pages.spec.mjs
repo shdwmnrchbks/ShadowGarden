@@ -62,40 +62,31 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
     const target = doc?.body || doc?.documentElement;
     if (!doc || !win || !target) return null;
 
-    const touch = x => {
-      const init = {
-        identifier: 1,
-        target,
-        screenX: x,
-        screenY: values.y,
-        clientX: x,
-        clientY: values.y,
-        pageX: x,
-        pageY: values.y,
-        radiusX: 1,
-        radiusY: 1,
-        rotationAngle: 0,
-        force: 1
-      };
-      try { return typeof win.Touch === 'function' ? new win.Touch(init) : init; }
-      catch { return init; }
-    };
+    const touch = x => ({
+      identifier: 1,
+      target,
+      screenX: x,
+      screenY: values.y,
+      clientX: x,
+      clientY: values.y,
+      pageX: x,
+      pageY: values.y
+    });
     const event = (type, x) => {
       const point = touch(x);
-      const init = {
-        bubbles: true,
-        cancelable: true,
-        touches: type === 'touchend' ? [] : [point],
-        targetTouches: type === 'touchend' ? [] : [point],
-        changedTouches: [point]
-      };
-      try {
-        if (typeof win.TouchEvent === 'function') return new win.TouchEvent(type, init);
-      } catch {}
       const value = new win.Event(type, { bubbles: true, cancelable: true });
-      Object.defineProperty(value, 'touches', { value: init.touches, configurable: true });
-      Object.defineProperty(value, 'targetTouches', { value: init.targetTouches, configurable: true });
-      Object.defineProperty(value, 'changedTouches', { value: init.changedTouches, configurable: true });
+      // Use a same-realm generic Event with explicit TouchList-shaped data. WebKit's
+      // synthetic Touch/TouchEvent constructors normalize coordinates differently from
+      // trusted input, which can erase the horizontal delta before Reader code sees it.
+      Object.defineProperty(value, 'touches', {
+        value: type === 'touchend' ? [] : [point],
+        configurable: true
+      });
+      Object.defineProperty(value, 'targetTouches', {
+        value: type === 'touchend' ? [] : [point],
+        configurable: true
+      });
+      Object.defineProperty(value, 'changedTouches', { value: [point], configurable: true });
       return value;
     };
 
@@ -103,8 +94,6 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
     target.dispatchEvent(event('touchstart', values.startX));
     const end = event('touchend', values.endX);
     const dispatchAccepted = target.dispatchEvent(end);
-    // WebKit can report `true` for synthetic TouchEvent dispatch even after the listener
-    // calls preventDefault(). The event's cancellation state is the cross-engine contract.
     const accepted = end.defaultPrevented ? false : dispatchAccepted;
     return { installed, accepted, defaultPrevented: end.defaultPrevented };
   }, { startX, endX, y });

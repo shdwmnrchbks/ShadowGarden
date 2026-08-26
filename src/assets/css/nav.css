@@ -6,7 +6,7 @@ html{scrollbar-gutter:stable}
    html/body can leave the sticky header painted below the sibling overlay in WebKit/Chromium.
    The body spacer preserves the header's normal-flow height, preventing an open/close jump. */
 body.site-nav-open{padding-top:72px}
-.site-nav-open .site-header{position:fixed;top:0;left:0;right:0;width:100%;z-index:70;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+.site-nav-open .site-header{position:fixed;top:0;left:0;right:0;width:100%;z-index:70!important;box-shadow:0 10px 28px rgba(0,0,0,.18)}
 .site-nav-drawer{position:fixed!important;top:72px;bottom:0;left:0;width:min(360px,calc(100vw - 24px));height:auto;padding:22px 18px max(22px,env(safe-area-inset-bottom));display:flex!important;flex-direction:column;align-items:stretch!important;gap:7px!important;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;border-right:1px solid var(--line2);border-top:1px solid var(--line);background:rgba(11,8,16,.98);backdrop-filter:blur(22px);box-shadow:24px 0 70px rgba(0,0,0,.44);transform:translateX(-104%);opacity:0;visibility:hidden;pointer-events:none;transition:transform var(--sg-motion-layout,.22s) var(--sg-ease-enter,ease),opacity var(--sg-motion-fast,.18s) var(--sg-ease-standard,ease),visibility var(--sg-motion-layout,.22s);z-index:60}
 .site-nav-drawer.nav-open{transform:translateX(0);opacity:1;visibility:visible;pointer-events:auto}
 .site-nav-drawer:before{content:"SHADOW GARDEN";display:block;margin:3px 10px 13px;color:var(--dim);font-size:.62rem;font-weight:750;letter-spacing:.22em}

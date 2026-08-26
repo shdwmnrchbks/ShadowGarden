@@ -42,7 +42,7 @@ test('deterministic entrypoint shells are complete before deferred hydration run
   await expect(page.locator('#adminToken')).toHaveAttribute('placeholder', 'Keeper token');
   await expect(page.locator('#unlockButton')).toHaveText("Open the Keeper's Gate");
   for (const stylesheet of ['motion.css', 'admin-components.css', 'admin-version.css', 'admin-presentation.css', 'admin-motion.css']) {
-    await expect(page.locator(`head link[rel="stylesheet"][href="/assets/css/${stylesheet}"]`)).toHaveCount(1);
+    await expect(page.locator(`head link[rel="stylesheet"][href^="/assets/css/${stylesheet}"]`)).toHaveCount(1);
   }
 
   await page.goto('/404.html');

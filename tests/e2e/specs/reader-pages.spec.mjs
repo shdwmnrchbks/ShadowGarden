@@ -78,9 +78,11 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
 
     if (inputMode === 'pointer') {
       const event = (type, x) => {
-        const init = {
-          bubbles: true,
-          cancelable: true,
+        // WebKit's synthetic PointerEvent constructor can normalize touch-pointer coordinates
+        // to zero. Use a same-realm generic event so Reader receives the exact gesture data
+        // while the real pointer listeners and page-turn controller remain under test.
+        const value = new win.Event(type, { bubbles: true, cancelable: true });
+        for (const [key, fieldValue] of Object.entries({
           pointerId: 1,
           pointerType: 'touch',
           isPrimary: true,
@@ -88,15 +90,8 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
           clientY: values.y,
           screenX: x,
           screenY: values.y
-        };
-        try { return new win.PointerEvent(type, init); }
-        catch {
-          const value = new win.MouseEvent(type, init);
-          Object.defineProperty(value, 'pointerId', { value: 1, configurable: true });
-          Object.defineProperty(value, 'pointerType', { value: 'touch', configurable: true });
-          Object.defineProperty(value, 'isPrimary', { value: true, configurable: true });
-          return value;
-        }
+        })) Object.defineProperty(value, key, { value: fieldValue, configurable: true });
+        return value;
       };
       target.dispatchEvent(event('pointerdown', values.startX));
       const end = event('pointerup', values.endX);

@@ -62,6 +62,42 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
     const target = doc?.body || doc?.documentElement;
     if (!doc || !win || !target) return null;
 
+    const installed = doc.documentElement?.dataset.sgReaderPageInput === '1';
+    const inputMode = doc.documentElement?.dataset.sgReaderSwipeInput || 'unknown';
+
+    if (inputMode === 'pointer') {
+      const event = (type, x) => {
+        const init = {
+          bubbles: true,
+          cancelable: true,
+          pointerId: 1,
+          pointerType: 'touch',
+          isPrimary: true,
+          clientX: x,
+          clientY: values.y,
+          screenX: x,
+          screenY: values.y
+        };
+        try { return new win.PointerEvent(type, init); }
+        catch {
+          const value = new win.MouseEvent(type, init);
+          Object.defineProperty(value, 'pointerId', { value: 1, configurable: true });
+          Object.defineProperty(value, 'pointerType', { value: 'touch', configurable: true });
+          Object.defineProperty(value, 'isPrimary', { value: true, configurable: true });
+          return value;
+        }
+      };
+      target.dispatchEvent(event('pointerdown', values.startX));
+      const end = event('pointerup', values.endX);
+      const dispatchAccepted = target.dispatchEvent(end);
+      return {
+        installed,
+        inputMode,
+        accepted: end.defaultPrevented ? false : dispatchAccepted,
+        defaultPrevented: end.defaultPrevented
+      };
+    }
+
     const touch = x => ({
       identifier: 1,
       target,
@@ -75,9 +111,6 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
     const event = (type, x) => {
       const point = touch(x);
       const value = new win.Event(type, { bubbles: true, cancelable: true });
-      // Use a same-realm generic Event with explicit TouchList-shaped data. WebKit's
-      // synthetic Touch/TouchEvent constructors normalize coordinates differently from
-      // trusted input, which can erase the horizontal delta before Reader code sees it.
       Object.defineProperty(value, 'touches', {
         value: type === 'touchend' ? [] : [point],
         configurable: true
@@ -89,13 +122,15 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
       Object.defineProperty(value, 'changedTouches', { value: [point], configurable: true });
       return value;
     };
-
-    const installed = doc.documentElement?.dataset.sgReaderPageInput === '1';
     target.dispatchEvent(event('touchstart', values.startX));
     const end = event('touchend', values.endX);
     const dispatchAccepted = target.dispatchEvent(end);
-    const accepted = end.defaultPrevented ? false : dispatchAccepted;
-    return { installed, accepted, defaultPrevented: end.defaultPrevented };
+    return {
+      installed,
+      inputMode,
+      accepted: end.defaultPrevented ? false : dispatchAccepted,
+      defaultPrevented: end.defaultPrevented
+    };
   }, { startX, endX, y });
 }
 
@@ -171,6 +206,7 @@ test('mobile Pages swipe turns the live rendition without becoming a Continuous-
   const beforeSwipe = await currentCfi(page);
   const swipe = await dispatchReaderSwipe(page);
   expect(swipe?.installed).toBe(true);
+  expect(['pointer', 'touch']).toContain(swipe?.inputMode);
   expect(swipe?.accepted).toBe(false);
   expect(swipe?.defaultPrevented).toBe(true);
   await expectCfiChange(page, beforeSwipe, 8_000);
@@ -180,6 +216,7 @@ test('mobile Pages swipe turns the live rendition without becoming a Continuous-
   await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
   const continuousSwipe = await dispatchReaderSwipe(page);
   expect(continuousSwipe?.installed).toBe(true);
+  expect(['pointer', 'touch']).toContain(continuousSwipe?.inputMode);
   expect(continuousSwipe?.accepted).toBe(true);
   expect(continuousSwipe?.defaultPrevented).toBe(false);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);

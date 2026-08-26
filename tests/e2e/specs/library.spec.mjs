@@ -5,6 +5,24 @@ async function waitForCatalog(page) {
   await expect(page.locator('#resultCount')).not.toHaveText(/Opening the .* archive/);
 }
 
+async function openNavLayerState(page) {
+  return page.evaluate(() => {
+    const header = document.querySelector('.site-header');
+    const drawer = document.querySelector('#siteNav');
+    if (!header || !drawer) return null;
+    const rect = header.getBoundingClientRect();
+    const x = Math.max(1, Math.min(window.innerWidth - 1, window.innerWidth / 2));
+    const y = Math.max(1, Math.min(window.innerHeight - 1, rect.top + Math.max(1, rect.height / 2)));
+    const topmost = document.elementFromPoint(x, y);
+    return {
+      position: getComputedStyle(header).position,
+      headerZ: Number.parseInt(getComputedStyle(header).zIndex || '0', 10) || 0,
+      drawerZ: Number.parseInt(getComputedStyle(drawer).zIndex || '0', 10) || 0,
+      headerOwnsTopPoint: Boolean(topmost && (topmost === header || header.contains(topmost)))
+    };
+  });
+}
+
 test('Main and Adult libraries hydrate from isolated fixture catalogs', async ({ page, browserDiagnostics }) => {
   await page.goto('/');
   await waitForCatalog(page);
@@ -58,9 +76,17 @@ test('reading suggestion reroll advances and pinned series remain available in t
   await reroll.click();
   await expect(suggestion).not.toHaveText(before || '');
 
+  const header = page.locator('.site-header');
   const menu = page.locator('.brand-mark');
   await menu.click();
   await expect(page.locator('#siteNav')).toBeVisible();
+  await expect(header).toBeVisible();
+  const layers = await openNavLayerState(page);
+  expect(layers).not.toBeNull();
+  expect(layers?.position).toBe('fixed');
+  expect(Number(layers?.headerZ || 0)).toBeGreaterThan(Number(layers?.drawerZ || 0));
+  expect(layers?.headerOwnsTopPoint).toBe(true);
+
   const pinnedToggle = page.getByRole('button', { name: /Pinned series/ });
   const pinnedEntry = page.locator('.nav-pinned-entry', { hasText: 'Moonlit Single' });
   await expect(pinnedEntry).toBeVisible();
@@ -91,9 +117,15 @@ test('mobile navigation remains viewport-owned across resize and reduced motion'
   await expect(menu).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#siteNav')).toHaveClass(/site-nav-drawer/);
   await expect(page.locator('#siteNav')).toBeVisible();
+  await expect(header).toBeVisible();
   await expect(page.locator('html')).toHaveClass(/site-nav-open/);
   await expect(page.locator('body')).toHaveClass(/site-nav-open/);
   expect(await page.locator('html').evaluate(node => getComputedStyle(node).overflow)).toBe('hidden');
+
+  const initialLayers = await openNavLayerState(page);
+  expect(initialLayers?.position).toBe('fixed');
+  expect(Number(initialLayers?.headerZ || 0)).toBeGreaterThan(Number(initialLayers?.drawerZ || 0));
+  expect(initialLayers?.headerOwnsTopPoint).toBe(true);
 
   const before = await header.boundingBox();
   await page.setViewportSize({ width: 844, height: 390 });
@@ -102,6 +134,8 @@ test('mobile navigation remains viewport-owned across resize and reduced motion'
   expect(before).not.toBeNull();
   expect(after).not.toBeNull();
   expect(Math.abs((after?.y || 0) - (before?.y || 0))).toBeLessThan(2);
+  const resizedLayers = await openNavLayerState(page);
+  expect(resizedLayers?.headerOwnsTopPoint).toBe(true);
 
   await menu.click();
   await expect(menu).toHaveAttribute('aria-label', 'Open navigation');

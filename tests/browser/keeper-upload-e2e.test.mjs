@@ -5,11 +5,12 @@ import fs from 'node:fs/promises';
 const read = relative => fs.readFile(new URL(`../../${relative}`, import.meta.url), 'utf8');
 
 test('v2.6 Keeper upload preflight and completion remain canonical real-browser contracts', async () => {
-  const [spec, batch, workflow, core] = await Promise.all([
+  const [spec, batch, workflow, core, fixtures] = await Promise.all([
     read('tests/e2e/specs/keeper-upload.spec.mjs'),
     read('src/assets/js/admin-batch.js'),
     read('src/assets/js/admin-upload-workflow.js'),
-    read('src/assets/js/admin/core.js')
+    read('src/assets/js/admin/core.js'),
+    read('tests/e2e/support/fixtures.mjs')
   ]);
 
   for (const marker of [
@@ -22,7 +23,10 @@ test('v2.6 Keeper upload preflight and completion remain canonical real-browser 
     'state.uploadCount',
     'state.catalogCount',
     "page.locator('#workflowNextBatch')",
-    "window.ShadowGardenKeeper?.state?.batch?.running"
+    "window.ShadowGardenKeeper?.state?.batch?.running",
+    'sourceUrl',
+    '/assets/js/admin-batch.js',
+    'toBeLessThanOrEqual(1)'
   ]) assert.ok(spec.includes(marker), marker);
 
   assert.match(batch, /JSZip\.loadAsync\(bytes\)/, 'EPUB preflight must continue to inspect the real archive locally');
@@ -41,6 +45,9 @@ test('v2.6 Keeper upload preflight and completion remain canonical real-browser 
   assert.match(workflow, /if\(mode!=='uploading'\|\|q\.running\)return false/, 'settled-batch recovery must wait until the canonical batch owner releases busy state');
   assert.match(workflow, /setUploadState\(failures\.length\?'COMPLETE WITH ERRORS':'COMPLETE'/, 'settled recovery must restore the terminal upload label before rendering completion');
   assert.match(workflow, /else if\(typeof setUploadState==='function'\)\{const ready=actionable\(\)\.length;setUploadState\(ready\?'READY':'WAITING'/, 'returning to the reviewed editor must explicitly leave terminal state');
+
+  assert.match(fixtures, /message\.location\(\)/, 'browser diagnostics must retain console source locations for engine-independent error classification');
+  assert.match(fixtures, /sourceUrl:\s*location\.url\s*\|\|\s*''/, 'console diagnostics must expose the source URL without changing the public fixture API');
 
   assert.match(core, /class AdminClient/, 'Keeper upload requests must continue through the single AdminClient');
   assert.match(core, /async uploadObject\(key,blob,type\)/, 'AdminClient must remain upload-object owner');

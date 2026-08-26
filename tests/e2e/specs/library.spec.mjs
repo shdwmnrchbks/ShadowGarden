@@ -5,6 +5,10 @@ async function waitForCatalog(page) {
   await expect(page.locator('#resultCount')).not.toHaveText(/Opening the .* archive/);
 }
 
+async function acknowledgeAdult(page) {
+  await page.evaluate(() => localStorage.setItem('sg-adult-ack', '1'));
+}
+
 async function openNavLayerState(page) {
   return page.evaluate(() => {
     const header = document.querySelector('.site-header');
@@ -29,6 +33,7 @@ test('Main and Adult libraries hydrate from isolated fixture catalogs', async ({
   await expect(page.getByRole('heading', { name: 'Night Orchid' })).toHaveCount(0);
   await expect(page.locator('#resultCount')).toContainText('2 series · 4 volumes');
 
+  await acknowledgeAdult(page);
   await page.goto('/nsfw.html');
   await waitForCatalog(page);
   await expect(page.locator('.series-card')).toHaveCount(1);
@@ -52,6 +57,7 @@ test('search, compact view, and Back navigation restore rendered Library state',
   await expect(page.getByRole('button', { name: 'Compact' })).toHaveAttribute('aria-pressed', 'true');
   await expect(page).toHaveURL(/view=compact/);
 
+  await acknowledgeAdult(page);
   await page.goto('/nsfw.html');
   await waitForCatalog(page);
   await page.goBack();

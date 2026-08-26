@@ -23,6 +23,34 @@ test("motion runtime progressively falls back instead of owning application stat
   assert.equal(js.includes("localStorage.setItem"),false,"motion runtime must not own persisted state");
 });
 
+test("cross-document view transitions consume every browser promise",async()=>{
+  const js=await read("src/assets/js/motion.js");
+  assert.match(js,/observeTransitionPromise\(transition\?\.ready\)/);
+  assert.match(js,/observeTransitionPromise\(transition\?\.finished\)/);
+  assert.match(js,/observeTransitionPromise\(transition\?\.updateCallbackDone\)/);
+  assert.match(js,/const observeCrossDocumentFinished=transition=>\{\s*guardTransition\(transition\);\s*return transition\?\.finished;\s*\}/);
+  assert.match(js,/observeCrossDocumentFinished\(event\.viewTransition\)/);
+});
+
+test("cross-document motion bootstrap is parser-blocking and observes navigation before first render",async()=>{
+  const [js,main,adult,series,reader]=await Promise.all([
+    read("src/assets/js/motion.js"),
+    read("src/index.html"),
+    read("src/nsfw.html"),
+    read("src/series.html"),
+    read("src/reader.html")
+  ]);
+  for(const html of [main,adult,series,reader]){
+    assert.match(html,/<script src="\/assets\/js\/motion\.js"><\/script>/);
+    assert.equal(/<script src="\/assets\/js\/motion\.js"[^>]*\bdefer\b/.test(html),false,"cross-document motion bootstrap must not be deferred");
+  }
+  const observeAt=js.lastIndexOf("observeNavigation();");
+  const bootWaitAt=js.indexOf('if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot');
+  assert.ok(observeAt>=0&&bootWaitAt>=0&&observeAt<bootWaitAt,"navigation observers must register before DOMContentLoaded boot");
+  const bootBody=js.slice(js.indexOf("const boot=()=>{"),js.indexOf("restoreNavigationHint();"));
+  assert.equal(bootBody.includes("observeNavigation();"),false,"navigation observers must not wait for DOMContentLoaded");
+});
+
 test("reduced motion collapses optional animation while keeping the update path",async()=>{
   const [css,js,doc]=await Promise.all([
     read("src/assets/css/motion.css"),

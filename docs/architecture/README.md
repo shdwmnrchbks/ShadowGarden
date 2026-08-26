@@ -37,6 +37,7 @@ Shadow Garden v2.6.0 does not replace the v2.0 ownership model. It strengthens a
 - [`READER_LAYER.md`](./READER_LAYER.md) — authorized Reader session, orchestrator/controllers, Page/Continuous adapters, canonical Page Map/state ownership, Pages-only navigation input and isolated image focus.
 - Continuous EPUB documents receive no Reader-owned `touchmove` interception; v2.6 further guards flow-specific touch policy and capability-aware mobile input behavior.
 - Split-XHTML chapter title tracking uses canonical navigation/spine ownership rather than a hidden global or filename heuristic.
+- Continuous visual containment caps publication images against the EPUB viewport as well as their containing block, preventing oversized publication wrappers from pushing artwork under the right edge while preserving native vertical scrolling.
 
 ## R5 Garden Keeper application
 
@@ -98,7 +99,7 @@ v2.6 makes real browser behavior authoritative for high-risk flows without weake
 - [`ACCESSIBILITY_TESTING.md`](./ACCESSIBILITY_TESTING.md) documents Library/Series/Reader/Keeper accessibility verification and the application-chrome versus publication-content boundary.
 - `.github/workflows/e2e.yml` runs Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile on pull requests and `main`.
 - `tools/check-v2-6.mjs` keeps the E2E structure, source ownership, release metadata, and exact-main browser release gate from silently regressing.
-- Issues #154 and #157 are represented by permanent Reader regressions rather than one-off patches.
+- Issues #154, #157, and #160 are represented by permanent Reader regressions rather than one-off patches.
 
 ## Permanent guardrails
 

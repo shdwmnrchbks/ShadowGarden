@@ -11,6 +11,16 @@ async function waitForReader(page) {
   await expect(page.locator('#viewer iframe')).toHaveCount(1);
 }
 
+async function waitForPageMap(page) {
+  await expect(page.locator('#progressText')).toHaveAttribute('title', /device pages cached for this layout/, { timeout: 20_000 });
+}
+
+async function clickRenderedCenter(page, locator) {
+  const box = await locator.boundingBox();
+  expect(box, 'EPUB image should expose a top-level rendered box').toBeTruthy();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+}
+
 async function storedJson(page, key) {
   return page.evaluate(storageKey => {
     try { return JSON.parse(localStorage.getItem(storageKey) || 'null'); }
@@ -63,6 +73,7 @@ test('Pages progress and bookmark persist through a full Reader reload', async (
 
   await page.reload();
   await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
+  await waitForPageMap(page);
   await expect(page.locator('#bookmarkButton')).toHaveAttribute('aria-pressed', 'true');
   const bookmarksAfterReload = await storedJson(page, bookmarkKey);
   expect(bookmarksAfterReload).toHaveLength(1);
@@ -79,7 +90,10 @@ test('flow switching, image focus, and resize preserve a usable Reader location'
   const iframe = page.frameLocator('#viewer iframe');
   const illustration = iframe.getByRole('img', { name: 'A moonlit geometric garden used to test image focus' });
   await expect(illustration).toBeVisible();
-  await illustration.click();
+  // WebKit blocks Playwright's injected locator-click helper inside EPUB.js' intentionally
+  // scriptless sandboxed about:srcdoc iframe. A top-level coordinate click follows the
+  // browser's native pointer path and therefore matches an actual reader interaction.
+  await clickRenderedCenter(page, illustration);
   await expect(page.locator('#imageFocus')).not.toHaveClass(/hidden/);
   await expect(page.locator('#imageFocus')).toHaveAttribute('aria-hidden', 'false');
   await page.locator('#imageFocusClose').click();

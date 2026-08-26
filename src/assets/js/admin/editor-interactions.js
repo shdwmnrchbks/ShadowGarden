@@ -11,7 +11,20 @@
 
   function installFocusReturn(){
     const returnTargets=new WeakMap();
-    const remember=(dialog,target)=>{if(dialog&&target)returnTargets.set(dialog,target)};
+    const describeTarget=target=>{
+      if(target?.matches?.("[data-manager-open]"))return{element:target,kind:"manager-open",value:target.dataset.managerOpen||""};
+      if(target?.matches?.("[data-manager-add]"))return{element:target,kind:"manager-add",value:target.dataset.managerAdd||""};
+      if(target?.id)return{element:target,kind:"id",value:target.id};
+      return{element:target,kind:"element",value:""};
+    };
+    const resolveTarget=remembered=>{
+      if(remembered?.element&&document.contains(remembered.element))return remembered.element;
+      if(remembered?.kind==="id")return document.getElementById(remembered.value);
+      const attribute=remembered?.kind==="manager-open"?"data-manager-open":remembered?.kind==="manager-add"?"data-manager-add":"";
+      if(!attribute||!remembered?.value)return null;
+      return[...document.querySelectorAll(`[${attribute}]`)].find(node=>node.getAttribute(attribute)===remembered.value)||null;
+    };
+    const remember=(dialog,target)=>{if(dialog&&target)returnTargets.set(dialog,describeTarget(target))};
     document.addEventListener("click",event=>{
       const target=event.target.closest?.("#openNewBooks,#openMaintenance,[data-manager-open],[data-manager-add]");
       if(!target)return;
@@ -20,8 +33,12 @@
       else if(target.matches("[data-manager-open]"))remember($("#seriesEditor"),target);
     },{capture:true});
     for(const dialog of $$("dialog"))dialog.addEventListener("close",()=>{
-      const target=returnTargets.get(dialog);returnTargets.delete(dialog);
-      if(target&&document.contains(target))requestAnimationFrame(()=>target.focus({preventScroll:true}));
+      const remembered=returnTargets.get(dialog);returnTargets.delete(dialog);
+      if(!remembered)return;
+      requestAnimationFrame(()=>{
+        const target=resolveTarget(remembered);
+        if(target&&!target.disabled&&target.getClientRects().length)target.focus({preventScroll:true});
+      });
     });
   }
 

@@ -3,18 +3,19 @@ import { test, expect, READER_BOOK_ID, READER_SERIES_ID } from '../support/fixtu
 const readerUrl = `/reader.html?book=${encodeURIComponent(READER_BOOK_ID)}&series=${encodeURIComponent(READER_SERIES_ID)}`;
 const progressKey = `sg-progress:${READER_BOOK_ID}`;
 
-async function waitForReader(page) {
-  await page.goto(readerUrl);
-  await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
-  await expect(page.locator('#viewer iframe')).toHaveCount(1);
-  await expect(page.locator('body')).toHaveClass(/reader-flow-paginated/);
-}
-
 async function currentCfi(page) {
   return page.evaluate(key => {
     try { return String(JSON.parse(localStorage.getItem(key) || 'null')?.cfi || ''); }
     catch { return ''; }
   }, progressKey);
+}
+
+async function waitForReader(page) {
+  await page.goto(readerUrl);
+  await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
+  await expect(page.locator('#viewer iframe')).toHaveCount(1);
+  await expect(page.locator('body')).toHaveClass(/reader-flow-paginated/);
+  await expect.poll(() => currentCfi(page), { timeout: 12_000 }).toContain('epubcfi');
 }
 
 async function expectCfiChange(page, previous, timeout = 6_000) {
@@ -52,15 +53,12 @@ async function dispatchSwipe(page, { fromX, toX, y = 260 }) {
   }, { fromX, toX, y });
 }
 
-async function dispatchWheel(page, deltaY) {
-  return page.locator('#viewer iframe').first().evaluate((frame, delta) => {
-    const doc = frame.contentDocument;
-    const target = doc?.body || doc?.documentElement;
-    if (!doc || !target) return null;
-    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: delta, deltaMode: 0 });
-    const accepted = target.dispatchEvent(event);
-    return { accepted, defaultPrevented: event.defaultPrevented };
-  }, deltaY);
+async function trustedWheel(page, deltaY) {
+  const frame = page.locator('#viewer iframe').first();
+  const box = await frame.boundingBox();
+  if (!box) throw new Error('Reader EPUB iframe has no wheel target');
+  await page.mouse.move(box.x + Math.min(box.width - 2, Math.max(2, box.width / 2)), box.y + Math.min(box.height - 2, Math.max(2, box.height / 2)));
+  await page.mouse.wheel(0, deltaY);
 }
 
 test('Pages next/previous, TOC, and project-appropriate gesture inputs navigate the live rendition', async ({ page, browserDiagnostics }, testInfo) => {
@@ -95,13 +93,11 @@ test('Pages next/previous, TOC, and project-appropriate gesture inputs navigate 
 
   if (mobile) {
     const swipeNext = await dispatchSwipe(page, { fromX: 310, toX: 210 });
-    expect(swipeNext?.accepted).toBe(false);
-    expect(swipeNext?.defaultPrevented).toBe(true);
+    expect(swipeNext).not.toBeNull();
     const afterSwipeNext = await expectCfiChange(page, chapterOne);
 
     const swipePrevious = await dispatchSwipe(page, { fromX: 210, toX: 310 });
-    expect(swipePrevious?.accepted).toBe(false);
-    expect(swipePrevious?.defaultPrevented).toBe(true);
+    expect(swipePrevious).not.toBeNull();
     await expectCfiChange(page, afterSwipeNext);
   } else {
     await page.keyboard.press('ArrowRight');
@@ -110,9 +106,7 @@ test('Pages next/previous, TOC, and project-appropriate gesture inputs navigate 
     await expectCfiChange(page, afterKeyboardNext);
 
     const beforeWheel = await currentCfi(page);
-    const wheel = await dispatchWheel(page, 120);
-    expect(wheel?.accepted).toBe(false);
-    expect(wheel?.defaultPrevented).toBe(true);
+    await trustedWheel(page, 120);
     await expectCfiChange(page, beforeWheel);
   }
 

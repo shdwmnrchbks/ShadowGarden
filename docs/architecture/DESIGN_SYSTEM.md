@@ -14,6 +14,7 @@ R7 replaced historical CSS patch/version ownership with semantic styling respons
 4. **Feature sheets own feature presentation.** Reader Page Map, Continuous rail, image focus, accessibility, end page, themes, Keeper Upload/preflight/maintenance, Adult variants, and Series-specific presentation remain separate owners.
 5. **No permanent `-current`, `-polish`, `-fix`, `-patch`, or version-number CSS owners.** The R1/R10 guards enforce this.
 6. **Accessibility variants are first-class CSS contracts.** Reduced motion, increased contrast, forced colors, focus-visible styling, Adult variants, and Reader theme variants may not disappear during consolidation.
+7. **Deterministic presentation is first-paint ownership.** If a stylesheet, label, gate, or loading surface is known before application data arrives, it belongs to the initial document rather than a deferred runtime repair.
 
 ## Public Library + Series ownership
 
@@ -76,6 +77,7 @@ R7/R10 change no Reader gesture, Page Map, Visual Page Cache, flow, progress, bo
 
 The Keeper consumes public foundation tokens from `site.css` plus explicit feature owners:
 
+- `motion.css` — shared motion timing and navigation primitives.
 - `admin.css` — base Keeper shell/forms/cards.
 - `admin-preflight.css` — EPUB preflight feature.
 - `admin-batch.css` — upload batch feature.
@@ -85,11 +87,12 @@ The Keeper consumes public foundation tokens from `site.css` plus explicit featu
 - `admin-components.css` — Upload state, preflight collapse, upload-series cards, and Catalog History component presentation.
 - `admin-version.css` — deployed-version component.
 - `admin-presentation.css` — Series banner chooser/preview.
+- `admin-motion.css` — Keeper-specific motion presentation and reduced-motion fallback.
 - `ui-symbols.css` — shared symbol normalization.
 
-`admin.html` now directly loads `admin-series-editor.css` and `admin-layout.css`. R10 deleted the selector-free R7 compatibility aliases `admin-series-editor-polish.css` and `admin-overhaul.css`; there is no longer a historical cascade pathname between the HTML and the semantic owner.
+`admin.html` directly owns this complete semantic cascade. That is intentional first-paint behavior: Keeper must not render its base shell and then append component, version, presentation, or motion styles after deferred JavaScript starts. R10 deleted the selector-free compatibility aliases `admin-series-editor-polish.css` and `admin-overhaul.css`; there is no historical cascade pathname between the HTML and the semantic owner.
 
-`admin/app.js` runtime-loads `admin-components.css`, `admin-version.css`, and `admin-presentation.css` without authored release query strings. Build-time asset stamping remains the sole local cache-busting owner.
+`admin/app.js` is therefore a runtime **script/workflow** composition root only. It loads the shared motion runtime, Keeper workflows, Upload modules, shell/motion controllers, flavor, and symbol behavior, but it must not create `<link>` elements or otherwise repair deterministic presentation after paint. Build-time asset stamping remains the sole local cache-busting owner.
 
 ## Retired CSS owners
 
@@ -119,6 +122,6 @@ The final design system preserves:
 
 ## Permanent R7/R10 guard
 
-`tools/check-r7.mjs` verifies semantic stylesheet order, ownership markers, deleted historical CSS, direct Keeper semantic entrypoints, runtime semantic loading, accessibility/variant markers, cache headers, documentation state, and release floor. `tools/check-r10.mjs` additionally forbids any known legacy CSS alias or patch-style source from returning.
+`tools/check-r7.mjs` verifies semantic stylesheet order, ownership markers, deleted historical CSS, direct Keeper semantic first-paint ownership, runtime script-only composition, accessibility/variant markers, cache headers, documentation state, and release floor. `tools/check-r10.mjs` additionally forbids any known legacy CSS alias or patch-style source from returning.
 
-Future CSS changes must preserve these ownership contracts and cannot reintroduce release-history styling layers.
+Future CSS changes must preserve these ownership contracts and cannot reintroduce release-history styling layers or deferred deterministic style repair.

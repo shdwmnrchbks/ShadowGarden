@@ -161,12 +161,17 @@
       "styles": [
         "/assets/css/site.css",
         "/assets/css/nav.css",
+        "/assets/css/motion.css",
         "/assets/css/admin.css",
         "/assets/css/admin-preflight.css",
         "/assets/css/admin-batch.css",
         "/assets/css/admin-maintenance.css",
         "/assets/css/admin-series-editor.css",
         "/assets/css/admin-layout.css",
+        "/assets/css/admin-components.css",
+        "/assets/css/admin-version.css",
+        "/assets/css/admin-presentation.css",
+        "/assets/css/admin-motion.css",
         "/assets/css/ui-symbols.css"
       ],
       "scripts": [
@@ -175,11 +180,6 @@
         "/assets/js/admin/app.js"
       ],
       "runtimeLoaded": [
-        "/assets/css/motion.css",
-        "/assets/css/admin-components.css",
-        "/assets/css/admin-version.css",
-        "/assets/css/admin-presentation.css",
-        "/assets/css/admin-motion.css",
         "/assets/js/motion.js",
         "/assets/js/admin/upload-fields.js",
         "/assets/js/admin/auth-session.js",

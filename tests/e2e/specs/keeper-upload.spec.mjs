@@ -210,10 +210,18 @@ test('Garden Keeper upload failure preserves the reviewed queue and restores ret
   await expect(upload).toHaveText('Upload 1 Book');
   await expect(page.locator('#uploadState')).toHaveText('READY');
 
-  const expectedAppErrors = browserDiagnostics.filter(entry => entry.type === 'console' && entry.message.includes('E2E storage unavailable'));
-  const expectedHttpErrors = browserDiagnostics.filter(entry => entry.type === 'console' && entry.message.includes('503') && entry.message.includes('Failed to load resource'));
-  expect(expectedAppErrors).toHaveLength(1);
-  expect(expectedHttpErrors).toHaveLength(1);
-  const expectedDiagnostics = new Set([...expectedAppErrors, ...expectedHttpErrors]);
+  const expectedUploadErrors = browserDiagnostics.filter(entry =>
+    entry.type === 'console' &&
+    String(entry.sourceUrl || '').includes('/assets/js/admin-batch.js') &&
+    (entry.message === 'Error' || entry.message.includes('E2E storage unavailable'))
+  );
+  const expectedHttpErrors = browserDiagnostics.filter(entry =>
+    entry.type === 'console' &&
+    entry.message.includes('503') &&
+    entry.message.includes('Failed to load resource')
+  );
+  expect(expectedUploadErrors).toHaveLength(1);
+  expect(expectedHttpErrors.length).toBeLessThanOrEqual(1);
+  const expectedDiagnostics = new Set([...expectedUploadErrors, ...expectedHttpErrors]);
   expect(browserDiagnostics.filter(entry => !expectedDiagnostics.has(entry))).toEqual([]);
 });

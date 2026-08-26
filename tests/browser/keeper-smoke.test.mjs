@@ -85,7 +85,9 @@ test("Keeper Series banner defaults to Random while explicit volume covers remai
   assert.match(seriesRenderer, /identity\?\.isBookId\?\.\(selected\)/);
   assert.match(libraryController, /let suggestionRandom=Math\.random\(\)/);
   assert.match(libraryController, /readingStatus\.libraryBannerEntry\(state\.items,suggestionRandom\)/);
-  assert.match(libraryController, /suggestionRandom=Math\.random\(\);renderContinue\(\)/);
+  assert.match(libraryController, /function suggestionIdentity\(/);
+  assert.match(libraryController, /for\(let attempt=0;attempt<17;attempt\+\+\)/);
+  assert.match(libraryController, /renderContinue\(\{reroll:true\}\)/);
   assert.match(readingState, /export function libraryBannerEntry\(seriesList, randomValue = Math\.random\)/);
   const bannerSelector = readingState.slice(readingState.indexOf("export function libraryBannerEntry"));
   assert.ok(bannerSelector.indexOf("latestActiveEntry(seriesList)") < bannerSelector.indexOf("nextStartedSeriesEntry(seriesList)"));

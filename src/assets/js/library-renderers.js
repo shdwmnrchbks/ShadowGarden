@@ -110,7 +110,7 @@ export function renderReadingBanner(panel, intro, current, { readingState, forma
     : `${current.suggestion === "next" ? "Next in series" : "Read suggestion"} · ${series?.title || "Untitled series"} · Volume ${number}`;
   panel.dataset.readingState = state;
   panel.dataset.readingMode = mode;
-  const reroll = mode === "suggestion" && current.suggestion === "random" ? `<button class="another-suggestion" type="button" data-another-suggestion aria-label="Show another reading suggestion">Another suggestion ↻</button>` : "";
+  const reroll = mode === "suggestion" && current.suggestion === "random" ? `<button class="another-suggestion" type="button" data-another-suggestion aria-label="Show another reading suggestion" title="Another suggestion">↻</button>` : "";
   panel.innerHTML = `<div class="continue-mark${cover ? " continue-cover" : ""}">${cover ? `<img src="${esc(cover)}" alt="" loading="eager" decoding="async">` : "✦"}</div><div><strong>${esc(title)}</strong><span>${esc(context)}</span></div><div class="continue-actions"><a ${attrs(action, esc)} href="${action.href}">${esc(action.label)}</a>${reroll}</div>`;
   panel.classList.remove("hidden");
 

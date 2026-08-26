@@ -43,16 +43,18 @@ Adult Library inserts `adult.css` after `nav.css`. Series replaces Library featu
 
 ### Reconciled responsive navigation contract
 
-Real-device fixes in v1.23.1–v1.23.5 established the body-level drawer portal; the v2.4 UX completion pass preserved that portal while removing layout-changing header compensation:
+Real-device fixes in v1.23.1–v1.23.5 established the body-level drawer portal. v2.6 real-browser testing kept that portal while reconciling header layering under document scroll lock:
 
 - `nav.js` portals the responsive drawer to `document.body` so fixed geometry is not constrained by the filtered/sticky header in mobile Chromium.
 - `nav.css` owns the fixed drawer/backdrop geometry and complete drawer link/button presentation because portaled controls cannot depend on `.site-header nav ...` ancestry.
-- The site header remains sticky and in normal document flow while the drawer is open; open state may raise its z-index or add visual separation but must not switch it to `position: fixed`.
-- No `body.site-nav-open` top-padding compensation is used. `scrollbar-gutter: stable` and unchanged document geometry prevent open/close layout jumps.
+- The baseline site header remains sticky during ordinary page use; open state promotes it to a viewport-fixed layer above the drawer so it cannot be painted behind the body-level overlay.
+- A matching 72px/62px body spacer preserves the header's normal-flow height while it is temporarily fixed, so the open/close transition does not move underlying content.
+- `scrollbar-gutter: stable` remains responsible for stable scrollbar allocation; no scroll-position scripting is used.
 - `<html>` and `<body>` share the open-state scroll lock; the backdrop is non-pannable while the drawer remains vertically pannable/scrollable.
+- Real-browser coverage verifies actual top-layer paint ownership with `elementFromPoint()`, not only header geometry.
 - Main and Adult variants remain selector-scoped under the same `nav.css` owner.
 
-The complete contract is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) and guarded by R8's `tests/browser/mobile-nav-viewport.test.mjs`.
+The complete contract is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) and guarded by R8's `tests/browser/mobile-nav-viewport.test.mjs` plus the v2.6 Library E2E suite.
 
 ## Reader ownership
 

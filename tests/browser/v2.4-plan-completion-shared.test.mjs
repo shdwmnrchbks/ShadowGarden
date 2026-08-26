@@ -32,19 +32,20 @@ test("Library cards expose whole-card hover and keyboard focus without reserving
   assert.match(layout,/\.catalog-grid:not\(\.compact\) \.series-card>\.card-copy h2\{\s*min-height:0!important/);
 });
 
-test("mobile navigation documentation matches the no-layout-shift implementation",async()=>{
+test("mobile navigation documentation matches the layout-stable top-layer header implementation",async()=>{
   const [contract,design,navCss]=await Promise.all([
     read("docs/architecture/MOBILE_NAVIGATION.md"),
     read("docs/architecture/DESIGN_SYSTEM.md"),
     read("src/assets/css/nav.css")
   ]);
-  assert.match(contract,/site header remains `position: sticky` and stays in normal document flow/);
-  assert.match(contract,/must not change the header to `position: fixed`/);
-  assert.match(contract,/must not add compensating top padding/);
-  assert.match(design,/site header remains sticky and in normal document flow/);
-  assert.match(design,/No `body\.site-nav-open` top-padding compensation is used/);
-  assert.equal(navCss.includes("body.site-nav-open{padding-top:"),false);
-  assert.equal(navCss.includes(".site-nav-open .site-header{position:fixed"),false);
+  assert.match(contract,/baseline header remains `position: sticky`/);
+  assert.match(contract,/temporarily promoted to `position: fixed`/);
+  assert.match(contract,/matching 72px\/62px body spacer replaces exactly the flow height removed by that promotion/);
+  assert.match(design,/baseline site header remains sticky/);
+  assert.match(design,/open state promotes it to a viewport-fixed layer above the drawer/);
+  assert.match(design,/matching 72px\/62px body spacer preserves the header's normal-flow height/);
+  assert.match(navCss,/body\.site-nav-open\{padding-top:72px\}/);
+  assert.match(navCss,/\.site-nav-open \.site-header\{position:fixed/);
 });
 
 test("v2.4 release reconciliation records the duration metadata boundary explicitly",async()=>{

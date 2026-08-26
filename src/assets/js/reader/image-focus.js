@@ -14,6 +14,15 @@ function normalizeWheel(event){
   if(event?.deltaMode===1){x*=18;y*=18}else if(event?.deltaMode===2){x*=window.innerWidth;y*=window.innerHeight}
   return{x,y};
 }
+function needsParentHitTargets(doc){
+  const ua=String(doc?.defaultView?.navigator?.userAgent||navigator.userAgent||"");
+  return /AppleWebKit/i.test(ua)&&!/(?:Chrome|Chromium|Edg|OPR)\//i.test(ua);
+}
+function intersectRect(a,b){
+  const left=Math.max(Number(a?.left)||0,Number(b?.left)||0),top=Math.max(Number(a?.top)||0,Number(b?.top)||0);
+  const right=Math.min(Number(a?.right)||0,Number(b?.right)||0),bottom=Math.min(Number(a?.bottom)||0,Number(b?.bottom)||0);
+  return{left,top,right,bottom,width:Math.max(0,right-left),height:Math.max(0,bottom-top)};
+}
 
 export function imagePanBounds({imageWidth=0,imageHeight=0,viewportWidth=0,viewportHeight=0,scale=1}={}){
   const safeScale=Math.max(1,Number(scale)||1);
@@ -32,6 +41,8 @@ export function createImageFocusController({
   shouldSuppressOpen
 }={}){
   const state={active:false,scale:1,x:0,y:0,maxScale:4,gesture:null,suppressCloseClickUntil:0,returnFocus:null};
+  const parentHits=new Map();
+  let parentHitFrame=0;
 
   function viewportSize(){return{width:Math.max(1,Number(viewport?.clientWidth)||Number(window.innerWidth)||1),height:Math.max(1,Number(viewport?.clientHeight)||Number(window.innerHeight)||1)}}
   function pointInViewport(clientX,clientY){const rect=viewport?.getBoundingClientRect?.()||{left:0,top:0};return{x:(Number(clientX)||0)-rect.left,y:(Number(clientY)||0)-rect.top}}
@@ -82,21 +93,79 @@ export function createImageFocusController({
     state.returnFocus=null;return true;
   }
 
+  function removeParentHits(doc){
+    const entry=parentHits.get(doc);if(!entry)return;
+    entry.hits.forEach(hit=>hit.remove());parentHits.delete(doc);
+  }
+  function refreshParentHits(){
+    parentHitFrame=0;
+    parentHits.forEach((entry,doc)=>{
+      const frame=doc?.defaultView?.frameElement;
+      if(!frame?.isConnected){removeParentHits(doc);return}
+      const frameRect=frame.getBoundingClientRect(),shellRect=frame.closest?.("#viewerShell")?.getBoundingClientRect?.()||frameRect;
+      entry.hits.forEach((hit,sourceImage)=>{
+        if(!sourceImage?.isConnected){hit.remove();entry.hits.delete(sourceImage);return}
+        const rect=sourceImage.getBoundingClientRect();
+        const mapped={left:frameRect.left+rect.left,top:frameRect.top+rect.top,right:frameRect.left+rect.right,bottom:frameRect.top+rect.bottom};
+        const visible=intersectRect(mapped,shellRect);
+        if(visible.width<2||visible.height<2){hit.hidden=true;return}
+        hit.hidden=false;hit.style.left=`${visible.left}px`;hit.style.top=`${visible.top}px`;hit.style.width=`${visible.width}px`;hit.style.height=`${visible.height}px`;
+      });
+    });
+  }
+  function scheduleParentHitRefresh(){if(parentHitFrame)return;parentHitFrame=requestAnimationFrame(refreshParentHits)}
+  function installParentHits(doc){
+    if(!needsParentHitTargets(doc)||parentHits.has(doc))return;
+    const hits=new Map();parentHits.set(doc,{hits});
+    doc.querySelectorAll?.("img").forEach(sourceImage=>{
+      const hit=document.createElement("span");
+      hit.className="reader-image-focus-hit";hit.setAttribute("aria-hidden","true");hit.dataset.sgReaderImageHit="1";
+      hit.addEventListener("click",event=>{
+        event.preventDefault();event.stopPropagation();
+        if(state.active||shouldSuppressOpen?.())return;
+        openImageFocus(sourceImage,doc);
+      });
+      document.body.appendChild(hit);hits.set(sourceImage,hit);
+      sourceImage.addEventListener?.("load",scheduleParentHitRefresh,{once:false});
+    });
+    scheduleParentHitRefresh();
+  }
+
   function installDocument(doc){
     if(!doc?.documentElement||doc.documentElement.dataset.sgReaderImageFocus==="1")return;
     doc.documentElement.dataset.sgReaderImageFocus="1";
     try{const style=doc.createElement("style");style.id="sg-reader-image-focus-style";style.textContent="img{cursor:zoom-in}";doc.head?.appendChild(style)}catch{}
+    installParentHits(doc);
+    let pointerStart=null;
+    const activate=(sourceImage,event)=>{
+      if(!sourceImage||state.active)return false;
+      if(shouldSuppressOpen?.()){event?.preventDefault?.();event?.stopImmediatePropagation?.();return false}
+      event?.preventDefault?.();event?.stopImmediatePropagation?.();return openImageFocus(sourceImage,doc);
+    };
+    doc.addEventListener("pointerdown",event=>{
+      const sourceImage=imageTarget(event.target);
+      if(!sourceImage||Number(event.button)>0){pointerStart=null;return}
+      pointerStart={id:event.pointerId,image:sourceImage,x:Number(event.clientX)||0,y:Number(event.clientY)||0};
+    },true);
+    doc.addEventListener("pointerup",event=>{
+      const start=pointerStart;pointerStart=null;
+      const sourceImage=imageTarget(event.target);
+      if(!start||start.id!==event.pointerId||!sourceImage||sourceImage!==start.image)return;
+      if(Math.hypot((Number(event.clientX)||0)-start.x,(Number(event.clientY)||0)-start.y)>12)return;
+      setTimeout(()=>{if(!state.active&&!shouldSuppressOpen?.())openImageFocus(sourceImage,doc)},0);
+    },true);
+    doc.addEventListener("pointercancel",()=>{pointerStart=null},true);
     doc.addEventListener("click",event=>{
       const sourceImage=imageTarget(event.target);if(!sourceImage)return;
-      if(shouldSuppressOpen?.()){event.preventDefault();event.stopImmediatePropagation();return}
-      event.preventDefault();event.stopImmediatePropagation();openImageFocus(sourceImage,doc);
+      activate(sourceImage,event);
     },true);
   }
   function attachRendition(rendition){
     if(!rendition||rendition.__sgR41ImageFocus)return;
     rendition.__sgR41ImageFocus=true;
     try{rendition.hooks?.content?.register?.(contents=>installDocument(contents?.document||contents?.contentDocument))}catch(error){console.warn("Reader image focus hook unavailable",error)}
-    try{rendition.on?.("rendered",(_section,view)=>installDocument(view?.contents?.document||view?.contents?.contentDocument))}catch{}
+    try{rendition.on?.("rendered",(_section,view)=>{installDocument(view?.contents?.document||view?.contents?.contentDocument);scheduleParentHitRefresh()})}catch{}
+    try{rendition.on?.("relocated",scheduleParentHitRefresh);rendition.on?.("resized",scheduleParentHitRefresh);rendition.on?.("removed",(_section,view)=>removeParentHits(view?.contents?.document||view?.contents?.contentDocument))}catch{}
     try{rendition.getContents?.().forEach(contents=>installDocument(contents?.document||contents?.contentDocument))}catch{}
   }
 
@@ -164,7 +233,8 @@ export function createImageFocusController({
   viewport?.addEventListener("click",event=>{if(Date.now()<state.suppressCloseClickUntil)return;event.preventDefault();closeImageFocus()});
   closeButton?.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();closeImageFocus()});
   image?.addEventListener("load",()=>{if(state.active)setTransform(state.scale,state.x,state.y)});
-  window.addEventListener("resize",()=>{if(state.active)setTransform(state.scale,state.x,state.y)});
+  window.addEventListener("resize",()=>{if(state.active)setTransform(state.scale,state.x,state.y);scheduleParentHitRefresh()});
+  document.addEventListener("scroll",scheduleParentHitRefresh,true);
   render();
 
   return{attachRendition,installDocument,openImageFocus,closeImageFocus,isFocused:()=>state.active,isZoomed:()=>state.scale>1.001,scale:()=>state.scale};

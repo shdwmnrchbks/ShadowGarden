@@ -201,9 +201,9 @@ For v2.6.0 the following records must agree before merge:
 
 Production version metadata is generated from the package/build context and therefore joins this contract automatically after deployment.
 
-## Permanent guardrails
+## Permanent R9 guard and current guardrails
 
-`tools/check-r9.mjs` continues to protect:
+The Permanent R9 guard in `tools/check-r9.mjs` continues to protect:
 
 - committed synchronized lockfile and Node 22 engine;
 - read-only `npm ci` CI with immutable action pins;

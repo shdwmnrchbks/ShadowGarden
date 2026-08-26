@@ -1,16 +1,17 @@
 # Shadow Garden Mobile Navigation Contract
 
-**Reconciled after:** v2.4.0  
+**Reconciled after:** v2.6.0 reliability work  
 **Ownership:** R7 navigation/design-system owner + R8 browser-smoke regression owner  
 **Status:** Active contract
 
-The v1.23.1–v1.23.5 real-device corrections established the body-level drawer portal. The v2.4 UX completion pass keeps that portal while removing the later fixed-header/body-padding compensation so opening navigation no longer changes document geometry.
+The v1.23.1–v1.23.5 real-device corrections established the body-level drawer portal. The v2.4 UX completion pass removed an earlier fixed-header workaround, but v2.6 real-browser testing exposed a different stacking failure: once the drawer is portaled to `body` and both document scroll containers are locked, a sticky header can retain its geometry while being painted beneath the body-level overlay. The current contract therefore keeps the baseline header sticky and promotes it only while navigation is open, with an exact flow-height replacement so geometry remains stable.
 
 ## Ownership
 
 - `src/assets/js/nav.js` owns drawer lifecycle, body-level portal placement, accessibility state, focus trapping, backdrop creation, and the `site-nav-open` document state.
 - `src/assets/css/nav.css` owns drawer/header/backdrop presentation, viewport geometry, Main/Adult variants, touch/overscroll behavior, and layout-stable open-state presentation.
-- `tests/browser/mobile-nav-viewport.test.mjs` is the permanent R8 browser-contract regression for this behavior.
+- `tests/browser/mobile-nav-viewport.test.mjs` is the permanent R8 browser-contract regression for the source-level behavior.
+- `tests/e2e/specs/library.spec.mjs` verifies the header is actually the top painted layer while the drawer is open across real browser projects.
 - No page-specific stylesheet or post-render repair layer may independently reposition or restyle the navigation drawer.
 
 ## Viewport and portal contract
@@ -30,17 +31,18 @@ The drawer must not return to `position:absolute`, calculated `100dvh` heights, 
 
 ## Header and layout-stability contract
 
-The site header remains `position: sticky` and stays in normal document flow when navigation opens. Opening the drawer may raise its z-index or add visual separation, but it must not change the header to `position: fixed` and must not add compensating top padding to `<body>`.
+The baseline header remains `position: sticky` during ordinary page use. When navigation opens, the header is temporarily promoted to `position: fixed` with explicit viewport edges and a z-index above the body-level drawer. A matching 72px/62px body spacer replaces exactly the flow height removed by that promotion.
 
-This preserves the page's geometry exactly across open/close transitions:
+This combination is intentional:
 
-- no sticky-to-fixed header mode switch;
-- no 72px/62px body-padding compensation;
-- no scroll-position scripting;
-- stable scrollbar allocation through `scrollbar-gutter: stable`;
-- drawer/backdrop geometry continues to begin immediately below the visible header.
+- closed state keeps normal sticky-page behavior;
+- open state guarantees the header is painted above the drawer/backdrop in Chromium, Firefox, and WebKit;
+- the replacement spacer keeps the underlying document at the same vertical geometry;
+- no scroll-position scripting is required;
+- stable scrollbar allocation remains provided by `scrollbar-gutter: stable`;
+- drawer/backdrop geometry begins immediately below the visible header.
 
-The background page therefore does not jump when the drawer opens or closes.
+The fixed promotion and spacer must always be changed together. A fixed open-state header without the matching spacer reintroduces a layout jump; a spacer without the fixed promotion creates a duplicate gap.
 
 ## Background scroll-lock contract
 
@@ -50,9 +52,10 @@ While open:
 
 - the root/document scroll containers use `overflow: hidden` and disable overscroll propagation;
 - the backdrop uses `touch-action: none` and cannot pan the page behind it;
-- the drawer itself retains `touch-action: pan-y`, `overflow-y: auto`, and contained overscroll.
+- the drawer itself retains `touch-action: pan-y`, `overflow-y: auto`, and contained overscroll;
+- the fixed open-state header remains separately paintable above those body-level overlays.
 
-The result is desktop/mobile parity: the page behind the drawer remains stationary, while long drawer contents remain vertically scrollable.
+The result is desktop/mobile parity: the page behind the drawer remains stationary, while long drawer contents remain vertically scrollable and the site header stays visible.
 
 ## Presentation and variants
 
@@ -84,11 +87,13 @@ The existing navigation accessibility behavior remains required:
 
 ## Permanent regression coverage
 
-`tests/browser/mobile-nav-viewport.test.mjs` must continue to guard at least:
+`tests/browser/mobile-nav-viewport.test.mjs` and the real-browser Library suite must continue to guard at least:
 
 - body-level drawer portal ownership;
-- sticky header remaining in document flow;
-- rejection of fixed-header/body-padding compensation;
+- sticky baseline header ownership;
+- fixed open-state header layering above the drawer;
+- exact 72px/62px flow-height replacement while open;
+- actual top-layer paint ownership, not only bounding-box geometry;
 - viewport-fixed drawer geometry on desktop and mobile;
 - stable scrollbar allocation;
 - drawer-owned link/active/focus presentation;
@@ -97,4 +102,4 @@ The existing navigation accessibility behavior remains required:
 - vertically pannable drawer;
 - rejection of the retired `absolute + 100dvh` implementation.
 
-These checks are part of R8's browser-contract layer even though the real-device corrections and v2.4 reconciliation landed after the original R8 milestone. Future navigation changes should extend this owner/test pair rather than adding another hotfix stylesheet or competing input owner.
+These checks are part of R8's browser-contract layer even though the real-device corrections and v2.6 reconciliation landed after the original R8 milestone. Future navigation changes should extend this owner/test pair rather than adding another hotfix stylesheet or competing input owner.

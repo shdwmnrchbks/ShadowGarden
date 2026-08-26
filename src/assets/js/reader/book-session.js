@@ -2,6 +2,7 @@
 import { catalog, identity, preferences, readingState, storage, urls } from "../domain/index.js";
 
 const EPUB_PATH=/^\/media\/shadow-garden\/books\/.+\.epub$/i;
+let resumeRenewalInstalled=false;
 
 function sourcePathFromTicket(ticket){
   const direct=String(ticket?.sourcePath||"").trim();
@@ -59,6 +60,35 @@ function replacePublicUrl(session){
   }catch{}
 }
 
+function installResumeRenewal(session,access){
+  if(resumeRenewalInstalled||!session||typeof access?.resolve!=="function")return;
+  const reference=session.publicBookId||session.requested||session.sourcePath;
+  if(!reference)return;
+  resumeRenewalInstalled=true;
+  let inFlight=null;
+
+  const renew=()=>{
+    if(document.hidden||inFlight)return inFlight;
+    // `resolve` reuses a comfortably-live ticket and refreshes one within 45 seconds of expiry.
+    // That makes resume checks cheap during ordinary tab switches while recovering immediately
+    // after a browser has suspended the normal renewal timer during sleep/backgrounding.
+    const task=Promise.resolve(access.resolve(reference)).then(ticket=>{
+      if(ticket)session.ticket=ticket;
+      return ticket;
+    }).catch(error=>{
+      console.warn("Reader access resume renewal delayed",error);
+      return null;
+    }).finally(()=>{
+      if(inFlight===task)inFlight=null;
+    });
+    inFlight=task;
+    return task;
+  };
+
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)void renew()});
+  window.addEventListener("pageshow",()=>{void renew()});
+}
+
 export async function createAuthorizedBookSession({access=window.ShadowGardenBookAccess}={}){
   const context=requestedContext();
   syncStoredReaderShell(context.seriesId);
@@ -86,6 +116,7 @@ export async function createAuthorizedBookSession({access=window.ShadowGardenBoo
     adult:catalog.isAdultSeriesId(context.seriesId)
   };
 
+  installResumeRenewal(session,access);
   if(context.restartRequested)await resetReadAgain(session);
   try{await window.__sgVisualPageCache?.prepare?.(publicBookId||context.requested||sourcePath)}
   catch(error){console.warn("Visual-page preparation handoff skipped",error)}

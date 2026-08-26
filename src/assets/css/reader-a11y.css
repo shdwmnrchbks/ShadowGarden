@@ -5,6 +5,7 @@
 .adult-reader :where(.reader-app a,.reader-app button,.reader-app input,.reader-app select,.reader-app [tabindex]):focus-visible{outline-color:#d6a0ad}
 .reader-drawer[aria-hidden="true"]{visibility:hidden}.reader-drawer.open[aria-hidden="false"]{visibility:visible}
 .reader-loading[role="status"]{text-align:center}
+@media(max-width:700px){.reader-icon{height:44px;min-width:44px;padding-inline:8px}.reader-bottombar>button{min-width:44px;min-height:44px}.page-hit{width:44px}.drawer-close{width:44px;height:44px}.drawer-tabs button,.toc-link,.reader-reset,.settings-panel select{min-height:44px}}
 @media(prefers-contrast:more){.reader-topbar,.reader-bottombar,.reader-drawer{border-color:rgba(255,255,255,.38)!important}.reader-icon,.reader-reset,.drawer-close,.drawer-tabs button{border-width:2px!important}}
-@media(forced-colors:active){.reader-icon,.reader-reset,.drawer-close,.drawer-tabs button,.page-hit{forced-color-adjust:auto;border:1px solid ButtonText!important}}
+@media(forced-colors:active){.reader-icon,.reader-reset,.drawer-close,.drawer-tabs button,.page-hit{forced-color-adjust:auto;border:1px solid ButtonText!important}:where(.reader-app a,.reader-app button,.reader-app input,.reader-app select,.reader-app [tabindex]):focus-visible{outline-color:Highlight!important}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important}}

@@ -1,7 +1,7 @@
 /* Shadow Garden R4.1 — Reader application orchestrator. */
 import { createReaderStorage } from "./storage.js";
 import { createThemeController } from "./theme.js";
-import { createTocController } from "./toc.js?v=1.2.0";
+import { createTocController } from "./toc.js?v=1.2.1";
 import { createPageMapController } from "./page-map.js?v=1.2.0";
 import { createSettingsController } from "./settings.js";
 import { createProgressController } from "./progress-controller.js";
@@ -51,7 +51,7 @@ export async function startReader(session){
     else await state.rendition.display(target);
   }
 
-  const tocController=createTocController({panel:elements.tocPanel,navigate,closeDrawers});
+  const tocController=createTocController({panel:elements.tocPanel,navigate,closeDrawers,getBook:()=>state.book});
 
   function mapMetrics(){return pageMapLayoutMetrics(elements.viewerShell)}
   function mapLayoutChangedSignificantly(){

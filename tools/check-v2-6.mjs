@@ -62,7 +62,7 @@ assert.match(libraryRenderers, /title="Another suggestion">↻<\/button>/, 'sugg
 assert.match(navPinned, /document\.querySelector\(['"]#siteNav['"]\)/, 'pinned-series renderer must target the canonical body-level navigation drawer');
 assert.match(nav, /control\.closest\(['"]\[data-nav-keep-open\]['"]\)/, 'drawer-owned controls must not close the navigation drawer');
 assert.match(navCss, /body\.site-nav-open\{padding-top:72px\}/, 'open navigation must preserve the sticky header normal-flow height');
-assert.match(navCss, /\.site-nav-open \.site-header\{position:fixed;top:0;left:0;right:0;width:100%;z-index:70/, 'open navigation must promote the header to a viewport layer above the body-level drawer');
+assert.match(navCss, /\.site-nav-open \.site-header\{position:fixed;top:0;left:0;right:0;width:100%;z-index:70!important/, 'open navigation must authoritatively keep the header above later mobile z-index rules and the body-level drawer');
 assert.match(navCss, /@media\(max-width:720px\)\{body\.site-nav-open\{padding-top:62px\}/, 'mobile drawer must preserve the 62px header height without a layout jump');
 
 assert.match(readerGenerator, /application\/epub\+zip/);
@@ -87,6 +87,11 @@ assert.match(readerSpec, /sg-progress:/);
 assert.match(readerSpec, /sg-bookmarks:/);
 assert.match(readerSpec, /toBe\(bookmarkedCfi\)/, 'bookmark reload must wait for the restored EPUB CFI rather than Page Map generation');
 assert.doesNotMatch(readerSpec, /waitForPageMap/, 'bookmark reload must not depend on asynchronous device Page Map completion');
+assert.match(readerSpec, /function intersectBoxes\(/, 'image-focus E2E must distinguish iframe-local visibility from the real Reader viewport');
+assert.match(readerSpec, /page\.locator\(['"]#viewerShell['"]\)/, 'image-focus E2E must intersect the EPUB image with the Reader viewport before activation');
+assert.match(readerSpec, /revealAndClickRenderedCenter/, 'image-focus E2E must page forward until the image is actually reachable');
+assert.match(readerSpec, /EPUB illustration never entered the visible Reader viewport/, 'image-focus E2E must fail clearly when paginated geometry never exposes the image');
+assert.doesNotMatch(readerSpec, /async function clickRenderedCenter/, 'do not regress to blindly clicking an iframe-local image that may be clipped off the mobile Reader viewport');
 assert.match(readerSpec, /selectOption\(['"]scrolled-doc['"]\)/);
 assert.match(readerSpec, /toBeGreaterThan\(0\)/, 'Continuous Reader coverage must allow the multiple live EPUB iframes EPUB.js legitimately renders');
 assert.match(readerSpec, /#imageFocus/);

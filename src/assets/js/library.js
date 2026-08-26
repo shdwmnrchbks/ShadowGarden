@@ -6,6 +6,7 @@
   const state={catalog:null,items:[],filtered:[],query:"",author:"",translator:"",genre:"",tags:new Set(),year:"",volumeRange:"",readingStatus:"",sort:"recent",pinnedOnly:false,view:"grid",renderedCount:0,observer:null,autoLoading:false};
   let searchTimer=0;
   let suggestionRandom=Math.random();
+  let suggestionKey="";
 
   const domain=await import("/assets/js/domain/index.js");
   const model=await import("/assets/js/library-model.js");
@@ -203,8 +204,22 @@
     renderers.renderRecentlyAdded($("#recentSection"),$("#recentVolumes"),model.recentlyAdded(state.items),dependencies);
   }
 
-  function renderContinue(){
-    const current=readingStatus.libraryBannerEntry(state.items,suggestionRandom);
+  function suggestionIdentity(entry){
+    return entry?.mode==="suggestion"&&entry?.suggestion==="random"?`${entry.series?.id||""}:${entry.index??""}`:"";
+  }
+
+  function renderContinue({reroll=false}={}){
+    const previous=suggestionKey;
+    let current=null;
+    if(reroll&&previous){
+      const base=Math.random();
+      for(let attempt=0;attempt<17;attempt++){
+        suggestionRandom=(base+attempt/17)%1;
+        current=readingStatus.libraryBannerEntry(state.items,suggestionRandom);
+        if(suggestionIdentity(current)!==previous)break;
+      }
+    }else current=readingStatus.libraryBannerEntry(state.items,suggestionRandom);
+    suggestionKey=suggestionIdentity(current);
     renderers.renderReadingBanner($("#continuePanel"),document.querySelector(".library-intro"),current,dependencies);
   }
 
@@ -243,7 +258,7 @@
     const clearAll=event.target.closest("[data-clear-all-filters]");if(clearAll){clearFilters({historyMode:"push"});return true}
     const remove=event.target.closest("[data-remove-tag]");if(remove){state.tags.delete(remove.dataset.removeTag);apply({historyMode:"push"});return true}
     const clear=event.target.closest("[data-clear-filter]");if(clear&&clearNamedFilter(clear.dataset.clearFilter)){apply({historyMode:"push"});return true}
-    const reroll=event.target.closest("[data-another-suggestion]");if(reroll){suggestionRandom=Math.random();renderContinue();return true}
+    const reroll=event.target.closest("[data-another-suggestion]");if(reroll){renderContinue({reroll:true});return true}
     return false;
   }
 

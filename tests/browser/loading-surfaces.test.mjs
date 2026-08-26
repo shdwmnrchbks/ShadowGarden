@@ -13,7 +13,8 @@ test("Library and Series first paint uses stable themed skeletons with compact p
   assert.match(adult,/sg-view:nsfw/);
   assert.ok((main.match(/catalog-skeleton-card/g)||[]).length>=6);
   assert.ok((adult.match(/catalog-skeleton-card/g)||[]).length>=6);
-  assert.match(adult,/class="adult-library"/);
+  assert.match(adult,/class="adult-library adult-locked"/);
+  assert.match(adult,/sg-adult-acknowledged/);
   assert.match(series,/window\.__SG_SERIES_ROUTE_ADULT__=adult/);
   assert.match(series,/series-loading-skeleton/);
   assert.ok((series.match(/series-loading-volume-cover/g)||[]).length>=6);

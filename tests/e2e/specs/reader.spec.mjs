@@ -11,10 +11,6 @@ async function waitForReader(page) {
   await expect(page.locator('#viewer iframe')).toHaveCount(1);
 }
 
-async function waitForPageMap(page) {
-  await expect(page.locator('#progressText')).toHaveAttribute('title', /device pages cached for this layout/, { timeout: 20_000 });
-}
-
 async function clickRenderedCenter(page, locator) {
   const box = await locator.boundingBox();
   expect(box, 'EPUB image should expose a top-level rendered box').toBeTruthy();
@@ -73,13 +69,15 @@ test('Pages progress and bookmark persist through a full Reader reload', async (
 
   await page.reload();
   await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
-  await waitForPageMap(page);
+  // Bookmark identity is anchored to the restored EPUB CFI. Device Page Map generation is
+  // deliberately asynchronous and must not gate browser-local bookmark restoration.
+  await expect.poll(async () => String((await progress(page))?.cfi || ''), { timeout: 15_000 }).toBe(bookmarkedCfi);
   await expect(page.locator('#bookmarkButton')).toHaveAttribute('aria-pressed', 'true');
   const bookmarksAfterReload = await storedJson(page, bookmarkKey);
   expect(bookmarksAfterReload).toHaveLength(1);
   expect(bookmarksAfterReload[0].cfi).toBe(bookmarkedCfi);
   const restored = await progress(page);
-  expect(String(restored?.cfi || '')).toContain('epubcfi');
+  expect(restored?.cfi).toBe(bookmarkedCfi);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
@@ -90,9 +88,9 @@ test('flow switching, image focus, and resize preserve a usable Reader location'
   const iframe = page.frameLocator('#viewer iframe');
   const illustration = iframe.getByRole('img', { name: 'A moonlit geometric garden used to test image focus' });
   await expect(illustration).toBeVisible();
-  // WebKit blocks Playwright's injected locator-click helper inside EPUB.js' intentionally
-  // scriptless sandboxed about:srcdoc iframe. A top-level coordinate click follows the
-  // browser's native pointer path and therefore matches an actual reader interaction.
+  // The coordinate click follows the native top-level pointer path. On WebKit the Reader
+  // supplies a parent-owned transparent image hit target because callbacks inside the
+  // intentionally scriptless EPUB sandbox are blocked by the engine.
   await clickRenderedCenter(page, illustration);
   await expect(page.locator('#imageFocus')).not.toHaveClass(/hidden/);
   await expect(page.locator('#imageFocus')).toHaveAttribute('aria-hidden', 'false');

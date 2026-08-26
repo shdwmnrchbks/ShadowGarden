@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const read = file => fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
 const json = async file => JSON.parse(await read(file));
 
-const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, navCss, bookmarks, rendition, imageFocus, imageFocusCss, motion, roadmap] = await Promise.all([
+const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, navCss, bookmarks, rendition, imageFocus, imageFocusCss, theme, motion, roadmap] = await Promise.all([
   json('tests/e2e/package.json'),
   json('tests/e2e/package-lock.json'),
   read('tests/e2e/playwright.config.mjs'),
@@ -23,6 +23,7 @@ const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fi
   read('src/assets/js/reader/rendition.js'),
   read('src/assets/js/reader/image-focus.js'),
   read('src/assets/css/reader-image-focus.css'),
+  read('src/assets/js/reader/theme.js'),
   read('src/assets/js/motion.js'),
   read('docs/roadmaps/CURRENT_ROADMAP.md')
 ]);
@@ -54,6 +55,7 @@ assert.match(librarySpec, /page\.locator\(['"]\.brand-mark['"]\)/, 'mobile navig
 assert.match(librarySpec, /localStorage\.setItem\(['"]sg-pinned['"]/, 'real-browser Library coverage must seed and verify pinned-series persistence');
 assert.match(librarySpec, /Show another reading suggestion/, 'real-browser Library coverage must exercise suggestion reroll');
 assert.match(librarySpec, /headerOwnsTopPoint/, 'real-browser drawer coverage must verify the header is actually painted above the body-level overlay');
+assert.doesNotMatch(librarySpec, /headerZ|drawerZ/, 'real-browser drawer coverage must assert actual paint ownership instead of engine-specific computed z-index reporting');
 
 assert.match(libraryJs, /function suggestionIdentity\(/, 'Library controller must track the current random suggestion identity');
 assert.match(libraryJs, /for\(let attempt=0;attempt<17;attempt\+\+\)/, 'Library reroll must search deterministically for a visibly different eligible suggestion');
@@ -107,6 +109,11 @@ assert.match(imageFocus, /reader-image-focus-hit/, 'WebKit must receive a parent
 assert.match(imageFocus, /frame\.getBoundingClientRect\(\)/, 'parent-owned image hit targets must follow the rendered EPUB frame geometry');
 assert.match(imageFocus, /sourceImage\.getBoundingClientRect\(\)/, 'parent-owned image hit targets must follow source-image geometry');
 assert.match(imageFocusCss, /\.reader-image-focus-hit\{position:fixed;z-index:24;/, 'image hit targets must live in Reader chrome rather than changing EPUB sandbox permissions');
+assert.match(theme, /function computedStyle\(element, win\)/, 'Reader theme repair must centralize safe computed-style access');
+assert.match(theme, /element\.isConnected === false/, 'Reader theme repair must skip EPUB nodes detached during rendition transitions');
+assert.match(theme, /try \{ return win\.getComputedStyle\(element\) \|\| null; \} catch \{ return null; \}/, 'Reader theme repair must tolerate engines returning or throwing around detached computed styles');
+assert.match(theme, /if \(!style\) return false;/, 'Reader theme inspection must stop when computed style is unavailable');
+assert.match(theme, /body\.isConnected === false/, 'Reader theme repair must abandon detached EPUB bodies before traversing descendants');
 
 assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'same-document View Transition ready rejection must be observed');
 assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'same-document View Transition finished rejection must be observed');

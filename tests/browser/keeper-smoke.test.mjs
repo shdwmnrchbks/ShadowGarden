@@ -5,7 +5,10 @@ import fs from "node:fs/promises";
 const read = relative => fs.readFile(new URL(`../../${relative}`, import.meta.url), "utf8");
 
 test("Keeper composition root registers isolated first-class workflows", async () => {
-  const app = await read("src/assets/js/admin/app.js");
+  const [app, html] = await Promise.all([
+    read("src/assets/js/admin/app.js"),
+    read("src/admin.html")
+  ]);
   for (const owner of [
     "admin/auth-session.js",
     "admin/library-workflow.js",
@@ -19,9 +22,10 @@ test("Keeper composition root registers isolated first-class workflows", async (
     "admin/motion.js"
   ]) assert.ok(app.includes(owner), owner);
   assert.match(app, /for\(const name of \["version","session","library","translations","maintenance","history","trash","abuse","shell","motion"\]\)await keeper\.initializeWorkflow\(name\)/);
-  assert.match(app, /admin-components\.css/);
-  assert.match(app, /admin-presentation\.css/);
-  assert.match(app, /admin-motion\.css/);
+  for (const style of ["admin-components.css", "admin-presentation.css", "admin-motion.css"]) {
+    assert.match(html, new RegExp(style.replace(".", "\\.")));
+  }
+  assert.doesNotMatch(app, /loadStyle|createElement\(["']link["']\)/);
   assert.equal(app.includes("admin-current.css"), false);
 });
 

@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const read = file => fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
 const json = async file => JSON.parse(await read(file));
 
-const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, bookmarks, motion, roadmap] = await Promise.all([
+const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, bookmarks, rendition, imageFocus, motion, roadmap] = await Promise.all([
   json('tests/e2e/package.json'),
   json('tests/e2e/package-lock.json'),
   read('tests/e2e/playwright.config.mjs'),
@@ -19,6 +19,8 @@ const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fi
   read('src/assets/js/nav.js'),
   read('src/assets/js/nav-pinned.js'),
   read('src/assets/js/reader/bookmarks-controller.js'),
+  read('src/assets/js/reader/rendition.js'),
+  read('src/assets/js/reader/image-focus.js'),
   read('src/assets/js/motion.js'),
   read('docs/roadmaps/CURRENT_ROADMAP.md')
 ]);
@@ -81,6 +83,13 @@ assert.match(readerSpec, /selectOption\(['"]scrolled-doc['"]\)/);
 assert.match(readerSpec, /toBeGreaterThan\(0\)/, 'Continuous Reader coverage must allow the multiple live EPUB iframes EPUB.js legitimately renders');
 assert.match(readerSpec, /#imageFocus/);
 assert.match(bookmarks, /return Number\(bookmark\.localPage\)===Number\(position\.localPage\);/, 'bookmark active-state matching must survive equivalent resumed CFIs on the same rendered section page');
+assert.match(rendition, /export function stabilizeContinuousScrollLifecycle\(/, 'rendition lifecycle must defend Continuous scroll callbacks across EPUB.js manager variants');
+assert.match(rendition, /if\(manager\.__sgDestroyed\)return;/, 'late Continuous callbacks must stop after manager destruction');
+assert.match(rendition, /if\(typeof scrolled==="function"\)scrolled\.apply\(manager,args\)/, 'Continuous debounce must never call a missing manager.scrolled method');
+assert.match(imageFocus, /doc\.addEventListener\("pointerdown"/, 'image focus must track a pointer activation fallback inside EPUB documents');
+assert.match(imageFocus, /doc\.addEventListener\("pointerup"/, 'image focus must support WebKit iframe image activation when click is omitted');
+assert.match(imageFocus, /Math\.hypot\([^)]*event\.clientX[^)]*\)>12/, 'pointer fallback must reject drag gestures instead of stealing Reader scrolling');
+assert.match(imageFocus, /if\(!state\.active&&!shouldSuppressOpen\?\.\(\)\)openImageFocus/, 'pointer fallback must preserve Pages swipe suppression and avoid duplicate opens');
 
 assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'same-document View Transition ready rejection must be observed');
 assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'same-document View Transition finished rejection must be observed');

@@ -22,9 +22,8 @@
     return transition;
   };
   const observeCrossDocumentFinished=transition=>{
-    const finished=transition?.finished;
-    if(finished&&typeof finished.then==="function")finished.then(()=>{},error=>{if(!skippedTransition(error))console.warn("Cross-document view transition rejected",error)});
-    return finished;
+    guardTransition(transition);
+    return transition?.finished;
   };
   const skipTraverseTransition=event=>{
     const transition=event?.viewTransition;

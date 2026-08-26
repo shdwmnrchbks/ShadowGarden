@@ -31,14 +31,8 @@ function genericVisualLabel(item) {
     /^(?:cover|cover page|illustration|illustration page|image|image page|plate|frontispiece)(?:\s+\d+)?$/i.test(label);
 }
 
-function readerSpineItems() {
-  const items = window.__sgReaderBook?.spine?.spineItems;
-  return Array.isArray(items) ? items : [];
-}
-
-function spineIndexForHref(href) {
+function spineIndexForHref(href, items) {
   if (!href) return null;
-  const items = readerSpineItems();
   for (let index = 0; index < items.length; index++) {
     const item = items[index];
     if (!hrefMatches(href, item?.href || item?.url || "")) continue;
@@ -48,19 +42,24 @@ function spineIndexForHref(href) {
   return null;
 }
 
-function locationSpineIndex(location) {
+function locationSpineIndex(location, items) {
   for (const value of [location?.start?.index, location?.end?.index]) {
     const index = Number(value);
     if (Number.isFinite(index) && index >= 0) return index;
   }
-  return spineIndexForHref(location?.start?.href || location?.end?.href || "");
+  return spineIndexForHref(location?.start?.href || location?.end?.href || "", items);
 }
 
-export function createTocController({ panel, navigate, closeDrawers }) {
+export function createTocController({ panel, navigate, closeDrawers, getBook }) {
   let items = [];
   let flat = [];
   let activeButton = null;
   let pageResolver = null;
+
+  function readerSpineItems() {
+    const values = getBook?.()?.spine?.spineItems;
+    return Array.isArray(values) ? values : [];
+  }
 
   function pageNumberFor(href) {
     if (!pageResolver || !href) return null;
@@ -209,16 +208,17 @@ export function createTocController({ panel, navigate, closeDrawers }) {
     const exactMeaningful = bestEntry(exactEntries.filter(entry => !genericVisualLabel(entry.item)));
     if (exactMeaningful) return exactMeaningful.item;
 
-    /* Chapter titles are derived from navigation order plus spine position, not from
-       visual-only document names. This keeps a chapter active across split XHTML parts
-       and standalone illustration pages whose nav labels are only "Page 1", etc. */
-    const currentIndex = locationSpineIndex(location);
+    /* Chapter titles are derived from navigation order plus the canonical book spine, not
+       visual-only document names. This keeps one chapter active across split XHTML parts
+       and standalone illustration/page entries whose labels are not chapter titles. */
+    const spineItems = readerSpineItems();
+    const currentIndex = locationSpineIndex(location, spineItems);
     if (Number.isFinite(currentIndex)) {
       let preceding = null;
       for (let order = 0; order < flat.length; order++) {
         const entry = flat[order];
         if (genericVisualLabel(entry.item)) continue;
-        const navIndex = spineIndexForHref(entry.item?.href);
+        const navIndex = spineIndexForHref(entry.item?.href, spineItems);
         if (!Number.isFinite(navIndex) || navIndex > currentIndex) continue;
         if (!preceding || navIndex > preceding.navIndex || (navIndex === preceding.navIndex && entry.depth >= preceding.entry.depth)) {
           preceding = { entry, navIndex, order };

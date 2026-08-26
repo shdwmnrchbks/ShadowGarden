@@ -202,6 +202,23 @@ test('visual-only, legacy-structure, and large chapters remain readable through 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
+test('issue #157: split XHTML continuation keeps the navigation chapter title', async ({ page, browserDiagnostics }) => {
+  await waitForReader(page);
+
+  await page.locator('#tocToggle').click();
+  await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
+  await page.getByRole('button', { name: 'Page 2', exact: true }).click();
+  await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
+  await expect(page.locator('#chapterTitle')).toHaveText('Split Chapter', { timeout: 10_000 });
+  await expect.poll(() => currentCfi(page), { timeout: 10_000 }).toContain('epubcfi');
+
+  await page.locator('#tocToggle').click();
+  const splitChapter = page.getByRole('button', { name: 'Split Chapter', exact: true });
+  await expect(splitChapter).toHaveAttribute('aria-current', 'location');
+
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
 test('mobile Pages swipe policy turns the live rendition without becoming a Continuous-mode owner', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'touch-capable mobile-project regression');
   await waitForReader(page);

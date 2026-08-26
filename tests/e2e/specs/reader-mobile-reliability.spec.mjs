@@ -50,7 +50,7 @@ test('issue #154: mobile paginated content clears chrome and a single image tap 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('issue #154: Continuous keeps full artwork width and only upward scrolling reveals hidden chrome', async ({ page, browserDiagnostics }, testInfo) => {
+test('issues #154/#157: Continuous uses the full mobile viewport and only upward scrolling reveals hidden chrome', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile Reader regression');
   await waitForReader(page);
   await page.locator('#settingsToggle').click();
@@ -76,6 +76,23 @@ test('issue #154: Continuous keeps full artwork width and only upward scrolling 
   await openChapter(page, 'Large Chapter');
   await expect(page.locator('#viewer .epub-container')).toBeVisible();
   await expect(page.locator('body')).toHaveClass(/reader-chrome-hidden/, { timeout: 5_000 });
+
+  const immersiveLayout = await page.evaluate(() => {
+    const shell = document.getElementById('viewerShell')?.getBoundingClientRect();
+    const topbar = document.querySelector('.reader-topbar');
+    const seek = document.getElementById('continuousSeek')?.getBoundingClientRect();
+    return {
+      shellTop: shell?.top ?? 999,
+      shellBottom: shell?.bottom ?? 0,
+      viewportHeight: document.documentElement.clientHeight || window.innerHeight,
+      topbarPosition: topbar ? getComputedStyle(topbar).position : '',
+      seekTop: seek?.top ?? 999
+    };
+  });
+  expect(Math.abs(immersiveLayout.shellTop)).toBeLessThanOrEqual(1.5);
+  expect(immersiveLayout.shellBottom).toBeGreaterThanOrEqual(immersiveLayout.viewportHeight - 1.5);
+  expect(immersiveLayout.topbarPosition).toBe('fixed');
+  expect(Math.abs(immersiveLayout.seekTop)).toBeLessThanOrEqual(1.5);
 
   const movedDown = await page.locator('#viewer .epub-container').evaluate(scroller => {
     const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);

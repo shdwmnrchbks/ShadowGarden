@@ -90,10 +90,10 @@ body.adult-reader.reader-flow-scrolled .continuous-seek:focus-visible{
 }
 
 @media(max-width:700px){
-  /* Keep the book at the full viewport width. The seek rail is a transparent overlay rather
-     than a reserved column, so full-width artwork is not cropped by Reader chrome. */
+  /* Keep the book and its overlay rail at the full viewport size. The top bar is also an
+     overlay on mobile, so the rail can run underneath it instead of reserving a dead band. */
   body.reader-flow-scrolled .viewer{right:0}
-  body.reader-flow-scrolled .continuous-seek{width:22px;padding-top:8px}
+  body.reader-flow-scrolled .continuous-seek{top:0;width:22px;padding-top:8px}
   body.reader-flow-scrolled .continuous-seek-track::before{width:1px}
   body.reader-flow-scrolled .continuous-seek-thumb{width:10px;height:10px;box-shadow:0 0 0 1px rgba(11,9,16,.55)}
   body.reader-flow-scrolled .continuous-seek-text{min-width:8ch;margin-right:3px;font-size:.55rem}

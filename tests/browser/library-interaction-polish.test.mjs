@@ -14,8 +14,13 @@ test("Library discovery UI exposes contextual counts, clear-all, actionable empt
   assert.match(controller,/renderEmptyActions/);
   assert.match(controller,/setLibrarySort\(scope,state\.sort\)/);
   assert.match(controller,/setLibraryView\(scope,state\.view\)/);
-  assert.match(controller,/suggestionRandom=Math\.random\(\);renderContinue\(\)/);
+  assert.match(controller,/let suggestionRandom=Math\.random\(\)/);
+  assert.match(controller,/function suggestionIdentity\(/);
+  assert.match(controller,/for\(let attempt=0;attempt<17;attempt\+\+\)/);
+  assert.match(controller,/renderContinue\(\{reroll:true\}\)/);
   assert.match(renderers,/data-another-suggestion/);
+  assert.match(renderers,/aria-label="Show another reading suggestion"/);
+  assert.match(renderers,/>↻<\/button>/);
   assert.match(preferences,/SORT_PREFIX/);
   assert.match(css,/\.catalog-grid\.is-updating/);
   assert.match(css,/\.empty-filter-actions/);

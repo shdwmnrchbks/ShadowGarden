@@ -90,10 +90,12 @@ body.adult-reader.reader-flow-scrolled .continuous-seek:focus-visible{
 }
 
 @media(max-width:700px){
-  /* Keep the book and its overlay rail at the full viewport size. The top bar is also an
-     overlay on mobile, so the rail can run underneath it instead of reserving a dead band. */
+  /* The mobile book remains full viewport width, while a visible fixed top bar owns the
+     first 54px. Start the progress rail below that chrome so a near-zero thumb remains
+     visible; once chrome auto-hides, extend the rail back to the viewport top. */
   body.reader-flow-scrolled .viewer{right:0}
-  body.reader-flow-scrolled .continuous-seek{top:0;width:22px;padding-top:8px}
+  body.reader-flow-scrolled .continuous-seek{top:54px;width:22px;padding-top:8px}
+  body.reader-flow-scrolled.reader-chrome-hidden .continuous-seek{top:0}
   body.reader-flow-scrolled .continuous-seek-track::before{width:1px}
   body.reader-flow-scrolled .continuous-seek-thumb{width:10px;height:10px;box-shadow:0 0 0 1px rgba(11,9,16,.55)}
   body.reader-flow-scrolled .continuous-seek-text{min-width:8ch;margin-right:3px;font-size:.55rem}

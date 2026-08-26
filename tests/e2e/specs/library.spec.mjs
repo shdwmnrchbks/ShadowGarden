@@ -68,7 +68,7 @@ test('search, compact view, and Back navigation restore rendered Library state',
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('reading suggestion reroll advances smoothly and pinned series remain available in the navigation drawer', async ({ page, browserDiagnostics }) => {
+test('reading suggestion reroll advances and pinned series remain available in the navigation drawer', async ({ page, browserDiagnostics }) => {
   await page.addInitScript(() => localStorage.setItem('sg-pinned', JSON.stringify(['moonlit-single'])));
   await page.goto('/');
   await waitForCatalog(page);

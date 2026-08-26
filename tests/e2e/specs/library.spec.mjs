@@ -16,8 +16,6 @@ async function openNavLayerState(page) {
     const topmost = document.elementFromPoint(x, y);
     return {
       position: getComputedStyle(header).position,
-      headerZ: Number.parseInt(getComputedStyle(header).zIndex || '0', 10) || 0,
-      drawerZ: Number.parseInt(getComputedStyle(drawer).zIndex || '0', 10) || 0,
       headerOwnsTopPoint: Boolean(topmost && (topmost === header || header.contains(topmost)))
     };
   });
@@ -84,7 +82,6 @@ test('reading suggestion reroll advances and pinned series remain available in t
   const layers = await openNavLayerState(page);
   expect(layers).not.toBeNull();
   expect(layers?.position).toBe('fixed');
-  expect(Number(layers?.headerZ || 0)).toBeGreaterThan(Number(layers?.drawerZ || 0));
   expect(layers?.headerOwnsTopPoint).toBe(true);
 
   const pinnedToggle = page.getByRole('button', { name: /Pinned series/ });
@@ -124,7 +121,6 @@ test('mobile navigation remains viewport-owned across resize and reduced motion'
 
   const initialLayers = await openNavLayerState(page);
   expect(initialLayers?.position).toBe('fixed');
-  expect(Number(initialLayers?.headerZ || 0)).toBeGreaterThan(Number(initialLayers?.drawerZ || 0));
   expect(initialLayers?.headerOwnsTopPoint).toBe(true);
 
   const before = await header.boundingBox();

@@ -4,6 +4,14 @@ const seriesUrl = `/series.html?id=${encodeURIComponent(READER_SERIES_ID)}`;
 const progressKey = `sg-progress:${READER_BOOK_ID}`;
 const bookmarkKey = `sg-bookmarks:${READER_BOOK_ID}`;
 const finishedMarkerKey = `sg-finished:${READER_BOOK_ID}`;
+const MULTI_SERIES_ID = 'long-metadata-archive';
+const MULTI_SERIES_URL = `/series.html?id=${encodeURIComponent(MULTI_SERIES_ID)}`;
+const FIRST_BOOK_ID = 'bk_2222222222222222222222';
+const SECOND_BOOK_ID = 'bk_3333333333333333333333';
+const LAST_BOOK_ID = 'bk_4444444444444444444444';
+const FIRST_TITLE = 'A Long Beginning Beneath the Moonlit Conservatory';
+const SECOND_TITLE = 'The Western Continent and the Glass Garden';
+const LAST_TITLE = 'An Ancient Archive Opens Again';
 
 async function storedJson(page, key) {
   return page.evaluate(storageKey => {
@@ -14,6 +22,10 @@ async function storedJson(page, key) {
 
 async function progress(page) {
   return storedJson(page, progressKey);
+}
+
+async function progressFor(page, bookId) {
+  return storedJson(page, `sg-progress:${bookId}`);
 }
 
 async function waitForSeries(page) {
@@ -27,6 +39,13 @@ async function waitForReader(page) {
   await expect(page.locator('#bookTitle')).toHaveText('Moonlit Reader Fixture');
   await expect(page.locator('#viewer iframe')).toHaveCount(1);
   await expect.poll(async () => String((await progress(page))?.cfi || ''), { timeout: 12_000 }).toContain('epubcfi');
+}
+
+async function waitForReaderBook(page, bookId) {
+  await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
+  await expect(page.locator('#bookTitle')).toHaveText('Moonlit Reader Fixture');
+  await expect(page.locator('#viewer iframe')).toHaveCount(1);
+  await expect.poll(async () => String((await progressFor(page, bookId))?.cfi || ''), { timeout: 12_000 }).toContain('epubcfi');
 }
 
 async function openSeriesAction(page, label) {
@@ -66,6 +85,27 @@ async function showPaginatedEndPage(page) {
     await page.waitForTimeout(180);
   }
   await expect(endPage).toBeVisible();
+}
+
+async function seedFinished(page, bookId) {
+  await page.evaluate(id => {
+    let state = {};
+    try { state = JSON.parse(localStorage.getItem('sg-finished-books') || '{}') || {}; } catch {}
+    const stamp = Date.now();
+    state[id] = stamp;
+    localStorage.setItem('sg-finished-books', JSON.stringify(state));
+    localStorage.setItem(`sg-finished:${id}`, '1');
+    localStorage.setItem(`sg-progress:${id}`, JSON.stringify({ file: id, percentage: 0.94, page: 9, totalPages: 10, updatedAt: stamp }));
+  }, bookId);
+}
+
+async function expectAtBeginning(page, bookId) {
+  await expect.poll(async () => {
+    const saved = await progressFor(page, bookId);
+    const mappedPage = Number(saved?.page);
+    const percentage = Number(saved?.percentage);
+    return (Number.isFinite(mappedPage) && mappedPage <= 1) || (Number.isFinite(percentage) && percentage <= 0.01);
+  }, { timeout: 12_000 }).toBe(true);
 }
 
 test('Series → Reader → Continue → Finished → Read Again preserves bookmarks and route continuity', async ({ page, browserDiagnostics }) => {
@@ -143,6 +183,88 @@ test('Series → Reader → Continue → Finished → Read Again preserves bookm
   await expect(page.locator('.catalog-skeleton-card')).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'Moonlit Single' })).toBeVisible();
   await expect(page.locator('.recent-volume[data-book-id="bk_1111111111111111111111"]')).toHaveAttribute('data-volume-state', 'unread');
+
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('#162 completion pages keep live series context across pre-mounted clones', async ({ page, browserDiagnostics }) => {
+  await page.addInitScript(() => {
+    const install = () => {
+      const source = document.getElementById('volumeEndPage');
+      const host = document.getElementById('viewerShell');
+      if (!source || !host || host.querySelector('[data-e2e-stale-completion]')) return false;
+      const clone = source.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.removeAttribute('aria-labelledby');
+      clone.removeAttribute('aria-describedby');
+      clone.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+      clone.classList.remove('hidden', 'active');
+      clone.classList.add('continuous-end', 'volume-end-page-continuous');
+      clone.dataset.e2eStaleCompletion = '1';
+      host.appendChild(clone);
+      return true;
+    };
+    const observer = new MutationObserver(() => { if (install()) observer.disconnect(); });
+    observer.observe(document, { childList: true, subtree: true });
+    install();
+  });
+
+  await page.goto(`/reader.html?book=${FIRST_BOOK_ID}&series=${MULTI_SERIES_ID}`);
+  await waitForReaderBook(page, FIRST_BOOK_ID);
+
+  const clone = page.locator('[data-e2e-stale-completion]');
+  await expect(clone).toHaveCount(1);
+  await expect(clone.locator('.volume-complete-card h2 span')).toHaveText(FIRST_TITLE);
+  await expect(clone.locator('.volume-complete-return')).toHaveAttribute('href', MULTI_SERIES_URL);
+  await expect(clone.locator('.volume-complete-next')).toHaveText(`Read ${SECOND_TITLE} ▶`);
+
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('#162 finished-next and last-volume actions restart from the beginning', async ({ page, browserDiagnostics }) => {
+  await page.goto(MULTI_SERIES_URL);
+  await expect(page.locator('#seriesRoot')).toHaveAttribute('aria-busy', 'false', { timeout: 12_000 });
+  await expect(page.getByRole('heading', { level: 1, name: 'The Extremely Long Archive Title That Exercises Wrapping, Search, Sorting, and Metadata Boundaries Across Shadow Garden' })).toBeVisible();
+
+  await seedFinished(page, SECOND_BOOK_ID);
+  await page.goto(`/reader.html?book=${FIRST_BOOK_ID}&series=${MULTI_SERIES_ID}`);
+  await waitForReaderBook(page, FIRST_BOOK_ID);
+  await showPaginatedEndPage(page);
+
+  await expect(page.locator('#volumeCompleteTitle')).toHaveText(FIRST_TITLE);
+  await expect(page.locator('#completeReturnLink')).toHaveAttribute('href', MULTI_SERIES_URL);
+  await expect(page.locator('#nextVolumeLink')).toHaveText(`Read ${SECOND_TITLE} ▶`);
+  await page.locator('#nextVolumeLink').click();
+
+  const nextDialog = page.locator('#readAgainDialog');
+  await expect(nextDialog).toBeVisible();
+  await expect(nextDialog.locator('[data-read-again-title]')).toHaveText(SECOND_TITLE);
+  await page.getByRole('button', { name: 'Begin Again' }).click();
+  await expect(page).toHaveURL(new RegExp(`/reader\\.html\\?book=${SECOND_BOOK_ID}.*restart=1`));
+  await waitForReaderBook(page, SECOND_BOOK_ID);
+  await expect.poll(() => page.evaluate(id => localStorage.getItem(`sg-finished:${id}`), SECOND_BOOK_ID)).toBeNull();
+  await expectAtBeginning(page, SECOND_BOOK_ID);
+
+  await seedFinished(page, FIRST_BOOK_ID);
+  await page.goto(`/reader.html?book=${LAST_BOOK_ID}&series=${MULTI_SERIES_ID}`);
+  await waitForReaderBook(page, LAST_BOOK_ID);
+  await showPaginatedEndPage(page);
+
+  await expect(page.locator('#volumeCompleteTitle')).toHaveText(LAST_TITLE);
+  await expect(page.locator('#volumeCompleteDetail')).toContainText('last volume');
+  await expect(page.locator('#nextVolumeLink')).toBeVisible();
+  await expect(page.locator('#nextVolumeLink')).toHaveText('Begin the series again ↺');
+  await expect(page.locator('#completeReturnLink')).toHaveAttribute('href', MULTI_SERIES_URL);
+  await page.locator('#nextVolumeLink').click();
+
+  const restartDialog = page.locator('#readAgainDialog');
+  await expect(restartDialog).toBeVisible();
+  await expect(restartDialog.locator('[data-read-again-title]')).toHaveText(FIRST_TITLE);
+  await page.getByRole('button', { name: 'Begin Again' }).click();
+  await expect(page).toHaveURL(new RegExp(`/reader\\.html\\?book=${FIRST_BOOK_ID}.*restart=1`));
+  await waitForReaderBook(page, FIRST_BOOK_ID);
+  await expect.poll(() => page.evaluate(id => localStorage.getItem(`sg-finished:${id}`), FIRST_BOOK_ID)).toBeNull();
+  await expectAtBeginning(page, FIRST_BOOK_ID);
 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

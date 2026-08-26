@@ -31,6 +31,8 @@ zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
     <item id="css" href="styles.css" media-type="text/css"/>
     <item id="chapter-1" href="chapter-1.xhtml" media-type="application/xhtml+xml"/>
     <item id="chapter-2" href="chapter-2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="split-chapter-a" href="split-chapter-a.xhtml" media-type="application/xhtml+xml"/>
+    <item id="split-chapter-b" href="split-chapter-b.xhtml" media-type="application/xhtml+xml"/>
     <item id="visual-only" href="visual-only.xhtml" media-type="application/xhtml+xml"/>
     <item id="legacy-structure" href="legacy-structure.xhtml" media-type="application/xhtml+xml"/>
     <item id="large-chapter" href="large-chapter.xhtml" media-type="application/xhtml+xml"/>
@@ -39,6 +41,8 @@ zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
   <spine>
     <itemref idref="chapter-1"/>
     <itemref idref="chapter-2"/>
+    <itemref idref="split-chapter-a"/>
+    <itemref idref="split-chapter-b"/>
     <itemref idref="visual-only"/>
     <itemref idref="legacy-structure"/>
     <itemref idref="large-chapter"/>
@@ -50,6 +54,7 @@ zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <nav epub:type="toc" id="toc"><h1>Contents</h1><ol>
 <li><a href="chapter-1.xhtml">Chapter One</a></li>
 <li><a href="chapter-2.xhtml">Chapter Two</a></li>
+<li><a href="split-chapter-a.xhtml">Split Chapter</a><ol><li><a href="split-chapter-b.xhtml">Page 2</a></li></ol></li>
 <li><a href="visual-only.xhtml">Visual Plate</a></li>
 <li><a href="legacy-structure.xhtml">Legacy Structure</a></li>
 <li><a href="large-chapter.xhtml">Large Chapter</a></li>
@@ -65,6 +70,15 @@ zip.file('OEBPS/chapter-2.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Chapter Two</title><link rel="stylesheet" href="styles.css"/></head><body>
 <h1>Chapter Two</h1>
 ${paragraphs('Second chapter')}
+</body></html>`);
+zip.file('OEBPS/split-chapter-a.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Split Chapter</title><link rel="stylesheet" href="styles.css"/></head><body>
+<h1>Split Chapter</h1>
+${paragraphs('Split chapter first XHTML', 8)}
+</body></html>`);
+zip.file('OEBPS/split-chapter-b.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Split Chapter continuation</title><link rel="stylesheet" href="styles.css"/></head><body>
+${paragraphs('Split chapter second XHTML', 12)}
 </body></html>`);
 zip.file('OEBPS/visual-only.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Visual Plate</title><link rel="stylesheet" href="styles.css"/></head><body class="visual-page">

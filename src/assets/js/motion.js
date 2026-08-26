@@ -110,7 +110,6 @@
   const boot=()=>{
     syncPreference();
     decorateControls();
-    observeNavigation();
     document.documentElement.classList.add("sg-motion-ready");
     if("MutationObserver" in window){
       const observer=new MutationObserver(records=>{
@@ -125,6 +124,7 @@
   };
 
   restoreNavigationHint();
+  observeNavigation();
   preference?.addEventListener?.("change",syncPreference);
   window.ShadowGardenMotion=Object.freeze({
     get reduced(){return reduced()},

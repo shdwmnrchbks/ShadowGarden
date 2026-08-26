@@ -79,21 +79,12 @@ export function createPageNavigationInput({getFlow,getSwipeTurns,turn}={}){
     turn?.(direction);
   }
 
-  function installPointerGesturePolicy(doc){
-    if(getFlow?.()!=="paginated"||!doc?.head||doc.getElementById("sg-page-swipe-policy"))return;
-    const style=doc.createElement("style");
-    style.id="sg-page-swipe-policy";
-    style.textContent="html,body{touch-action:pan-y pinch-zoom!important}";
-    doc.head.appendChild(style);
-  }
-
   function installDocument(doc){
     if(!doc?.documentElement||doc.documentElement.dataset.sgReaderPageInput==="1")return;
     doc.documentElement.dataset.sgReaderPageInput="1";
     const win=doc.defaultView;
     if(typeof win?.PointerEvent==="function"){
       doc.documentElement.dataset.sgReaderSwipeInput="pointer";
-      installPointerGesturePolicy(doc);
       doc.addEventListener("pointerdown",event=>beginPointer(event,doc),{capture:true,passive:true});
       doc.addEventListener("pointercancel",()=>{state.swipe=null},{capture:true,passive:true});
       doc.addEventListener("pointerup",event=>finishPointer(event,doc),{capture:true,passive:false});

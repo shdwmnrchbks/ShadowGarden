@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0b0910">
   <title>Reader — Shadow Garden</title>
   <script>
@@ -110,9 +110,9 @@
     </main>
 
     <footer class="reader-bottombar" aria-label="Reading navigation">
-      <button id="prevBottom" type="button">◀ Previous</button>
+      <button id="prevBottom" type="button" aria-label="Previous page">◀ Previous</button>
       <div class="progress-wrap"><input id="progressRange" type="range" min="0" max="1000" value="0" aria-label="Reading progress"><span id="progressText">0%</span></div>
-      <button id="nextBottom" type="button">Next ▶</button>
+      <button id="nextBottom" type="button" aria-label="Next page">Next ▶</button>
     </footer>
 
     <div id="continuousSeek" class="continuous-seek" role="slider" tabindex="0" aria-label="Reading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="0%">

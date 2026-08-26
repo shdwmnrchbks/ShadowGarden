@@ -55,6 +55,88 @@ async function trustedWheel(page, deltaY) {
   await page.mouse.wheel(0, deltaY);
 }
 
+async function readerTouchAction(page) {
+  return page.locator('#viewer iframe').first().evaluate(frame => {
+    const doc = frame.contentDocument;
+    const win = doc?.defaultView;
+    const target = doc?.body || doc?.documentElement;
+    if (!doc || !win || !target) return '';
+    try { return String(win.getComputedStyle(target).touchAction || ''); }
+    catch { return String(target.style?.touchAction || ''); }
+  });
+}
+
+async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = {}) {
+  return page.locator('#viewer iframe').first().evaluate((frame, values) => {
+    const doc = frame.contentDocument;
+    const win = doc?.defaultView;
+    const target = doc?.body || doc?.documentElement;
+    if (!doc || !win || !target) return null;
+
+    const installed = doc.documentElement?.dataset.sgReaderPageInput === '1';
+    const inputMode = doc.documentElement?.dataset.sgReaderSwipeInput || 'unknown';
+
+    if (inputMode === 'pointer') {
+      const event = (type, x) => {
+        const value = new win.Event(type, { bubbles: true, cancelable: true });
+        for (const [key, fieldValue] of Object.entries({
+          pointerId: 1,
+          pointerType: 'touch',
+          isPrimary: true,
+          clientX: x,
+          clientY: values.y,
+          screenX: x,
+          screenY: values.y
+        })) Object.defineProperty(value, key, { value: fieldValue, configurable: true });
+        return value;
+      };
+      target.dispatchEvent(event('pointerdown', values.startX));
+      const end = event('pointerup', values.endX);
+      const dispatchAccepted = target.dispatchEvent(end);
+      return {
+        installed,
+        inputMode,
+        accepted: end.defaultPrevented ? false : dispatchAccepted,
+        defaultPrevented: end.defaultPrevented
+      };
+    }
+
+    const touch = x => ({
+      identifier: 1,
+      target,
+      screenX: x,
+      screenY: values.y,
+      clientX: x,
+      clientY: values.y,
+      pageX: x,
+      pageY: values.y
+    });
+    const event = (type, x) => {
+      const point = touch(x);
+      const value = new win.Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(value, 'touches', {
+        value: type === 'touchend' ? [] : [point],
+        configurable: true
+      });
+      Object.defineProperty(value, 'targetTouches', {
+        value: type === 'touchend' ? [] : [point],
+        configurable: true
+      });
+      Object.defineProperty(value, 'changedTouches', { value: [point], configurable: true });
+      return value;
+    };
+    target.dispatchEvent(event('touchstart', values.startX));
+    const end = event('touchend', values.endX);
+    const dispatchAccepted = target.dispatchEvent(end);
+    return {
+      installed,
+      inputMode,
+      accepted: end.defaultPrevented ? false : dispatchAccepted,
+      defaultPrevented: end.defaultPrevented
+    };
+  }, { startX, endX, y });
+}
+
 test('Pages controls and TOC navigate everywhere while desktop keyboard and supported trusted wheel turn the live rendition', async ({ page, browserDiagnostics }, testInfo) => {
   await waitForReader(page);
   const mobile = testInfo.project.name.includes('mobile');
@@ -102,5 +184,93 @@ test('Pages controls and TOC navigate everywhere while desktop keyboard and supp
     }
   }
 
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('visual-only, legacy-structure, and large chapters remain readable through the same live rendition', async ({ page, browserDiagnostics }) => {
+  await waitForReader(page);
+
+  for (const chapter of ['Visual Plate', 'Legacy Structure', 'Large Chapter']) {
+    await page.locator('#tocToggle').click();
+    await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
+    await page.getByRole('button', { name: chapter, exact: true }).click();
+    await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
+    await expect(page.locator('#chapterTitle')).toHaveText(chapter, { timeout: 10_000 });
+    await expect.poll(() => currentCfi(page), { timeout: 10_000 }).toContain('epubcfi');
+  }
+
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('mobile Pages swipe policy turns the live rendition without becoming a Continuous-mode owner', async ({ page, browserDiagnostics }, testInfo) => {
+  test.skip(!testInfo.project.name.includes('mobile'), 'touch-capable mobile-project regression');
+  await waitForReader(page);
+  const webkitMobile = testInfo.project.name === 'webkit-mobile';
+
+  await expect.poll(() => readerTouchAction(page), { timeout: 8_000 }).toContain('pan-y');
+  expect(await readerTouchAction(page)).toContain('pinch-zoom');
+
+  const beforeSwipe = await currentCfi(page);
+  const swipe = await dispatchReaderSwipe(page);
+  expect(swipe?.installed).toBe(true);
+  expect(['pointer', 'touch']).toContain(swipe?.inputMode);
+
+  if (webkitMobile) {
+    // WebKit's Playwright driver does not expose a trusted swipe gesture. Synthetic pointer
+    // dispatch reaches the child document but is not a reliable proof that EPUB.js will turn.
+    // Keep the installed input + touch-action contract above, then prove this same live
+    // rendition actually turns through the canonical Reader navigation owner.
+    await clickVisibleControl(page, ['#nextPage', '#nextBottom']);
+    await expectCfiChange(page, beforeSwipe, 8_000);
+  } else {
+    if (swipe?.inputMode === 'touch') {
+      expect(swipe.accepted).toBe(false);
+      expect(swipe.defaultPrevented).toBe(true);
+    }
+    await expectCfiChange(page, beforeSwipe, 8_000);
+  }
+
+  await page.locator('#settingsToggle').click();
+  await page.locator('#flowSelect').selectOption('scrolled-doc');
+  await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
+  await expect.poll(() => readerTouchAction(page), { timeout: 8_000 }).toBe('auto');
+
+  // Continuous EPUB CFIs may legitimately settle while the scrolled rendition reflows.
+  // Ownership is therefore asserted directly: the Pages input owner must not cancel the
+  // same gesture, while native vertical scrolling is covered separately in reader.spec.mjs.
+  const continuousSwipe = await dispatchReaderSwipe(page);
+  expect(continuousSwipe?.installed).toBe(true);
+  expect(['pointer', 'touch']).toContain(continuousSwipe?.inputMode);
+  expect(continuousSwipe?.accepted).toBe(true);
+  expect(continuousSwipe?.defaultPrevented).toBe(false);
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('fullscreen control mirrors fullscreenchange state through the Reader accessibility bridge', async ({ page, browserDiagnostics }, testInfo) => {
+  test.skip(testInfo.project.name.includes('mobile'), 'fullscreen control is intentionally hidden on mobile');
+  await page.addInitScript(() => {
+    let fullscreenElement = null;
+    try {
+      Object.defineProperty(document, 'fullscreenElement', { configurable: true, get: () => fullscreenElement });
+      Element.prototype.requestFullscreen = function requestFullscreen() {
+        fullscreenElement = this;
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+      document.exitFullscreen = function exitFullscreen() {
+        fullscreenElement = null;
+        document.dispatchEvent(new Event('fullscreenchange'));
+        return Promise.resolve();
+      };
+    } catch {}
+  });
+  await waitForReader(page);
+
+  const button = page.locator('#fullscreenButton');
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'true');
+  await button.click();
+  await expect(button).toHaveAttribute('aria-pressed', 'false');
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

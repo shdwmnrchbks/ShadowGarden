@@ -3,11 +3,7 @@
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,Number(value)||0));
 const distance=(a,b)=>Math.hypot((Number(a?.clientX)||0)-(Number(b?.clientX)||0),(Number(a?.clientY)||0)-(Number(b?.clientY)||0));
 
-function imageTarget(target){
-  if(!target)return null;
-  if(String(target.localName||target.tagName||"").toLowerCase()==="img")return target;
-  return typeof target?.closest==="function"?target.closest("img"):null;
-}
+function imageTarget(target){return typeof target?.closest==="function"?target.closest("img"):null}
 function imageSource(image,doc){
   const raw=String(image?.currentSrc||image?.src||image?.getAttribute?.("src")||"").trim();
   if(!raw)return"";
@@ -91,26 +87,11 @@ export function createImageFocusController({
     doc.documentElement.dataset.sgReaderImageFocus="1";
     try{const style=doc.createElement("style");style.id="sg-reader-image-focus-style";style.textContent="img{cursor:zoom-in}";doc.head?.appendChild(style)}catch{}
     let pointerStart=null;
-    const boundImages=new WeakSet();
     const activate=(sourceImage,event)=>{
       if(!sourceImage||state.active)return false;
       if(shouldSuppressOpen?.()){event?.preventDefault?.();event?.stopImmediatePropagation?.();return false}
       event?.preventDefault?.();event?.stopImmediatePropagation?.();return openImageFocus(sourceImage,doc);
     };
-    const bindImage=sourceImage=>{
-      if(!sourceImage||boundImages.has(sourceImage))return;
-      boundImages.add(sourceImage);
-      sourceImage.addEventListener("click",event=>activate(sourceImage,event),true);
-    };
-    const bindImages=root=>{
-      const direct=imageTarget(root);if(direct===root)bindImage(direct);
-      root?.querySelectorAll?.("img")?.forEach?.(bindImage);
-    };
-    bindImages(doc);
-    try{
-      const Observer=doc.defaultView?.MutationObserver||MutationObserver;
-      new Observer(records=>records.forEach(record=>record.addedNodes?.forEach?.(bindImages))).observe(doc.documentElement,{childList:true,subtree:true});
-    }catch{}
     doc.addEventListener("pointerdown",event=>{
       const sourceImage=imageTarget(event.target);
       if(!sourceImage||Number(event.button)>0){pointerStart=null;return}

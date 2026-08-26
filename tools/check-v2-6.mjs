@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const read = file => fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
 const json = async file => JSON.parse(await read(file));
 
-const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, bookmarks, rendition, imageFocus, motion, roadmap] = await Promise.all([
+const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, bookmarks, rendition, imageFocus, imageFocusCss, motion, roadmap] = await Promise.all([
   json('tests/e2e/package.json'),
   json('tests/e2e/package-lock.json'),
   read('tests/e2e/playwright.config.mjs'),
@@ -21,6 +21,7 @@ const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fi
   read('src/assets/js/reader/bookmarks-controller.js'),
   read('src/assets/js/reader/rendition.js'),
   read('src/assets/js/reader/image-focus.js'),
+  read('src/assets/css/reader-image-focus.css'),
   read('src/assets/js/motion.js'),
   read('docs/roadmaps/CURRENT_ROADMAP.md')
 ]);
@@ -79,6 +80,8 @@ assert.match(readerSpec, /Pages progress and bookmark persist through a full Rea
 assert.match(readerSpec, /flow switching, image focus, and resize preserve a usable Reader location/);
 assert.match(readerSpec, /sg-progress:/);
 assert.match(readerSpec, /sg-bookmarks:/);
+assert.match(readerSpec, /toBe\(bookmarkedCfi\)/, 'bookmark reload must wait for the restored EPUB CFI rather than Page Map generation');
+assert.doesNotMatch(readerSpec, /waitForPageMap/, 'bookmark reload must not depend on asynchronous device Page Map completion');
 assert.match(readerSpec, /selectOption\(['"]scrolled-doc['"]\)/);
 assert.match(readerSpec, /toBeGreaterThan\(0\)/, 'Continuous Reader coverage must allow the multiple live EPUB iframes EPUB.js legitimately renders');
 assert.match(readerSpec, /#imageFocus/);
@@ -87,9 +90,13 @@ assert.match(rendition, /export function stabilizeContinuousScrollLifecycle\(/, 
 assert.match(rendition, /if\(manager\.__sgDestroyed\)return;/, 'late Continuous callbacks must stop after manager destruction');
 assert.match(rendition, /if\(typeof scrolled==="function"\)scrolled\.apply\(manager,args\)/, 'Continuous debounce must never call a missing manager.scrolled method');
 assert.match(imageFocus, /doc\.addEventListener\("pointerdown"/, 'image focus must track a pointer activation fallback inside EPUB documents');
-assert.match(imageFocus, /doc\.addEventListener\("pointerup"/, 'image focus must support WebKit iframe image activation when click is omitted');
+assert.match(imageFocus, /doc\.addEventListener\("pointerup"/, 'image focus must support engines that deliver EPUB document pointer events');
 assert.ok(imageFocus.includes('if(Math.hypot((Number(event.clientX)||0)-start.x,(Number(event.clientY)||0)-start.y)>12)return;'), 'pointer fallback must reject drag gestures instead of stealing Reader scrolling');
-assert.match(imageFocus, /if\(!state\.active&&!shouldSuppressOpen\?\.\(\)\)openImageFocus/, 'pointer fallback must preserve Pages swipe suppression and avoid duplicate opens');
+assert.match(imageFocus, /function needsParentHitTargets\(/, 'WebKit image activation must be detected without enabling scripts inside EPUB content');
+assert.match(imageFocus, /reader-image-focus-hit/, 'WebKit must receive a parent-owned image hit target outside the sandboxed EPUB document');
+assert.match(imageFocus, /frame\.getBoundingClientRect\(\)/, 'parent-owned image hit targets must follow the rendered EPUB frame geometry');
+assert.match(imageFocus, /sourceImage\.getBoundingClientRect\(\)/, 'parent-owned image hit targets must follow source-image geometry');
+assert.match(imageFocusCss, /\.reader-image-focus-hit\{position:fixed;z-index:24;/, 'image hit targets must live in Reader chrome rather than changing EPUB sandbox permissions');
 
 assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'same-document View Transition ready rejection must be observed');
 assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'same-document View Transition finished rejection must be observed');

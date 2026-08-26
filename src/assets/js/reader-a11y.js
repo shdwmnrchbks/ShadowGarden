@@ -63,5 +63,6 @@
     new MutationObserver(syncContinuous).observe(continuousText,{childList:true,characterData:true,subtree:true});syncContinuous();
   }
 
+  void import('/assets/js/reader-mobile-reliability.js').catch(error=>console.warn('Reader mobile reliability bridge unavailable',error));
   void import('/assets/js/site-flavor.js').catch(error=>console.warn('Shadow Garden flavor copy unavailable',error));
 })();

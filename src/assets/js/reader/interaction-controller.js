@@ -1,4 +1,4 @@
-/* Shadow Garden v2.4 — Reader interaction and perceived-loading controller. */
+/* Shadow Garden v2.6 — Reader interaction and perceived-loading controller. */
 
 const EXTERNAL_RE=/^(?:https?:)?\/\//i;
 
@@ -21,6 +21,12 @@ function decorateExternalLinks(doc){
     anchor.classList.add("sg-external-link");
     if(!anchor.title)anchor.title="External link — opens after confirmation";
   });
+}
+
+function eventPoint(event,changed=false){
+  const list=changed?event?.changedTouches:event?.touches;
+  const point=list?.[0]||event;
+  return{x:Number(point?.clientX)||0,y:Number(point?.clientY)||0};
 }
 
 export function installReaderInteractionController(){
@@ -63,7 +69,31 @@ export function installReaderInteractionController(){
     if(!doc?.documentElement||doc.documentElement.dataset.sgInteractionReady==="1")return;
     doc.documentElement.dataset.sgInteractionReady="1";
     decorateExternalLinks(doc);
-    doc.addEventListener("pointerdown",revealChrome,{passive:true});
+    let gesture=null;
+
+    const begin=event=>{
+      const point=eventPoint(event);
+      gesture={x:point.x,y:point.y,pointerId:event.pointerId??null};
+    };
+    const finish=event=>{
+      const start=gesture;gesture=null;if(!start)return;
+      if(start.pointerId!==null&&event.pointerId!==undefined&&event.pointerId!==start.pointerId)return;
+      const point=eventPoint(event,true),dx=point.x-start.x,dy=point.y-start.y;
+      const distance=Math.hypot(dx,dy);
+      if(distance<=12||(dy<=-18&&Math.abs(dy)>Math.abs(dx)*.85))revealChrome();
+    };
+    const cancel=()=>{gesture=null};
+    const win=doc.defaultView;
+    if(typeof win?.PointerEvent==="function"){
+      doc.addEventListener("pointerdown",begin,{capture:true,passive:true});
+      doc.addEventListener("pointerup",finish,{capture:true,passive:true});
+      doc.addEventListener("pointercancel",cancel,{capture:true,passive:true});
+    }else{
+      doc.addEventListener("touchstart",begin,{capture:true,passive:true});
+      doc.addEventListener("touchend",finish,{capture:true,passive:true});
+      doc.addEventListener("touchcancel",cancel,{capture:true,passive:true});
+    }
+    win?.addEventListener?.("wheel",event=>{if((Number(event.deltaY)||0)<0)revealChrome()},{passive:true});
   }
 
   function attachIframe(frame){
@@ -74,13 +104,26 @@ export function installReaderInteractionController(){
     attach();
   }
 
+  function attachContinuousScroller(){
+    const scroller=viewer?.querySelector?.(".epub-container");
+    if(!scroller||scroller.dataset.sgInteractionScroll==="1")return;
+    scroller.dataset.sgInteractionScroll="1";
+    let lastTop=Number(scroller.scrollTop)||0;
+    scroller.addEventListener("scroll",()=>{
+      const top=Number(scroller.scrollTop)||0;
+      if(document.body.classList.contains("reader-flow-scrolled")&&top<lastTop-6)revealChrome();
+      lastTop=top;
+    },{passive:true});
+  }
+
   function inspectViewer(){
     viewer?.querySelectorAll?.("iframe").forEach(attachIframe);
+    attachContinuousScroller();
     if(viewer?.querySelector?.("iframe"))stage("Laying out the page…","layout");
   }
 
-  document.addEventListener("pointerdown",revealChrome,{passive:true});
-  document.addEventListener("focusin",event=>{if(event.target?.closest?.(".reader-topbar,.reader-bottombar,.reader-drawer"))revealChrome()});
+  document.addEventListener("click",revealChrome,{passive:true});
+  document.addEventListener("focusin",event=>{if(event.target?.closest?.(".reader-topbar,.reader-bottombar,.reader-drawer,.continuous-seek"))revealChrome()});
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)revealChrome()});
   mobile?.addEventListener?.("change",revealChrome);
 

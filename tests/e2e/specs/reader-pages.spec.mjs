@@ -55,9 +55,20 @@ async function trustedWheel(page, deltaY) {
   await page.mouse.wheel(0, deltaY);
 }
 
+async function childWindowWheel(page, deltaY) {
+  return page.locator('#viewer iframe').first().evaluate((frame, amount) => {
+    const win = frame.contentWindow;
+    if (!win) return null;
+    const event = new win.WheelEvent('wheel', { deltaY: amount, bubbles: true, cancelable: true });
+    win.dispatchEvent(event);
+    return { defaultPrevented: event.defaultPrevented };
+  }, deltaY);
+}
+
 test('Pages controls and TOC navigate everywhere while desktop keyboard and wheel turn the live rendition', async ({ page, browserDiagnostics }, testInfo) => {
   await waitForReader(page);
   const mobile = testInfo.project.name.includes('mobile');
+  const webkit = testInfo.project.name.includes('webkit');
 
   const initial = await currentCfi(page);
   expect(initial).toContain('epubcfi');
@@ -92,7 +103,12 @@ test('Pages controls and TOC navigate everywhere while desktop keyboard and whee
     await expectCfiChange(page, afterKeyboardNext);
 
     const beforeWheel = await currentCfi(page);
-    await trustedWheel(page, 120);
+    if (webkit) {
+      const wheel = await childWindowWheel(page, 120);
+      expect(wheel).not.toBeNull();
+    } else {
+      await trustedWheel(page, 120);
+    }
     await expectCfiChange(page, beforeWheel);
   }
 

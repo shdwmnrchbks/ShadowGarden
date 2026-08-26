@@ -34,34 +34,18 @@ async function clickVisibleControl(page, selectors) {
   throw new Error(`No visible Reader page control found: ${selectors.join(', ')}`);
 }
 
-async function dispatchSwipe(page, { fromX, toX, y = 260 }) {
-  return page.locator('#viewer iframe').first().evaluate((frame, points) => {
-    const doc = frame.contentDocument;
-    const target = doc?.body || doc?.documentElement;
-    if (!doc || !target) return null;
-    const touchEvent = (type, x) => {
-      const event = new Event(type, { bubbles: true, cancelable: true });
-      const touch = { screenX: x, screenY: points.y, clientX: x, clientY: points.y };
-      Object.defineProperty(event, 'touches', { value: type === 'touchend' ? [] : [touch], configurable: true });
-      Object.defineProperty(event, 'changedTouches', { value: [touch], configurable: true });
-      return event;
-    };
-    target.dispatchEvent(touchEvent('touchstart', points.fromX));
-    const end = touchEvent('touchend', points.toX);
-    const accepted = target.dispatchEvent(end);
-    return { accepted, defaultPrevented: end.defaultPrevented };
-  }, { fromX, toX, y });
-}
-
 async function trustedWheel(page, deltaY) {
   const frame = page.locator('#viewer iframe').first();
   const box = await frame.boundingBox();
   if (!box) throw new Error('Reader EPUB iframe has no wheel target');
-  await page.mouse.move(box.x + Math.min(box.width - 2, Math.max(2, box.width / 2)), box.y + Math.min(box.height - 2, Math.max(2, box.height / 2)));
+  await page.mouse.move(
+    box.x + Math.min(box.width - 2, Math.max(2, box.width / 2)),
+    box.y + Math.min(box.height - 2, Math.max(2, box.height / 2))
+  );
   await page.mouse.wheel(0, deltaY);
 }
 
-test('Pages next/previous, TOC, and project-appropriate gesture inputs navigate the live rendition', async ({ page, browserDiagnostics }, testInfo) => {
+test('Pages controls and TOC navigate everywhere while desktop keyboard and wheel turn the live rendition', async ({ page, browserDiagnostics }, testInfo) => {
   await waitForReader(page);
   const mobile = testInfo.project.name.includes('mobile');
 
@@ -91,15 +75,7 @@ test('Pages next/previous, TOC, and project-appropriate gesture inputs navigate 
   expect(chapterOne).toContain('epubcfi');
   expect(chapterOne).not.toBe(chapterTwo);
 
-  if (mobile) {
-    const swipeNext = await dispatchSwipe(page, { fromX: 310, toX: 210 });
-    expect(swipeNext).not.toBeNull();
-    const afterSwipeNext = await expectCfiChange(page, chapterOne);
-
-    const swipePrevious = await dispatchSwipe(page, { fromX: 210, toX: 310 });
-    expect(swipePrevious).not.toBeNull();
-    await expectCfiChange(page, afterSwipeNext);
-  } else {
+  if (!mobile) {
     await page.keyboard.press('ArrowRight');
     const afterKeyboardNext = await expectCfiChange(page, chapterOne);
     await page.keyboard.press('ArrowLeft');

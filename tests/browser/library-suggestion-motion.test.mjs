@@ -27,7 +27,7 @@ test('Library suggestion refresh stays controller-owned while motion adds transi
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)/, 'suggestion motion must retain the reduced-motion contract');
   assert.match(css, /\.continue-panel\.suggestion-refreshed.*animation:none!important/s, 'fallback suggestion animation must be disabled for reduced motion');
 
-  assert.ok(spec.includes('reading suggestion reroll advances smoothly'), 'real-browser suite must cover changing suggestions');
+  assert.ok(spec.includes('reading suggestion reroll advances and pinned series remain available in the navigation drawer'), 'real-browser suite must preserve the canonical changing-suggestion contract');
   assert.ok(spec.includes('reading suggestion reroll explains when the Garden has no alternate path'), 'real-browser suite must cover same-result feedback');
   assert.ok(spec.includes("toHaveText('The Garden has no other path to suggest just now.')"), 'real-browser suite must assert themed exhaustion copy');
 });

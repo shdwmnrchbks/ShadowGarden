@@ -7,10 +7,8 @@
     const existing=document.querySelector(`script[src^="${src.split("?")[0]}"]`);if(existing){if(existing.dataset.loaded==="1")resolve(existing);else{existing.addEventListener("load",()=>resolve(existing),{once:true});existing.addEventListener("error",reject,{once:true})}return}
     const script=document.createElement("script");script.src=src;script.defer=true;script.dataset.keeperModule="1";script.addEventListener("load",()=>{script.dataset.loaded="1";resolve(script)},{once:true});script.addEventListener("error",()=>reject(new Error(`Could not load ${src}`)),{once:true});document.body.appendChild(script);
   });
-  const loadStyle=href=>{if(document.querySelector(`link[href^="${href.split("?")[0]}"]`))return;const link=document.createElement("link");link.rel="stylesheet";link.href=href;link.dataset.keeperStyle="1";document.head.appendChild(link)};
 
   async function boot(){
-    loadStyle("/assets/css/motion.css");loadStyle("/assets/css/admin-components.css");loadStyle("/assets/css/admin-version.css");loadStyle("/assets/css/admin-presentation.css");loadStyle("/assets/css/admin-motion.css");
     await loadScript("/assets/js/motion.js");
 
     for(const src of [

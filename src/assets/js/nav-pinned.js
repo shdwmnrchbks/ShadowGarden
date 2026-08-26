@@ -1,6 +1,6 @@
 /* Shadow Garden R2 — shelf-scoped collapsible pinned-series sidebar and library indicators. */
 (async()=>{
-  const nav=document.querySelector('.site-header nav');
+  const nav=document.querySelector('#siteNav')||document.querySelector('.site-nav-drawer')||document.querySelector('.site-header nav');
   if(!nav||!window.ShadowGardenData)return;
 
   const {preferences,format,urls}=await import('/assets/js/domain/index.js');

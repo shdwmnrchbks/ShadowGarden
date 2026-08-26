@@ -175,7 +175,7 @@ assert.match(readerPagesSpec, /continuousSwipe\?\.defaultPrevented/);
 
 assert.match(readerMobileSpec, /issue #154/i, 'mobile Reader issue #154 regression must remain in the real-browser suite');
 assert.match(readerMobileSpec, /Continuous/i);
-assert.match(readerMobileSpec, /image focus/i);
+assert.match(readerMobileSpec, /single image tap opens focus/i, 'mobile Reader regression must retain one-tap image-focus acceptance');
 assert.match(readerMobileSpec, /chrome/i);
 
 assert.match(bookmarks, /return Number\(bookmark\.localPage\)===Number\(position\.localPage\);/, 'bookmark active-state matching must survive equivalent resumed CFIs on the same rendered section page');
@@ -252,7 +252,9 @@ assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(roadmap, /\*\*Status:\*\* ✅ Done/);
 assert.match(roadmap, /\*\*v2\.6\.0 — Reliability & Real-Browser Testing\*\* \| ✅ Done/);
 assert.match(roadmap, /\*\*v2\.7\.0 — Performance & Scale\*\* \| 🟨 In progress/);
-assert.doesNotMatch(roadmap, /# v2\.6\.0[\s\S]*?- \[ \]/, 'completed v2.6 section must not retain unchecked milestone items');
+const v26RoadmapSection = roadmap.split('# v2.6.0 — Reliability & Real-Browser Testing')[1]?.split('\n---\n')[0] || '';
+assert.ok(v26RoadmapSection, 'v2.6 roadmap section must remain present');
+assert.doesNotMatch(v26RoadmapSection, /- \[ \]/, 'completed v2.6 section must not retain unchecked milestone items');
 assert.match(testArchitecture, /Real Browser E2E — v2\.6\+/);
 assert.match(testArchitecture, /chromium-desktop/);
 assert.match(testArchitecture, /webkit-mobile/);

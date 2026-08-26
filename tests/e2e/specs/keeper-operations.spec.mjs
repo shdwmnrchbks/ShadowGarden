@@ -300,9 +300,22 @@ test('Abuse Watch exposes a failed load and recovers cleanly on refresh', async 
   await expect(page.locator('#abuseWatchList')).toContainText('Public access cooldown');
   expect(state.abuseGets).toBeGreaterThanOrEqual(2);
 
-  const expectedAppErrors = browserDiagnostics.filter(entry => entry.type === 'console' && entry.sourceUrl.endsWith('/assets/js/admin/abuse-workflow.js'));
+  const diagnosticPath = entry => {
+    try { return new URL(entry.sourceUrl).pathname; }
+    catch { return String(entry.sourceUrl || '').split('?')[0]; }
+  };
+  const expectedAppErrors = browserDiagnostics.filter(entry =>
+    entry.type === 'console' &&
+    diagnosticPath(entry).endsWith('/assets/js/admin/abuse-workflow.js') &&
+    /^Abuse Watch load failed Error(?:$|:|\n)/.test(entry.message)
+  );
   expect(expectedAppErrors).toHaveLength(1);
-  const expectedHttpErrors = browserDiagnostics.filter(entry => entry.type === 'console' && !expectedAppErrors.includes(entry) && entry.message.includes('503') && (entry.sourceUrl.includes('/admin-api/abuse') || entry.message.includes('Failed to load resource')));
+  const expectedHttpErrors = browserDiagnostics.filter(entry =>
+    entry.type === 'console' &&
+    !expectedAppErrors.includes(entry) &&
+    diagnosticPath(entry) === '/admin-api/abuse' &&
+    entry.message.includes('503')
+  );
   expect(expectedHttpErrors.length).toBeLessThanOrEqual(1);
   const expected = new Set([...expectedAppErrors, ...expectedHttpErrors]);
   expect(browserDiagnostics.filter(entry => !expected.has(entry))).toEqual([]);

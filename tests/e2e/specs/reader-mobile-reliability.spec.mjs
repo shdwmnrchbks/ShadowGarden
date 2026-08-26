@@ -29,6 +29,25 @@ async function firstImageCenter(page) {
   return { x: frameBox.x + imageBox.x + imageBox.width / 2, y: frameBox.y + imageBox.y + imageBox.height / 2 };
 }
 
+async function oversizedImageGeometry(page) {
+  return page.locator('#viewer iframe').evaluateAll(frames => {
+    for (const frame of frames) {
+      const document = frame.contentDocument;
+      const image = document?.querySelector('.oversized-visual img');
+      const view = frame.contentWindow;
+      if (!image || !view) continue;
+      const rect = image.getBoundingClientRect();
+      return {
+        left: rect.left,
+        right: rect.right,
+        width: rect.width,
+        viewportWidth: view.innerWidth || document.documentElement.clientWidth
+      };
+    }
+    return null;
+  });
+}
+
 test('issue #154: mobile paginated content clears chrome and a single image tap opens focus', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile Reader regression');
   await waitForReader(page);
@@ -50,28 +69,46 @@ test('issue #154: mobile paginated content clears chrome and a single image tap 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('issues #154/#157: Continuous uses the full mobile viewport and only upward scrolling reveals hidden chrome', async ({ page, browserDiagnostics }, testInfo) => {
+test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, and native scrolling reliable', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile Reader regression');
   await waitForReader(page);
   await page.locator('#settingsToggle').click();
   await page.locator('#flowSelect').selectOption('scrolled-doc');
   await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
   await page.getByRole('button', { name: 'Close reading settings' }).click();
+  await expect(page.locator('body')).not.toHaveClass(/reader-chrome-hidden/);
 
   const rail = await page.evaluate(() => {
     const viewer = document.getElementById('viewer');
     const seek = document.getElementById('continuousSeek');
+    const thumb = document.getElementById('continuousSeekThumb');
+    const topbar = document.querySelector('.reader-topbar');
     const viewerStyle = viewer ? getComputedStyle(viewer) : null;
     const seekStyle = seek ? getComputedStyle(seek) : null;
+    const seekRect = seek?.getBoundingClientRect();
+    const thumbRect = thumb?.getBoundingClientRect();
+    const topbarRect = topbar?.getBoundingClientRect();
     return {
       viewerRight: viewerStyle?.right || '',
       seekWidth: parseFloat(seekStyle?.width || '0'),
-      seekBackground: seekStyle?.backgroundColor || ''
+      seekBackground: seekStyle?.backgroundColor || '',
+      seekTop: seekRect?.top ?? -1,
+      thumbTop: thumbRect?.top ?? -1,
+      topbarBottom: topbarRect?.bottom ?? -1
     };
   });
   expect(rail.viewerRight).toBe('0px');
   expect(rail.seekWidth).toBeLessThanOrEqual(24);
   expect(rail.seekBackground).toBe('rgba(0, 0, 0, 0)');
+  expect(rail.seekTop).toBeGreaterThanOrEqual(rail.topbarBottom - 1);
+  expect(rail.thumbTop).toBeGreaterThanOrEqual(rail.topbarBottom - 1);
+
+  await openChapter(page, 'Wide Visual');
+  await expect.poll(() => oversizedImageGeometry(page), { timeout: 10_000 }).not.toBeNull();
+  const image = await oversizedImageGeometry(page);
+  expect(image.width).toBeGreaterThan(20);
+  expect(image.left).toBeGreaterThanOrEqual(-1);
+  expect(image.right).toBeLessThanOrEqual(image.viewportWidth + 1);
 
   await openChapter(page, 'Large Chapter');
   await expect(page.locator('#viewer .epub-container')).toBeVisible();
@@ -110,6 +147,12 @@ test('issues #154/#157: Continuous uses the full mobile viewport and only upward
     scroller.dispatchEvent(new Event('scroll'));
   });
   await expect(page.locator('body')).not.toHaveClass(/reader-chrome-hidden/, { timeout: 2_000 });
+
+  const restoredRail = await page.evaluate(() => ({
+    seekTop: document.getElementById('continuousSeek')?.getBoundingClientRect().top ?? -1,
+    topbarBottom: document.querySelector('.reader-topbar')?.getBoundingClientRect().bottom ?? -1
+  }));
+  expect(restoredRail.seekTop).toBeGreaterThanOrEqual(restoredRail.topbarBottom - 1);
 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

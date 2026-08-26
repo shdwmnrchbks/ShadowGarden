@@ -37,6 +37,10 @@ test('v2.6 Keeper upload preflight and completion remain canonical real-browser 
   assert.match(workflow, /if\(success\)clearSuccessfulQueue\(\)/, 'full success must clear the completed queue');
   assert.match(workflow, /Failed\/reviewable entries remain in the queue/, 'partial failure must preserve reviewable queue entries');
   assert.match(workflow, /if\(mode==='uploading'\)return/, 'presentation workflow must ignore duplicate upload-mode transitions');
+  assert.match(workflow, /function finishSettledBatch\(\)/, 'presentation must recover a settled batch even if the base state pill is overwritten');
+  assert.match(workflow, /if\(mode!=='uploading'\|\|q\.running\)return false/, 'settled-batch recovery must wait until the canonical batch owner releases busy state');
+  assert.match(workflow, /setUploadState\(failures\.length\?'COMPLETE WITH ERRORS':'COMPLETE'/, 'settled recovery must restore the terminal upload label before rendering completion');
+  assert.match(workflow, /else if\(typeof setUploadState==='function'\)\{const ready=actionable\(\)\.length;setUploadState\(ready\?'READY':'WAITING'/, 'returning to the reviewed editor must explicitly leave terminal state');
 
   assert.match(core, /class AdminClient/, 'Keeper upload requests must continue through the single AdminClient');
   assert.match(core, /async uploadObject\(key,blob,type\)/, 'AdminClient must remain upload-object owner');

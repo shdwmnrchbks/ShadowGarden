@@ -34,14 +34,24 @@ async function clickVisibleControl(page, selectors) {
   throw new Error(`No visible Reader page control found: ${selectors.join(', ')}`);
 }
 
+function intersectBoxes(box, shellBox) {
+  if (!box || !shellBox) return null;
+  const left = Math.max(box.x, shellBox.x);
+  const top = Math.max(box.y, shellBox.y);
+  const right = Math.min(box.x + box.width, shellBox.x + shellBox.width);
+  const bottom = Math.min(box.y + box.height, shellBox.y + shellBox.height);
+  if (right - left <= 4 || bottom - top <= 4) return null;
+  return { left, top, right, bottom };
+}
+
 async function trustedWheel(page, deltaY) {
-  const frame = page.locator('#viewer iframe').first();
-  const box = await frame.boundingBox();
-  if (!box) throw new Error('Reader EPUB iframe has no wheel target');
-  await page.mouse.move(
-    box.x + Math.min(box.width - 2, Math.max(2, box.width / 2)),
-    box.y + Math.min(box.height - 2, Math.max(2, box.height / 2))
-  );
+  const [box, shellBox] = await Promise.all([
+    page.locator('#viewer iframe').first().boundingBox(),
+    page.locator('#viewerShell').boundingBox()
+  ]);
+  const visible = intersectBoxes(box, shellBox);
+  if (!visible) throw new Error('Reader EPUB iframe does not intersect the visible Reader viewport');
+  await page.mouse.move((visible.left + visible.right) / 2, (visible.top + visible.bottom) / 2);
   await page.mouse.wheel(0, deltaY);
 }
 

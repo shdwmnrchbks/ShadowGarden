@@ -88,7 +88,7 @@ assert.match(rendition, /if\(manager\.__sgDestroyed\)return;/, 'late Continuous 
 assert.match(rendition, /if\(typeof scrolled==="function"\)scrolled\.apply\(manager,args\)/, 'Continuous debounce must never call a missing manager.scrolled method');
 assert.match(imageFocus, /doc\.addEventListener\("pointerdown"/, 'image focus must track a pointer activation fallback inside EPUB documents');
 assert.match(imageFocus, /doc\.addEventListener\("pointerup"/, 'image focus must support WebKit iframe image activation when click is omitted');
-assert.match(imageFocus, /Math\.hypot\([^)]*event\.clientX[^)]*\)>12/, 'pointer fallback must reject drag gestures instead of stealing Reader scrolling');
+assert.ok(imageFocus.includes('if(Math.hypot((Number(event.clientX)||0)-start.x,(Number(event.clientY)||0)-start.y)>12)return;'), 'pointer fallback must reject drag gestures instead of stealing Reader scrolling');
 assert.match(imageFocus, /if\(!state\.active&&!shouldSuppressOpen\?\.\(\)\)openImageFocus/, 'pointer fallback must preserve Pages swipe suppression and avoid duplicate opens');
 
 assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'same-document View Transition ready rejection must be observed');

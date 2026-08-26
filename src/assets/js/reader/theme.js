@@ -212,15 +212,24 @@ export function createThemeController({ getSettings, isAdult }) {
       body["max-width"] = `${settings.width}px !important`;
       body.width = "auto !important";
     }
+    const mediaWrapper = paginated ? {} : {
+      /* Publication CSS sometimes gives figure/picture a fixed or viewport-relative width.
+         Capping only the nested image still lets that oversized wrapper shift the image
+         past the EPUB viewport. Keep common media wrappers inside the Continuous content
+         box and preserve their normal centered presentation. */
+      "max-width": "100% !important",
+      width: "auto !important",
+      "margin-left": "auto !important",
+      "margin-right": "auto !important",
+      "box-sizing": "border-box !important"
+    };
     return {
       html: { background: `${theme.bg} !important` },
       body,
       p: { "line-height": `${settings.lineHeight} !important` },
       a: { color: `${theme.link} !important` },
-      /* In Continuous mode, max-width:100% alone is insufficient when a publication puts
-         an image inside an oversized fixed/vw wrapper: 100% then means the oversized
-         wrapper, and the Reader's horizontal overflow guard clips the right edge. Bound
-         the image by both its containing block and the EPUB viewport minus body gutters. */
+      figure: mediaWrapper,
+      picture: mediaWrapper,
       img: {
         "max-width": paginated ? "100% !important" : "min(100%, 92vw) !important",
         height: "auto !important",

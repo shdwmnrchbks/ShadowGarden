@@ -50,7 +50,7 @@ async function installKeeperBoundaryRoutes(page, requests) {
 
     if (method === 'GET') return fulfillJson(route, { siteKey: 'e2e-site-key', action: 'admin_access' });
     if (method === 'POST') return fulfillJson(route, { ok: true });
-    if (method === 'DELETE') return route.fulfill({ status: 204, body: '' });
+    if (method === 'DELETE') return fulfillJson(route, { ok: true });
     return route.fulfill({ status: 405, body: '' });
   });
 

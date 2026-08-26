@@ -55,6 +55,17 @@ async function trustedWheel(page, deltaY) {
   await page.mouse.wheel(0, deltaY);
 }
 
+async function readerTouchAction(page) {
+  return page.locator('#viewer iframe').first().evaluate(frame => {
+    const doc = frame.contentDocument;
+    const win = doc?.defaultView;
+    const target = doc?.body || doc?.documentElement;
+    if (!doc || !win || !target) return '';
+    try { return String(win.getComputedStyle(target).touchAction || ''); }
+    catch { return String(target.style?.touchAction || ''); }
+  });
+}
+
 async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = {}) {
   return page.locator('#viewer iframe').first().evaluate((frame, values) => {
     const doc = frame.contentDocument;
@@ -203,22 +214,34 @@ test('mobile Pages swipe turns the live rendition without becoming a Continuous-
   test.skip(!testInfo.project.name.includes('mobile'), 'touch-capable mobile-project regression');
   await waitForReader(page);
 
+  await expect.poll(() => readerTouchAction(page), { timeout: 8_000 }).toContain('pan-y');
+  expect(await readerTouchAction(page)).toContain('pinch-zoom');
+
   const beforeSwipe = await currentCfi(page);
   const swipe = await dispatchReaderSwipe(page);
   expect(swipe?.installed).toBe(true);
   expect(['pointer', 'touch']).toContain(swipe?.inputMode);
-  expect(swipe?.accepted).toBe(false);
-  expect(swipe?.defaultPrevented).toBe(true);
+  if (swipe?.inputMode === 'touch') {
+    expect(swipe.accepted).toBe(false);
+    expect(swipe.defaultPrevented).toBe(true);
+  }
   await expectCfiChange(page, beforeSwipe, 8_000);
 
   await page.locator('#settingsToggle').click();
   await page.locator('#flowSelect').selectOption('scrolled-doc');
   await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
+  await expect.poll(() => readerTouchAction(page), { timeout: 8_000 }).toBe('auto');
+
+  const continuousBefore = await currentCfi(page);
   const continuousSwipe = await dispatchReaderSwipe(page);
   expect(continuousSwipe?.installed).toBe(true);
   expect(['pointer', 'touch']).toContain(continuousSwipe?.inputMode);
-  expect(continuousSwipe?.accepted).toBe(true);
-  expect(continuousSwipe?.defaultPrevented).toBe(false);
+  if (continuousSwipe?.inputMode === 'touch') {
+    expect(continuousSwipe.accepted).toBe(true);
+    expect(continuousSwipe.defaultPrevented).toBe(false);
+  }
+  await page.waitForTimeout(300);
+  expect(await currentCfi(page)).toBe(continuousBefore);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 

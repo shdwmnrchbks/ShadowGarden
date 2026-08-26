@@ -7,6 +7,35 @@
     const manageView=$("#manageView"),addDialog=$("#addBooksDialog"),maintenanceDialog=$("#maintenanceDialog");
     if(!manageView||!addDialog||!maintenanceDialog)return{};
 
+    const dialogOpeners=new WeakMap();
+    const focusableSelector='a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const focusablesIn=dialog=>[...dialog.querySelectorAll(focusableSelector)].filter(element=>element.getClientRects().length>0&&getComputedStyle(element).visibility!=="hidden");
+    function rememberDialogOpener(dialog,fallback){
+      const active=document.activeElement;
+      if(active instanceof HTMLElement&&active!==document.body&&!dialog.contains(active))dialogOpeners.set(dialog,active);
+      else if(fallback instanceof HTMLElement)dialogOpeners.set(dialog,fallback);
+    }
+    function containDialogFocus(dialog,event){
+      if(event.key!=="Tab"||!dialog.open)return;
+      const focusables=focusablesIn(dialog);
+      if(!focusables.length){event.preventDefault();dialog.focus({preventScroll:true});return}
+      const first=focusables[0],last=focusables[focusables.length-1],active=document.activeElement;
+      if(event.shiftKey&&(active===first||!dialog.contains(active))){event.preventDefault();last.focus({preventScroll:true});return}
+      if(!event.shiftKey&&(active===last||!dialog.contains(active))){event.preventDefault();first.focus({preventScroll:true})}
+    }
+    function showKeeperDialog(dialog,fallback){
+      if(dialog.open)return;
+      rememberDialogOpener(dialog,fallback);dialog.showModal();
+    }
+    function restoreDialogFocus(dialog){
+      const opener=dialogOpeners.get(dialog);dialogOpeners.delete(dialog);if(!opener)return;
+      requestAnimationFrame(()=>{if(opener.isConnected&&!opener.disabled&&opener.getClientRects().length)opener.focus({preventScroll:true})});
+    }
+    for(const dialog of [addDialog,maintenanceDialog]){
+      dialog.addEventListener("keydown",event=>containDialogFocus(dialog,event));
+      dialog.addEventListener("close",()=>restoreDialogFocus(dialog));
+    }
+
     function resetUploadContext(){
       const q=state.batch;if(!q||q.running)return false;
       if(q.objectUrl){try{URL.revokeObjectURL(q.objectUrl)}catch{}}
@@ -42,14 +71,14 @@
 
     function openNewBooks(target=null){
       if(!keeper.client.isAuthorized())return;if(!setUploadTarget(target))return;
-      $("#addView")?.classList.remove("hidden");if(!addDialog.open)addDialog.showModal();requestAnimationFrame(()=>$("#epubFile")?.focus({preventScroll:true}));
+      $("#addView")?.classList.remove("hidden");showKeeperDialog(addDialog,$("#openNewBooks"));requestAnimationFrame(()=>$("#epubFile")?.focus({preventScroll:true}));
     }
     function openNewBooksForSeries(id){
       const library=keeper.workflows.get("library")?.instance,found=library?.findSeries?.(id);if(!found)return;
       openNewBooks({id:found.series.id,title:found.series.title||"Untitled",author:found.series.author||"",scope:found.scope});
     }
     function openMaintenance(){
-      if(!keeper.client.isAuthorized())return;$("#maintenanceView")?.classList.remove("hidden");if(!maintenanceDialog.open)maintenanceDialog.showModal();keeper.events.dispatchEvent(new Event("maintenance:opened"));
+      if(!keeper.client.isAuthorized())return;$("#maintenanceView")?.classList.remove("hidden");showKeeperDialog(maintenanceDialog,$("#openMaintenance"));keeper.events.dispatchEvent(new Event("maintenance:opened"));
     }
     function closeNewBooks(){if(state.batch?.running){keeper.ui.toast("The upload is still running. Keep the New Books window open until it finishes.","info");return}addDialog.close()}
     function closeMaintenance(){maintenanceDialog.close()}

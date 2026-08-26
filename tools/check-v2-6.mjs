@@ -40,6 +40,7 @@ const [
   changelog,
   docsReadme,
   releaseNotes,
+  hotfixNotes,
   roadmap,
   testArchitecture,
   accessibilityDoc,
@@ -80,6 +81,7 @@ const [
   read('CHANGELOG.md'),
   read('docs/README.md'),
   read('docs/releases/v2.6.0.md'),
+  read('docs/releases/v2.6.1.md'),
   read('docs/roadmaps/CURRENT_ROADMAP.md'),
   read('docs/architecture/TEST_ARCHITECTURE.md'),
   read('docs/architecture/ACCESSIBILITY_TESTING.md'),
@@ -177,6 +179,9 @@ assert.match(readerMobileSpec, /issue #154/i, 'mobile Reader issue #154 regressi
 assert.match(readerMobileSpec, /Continuous/i);
 assert.match(readerMobileSpec, /single image tap opens focus/i, 'mobile Reader regression must retain one-tap image-focus acceptance');
 assert.match(readerMobileSpec, /chrome/i);
+assert.match(readerMobileSpec, /pageRight/, 'mobile Reader E2E must compare publication artwork in parent-page coordinates');
+assert.match(readerMobileSpec, /seekLeft/, 'mobile Reader E2E must measure the parent-owned Continuous seek rail');
+assert.match(readerMobileSpec, /image\.pageRight\)\.toBeLessThanOrEqual\(image\.seekLeft \+ 1\)/, 'issue #160 regression must keep rendered artwork left of the fixed seek rail');
 
 assert.match(bookmarks, /return Number\(bookmark\.localPage\)===Number\(position\.localPage\);/, 'bookmark active-state matching must survive equivalent resumed CFIs on the same rendered section page');
 assert.match(rendition, /export function stabilizeContinuousScrollLifecycle\(/, 'rendition lifecycle must defend Continuous scroll callbacks across EPUB.js manager variants');
@@ -195,6 +200,8 @@ assert.match(theme, /element\.isConnected === false/, 'Reader theme repair must 
 assert.match(theme, /try \{ return win\.getComputedStyle\(element\) \|\| null; \} catch \{ return null; \}/, 'Reader theme repair must tolerate engines returning or throwing around detached computed styles');
 assert.match(theme, /if \(!style\) return false;/, 'Reader theme inspection must stop when computed style is unavailable');
 assert.match(theme, /body\.isConnected === false/, 'Reader theme repair must abandon detached EPUB bodies before traversing descendants');
+assert.match(theme, /continuousRailGutter/, 'Continuous publication sizing must reserve the Reader-owned seek rail without shrinking the outer viewport');
+assert.match(theme, /max\(4vw, \$\{continuousRailGutter\}px\)/, 'Continuous right padding must never be narrower than the active seek rail');
 
 // Garden Keeper v2.6 real-browser coverage may not silently disappear.
 assert.ok(keeperAuthSpec.length > 4_000, 'Keeper auth/dialog E2E must remain substantive');
@@ -233,19 +240,23 @@ assert.doesNotMatch(motion, /guardTransition\(viewTransition\)/, 'pagereveal mus
 assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'cross-document completion or skip must clear navigation hints');
 assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped View Transition rejections unhandled');
 
-// v2.6 release reconciliation is one synchronized contract.
-assert.equal(rootPkg.version, '2.6.0', 'root package version must be v2.6.0 for the v2.6 release');
+// v2.6 release reconciliation remains synchronized through the v2.6.1 hotfix.
+assert.equal(rootPkg.version, '2.6.1', 'root package version must be v2.6.1 for the v2.6 hotfix');
 assert.equal(rootLock.version, rootPkg.version, 'lockfile top-level version must match package.json');
 assert.equal(rootLock.packages?.['']?.version, rootPkg.version, 'lockfile workspace version must match package.json');
 assert.match(releaseNotes, /^# Shadow Garden v2\.6\.0 — Reliability & Real-Browser Testing/m);
 assert.match(releaseNotes, /Real Browser E2E/);
 assert.match(releaseNotes, /issue #154/);
 assert.match(releaseNotes, /issue #157/);
+assert.match(hotfixNotes, /^# Shadow Garden v2\.6\.1 — Continuous Reader Rail Hotfix/m);
+assert.match(hotfixNotes, /issue #160/);
+assert.match(hotfixNotes, /seek rail/i);
 assert.match(changelog, /## 2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(changelog, /## 2\.5\.0 — Motion & Continuity/, 'changelog must retain the previously omitted v2.5.0 release history');
-assert.match(rootReadme, /^# Shadow Garden v2\.6\.0/m);
+assert.match(rootReadme, /^# Shadow Garden v2\.6\.[01]/m);
 assert.match(rootReadme, /tests\/e2e\/.*Playwright/s);
 assert.match(docsReadme, /releases\/v2\.6\.0\.md/);
+assert.match(docsReadme, /releases\/v2\.6\.1\.md/);
 assert.match(docsReadme, /v2\.7\.0 Performance & Scale/);
 assert.match(roadmap, /Active release:\*\* v2\.7\.0 — Performance & Scale/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
@@ -279,4 +290,4 @@ assert.match(releaseWorkflow, /id=\"viewer\"/);
 assert.match(releaseWorkflow, /Disallow: \/media\//);
 assert.match(releaseWorkflow, /gh release create/);
 
-console.log('v2.6 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');
+console.log('v2.6/v2.6.1 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');

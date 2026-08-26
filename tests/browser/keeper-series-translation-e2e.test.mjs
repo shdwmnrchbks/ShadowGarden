@@ -20,7 +20,7 @@ test('v2.6 Keeper Series and translation real-browser contract keeps one save ow
     "page.locator('#addTranslationCredit')",
     "page.locator('#saveSeries')",
     "controls.seriesSaveCount",
-    "page.locator('[data-save-volume-translation]')",
+    "firstVolume.locator('[data-save-volume-translation]')",
     "controls.volumeSaveCount",
     "entry.path === '/admin-api/library' && entry.method === 'POST'",
     "entry.path === '/admin-api/translations' && entry.method === 'POST'",

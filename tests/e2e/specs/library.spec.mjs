@@ -77,8 +77,11 @@ test('reading suggestion reroll advances and pinned series remain available in t
   const reroll = page.getByRole('button', { name: 'Show another reading suggestion' });
   await expect(reroll).toHaveText('↻');
   const before = await suggestion.textContent();
+  await reroll.focus();
   await reroll.click();
   await expect(suggestion).not.toHaveText(before || '');
+  await expect(page.getByRole('button', { name: 'Show another reading suggestion' })).toBeFocused();
+  await expect(page.locator('#suggestionNotice')).toHaveCount(0);
 
   const header = page.locator('.site-header');
   const menu = page.locator('.brand-mark');
@@ -102,6 +105,50 @@ test('reading suggestion reroll advances and pinned series remain available in t
   await pinnedToggle.click();
   await expect(pinnedEntry).toBeVisible();
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('reading suggestion reroll explains when the Garden has no alternate path', async ({ page, browserDiagnostics }) => {
+  await page.route('**/data/catalog.json', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json; charset=utf-8',
+    headers: { 'cache-control': 'no-store' },
+    body: JSON.stringify({
+      version: 1,
+      series: [{
+        id: 'last-path',
+        title: 'The Last Moonlit Path',
+        author: 'Fixture Keeper',
+        year: 2026,
+        status: 'Ongoing',
+        tags: ['Fantasy'],
+        description: 'A single remaining recommendation used to verify reroll feedback.',
+        volumes: [{
+          number: 1,
+          title: 'Only One Path Remains',
+          year: 2026,
+          bookId: 'bk_5555555555555555555555',
+          file: 'bk_5555555555555555555555',
+          added: '2026-08-26T00:00:00Z'
+        }]
+      }]
+    })
+  }));
+
+  await page.goto('/');
+  await waitForCatalog(page);
+  const suggestion = page.locator('#continuePanel strong');
+  const reroll = page.getByRole('button', { name: 'Show another reading suggestion' });
+  await expect(suggestion).toHaveText('Only One Path Remains');
+  await reroll.focus();
+  await reroll.click();
+
+  await expect(suggestion).toHaveText('Only One Path Remains');
+  await expect(page.getByRole('button', { name: 'Show another reading suggestion' })).toBeFocused();
+  const notice = page.locator('#suggestionNotice');
+  await expect(notice).toHaveText('The Garden has no other path to suggest just now.');
+  await expect(notice).toHaveClass(/is-visible/);
+  await expect(notice).toHaveAttribute('role', 'status');
+  expect(browserDiagnostics).toEqual([]);
 });
 
 test('mobile navigation remains viewport-owned across resize and reduced motion', async ({ page, browserDiagnostics }, testInfo) => {

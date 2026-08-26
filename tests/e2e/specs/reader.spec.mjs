@@ -89,7 +89,7 @@ test('flow switching, image focus, and resize preserve a usable Reader location'
   await expect(page.locator('#settingsDrawer')).toHaveClass(/open/);
   await page.locator('#flowSelect').selectOption('scrolled-doc');
   await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
-  await expect(page.locator('#viewer iframe')).toHaveCount(1);
+  await expect.poll(async () => page.locator('#viewer iframe').count(), { timeout: 12_000 }).toBeGreaterThan(0);
 
   const continuous = await progress(page);
   expect(String(continuous?.cfi || '')).toContain('epubcfi');
@@ -99,6 +99,7 @@ test('flow switching, image focus, and resize preserve a usable Reader location'
 
   await page.locator('#flowSelect').selectOption('paginated');
   await expect(page.locator('body')).toHaveClass(/reader-flow-paginated/, { timeout: 12_000 });
+  await expect(page.locator('#viewer iframe')).toHaveCount(1);
   const beforeResize = await progress(page);
   await page.setViewportSize({ width: 900, height: 620 });
   await page.waitForTimeout(450);

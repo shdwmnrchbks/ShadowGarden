@@ -201,6 +201,7 @@ export function createThemeController({ getSettings, isAdult }) {
       "line-height": `${settings.lineHeight} !important`,
       margin: paginated ? "0 !important" : "0 auto !important",
       padding: paginated ? "max(2.5em, 60px) 4vw max(2.5em, 54px) !important" : "2.5em 4vw !important",
+      "touch-action": paginated ? "pan-y pinch-zoom !important" : "auto !important",
       "box-sizing": "border-box !important"
     };
     if (paginated) {

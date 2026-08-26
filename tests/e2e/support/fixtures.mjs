@@ -63,11 +63,12 @@ async function installFixtureRoutes(page) {
   await page.route('**/media/shadow-garden/covers/**', route => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: transparentSvg }));
   await page.route('**/book-access', route => {
     if (route.request().method() !== 'POST') return route.fallback();
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600;
     return fulfillJson(route, {
       ok: true,
       bookId: READER_BOOK_ID,
-      url: `${READER_MEDIA_PATH}?sig=e2e&exp=4102444800`,
-      expiresAt: 4102444800,
+      url: `${READER_MEDIA_PATH}?sig=e2e&exp=${expiresAt}`,
+      expiresAt,
       ttlSeconds: 3600
     });
   });

@@ -17,7 +17,6 @@ export function pageSwipeDirection({dx=0,dy=0,elapsed=0}={}){
 }
 
 export function createPageNavigationInput({getFlow,getSwipeTurns,turn}={}){
-  const finePointer=window.matchMedia?.("(pointer:fine)");
   const desktop=window.matchMedia?.("(min-width:900px)");
   const state={swipe:null,suppressClickUntil:0,wheelAccumulated:0,lastWheelTurn:0};
 
@@ -46,7 +45,7 @@ export function createPageNavigationInput({getFlow,getSwipeTurns,turn}={}){
   }
 
   function handleWheel(event){
-    if(getFlow?.()!=="paginated"||finePointer?.matches===false||desktop?.matches===false)return;
+    if(getFlow?.()!=="paginated"||desktop?.matches===false)return;
     const delta=normalizeWheel(event);
     if(Math.abs(delta.y)<Math.abs(delta.x))return;
     try{event.preventDefault()}catch{}
@@ -65,7 +64,7 @@ export function createPageNavigationInput({getFlow,getSwipeTurns,turn}={}){
     doc.addEventListener("touchstart",event=>beginSwipe(event,doc),{capture:true,passive:true});
     doc.addEventListener("touchcancel",()=>{state.swipe=null},{capture:true,passive:true});
     doc.addEventListener("touchend",event=>finishSwipe(event,doc),{capture:true,passive:false});
-    doc.addEventListener("wheel",handleWheel,{capture:true,passive:false});
+    try{doc.defaultView?.addEventListener("wheel",handleWheel,{capture:true,passive:false})}catch(error){console.warn("Reader page wheel input unavailable",error)}
   }
 
   function attachRendition(rendition){

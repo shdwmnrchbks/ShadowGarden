@@ -9,6 +9,7 @@ async function waitForReader(page) {
   await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
   await expect(page.locator('#bookTitle')).toHaveText('Moonlit Reader Fixture');
   await expect(page.locator('#viewer iframe')).toHaveCount(1);
+  await expect.poll(async () => String((await progress(page))?.cfi || ''), { timeout: 12_000 }).toContain('epubcfi');
 }
 
 async function storedJson(page, key) {

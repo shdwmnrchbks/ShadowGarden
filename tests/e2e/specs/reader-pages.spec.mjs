@@ -102,7 +102,10 @@ async function dispatchReaderSwipe(page, { startX = 260, endX = 90, y = 220 } = 
     const installed = doc.documentElement?.dataset.sgReaderPageInput === '1';
     target.dispatchEvent(event('touchstart', values.startX));
     const end = event('touchend', values.endX);
-    const accepted = target.dispatchEvent(end);
+    const dispatchAccepted = target.dispatchEvent(end);
+    // WebKit can report `true` for synthetic TouchEvent dispatch even after the listener
+    // calls preventDefault(). The event's cancellation state is the cross-engine contract.
+    const accepted = end.defaultPrevented ? false : dispatchAccepted;
     return { installed, accepted, defaultPrevented: end.defaultPrevented };
   }, { startX, endX, y });
 }

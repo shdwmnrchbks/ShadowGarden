@@ -61,6 +61,11 @@ function hasDirectText(element) {
   return false;
 }
 
+function computedStyle(element, win) {
+  if (!element || element.nodeType !== 1 || element.isConnected === false || typeof win?.getComputedStyle !== "function") return null;
+  try { return win.getComputedStyle(element) || null; } catch { return null; }
+}
+
 function restoreContrast(document) {
   document.querySelectorAll('[data-sg-contrast="1"]').forEach(element => {
     const original = element.getAttribute("data-sg-original-color");
@@ -95,20 +100,25 @@ export function createThemeController({ getSettings, isAdult }) {
     chain.reverse();
     let result = themeBase(theme);
     for (const node of chain) {
-      const background = parseColor(win.getComputedStyle(node).backgroundColor);
+      const style = computedStyle(node, win);
+      if (!style) continue;
+      const background = parseColor(style.backgroundColor);
       if (background?.a > 0) result = composite(background, result);
     }
     return result;
   }
 
   function shouldInspect(element, win) {
-    if (SKIP_TEXT_TAGS.has(element.tagName) || !hasDirectText(element)) return false;
-    const style = win.getComputedStyle(element);
+    if (!element || SKIP_TEXT_TAGS.has(element.tagName) || !hasDirectText(element)) return false;
+    const style = computedStyle(element, win);
+    if (!style) return false;
     return style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity || 1) > 0.05;
   }
 
   function repairText(element, win, theme) {
-    const foreground = parseColor(win.getComputedStyle(element).color);
+    const style = computedStyle(element, win);
+    if (!style) return;
+    const foreground = parseColor(style.color);
     if (!foreground || foreground.a < 0.2) return;
     const background = effectiveBackground(element, win, theme);
     const currentRatio = contrast(foreground, background);
@@ -127,9 +137,10 @@ export function createThemeController({ getSettings, isAdult }) {
     const settings = getSettings();
     if (settings.theme === "paper") return;
     const win = contents.window || document.defaultView;
-    if (!win || !document.body) return;
-    if (shouldInspect(document.body, win)) repairText(document.body, win, settings.theme);
-    document.body.querySelectorAll("*").forEach(element => {
+    const body = document.body;
+    if (!win || !body || body.isConnected === false) return;
+    if (shouldInspect(body, win)) repairText(body, win, settings.theme);
+    body.querySelectorAll("*").forEach(element => {
       if (shouldInspect(element, win)) repairText(element, win, settings.theme);
     });
   }

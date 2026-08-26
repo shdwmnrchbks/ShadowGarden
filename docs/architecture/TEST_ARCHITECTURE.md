@@ -52,11 +52,11 @@ DOM tests exercise renderer ownership with narrow doubles from `tests/helpers/fa
 
 Coverage includes Grid/Compact card markup, pinned/volume badges, canonical Continue state, and reading-banner state/action/artwork ownership.
 
-### Browser contract
+### Browser smoke and contract
 
 `tests/browser/`
 
-The deterministic browser-contract layer checks browser-facing entrypoints and ownership without launching a browser engine. It covers:
+The deterministic Browser smoke/contract layer checks browser-facing entrypoints and ownership without launching a browser engine. It covers:
 
 - Main, Adult, Series, Reader, and Garden Keeper entrypoint surfaces;
 - semantic CSS/runtime wiring and first-paint ownership;
@@ -178,9 +178,9 @@ Playwright uses:
 
 `.github/workflows/e2e.yml` uploads `playwright-report/` and `test-results/` with a bounded retention period. Generated artifacts are never committed.
 
-## Shared deterministic fixtures
+## Shared fixtures
 
-`tests/fixtures/` remains the canonical deterministic R8 fixture set:
+`tests/fixtures/` remains the canonical shared deterministic R8 fixture set:
 
 - `catalog-main.json` and `catalog-adult.json`;
 - reading-state scenarios;
@@ -222,9 +222,9 @@ For v2 releases, `.github/workflows/release-v2.yml` may publish only when the ex
 
 Only then may the matching GitHub v2 release be created.
 
-## Permanent guardrails
+## Permanent R8 guard and v2.6 guardrails
 
-The established `tools/check-*.mjs` files remain architecture/security guardrails. v2.6 adds `tools/check-v2-6.mjs`, which permanently protects:
+The established `tools/check-*.mjs` files remain architecture/security guardrails. The Permanent R8 guard continues to protect the layered deterministic test/fixture contract, while v2.6 adds `tools/check-v2-6.mjs` to permanently protect:
 
 - exact Playwright pin and isolated lockfile;
 - the five browser projects;

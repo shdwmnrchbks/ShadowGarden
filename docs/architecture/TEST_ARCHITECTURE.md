@@ -96,6 +96,7 @@ The suite builds the real production `dist/` tree and serves it with the reposit
 - valid EPUB container/package/navigation data;
 - normal text chapters;
 - illustrations and visual-only pages;
+- an intentionally oversized `120vw`/fixed-width visual wrapper for Continuous containment;
 - a deliberately large chapter;
 - legacy/common malformed-but-readable structure;
 - a chapter split across multiple XHTML spine items;
@@ -133,9 +134,10 @@ Reader E2E verifies the real EPUB.js rendition across the matrix:
 - resize/orientation resilience;
 - sleep/resume-style visibility restoration and ticket renewal;
 - fullscreen control state on desktop;
-- visual-only, legacy-structure, large, and split-XHTML chapter fixtures;
+- visual-only, oversized-wrapper, legacy-structure, large, and split-XHTML chapter fixtures;
 - issue #154 mobile chrome/width/touch-target/image-focus regressions;
-- issue #157 full-height Continuous layout and navigation/spine chapter inheritance.
+- issue #157 full-height Continuous layout and navigation/spine chapter inheritance;
+- issue #160 visible-chrome progress-rail clearance and viewport-bounded Continuous artwork.
 
 Capability limits are explicit. Playwright WebKit cannot manufacture a trusted cross-frame swipe or trusted wheel through every sandboxed EPUB boundary. Tests therefore combine live canonical navigation acceptance with deterministic source ownership assertions instead of presenting synthetic dispatch as trusted hardware input.
 

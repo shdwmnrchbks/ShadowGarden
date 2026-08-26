@@ -83,7 +83,16 @@ export const test = base.extend({
     const diagnostics = [];
     page.on('pageerror', error => diagnostics.push({ type: 'pageerror', message: error.message, stack: error.stack || '', url: page.url() }));
     page.on('console', message => {
-      if (message.type() === 'error') diagnostics.push({ type: 'console', message: message.text(), url: page.url() });
+      if (message.type() !== 'error') return;
+      const location = message.location();
+      diagnostics.push({
+        type: 'console',
+        message: message.text(),
+        url: page.url(),
+        sourceUrl: location.url || '',
+        lineNumber: Number.isFinite(location.lineNumber) ? location.lineNumber : null,
+        columnNumber: Number.isFinite(location.columnNumber) ? location.columnNumber : null
+      });
     });
     page.on('requestfailed', request => diagnostics.push({
       type: 'requestfailed',

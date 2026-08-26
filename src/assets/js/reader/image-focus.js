@@ -86,10 +86,31 @@ export function createImageFocusController({
     if(!doc?.documentElement||doc.documentElement.dataset.sgReaderImageFocus==="1")return;
     doc.documentElement.dataset.sgReaderImageFocus="1";
     try{const style=doc.createElement("style");style.id="sg-reader-image-focus-style";style.textContent="img{cursor:zoom-in}";doc.head?.appendChild(style)}catch{}
+    let pointerStart=null;
+    const activate=(sourceImage,event)=>{
+      if(!sourceImage||state.active)return false;
+      if(shouldSuppressOpen?.()){event?.preventDefault?.();event?.stopImmediatePropagation?.();return false}
+      event?.preventDefault?.();event?.stopImmediatePropagation?.();return openImageFocus(sourceImage,doc);
+    };
+    doc.addEventListener("pointerdown",event=>{
+      const sourceImage=imageTarget(event.target);
+      if(!sourceImage||Number(event.button)>0){pointerStart=null;return}
+      pointerStart={id:event.pointerId,image:sourceImage,x:Number(event.clientX)||0,y:Number(event.clientY)||0};
+    },true);
+    doc.addEventListener("pointerup",event=>{
+      const start=pointerStart;pointerStart=null;
+      const sourceImage=imageTarget(event.target);
+      if(!start||start.id!==event.pointerId||!sourceImage||sourceImage!==start.image)return;
+      if(Math.hypot((Number(event.clientX)||0)-start.x,(Number(event.clientY)||0)-start.y)>12)return;
+      /* WebKit can omit the iframe-document click for non-interactive images. Defer the
+         pointer fallback so a normal click remains the primary path and Pages swipe
+         suppression has a chance to settle first. */
+      setTimeout(()=>{if(!state.active&&!shouldSuppressOpen?.())openImageFocus(sourceImage,doc)},0);
+    },true);
+    doc.addEventListener("pointercancel",()=>{pointerStart=null},true);
     doc.addEventListener("click",event=>{
       const sourceImage=imageTarget(event.target);if(!sourceImage)return;
-      if(shouldSuppressOpen?.()){event.preventDefault();event.stopImmediatePropagation();return}
-      event.preventDefault();event.stopImmediatePropagation();openImageFocus(sourceImage,doc);
+      activate(sourceImage,event);
     },true);
   }
   function attachRendition(rendition){

@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 const read = file => fs.readFile(new URL(`../${file}`, import.meta.url), 'utf8');
 const json = async file => JSON.parse(await read(file));
 
-const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, motion, roadmap] = await Promise.all([
+const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fixtures, gitignore, libraryJs, libraryRenderers, nav, navPinned, bookmarks, motion, roadmap] = await Promise.all([
   json('tests/e2e/package.json'),
   json('tests/e2e/package-lock.json'),
   read('tests/e2e/playwright.config.mjs'),
@@ -14,6 +14,11 @@ const [pkg, lock, config, workflow, librarySpec, readerSpec, readerGenerator, fi
   read('tests/e2e/support/build-reader-fixture.mjs'),
   read('tests/e2e/support/fixtures.mjs'),
   read('.gitignore'),
+  read('src/assets/js/library.js'),
+  read('src/assets/js/library-renderers.js'),
+  read('src/assets/js/nav.js'),
+  read('src/assets/js/nav-pinned.js'),
+  read('src/assets/js/reader/bookmarks-controller.js'),
   read('src/assets/js/motion.js'),
   read('docs/roadmaps/CURRENT_ROADMAP.md')
 ]);
@@ -38,9 +43,19 @@ assert.match(workflow, /permissions:\s*\n\s*contents: read/);
 
 assert.match(librarySpec, /Main and Adult libraries hydrate from isolated fixture catalogs/);
 assert.match(librarySpec, /search, compact view, and Back navigation restore rendered Library state/);
+assert.match(librarySpec, /reading suggestion reroll advances and pinned series remain available in the navigation drawer/);
 assert.match(librarySpec, /mobile navigation remains viewport-owned across resize and reduced motion/);
 assert.match(librarySpec, /browserDiagnostics/);
 assert.match(librarySpec, /page\.locator\(['"]\.brand-mark['"]\)/, 'mobile navigation E2E must use a stable locator while its accessible name changes');
+assert.match(librarySpec, /localStorage\.setItem\(['"]sg-pinned['"]/, 'real-browser Library coverage must seed and verify pinned-series persistence');
+assert.match(librarySpec, /Show another reading suggestion/, 'real-browser Library coverage must exercise suggestion reroll');
+
+assert.match(libraryJs, /function suggestionIdentity\(/, 'Library controller must track the current random suggestion identity');
+assert.match(libraryJs, /for\(let attempt=0;attempt<17;attempt\+\+\)/, 'Library reroll must search deterministically for a visibly different eligible suggestion');
+assert.match(libraryJs, /renderContinue\(\{reroll:true\}\)/, 'suggestion control must use reroll semantics instead of a one-shot random sample');
+assert.match(libraryRenderers, /title="Another suggestion">↻<\/button>/, 'suggestion reroll control must remain compact while keeping an accessible label');
+assert.match(navPinned, /document\.querySelector\(['"]#siteNav['"]\)/, 'pinned-series renderer must target the canonical body-level navigation drawer');
+assert.match(nav, /control\.closest\(['"]\[data-nav-keep-open\]['"]\)/, 'drawer-owned controls must not close the navigation drawer');
 
 assert.match(readerGenerator, /application\/epub\+zip/);
 assert.match(readerGenerator, /META-INF\/container\.xml/);
@@ -63,7 +78,9 @@ assert.match(readerSpec, /flow switching, image focus, and resize preserve a usa
 assert.match(readerSpec, /sg-progress:/);
 assert.match(readerSpec, /sg-bookmarks:/);
 assert.match(readerSpec, /selectOption\(['"]scrolled-doc['"]\)/);
+assert.match(readerSpec, /toBeGreaterThan\(0\)/, 'Continuous Reader coverage must allow the multiple live EPUB iframes EPUB.js legitimately renders');
 assert.match(readerSpec, /#imageFocus/);
+assert.match(bookmarks, /return Number\(bookmark\.localPage\)===Number\(position\.localPage\);/, 'bookmark active-state matching must survive equivalent resumed CFIs on the same rendered section page');
 
 assert.match(motion, /observeTransitionPromise\(transition\?\.ready\)/, 'same-document View Transition ready rejection must be observed');
 assert.match(motion, /observeTransitionPromise\(transition\?\.finished\)/, 'same-document View Transition finished rejection must be observed');
@@ -79,4 +96,4 @@ assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not 
 assert.match(roadmap, /Active release:\*\* v2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
 
-console.log('v2.6 real-browser and Reader reliability contracts OK');
+console.log('v2.6 real-browser, Library, and Reader reliability contracts OK');

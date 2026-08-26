@@ -19,5 +19,8 @@ test("Pages wheel input is owned by desktop layout and the EPUB child window", a
   assert.match(e2e, /trustedWheel\(page, 120\)/);
   assert.match(e2e, /page\.mouse\.wheel\(0, deltaY\)/);
   assert.match(e2e, /intersectBoxes\(box, shellBox\)/);
+  assert.match(e2e, /childWindowWheel\(page, 120\)/);
+  assert.match(e2e, /new win\.WheelEvent\('wheel'/);
+  assert.match(e2e, /testInfo\.project\.name\.includes\('webkit'\)/);
   assert.match(e2e, /Pages controls and TOC navigate everywhere while desktop keyboard and wheel turn the live rendition/);
 });

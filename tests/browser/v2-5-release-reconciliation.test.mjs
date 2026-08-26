@@ -4,10 +4,11 @@ import fs from "node:fs/promises";
 
 const read=file=>fs.readFile(new URL(`../../${file}`,import.meta.url),"utf8");
 
-test("v2.5 package and lock metadata are promoted together",async()=>{
+test("post-v2.5 package and lock metadata remain promoted together",async()=>{
   const [pkgText,lockText]=await Promise.all([read("package.json"),read("package-lock.json")]);
   const pkg=JSON.parse(pkgText),lock=JSON.parse(lockText);
-  assert.equal(pkg.version,"2.5.0");
+  assert.match(pkg.version,/^2\.\d+\.\d+$/,"historical v2.5 release guard should allow later v2 releases");
+  assert.ok(Number(pkg.version.split(".")[1])>=5,"current v2 package must not regress below the v2.5 milestone");
   assert.equal(lock.version,pkg.version);
   assert.equal(lock.packages?.[""]?.version,pkg.version);
 });
@@ -18,6 +19,8 @@ test("verified v2 publisher resolves the current package release dynamically",as
   assert.match(workflow,/Missing release notes:/);
   assert.match(workflow,/gh release view "\$TAG"/);
   assert.match(workflow,/steps\.existing\.outputs\.exists != 'true'/);
+  assert.match(workflow,/Require matching Real Browser E2E/);
+  assert.match(workflow,/actions\/workflows\/e2e\.yml\/runs/);
   assert.match(workflow,/\/data\/version\.json/);
   assert.match(workflow,/deployed_version/);
   assert.match(workflow,/deployed_commit/);
@@ -26,7 +29,7 @@ test("verified v2 publisher resolves the current package release dynamically",as
   assert.equal(workflow.includes('if [ "$VERSION" != "2.0.0" ]'),false,"publisher must not remain pinned to v2.0.0");
 });
 
-test("v2.5 release notes describe all four slices and the verified production gate",async()=>{
+test("v2.5 release notes remain a complete historical four-slice record",async()=>{
   const notes=await read("docs/releases/v2.5.0.md");
   for(const marker of [
     "Shadow Garden v2.5.0 — Motion & Continuity",

@@ -1,5 +1,19 @@
 # Shadow Garden Changelog
 
+## 2.6.0 — Reliability & Real-Browser Testing
+- Add an isolated Playwright 1.62.1 workspace and CI matrix covering Chromium, Firefox, and WebKit desktop plus Chromium Mobile and WebKit Mobile against the real production build with deterministic catalogs, authorization/media boundaries, generated EPUB fixtures, and retained failure artifacts.
+- Make Main/Adult isolation, canonical first paint, navigation restoration, pinned/suggestion behavior, and the full **Read → Continue → Finished → Read Again** bookmark-preserving lifecycle real-browser authoritative.
+- Expand Reader reliability across protected startup, progress/bookmark reload, Pages controls/TOC/keyboard/wheel/swipe policy, Continuous native scrolling, flow switching, image focus, resize/orientation, sleep/resume ticket renewal, large/visual/legacy/split-XHTML EPUB structures, and the mobile regressions reported in #154 and #157.
+- Make Garden Keeper auth/session unlock, keyboard dialog focus, Series and translation editing, upload preflight/completion/retry, Maintenance, History, Trash, and Abuse Watch real-browser covered with duplicate-submit guards and recoverable busy/error states.
+- Add accessibility scans and keyboard/focus, 200%/400% reflow, reduced-motion, forced-colors, increased-contrast, browser-zoom, and 44px mobile touch-target verification across Library, Series, Reader chrome, and Garden Keeper while documenting EPUB-content accessibility separately.
+- Tighten the reusable v2 release gate so the exact `main` commit must pass both Verify and Real Browser E2E, match Cloudflare production version/commit metadata, and pass public production smoke before a GitHub v2 release is created.
+
+## 2.5.0 — Motion & Continuity
+- Add shared timing/easing tokens, restrained press feedback, progressive View Transition helpers, and explicit reduced-motion behavior without making motion an application-state owner.
+- Add continuity for Library filtering/sorting/view changes, Library → Series artwork, Series/Reader progress presentation, Reader chrome/drawers, and same-origin Series ↔ Reader navigation where browser support permits it.
+- Add observer-only Garden Keeper motion, shared navigation-intent hints, and reduced-motion-safe drawer choreography while preserving existing API, dialog, upload, navigation, and persistence owners.
+- Keep browser-local reading data and the private B2, signed media, Garden Keeper session, abuse-control, and catalog-redaction security contracts unchanged.
+
 ## 2.4.0 — Interaction & UX Polish
 - Make Library discovery faster with context-aware facet counts, disabled zero-result choices, persistent per-library View/Sort preferences, multi-filter Clear all, actionable empty states, subtle result transitions, and an explicit Another suggestion action for random reading suggestions.
 - Add quiet reading-progress rails to Library/Series covers, canonical Unread / Continue / Up next / Finished volume states, and a simple reduced-motion-aware Back to top control for long Series pages.

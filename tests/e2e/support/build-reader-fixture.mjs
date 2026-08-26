@@ -34,6 +34,7 @@ zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
     <item id="split-chapter-a" href="split-chapter-a.xhtml" media-type="application/xhtml+xml"/>
     <item id="split-chapter-b" href="split-chapter-b.xhtml" media-type="application/xhtml+xml"/>
     <item id="visual-only" href="visual-only.xhtml" media-type="application/xhtml+xml"/>
+    <item id="wide-visual" href="wide-visual.xhtml" media-type="application/xhtml+xml"/>
     <item id="legacy-structure" href="legacy-structure.xhtml" media-type="application/xhtml+xml"/>
     <item id="large-chapter" href="large-chapter.xhtml" media-type="application/xhtml+xml"/>
     <item id="illustration" href="images/illustration.svg" media-type="image/svg+xml"/>
@@ -44,6 +45,7 @@ zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
     <itemref idref="split-chapter-a"/>
     <itemref idref="split-chapter-b"/>
     <itemref idref="visual-only"/>
+    <itemref idref="wide-visual"/>
     <itemref idref="legacy-structure"/>
     <itemref idref="large-chapter"/>
   </spine>
@@ -56,10 +58,11 @@ zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <li><a href="chapter-2.xhtml">Chapter Two</a></li>
 <li><a href="split-chapter-a.xhtml">Split Chapter</a><ol><li><a href="split-chapter-b.xhtml">Page 2</a></li></ol></li>
 <li><a href="visual-only.xhtml">Visual Plate</a></li>
+<li><a href="wide-visual.xhtml">Wide Visual</a></li>
 <li><a href="legacy-structure.xhtml">Legacy Structure</a></li>
 <li><a href="large-chapter.xhtml">Large Chapter</a></li>
 </ol></nav></body></html>`);
-zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;margin:0 6%} h1{margin:1.5em 0 .8em} p{margin:.8em 0} figure{margin:2em auto;text-align:center} img{max-width:70%;height:auto}.visual-page{min-height:90vh;display:grid;place-items:center}`);
+zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;margin:0 6%} h1{margin:1.5em 0 .8em} p{margin:.8em 0} figure{margin:2em auto;text-align:center} img{max-width:70%;height:auto}.visual-page{min-height:90vh;display:grid;place-items:center}.oversized-visual{width:120vw;margin-left:0;margin-right:0}.oversized-visual img{width:1200px;max-width:none}`);
 zip.file('OEBPS/chapter-1.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Chapter One</title><link rel="stylesheet" href="styles.css"/></head><body>
 <h1>Chapter One</h1>
@@ -83,6 +86,12 @@ ${paragraphs('Split chapter second XHTML', 12)}
 zip.file('OEBPS/visual-only.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Visual Plate</title><link rel="stylesheet" href="styles.css"/></head><body class="visual-page">
 <figure><img src="images/illustration.svg" alt="A full-page moonlit geometric garden"/><figcaption>Visual-only fixture page</figcaption></figure>
+</body></html>`);
+zip.file('OEBPS/wide-visual.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Wide Visual</title><link rel="stylesheet" href="styles.css"/></head><body>
+<h1>Wide Visual</h1>
+<figure class="oversized-visual"><img src="images/illustration.svg" alt="An intentionally oversized image wrapper used to verify Continuous Reader containment"/><figcaption>Oversized publication wrapper fixture</figcaption></figure>
+${paragraphs('Wide visual continuation', 4)}
 </body></html>`);
 zip.file('OEBPS/legacy-structure.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><body>

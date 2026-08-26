@@ -1,8 +1,16 @@
 # Shadow Garden Test Architecture
 
-R8 establishes a layered, deterministic regression suite for the refactored Shadow Garden architecture. It uses the Node 22 built-in test runner and production modules directly, without introducing a test framework, browser bundle, network dependency, or a second application implementation.
+Shadow Garden uses complementary deterministic and real-browser regression layers. R8 established the deterministic Node 22 test architecture; v2.6 extends that architecture with a bounded Playwright matrix so high-risk browser behavior is accepted by real Chromium, Firefox, and WebKit rather than source contracts alone.
 
-## Test layers
+The layers intentionally have different jobs:
+
+- deterministic tests answer quickly whether canonical owners and representative behaviors remain correct;
+- architecture/security guards enforce boundaries and invariants;
+- real-browser E2E proves that the production build behaves correctly in actual rendering/input engines.
+
+No layer replaces another.
+
+## Deterministic layers
 
 ### Unit
 
@@ -34,76 +42,155 @@ Service tests cross real server-module boundaries while remaining deterministic 
 - upload namespace, opaque-cover, MIME, size, and catalog-input validation;
 - Garden Health structural analysis.
 
-These tests intentionally invoke the same R6 service and `_lib` modules used by Pages Functions. External B2/Turnstile calls are not mocked into fake success paths; network-dependent behavior remains covered by the established security guards and final production smoke work.
+These tests invoke the same service and `_lib` modules used by Pages Functions. Production storage/Turnstile networking is not made a normal CI dependency.
 
 ### DOM
 
 `tests/dom/`
 
-DOM tests exercise renderer ownership with narrow test doubles from `tests/helpers/fake-dom.mjs`. The doubles implement only the APIs the renderer under test actually consumes. This makes new hidden DOM dependencies fail visibly instead of being silently supplied by a large emulation library.
+DOM tests exercise renderer ownership with narrow doubles from `tests/helpers/fake-dom.mjs`. The doubles implement only the APIs the renderer under test consumes, making new hidden DOM dependencies fail visibly.
 
-Current coverage includes:
+Coverage includes Grid/Compact card markup, pinned/volume badges, canonical Continue state, and reading-banner state/action/artwork ownership.
 
-- Grid/Compact card markup;
-- pinned and volume badge presentation;
-- Recently Added canonical Continue state;
-- reading-banner action/state/artwork ownership.
-
-### Browser smoke
+### Browser smoke and contract
 
 `tests/browser/`
 
-The browser-smoke layer verifies browser-facing entrypoints and high-risk interaction contracts without adding a new headless-browser dependency during R8:
+The deterministic Browser smoke/contract layer checks browser-facing entrypoints and ownership without launching a browser engine. It covers:
 
 - Main, Adult, Series, Reader, and Garden Keeper entrypoint surfaces;
-- semantic CSS/runtime entrypoint wiring;
-- actual cover/map/illustration/chapter XHTML fixtures;
-- Visual Page Cache + Paginated visual contain-fit ownership;
-- **Read → Continue → Finished → Read Again** end-to-end browser-local state/action flow;
-- Read Again bookmark preservation and `restart=1` URL contract;
-- Adult catalog isolation during Read Again;
-- Pages horizontal swipe versus Continuous native-touch behavior;
-- image-focus pinch/pan isolation from live EPUB documents;
-- Garden Keeper composition-root and protected unlock/status boundaries;
-- responsive navigation viewport ownership, fixed-open header behavior, stable background layout, portaled link presentation, and mobile background scroll locking.
+- semantic CSS/runtime wiring and first-paint ownership;
+- cover/map/illustration/chapter fixtures;
+- Visual Page Cache and Paginated visual contain-fit ownership;
+- Read → Continue → Finished → Read Again lower-layer contracts;
+- Pages versus Continuous input ownership;
+- image-focus isolation;
+- Garden Keeper composition/auth/workflow boundaries;
+- responsive navigation viewport/focus/scroll-lock ownership;
+- v2.6 source-contract companions for browser capabilities Playwright cannot honestly synthesize as trusted input.
 
-This layer is a deterministic browser-contract smoke suite, not a full Chromium/WebKit deployment test. R10 still owns the final real production/browser regression matrix; R9 may make a deliberate browser-runner dependency decision if it provides measurable value.
+This layer remains useful after v2.6 because it is fast, deterministic, and precise about ownership. It is no longer the final authority for browser-critical behavior; that role belongs to `tests/e2e/`.
+
+## Real Browser E2E — v2.6+
+
+`tests/e2e/`
+
+v2.6 introduces an isolated Playwright workspace pinned exactly to **1.62.1** with its own committed `package-lock.json`. The root production dependency set remains unchanged.
+
+`playwright.config.mjs` defines five projects:
+
+1. `chromium-desktop`
+2. `firefox-desktop`
+3. `webkit-desktop`
+4. `chromium-mobile`
+5. `webkit-mobile`
+
+The suite builds the real production `dist/` tree and serves it with the repository preview server. Tests intercept only deterministic external/data boundaries rather than replacing application controllers.
+
+### Deterministic E2E data
+
+`tests/e2e/support/fixtures.mjs` supplies isolated Main/Adult catalogs, authorization/service responses, media delivery, and browser diagnostics.
+
+`tests/e2e/support/build-reader-fixture.mjs` generates an EPUB3 before every E2E run instead of committing a binary fixture. The book exercises:
+
+- valid EPUB container/package/navigation data;
+- normal text chapters;
+- illustrations and visual-only pages;
+- an intentionally oversized `120vw`/fixed-width visual wrapper for Continuous containment;
+- a deliberately large chapter;
+- legacy/common malformed-but-readable structure;
+- a chapter split across multiple XHTML spine items;
+- protected `/book-access` acquisition;
+- canonical `/media/shadow-garden/books/` source identity;
+- HTTP Range `206` delivery.
+
+Generated files live under `tests/e2e/.generated/` and remain ignored.
+
+### Public-flow authority
+
+Real-browser Library/Series coverage verifies:
+
+- Main and Adult catalog isolation;
+- search/filter/view behavior and browser history restoration;
+- pinned navigation and suggestion rerolls;
+- mobile navigation geometry, scroll lock, resize/orientation behavior, and reduced motion;
+- canonical first paint with deterministic shell content still correct when external JavaScript is unavailable;
+- Series → Reader → Series/Library route continuity;
+- **Read → Continue → Finished → Read Again**, including exact resumed CFI where meaningful, bookmark preservation, page-1 restart, and final Unread presentation.
+
+### Reader authority
+
+Reader E2E verifies the real EPUB.js rendition across the matrix:
+
+- protected startup and first readable content;
+- Pages next/previous controls and TOC;
+- desktop keyboard paging;
+- trusted desktop wheel paging in engines where Playwright can deliver it through the sandboxed EPUB boundary;
+- mobile Pages swipe policy and input installation;
+- progress/bookmark persistence through reload;
+- Pages ↔ Continuous switching and usable location preservation;
+- Continuous native vertical touch/scroll ownership;
+- image-focus activation/isolation and WebKit parent-owned hit targets;
+- resize/orientation resilience;
+- sleep/resume-style visibility restoration and ticket renewal;
+- fullscreen control state on desktop;
+- visual-only, oversized-wrapper, legacy-structure, large, and split-XHTML chapter fixtures;
+- issue #154 mobile chrome/width/touch-target/image-focus regressions;
+- issue #157 full-height Continuous layout and navigation/spine chapter inheritance;
+- issue #160 visible-chrome progress-rail clearance and viewport-bounded Continuous artwork.
+
+Capability limits are explicit. Playwright WebKit cannot manufacture a trusted cross-frame swipe or trusted wheel through every sandboxed EPUB boundary. Tests therefore combine live canonical navigation acceptance with deterministic source ownership assertions instead of presenting synthetic dispatch as trusted hardware input.
+
+### Garden Keeper authority
+
+Keeper E2E exercises the real client owners while replacing only remote/auth service boundaries:
+
+- locked → Turnstile/session-established → unlocked lifecycle;
+- protected status verification and logout cleanup;
+- native dialog keyboard containment, Escape behavior, and focus restoration;
+- Series metadata + fan-translation save ownership;
+- volume translation overrides;
+- generated-EPUB upload preflight, review, completion, failure, and retry;
+- Maintenance, Catalog History, Trash, and Abuse Watch;
+- held-response double-trigger tests proving busy states prevent duplicate mutations;
+- recoverable success/error presentation and source-aware browser diagnostics.
+
+### Accessibility authority
+
+The E2E accessibility layer covers application-owned chrome for:
+
+- Library;
+- Series;
+- Reader;
+- Garden Keeper.
+
+It includes bounded automated scans, keyboard-only critical interactions, focus restoration, visible focus, 200%/400% equivalent reflow, `prefers-reduced-motion`, forced colors, increased contrast, and mobile target sizing/labels.
+
+Publication EPUB content has separate ownership limits documented in [`ACCESSIBILITY_TESTING.md`](./ACCESSIBILITY_TESTING.md). Shadow Garden does not silently rewrite arbitrary book semantics to make an automated scan pass.
+
+## Failure artifacts and diagnostics
+
+Playwright uses:
+
+- `trace: 'retain-on-failure'`;
+- `screenshot: 'only-on-failure'`;
+- `video: 'retain-on-failure'`;
+- an HTML report;
+- shared console/page-error/failed-network diagnostics.
+
+`.github/workflows/e2e.yml` uploads `playwright-report/` and `test-results/` with a bounded retention period. Generated artifacts are never committed.
 
 ## Shared fixtures
 
-`tests/fixtures/` is the canonical R8 fixture set.
+`tests/fixtures/` remains the canonical shared deterministic R8 fixture set:
 
-- `catalog-main.json` — Main shelf, including a single-volume series and a multi-volume series with long metadata.
-- `catalog-adult.json` — isolated Adult shelf fixture.
-- `reading-states.json` — Unread/In Progress/Finished/Read Again expectations.
-- `media-ticket-scenarios.json` — signed-ticket valid/tampered/expired scenarios.
-- `visual-pages.json` — visual-only and normal spine expectations.
-- `epub/cover.xhtml`, `map.xhtml`, `illustration.xhtml`, `chapter.xhtml` — concrete EPUB spine document fixtures.
+- `catalog-main.json` and `catalog-adult.json`;
+- reading-state scenarios;
+- media-ticket scenarios;
+- visual-page expectations;
+- concrete EPUB XHTML snippets.
 
-Fixtures contain no production secrets, private catalog data, or live storage URLs requiring authorization.
-
-## Deterministic browser helpers
-
-`tests/helpers/browser-env.mjs` provides browser-local storage, location, events, and simple browser globals. `tests/helpers/fake-dom.mjs` provides narrow DOM elements/class/style behavior for renderer tests.
-
-Each test owns and restores its global state. Test files run with `--test-concurrency=1` within each layer, and the layered runner executes layers explicitly so failures identify their architectural boundary.
-
-## Post-R8 real-device stabilization coverage
-
-R8's ownership model also applies to real-device regressions discovered after the v1.23.0 milestone release. The v1.23.1–v1.23.5 mobile navigation corrections were folded into the existing browser-contract layer instead of creating one-off root guards or an R8.1 milestone.
-
-`tests/browser/mobile-nav-viewport.test.mjs` now permanently requires:
-
-- body-level drawer portal ownership, preventing fixed geometry from being trapped beneath a filtered header;
-- a true fixed header while navigation is open;
-- viewport-fixed drawer top/bottom geometry with internal vertical scrolling;
-- explicit drawer-owned non-underlined link/button presentation after portal placement;
-- open-state locking on both `<html>` and `<body>`;
-- a non-pannable backdrop and a vertically pannable drawer;
-- 72px/62px layout compensation so switching the header from sticky to fixed does not move the background page;
-- continued rejection of the retired absolute/`100dvh` drawer implementation.
-
-The corresponding runtime/design ownership is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md). Future real-device regressions should continue to strengthen the smallest existing layer that owns the behavior.
+The E2E workspace has its own generated/route fixtures because it must exercise a real production build and real EPUB.js rather than Node test doubles.
 
 ## Commands
 
@@ -113,31 +200,40 @@ npm run test:service
 npm run test:dom
 npm run test:browser
 npm test
+npm run check
+npm run build
+npm run test:e2e
 ```
 
-`tools/run-tests.mjs` is the single runner entrypoint. `npm run check` runs the existing security/refactor guards, the R8 architecture guard, and the full layered test suite. `npm run build` repeats `npm run check` through `prebuild` before generating production output.
+`tools/run-tests.mjs` remains the deterministic runner. `npm run check` combines architecture/security guards and the deterministic behavioral suite. `npm run build` repeats that complete check through `prebuild`.
 
-## Coverage ownership
+`npm run test:e2e` runs the isolated Playwright workspace; CI installs its pinned dependencies/browser engines separately.
 
-The established `tools/check-*.mjs` files remain architecture/security guardrails. R8 tests do not replace them. Guardrails answer “is the required owner/boundary still present?” while `tests/` increasingly answers “does the behavior produce the expected result for representative fixtures?”
+## CI and release ownership
 
-The two forms are intentionally complementary:
+`.github/workflows/verify.yml` is the deterministic repository/build gate.
 
-- Security Milestones 1–9 and R0–R7 retain their permanent guards.
-- R8 adds reusable behavioral fixtures and layer-specific execution.
-- Future regressions should add the smallest fixture/test at the owning layer rather than another one-off root check script.
+`.github/workflows/e2e.yml` is the real-browser gate for pull requests and `main`.
 
-## Permanent R8 guard
+For v2 releases, `.github/workflows/release-v2.yml` may publish only when the exact `main` commit:
 
-`tools/check-r8.mjs` protects:
+1. has successful Verify;
+2. has successful Real Browser E2E;
+3. is the version/commit reported by Cloudflare production;
+4. passes Main, Adult, Series, Reader, and robots production smoke.
 
-- the four test-layer directories and layered runner;
-- required fixture families;
-- priority reading flow coverage;
-- Reader Page/Continuous/image-focus coverage;
-- signed-ticket tamper/expiry coverage;
-- Keeper authorization/workflow smoke coverage;
-- package scripts and CI integration;
-- the v1.23.0 R8 roadmap/documentation contract.
+Only then may the matching GitHub v2 release be created.
 
-Post-R8 real-device corrections remain part of the same testing architecture through focused browser-smoke regressions rather than new milestone-specific guard scripts.
+## Permanent R8 guard and v2.6 guardrails
+
+The established `tools/check-*.mjs` files remain architecture/security guardrails. The Permanent R8 guard continues to protect the layered deterministic test/fixture contract, while v2.6 adds `tools/check-v2-6.mjs` to permanently protect:
+
+- exact Playwright pin and isolated lockfile;
+- the five browser projects;
+- E2E failure artifacts;
+- representative Library and Reader high-risk tests/source contracts;
+- Reader mobile input/Continuous ownership invariants;
+- v2.6 release metadata/documentation synchronization;
+- the exact-main real-browser release gate.
+
+Future regressions should strengthen the smallest owning deterministic layer and, when browser behavior is material, add or extend the corresponding real-browser case. v2.6 E2E is permanent release infrastructure, not milestone scaffolding.

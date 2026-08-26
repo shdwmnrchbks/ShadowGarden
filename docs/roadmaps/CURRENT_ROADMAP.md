@@ -2,12 +2,12 @@
 
 > **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
 > **Starting baseline:** v2.5.0 — Motion & Continuity  
-> **Active release:** v2.6.0 — Reliability & Real-Browser Testing  
+> **Active release:** v2.7.0 — Performance & Scale  
 > **Updated:** 2026-08-26
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, and motion/continuity milestones. The next phase deliberately shifts away from another large refactor or presentation pass. The focus is now proving the application in real browsers and real reading sessions, establishing measurable performance limits, improving Reader quality, and making Garden Keeper operations safer and faster.
+Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, and the v2.6 real-browser reliability milestone. The active phase now establishes measurable performance limits and scale fixtures before moving into deeper Reader experience and Garden Keeper recovery/productivity work.
 
-Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap.
+Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
 
 ## Working rules
 
@@ -31,8 +31,8 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 
 | Release | Status | Primary outcome |
 | --- | --- | --- |
-| **v2.6.0 — Reliability & Real-Browser Testing** | 🟨 In progress | Replace browser-contract-only confidence with real Chromium/Firefox/WebKit end-to-end coverage and accessibility verification |
-| **v2.7.0 — Performance & Scale** | ⬜ Planned | Establish performance budgets and keep Library/Reader responsive as the collection and EPUB size grow |
+| **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
+| **v2.7.0 — Performance & Scale** | 🟨 In progress | Establish performance budgets and keep Library/Reader responsive as the collection and EPUB size grow |
 | **v2.8.0 — Reader Experience** | ⬜ Planned | Improve long-session reading ergonomics, navigation, typography, search/notes behavior, and EPUB resilience |
 | **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make large-library administration faster and prove recovery from catalog/storage failures |
 | **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
@@ -41,68 +41,74 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 
 # v2.6.0 — Reliability & Real-Browser Testing
 
-**Status:** 🟨 In progress  
+**Status:** ✅ Done  
+**Completed:** 2026-08-26  
+**Release record:** [`../releases/v2.6.0.md`](../releases/v2.6.0.md)  
 **Goal:** make real browser behavior—not source regexes or DOM contracts—the final authority for high-risk user flows.
 
 ## 2.6A — Real browser harness
 
-- [ ] Add a pinned real-browser E2E runner, with Playwright as the default implementation unless repository constraints demonstrate a better option.
-- [ ] Run Chromium, Firefox, and WebKit in CI for a bounded critical-path suite.
-- [ ] Add desktop and mobile viewport projects, including touch-capable mobile emulation.
-- [ ] Keep existing unit/service/DOM/browser-contract tests; real-browser tests supplement rather than replace deterministic lower layers.
-- [ ] Create stable fixture/library startup so E2E tests do not depend on production B2 data.
-- [ ] Capture useful failure artifacts such as trace, screenshot, console errors, and failed network requests without committing generated artifacts.
+- [x] Add a pinned real-browser E2E runner, with Playwright as the default implementation unless repository constraints demonstrate a better option.
+- [x] Run Chromium, Firefox, and WebKit in CI for a bounded critical-path suite.
+- [x] Add desktop and mobile viewport projects, including touch-capable mobile emulation.
+- [x] Keep existing unit/service/DOM/browser-contract tests; real-browser tests supplement rather than replace deterministic lower layers.
+- [x] Create stable fixture/library startup so E2E tests do not depend on production B2 data.
+- [x] Capture useful failure artifacts such as trace, screenshot, console errors, and failed network requests without committing generated artifacts.
 
 ## 2.6B — Critical public flows
 
-- [ ] Main and Adult Library load independently with correct shelf isolation.
-- [ ] Search, filters, sorting, Grid/Compact switching, Recently Added, pinned state, and Back/Forward restoration work in a real browser.
-- [ ] Series → Reader → Series/Library navigation preserves expected reading state and route continuity.
-- [ ] Verify **Read → Continue → Finished → Read Again** end to end, including bookmark preservation and page-1 restart.
-- [ ] Verify mobile navigation open/close, independently scrollable drawer content, background scroll lock, sticky header behavior, and orientation/viewport changes.
-- [ ] Verify reduced-motion paths perform the same functional transitions without optional choreography.
+- [x] Main and Adult Library load independently with correct shelf isolation.
+- [x] Search, filters, sorting, Grid/Compact switching, Recently Added, pinned state, and Back/Forward restoration work in a real browser.
+- [x] Series → Reader → Series/Library navigation preserves expected reading state and route continuity.
+- [x] Verify **Read → Continue → Finished → Read Again** end to end, including bookmark preservation and page-1 restart.
+- [x] Verify mobile navigation open/close, independently scrollable drawer content, background scroll lock, sticky header behavior, and orientation/viewport changes.
+- [x] Verify reduced-motion paths perform the same functional transitions without optional choreography.
 
 ## 2.6C — Reader reliability matrix
 
-- [ ] Reader opens a valid EPUB and reaches first readable content without uncaught errors.
-- [ ] Pages mode: next/previous controls, keyboard navigation, swipe recognition, desktop wheel turns, TOC seek, bookmarks, settings, and fullscreen.
-- [ ] Continuous mode: native vertical touch/scroll remains uninterrupted; Reader owns no EPUB-document `touchmove` interception.
-- [ ] Switching Pages ↔ Continuous preserves a sensible reading location and canonical Page Map/progress behavior.
-- [ ] Image focus opens only from EPUB images; pinch/pan remains isolated to the overlay and closing it preserves live EPUB position.
-- [ ] Resize/orientation changes do not corrupt Page Map, progress, focused-image state, or navigation controls.
-- [ ] Reader survives sleep/resume-style page visibility changes and ticket renewal without losing the current location.
-- [ ] Add fixtures for large chapters, visual-only pages, maps/illustrations, and common malformed-but-readable EPUB structures.
+- [x] Reader opens a valid EPUB and reaches first readable content without uncaught errors.
+- [x] Pages mode: next/previous controls, keyboard navigation, swipe recognition, desktop wheel turns, TOC seek, bookmarks, settings, and fullscreen.
+- [x] Continuous mode: native vertical touch/scroll remains uninterrupted; Reader owns no EPUB-document `touchmove` interception.
+- [x] Switching Pages ↔ Continuous preserves a sensible reading location and canonical Page Map/progress behavior.
+- [x] Image focus opens only from EPUB images; pinch/pan remains isolated to the overlay and closing it preserves live EPUB position.
+- [x] Resize/orientation changes do not corrupt Page Map, progress, focused-image state, or navigation controls.
+- [x] Reader survives sleep/resume-style page visibility changes and ticket renewal without losing the current location.
+- [x] Add fixtures for large chapters, visual-only pages, maps/illustrations, and common malformed-but-readable EPUB structures.
+
+The release also closes the late mobile Reader reports tracked in #154 and #157: Continuous artwork/chrome geometry, direction-aware auto-hide behavior, reliable one-tap image focus, paginated chrome clearance, full-height Continuous reading after auto-hide, and spine/nav-based chapter inheritance across split XHTML are all covered by the final browser matrix.
 
 ## 2.6D — Garden Keeper real-browser coverage
 
-- [ ] Verify locked → Turnstile/session-established → unlocked Keeper flow with mocked/local service boundaries.
-- [ ] Verify dialogs trap/restore focus correctly and remain keyboard-operable.
-- [ ] Verify Series editing, translation metadata, upload preflight/completion, maintenance, History, Trash, and Abuse Watch presentation flows.
-- [ ] Verify busy/success/error states do not double-submit or leave controls permanently disabled.
-- [ ] Verify motion remains observer-only and does not become an API/workflow owner.
+- [x] Verify locked → Turnstile/session-established → unlocked Keeper flow with mocked/local service boundaries.
+- [x] Verify dialogs trap/restore focus correctly and remain keyboard-operable.
+- [x] Verify Series editing, translation metadata, upload preflight/completion, maintenance, History, Trash, and Abuse Watch presentation flows.
+- [x] Verify busy/success/error states do not double-submit or leave controls permanently disabled.
+- [x] Verify motion remains observer-only and does not become an API/workflow owner.
 
 ## 2.6E — Accessibility verification
 
-- [ ] Add automated accessibility scans on Library, Series, Reader chrome, and Garden Keeper surfaces.
-- [ ] Add keyboard-only critical-flow tests and explicit focus restoration assertions.
-- [ ] Verify 200% and 400% zoom/reflow on public and Keeper surfaces where applicable.
-- [ ] Verify `prefers-reduced-motion`, forced colors, increased contrast, and visible focus treatment.
-- [ ] Audit touch target sizes and labels for mobile Reader/navigation controls.
-- [ ] Document known EPUB-content accessibility limits separately from Shadow Garden chrome responsibilities.
+- [x] Add automated accessibility scans on Library, Series, Reader chrome, and Garden Keeper surfaces.
+- [x] Add keyboard-only critical-flow tests and explicit focus restoration assertions.
+- [x] Verify 200% and 400% zoom/reflow on public and Keeper surfaces where applicable.
+- [x] Verify `prefers-reduced-motion`, forced colors, increased contrast, and visible focus treatment.
+- [x] Audit touch target sizes and labels for mobile Reader/navigation controls.
+- [x] Document known EPUB-content accessibility limits separately from Shadow Garden chrome responsibilities.
 
 ## v2.6.0 acceptance
 
-- [ ] Critical E2E suite passes on Chromium, Firefox, and WebKit.
-- [ ] Mobile Reader/navigation paths have real-browser regression coverage.
-- [ ] Accessibility checks cover all four major surfaces: Library, Series, Reader, Garden Keeper.
-- [ ] No security or browser-local persistence contract changes are required.
-- [ ] `npm run check`, production build, real-browser suite, and production smoke all pass before release.
+- [x] Critical E2E suite passes on Chromium, Firefox, and WebKit.
+- [x] Mobile Reader/navigation paths have real-browser regression coverage.
+- [x] Accessibility checks cover all four major surfaces: Library, Series, Reader, Garden Keeper.
+- [x] No security or browser-local persistence contract changes are required.
+- [x] `npm run check`, production build, real-browser suite, and production smoke all pass before release.
+
+The reusable v2 publisher now requires the exact `main` commit to pass both Verify and Real Browser E2E, then match Cloudflare production version/commit metadata and pass the public production smoke before creating the GitHub release. The regression matrix remains permanent after v2.6 rather than being treated as milestone-only scaffolding.
 
 ---
 
 # v2.7.0 — Performance & Scale
 
-**Status:** ⬜ Planned  
+**Status:** 🟨 In progress  
 **Goal:** establish measurable responsiveness budgets before the personal library becomes large enough to expose architectural bottlenecks.
 
 ## 2.7A — Reproducible scale fixtures

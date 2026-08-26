@@ -212,12 +212,29 @@ export function createThemeController({ getSettings, isAdult }) {
       body["max-width"] = `${settings.width}px !important`;
       body.width = "auto !important";
     }
+    const mediaWrapper = paginated ? {} : {
+      /* Publication CSS sometimes gives figure/picture a fixed or viewport-relative width.
+         Capping only the nested image still lets that oversized wrapper shift the image
+         past the EPUB viewport. Keep common media wrappers inside the Continuous content
+         box and preserve their normal centered presentation. */
+      "max-width": "100% !important",
+      width: "auto !important",
+      "margin-left": "auto !important",
+      "margin-right": "auto !important",
+      "box-sizing": "border-box !important"
+    };
     return {
       html: { background: `${theme.bg} !important` },
       body,
       p: { "line-height": `${settings.lineHeight} !important` },
       a: { color: `${theme.link} !important` },
-      img: { "max-width": "100% !important", height: "auto !important" }
+      figure: mediaWrapper,
+      picture: mediaWrapper,
+      img: {
+        "max-width": paginated ? "100% !important" : "min(100%, 92vw) !important",
+        height: "auto !important",
+        "box-sizing": "border-box !important"
+      }
     };
   }
 

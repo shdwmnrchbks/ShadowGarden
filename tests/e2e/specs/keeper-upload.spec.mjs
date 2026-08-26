@@ -208,8 +208,12 @@ test('Garden Keeper upload failure preserves the reviewed queue and restores ret
   await expect(page.locator('#batchList .batch-item')).toHaveAttribute('data-status', 'failed');
   await expect(upload).toBeEnabled();
   await expect(upload).toHaveText('Upload 1 Book');
+  await expect(page.locator('#uploadState')).toHaveText('READY');
 
-  const expectedErrors = browserDiagnostics.filter(entry => entry.type === 'console' && entry.message.includes('E2E storage unavailable'));
-  expect(expectedErrors).toHaveLength(1);
-  expect(browserDiagnostics.filter(entry => !expectedErrors.includes(entry))).toEqual([]);
+  const expectedAppErrors = browserDiagnostics.filter(entry => entry.type === 'console' && entry.message.includes('E2E storage unavailable'));
+  const expectedHttpErrors = browserDiagnostics.filter(entry => entry.type === 'console' && entry.message.includes('503') && entry.message.includes('Failed to load resource'));
+  expect(expectedAppErrors).toHaveLength(1);
+  expect(expectedHttpErrors).toHaveLength(1);
+  const expectedDiagnostics = new Set([...expectedAppErrors, ...expectedHttpErrors]);
+  expect(browserDiagnostics.filter(entry => !expectedDiagnostics.has(entry))).toEqual([]);
 });

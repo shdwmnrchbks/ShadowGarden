@@ -1,6 +1,6 @@
 /* Shadow Garden R2 — canonical catalog normalization and lookup helpers. */
 
-import { isBookId, volumeMatchesIdentity } from "./book-identity.js";
+import { cleanIdentities, isBookId, volumeMatchesIdentity } from "./book-identity.js";
 import { migrateLegacyBookmarks } from "./bookmarks.js";
 import { migrateLegacyProgress } from "./progress.js";
 import { normalizeTranslationStatus, normalizeTranslations } from "./translations.js";
@@ -81,9 +81,26 @@ export function findVolumeEntry(catalog, seriesId, identity, extra = []) {
   const series = seriesById(catalog, seriesId);
   if (!series) return null;
   const volumes = Array.isArray(series.volumes) ? series.volumes : [];
+  const wanted = String(identity || "").trim();
+  if (!wanted) return null;
+  /* Direct lookup consults each volume's own identities plus its stable id.
+     Session-level alternates stay out of this pass so a shared ticket or
+     source-path value can never blanket-match the first catalog entry. */
   for (let index = 0; index < volumes.length; index += 1) {
     const volume = volumes[index];
-    if (volumeMatchesIdentity(series.id, volume, index, identity, extra)) return { series, volume, index };
+    if (volumeMatchesIdentity(series.id, volume, index, wanted)) return { series, volume, index };
+  }
+  /* Legacy equivalence: an alternate identity such as a private media path or a
+     migrated opaque id resolves only through a volume's own declared identities,
+     never by being appended to every candidate at once. */
+  const alternatives = cleanIdentities(extra);
+  for (const candidate of alternatives) {
+    if (candidate === wanted) continue;
+    for (let index = 0; index < volumes.length; index += 1) {
+      const volume = volumes[index];
+      const owned = cleanIdentities([volume?.bookId, volume?.file]);
+      if (owned.includes(candidate)) return { series, volume, index };
+    }
   }
   return null;
 }

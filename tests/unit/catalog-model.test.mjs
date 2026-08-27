@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 
-import { isAdultSeriesId, normalizeCatalogShape } from "../../src/assets/js/domain/catalog.js";
+import { findVolumeEntry, isAdultSeriesId, normalizeCatalogShape } from "../../src/assets/js/domain/catalog.js";
 import { filterAndSort, filterOptions, recentlyAdded, volumeCountMatches } from "../../src/assets/js/library-model.js";
 
 const fixture = async name => JSON.parse(await fs.readFile(new URL(`../fixtures/${name}`, import.meta.url), "utf8"));
@@ -57,4 +57,38 @@ test("filter options and Recently Added stay deterministic across fixtures", asy
   assert.equal(recent.length, 3);
   assert.equal(recent[0].volume.bookId, "bk_6666666666666666666666");
   assert.equal(recent[1].volume.bookId, "bk_4444444444444444444444");
+});
+
+test("#162 session-level extra identities cannot blanket-match the first catalog volume", async () => {
+  const main = normalizeCatalogShape(await fixture("catalog-main.json")).catalog;
+  const seriesId = "long-metadata-archive";
+  const SECOND = "bk_3333333333333333333333";
+  const LAST = "bk_4444444444444444444444";
+
+  const polluted = findVolumeEntry(main, seriesId, LAST, ["/media/shadow-garden/books/e2e-reader.epub", LAST, LAST]);
+  assert.equal(polluted?.index, 2);
+  assert.equal(polluted?.volume?.title, "An Ancient Archive Opens Again");
+
+  assert.equal(findVolumeEntry(main, seriesId, SECOND)?.index, 1);
+});
+
+test("findVolumeEntry keeps legacy alternate identities working without first-entry bleed", () => {
+  const legacy = {
+    series: [{
+      id: "legacy-saga",
+      volumes: [
+        { number: 1, title: "Vol One", file: "/media/shadow-garden/books/legacy-vol-one.epub" },
+        { number: 2, title: "Vol Two", file: "/media/shadow-garden/books/legacy-vol-two.epub" }
+      ]
+    }]
+  };
+
+  const directPath = findVolumeEntry(legacy, "legacy-saga", "/media/shadow-garden/books/legacy-vol-two.epub");
+  assert.equal(directPath?.index, 1);
+
+  const throughAlternate = findVolumeEntry(legacy, "legacy-saga", "bk_legacyopaqueidentity001", ["/media/shadow-garden/books/legacy-vol-two.epub"]);
+  assert.equal(throughAlternate?.index, 1);
+
+  const unknownWithBlanketExtra = findVolumeEntry(legacy, "legacy-saga", "bk_unknownopaqueid00001", ["bk_unknownopaqueid00001"]);
+  assert.equal(unknownWithBlanketExtra, null);
 });

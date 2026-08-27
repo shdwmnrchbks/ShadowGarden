@@ -89,14 +89,25 @@ body.adult-reader.reader-flow-scrolled .continuous-seek:focus-visible{
   --sg-seek-line:rgba(183,121,139,.58);
 }
 
+/* Owner decision for reopened #160 item 2: the reading canvas itself must end where the
+   seek rail begins instead of reserving space through publication padding alone. The
+   overlay-only approach left the EPUB viewport spanning underneath the fixed rail, so a
+   publication construct anchored against the initial containing block could still paint
+   into the gutter. Excluding the canvas structurally makes every inner width cap, clip,
+   or positioning trick unable to reach the rail zone by construction. Publication bodies
+   keep their own symmetric reading margins (see theme.js Continuous branch). */
+body.reader-flow-scrolled .viewer{right:34px}
+
 @media(max-width:700px){
-  /* The mobile book remains full viewport width, while a visible fixed top bar owns the
+  /* The mobile book remains full viewport width for chrome, while a visible fixed top bar owns the
      first 54px. Start the progress rail below that chrome so a near-zero thumb remains
-     visible; once chrome auto-hides, extend the rail back to the viewport top. */
-  body.reader-flow-scrolled .viewer{right:0}
+     visible; once chrome auto-hides, extend the rail back to the viewport top. The reader
+     canvas excludes the rail column (22px) on mobile as well. */
+  body.reader-flow-scrolled .viewer{right:22px}
   body.reader-flow-scrolled .continuous-seek{top:54px;width:22px;padding-top:8px}
   body.reader-flow-scrolled.reader-chrome-hidden .continuous-seek{top:0}
   body.reader-flow-scrolled .continuous-seek-track::before{width:1px}
   body.reader-flow-scrolled .continuous-seek-thumb{width:10px;height:10px;box-shadow:0 0 0 1px rgba(11,9,16,.55)}
   body.reader-flow-scrolled .continuous-seek-text{min-width:8ch;margin-right:3px;font-size:.55rem}
 }
+

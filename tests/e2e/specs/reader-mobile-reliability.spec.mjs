@@ -37,11 +37,11 @@ async function oversizedImageGeometry(page) {
       const publication = frame.contentDocument;
       const view = frame.contentWindow;
       if (!publication || !view) continue;
-      for (const image of publication.querySelectorAll('.oversized-visual img, .oversized-div img, .min-width-canvas img')) {
+      for (const image of publication.querySelectorAll('.oversized-visual img, .oversized-div img, .min-width-canvas img, .fullbleed-dark img, .abs-canvas img')) {
         const rect = image.getBoundingClientRect();
         const frameRect = frame.getBoundingClientRect();
         results.push({
-          wrapper: image.closest('.oversized-div') ? 'div' : (image.closest('.min-width-canvas') ? 'canvas' : 'figure'),
+          wrapper: image.closest('.oversized-div') ? 'div' : (image.closest('.min-width-canvas') ? 'canvas' : (image.closest('.abs-canvas') ? 'abs' : (image.closest('.fullbleed-dark') ? 'dark' : 'figure'))),
           left: rect.left,
           right: rect.right,
           width: rect.width,
@@ -106,17 +106,21 @@ test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, a
       topbarBottom: topbarRect?.bottom ?? -1
     };
   });
-  expect(rail.viewerRight).toBe('0px');
+  /* v2.6.4 owner decision (#160 item 2): the reading canvas itself ends where the rail
+     begins (22px mobile exclusion), instead of overlaying a full-width iframe. */
+  expect(rail.viewerRight).toBe('22px');
   expect(rail.seekWidth).toBeLessThanOrEqual(24);
   expect(rail.seekBackground).toBe('rgba(0, 0, 0, 0)');
   expect(rail.seekTop).toBeGreaterThanOrEqual(rail.topbarBottom - 1);
   expect(rail.thumbTop).toBeGreaterThanOrEqual(rail.topbarBottom - 1);
 
   await openChapter(page, 'Wide Visual');
-  /* #160: both fixture shapes — a figure/picture wrapper and a bare publication div with
-     fixed widths — must end before the transparent seek rail, not merely the viewport. */
+  /* #160: all five fixture shapes — figure/picture, bare publication div, min-width
+     canvas, full-width dark plate, and an absolutely positioned canvas — must end before
+     the transparent seek rail. Since v2.6.4 the iframe box itself excludes the rail, so
+     pageRight <= seekLeft holds structurally rather than by width caps alone. */
   await expect.poll(async () => (await oversizedImageGeometry(page)).map(item => item.wrapper).sort().join('+'))
-    .toBe('canvas+div+figure');
+    .toBe('abs+canvas+dark+div+figure');
   const images = await oversizedImageGeometry(page);
   expect(images.find(item => item.seekLeft === null)).toBeUndefined();
   for (const image of images) {

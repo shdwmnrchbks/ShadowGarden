@@ -9,6 +9,8 @@
 .reader-image-focus-close{position:absolute;z-index:2;top:14px;right:14px;width:42px;height:42px;display:grid;place-items:center;border:1px solid rgba(255,255,255,.17);border-radius:50%;background:rgba(11,9,16,.72);color:#f3eef8;font-size:1.45rem;line-height:1;cursor:pointer;backdrop-filter:blur(8px);transition:opacity .18s ease,visibility 0s linear}
 .reader-image-focus-close:hover,.reader-image-focus-close:focus-visible{border-color:rgba(181,163,229,.42);background:rgba(31,25,43,.88)}
 .reader-image-focus-hint{position:absolute;z-index:2;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);margin:0;padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(11,9,16,.68);color:#c8c0d2;font-size:.68rem;letter-spacing:.01em;white-space:nowrap;pointer-events:none;backdrop-filter:blur(8px);transition:opacity .18s ease,visibility 0s linear}
+/* v2.6.6 owner request: the control hint fades out after three seconds on every platform. */
+.reader-image-focus-hint.reader-image-focus-hint-faded{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .45s ease,visibility 0s linear .45s}
 .reader-image-focus.reader-image-focus-zoomed .reader-image-focus-close,
 .reader-image-focus.reader-image-focus-zoomed .reader-image-focus-hint{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,visibility 0s linear .18s}
 body.adult-reader .reader-image-focus-close:hover,body.adult-reader .reader-image-focus-close:focus-visible{border-color:rgba(225,151,173,.34);background:rgba(39,22,28,.88)}

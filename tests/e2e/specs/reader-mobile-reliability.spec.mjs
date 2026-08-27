@@ -77,7 +77,39 @@ test('issue #154: mobile paginated content clears chrome and a single image tap 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
+test('v2.6.6: Continuous section frames stay true to their live document extents', async ({ page }) => {
+  await waitForReader(page);
+  await page.locator('#settingsToggle').click();
+  await page.locator('#flowSelect').selectOption('scrolled-doc');
+  await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
+  await page.getByRole('button', { name: 'Close reading settings' }).click();
+  await openChapter(page, 'Wide Visual');
+  /* Tall artwork whose rendered height resolves after EPUB.js's initial section settle
+     must never exceed its frozen frame slot (the tail would paint under the next
+     section and appear clipped): every continuous frame height matches its document
+     extent and consecutive sections stay flush without overlap. */
+  await expect.poll(async () => {
+    const snap = await page.evaluate(() => {
+      const frames = [...document.querySelectorAll('#viewer iframe')];
+      const shortFrames = frames.filter(f => {
+        const d = f.contentDocument;
+        return d && d.documentElement.scrollHeight - Math.round(f.getBoundingClientRect().height) > 4;
+      }).length;
+      let overlaps = 0;
+      const views = [...document.querySelectorAll('.epub-view')];
+      for (let i = 0; i < views.length - 1; i++) {
+        const a = views[i].getBoundingClientRect(), b = views[i + 1].getBoundingClientRect();
+        if (Math.abs(a.bottom - b.top) > 8) overlaps++;
+      }
+      const hasTallStrip = frames.some(f => f.contentDocument?.querySelector('.tall-strip img'));
+      return { shortFrames, overlaps, hasTallStrip };
+    });
+    return snap;
+  }, { timeout: 20_000 }).toEqual(expect.objectContaining({ shortFrames: 0, overlaps: 0, hasTallStrip: true }));
+});
+
 test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, and native scrolling reliable', async ({ page, browserDiagnostics }, testInfo) => {
+
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile Reader regression');
   await waitForReader(page);
   await page.locator('#settingsToggle').click();

@@ -45,6 +45,8 @@ const [
   hardeningNotes,
   canvasNotes,
   bleedNotes,
+  verticalSyncNotes,
+  focusSync,
   railCss,
   roadmap,
   testArchitecture,
@@ -91,6 +93,8 @@ const [
   read('docs/releases/v2.6.3.md'),
   read('docs/releases/v2.6.4.md'),
   read('docs/releases/v2.6.5.md'),
+  read('docs/releases/v2.6.6.md'),
+  read('src/assets/js/reader-epub-adapter.js'),
   read('src/assets/css/reader-continuous-rail.css'),
   read('docs/roadmaps/CURRENT_ROADMAP.md'),
   read('docs/architecture/TEST_ARCHITECTURE.md'),
@@ -202,6 +206,8 @@ assert.match(imageFocus, /doc\.addEventListener\("pointerup"/, 'image focus must
 assert.ok(imageFocus.includes('if(Math.hypot((Number(event.clientX)||0)-start.x,(Number(event.clientY)||0)-start.y)>12)return;'), 'pointer fallback must reject drag gestures instead of stealing Reader scrolling');
 assert.match(imageFocus, /function needsParentHitTargets\(/, 'WebKit image activation must be detected without enabling scripts inside EPUB content');
 assert.match(imageFocus, /reader-image-focus-hit/, 'WebKit must receive a parent-owned image hit target outside the sandboxed EPUB document');
+assert.match(imageFocus, /zoomAt\(state\.scale\*Math\.exp\(-delta\.y\*\.0016\)/, 'fine-pointer wheel must zoom the focused image cursor-anchored');
+assert.match(imageFocus, /"dblclick"/, 'focused images must return via double-click on fine pointers');
 assert.match(imageFocus, /frame\.getBoundingClientRect\(\)/, 'parent-owned image hit targets must follow the rendered EPUB frame geometry');
 assert.match(imageFocus, /sourceImage\.getBoundingClientRect\(\)/, 'parent-owned image hit targets must follow source-image geometry');
 assert.match(imageFocusCss, /\.reader-image-focus-hit\{position:fixed;z-index:24;/, 'image hit targets must live in Reader chrome rather than changing EPUB sandbox permissions');
@@ -253,8 +259,8 @@ assert.doesNotMatch(motion, /guardTransition\(viewTransition\)/, 'pagereveal mus
 assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'cross-document completion or skip must clear navigation hints');
 assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped View Transition rejections unhandled');
 
-// v2.6 release reconciliation remains synchronized through the v2.6.1–v2.6.5 hotfixes.
-assert.equal(rootPkg.version, '2.6.5', 'root package version must be v2.6.5 for the current v2.6 hotfix');
+// v2.6 release reconciliation remains synchronized through the v2.6.1–v2.6.6 hotfixes.
+assert.equal(rootPkg.version, '2.6.6', 'root package version must be v2.6.6 for the current v2.6 hotfix');
 assert.equal(rootLock.version, rootPkg.version, 'lockfile top-level version must match package.json');
 assert.equal(rootLock.packages?.['']?.version, rootPkg.version, 'lockfile workspace version must match package.json');
 assert.match(releaseNotes, /^# Shadow Garden v2\.6\.0 — Reliability & Real-Browser Testing/m);
@@ -276,12 +282,16 @@ assert.match(canvasNotes, /canvas/i);
 assert.match(bleedNotes, /^# Shadow Garden v2\.6\.5 — Continuous Full-Bleed Canvas/m);
 assert.match(bleedNotes, /issue #160/);
 assert.match(bleedNotes, /full-bleed/i);
+assert.match(verticalSyncNotes, /^# Shadow Garden v2\.6\.6 — Continuous Vertical Sync & Focus Controls/m);
+assert.match(verticalSyncNotes, /vertically long/i);
+assert.match(focusSync, /syncContinuousFrameHeights/, 'continuous section frames must be reconciled against live document extents');
+assert.match(focusSync, /__sgTallSyncTimer/, 'late media growth must schedule staggered reconciliation passes');
 assert.match(theme, /"min-width": "0 !important"/, 'Continuous containment must neutralize publication min-width rules that override max-width caps');
 assert.match(theme, /position: "static !important"/, 'Continuous containment must keep replaced media statically positioned');
 assert.match(theme, /transform: "none !important"/, 'Continuous containment must strip rightward media transforms');
 assert.match(changelog, /## 2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(changelog, /## 2\.5\.0 — Motion & Continuity/, 'changelog must retain the previously omitted v2.5.0 release history');
-assert.match(rootReadme, /^# Shadow Garden v2\.6\.[0-5]/m);
+assert.match(rootReadme, /^# Shadow Garden v2\.6\.[0-6]/m);
 assert.match(rootReadme, /tests\/e2e\/.*Playwright/s);
 assert.match(docsReadme, /releases\/v2\.6\.0\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.1\.md/);
@@ -289,6 +299,7 @@ assert.match(docsReadme, /releases\/v2\.6\.2\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.3\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.4\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.5\.md/);
+assert.match(docsReadme, /releases\/v2\.6\.6\.md/);
 assert.match(docsReadme, /v2\.7\.0 Performance & Scale/);
 assert.match(roadmap, /Active release:\*\* v2\.7\.0 — Performance & Scale/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
@@ -322,4 +333,4 @@ assert.match(releaseWorkflow, /id=\"viewer\"/);
 assert.match(releaseWorkflow, /Disallow: \/media\//);
 assert.match(releaseWorkflow, /gh release create/);
 
-console.log('v2.6/v2.6.5 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');
+console.log('v2.6/v2.6.6 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');

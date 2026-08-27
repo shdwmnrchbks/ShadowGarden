@@ -98,6 +98,7 @@ export async function startReader(session){
   pageInputController=createPageNavigationInput({getFlow:()=>settingsController.get().flow,getSwipeTurns:()=>settingsController.get().swipeTurns,turn});
   imageFocusController=createImageFocusController({
     overlay:elements.imageFocus,viewport:elements.imageFocusViewport,layer:elements.imageFocusLayer,image:elements.imageFocusImage,closeButton:elements.imageFocusClose,
+    hint:document.getElementById("imageFocusHint"),
     shouldSuppressOpen:()=>pageInputController.shouldSuppressClick()
   });
   paginatedController=createPaginatedController({getRendition:()=>state.rendition,beforeTurn:resetReaderInput});

@@ -245,13 +245,69 @@
       rendition.on("rendered",(_,view)=>{
         if(rendition!==currentRendition)return;
         const contents=view?.contents;
-        if(contents)setTimeout(()=>{normalizeMobilePage(contents);installExternalLinkGuard(contents)},0);
+        if(contents)setTimeout(()=>{normalizeMobilePage(contents);installExternalLinkGuard(contents);syncContinuousFrameHeights(contents)},0);
         else setTimeout(()=>{
-          try{rendition.getContents?.().forEach(contents=>{normalizeMobilePage(contents);installExternalLinkGuard(contents)})}catch{}
+          try{rendition.getContents?.().forEach(contents=>{normalizeMobilePage(contents);installExternalLinkGuard(contents);syncContinuousFrameHeights(contents)})}catch{}
         },0);
       });
     }catch{}
     return rendition;
+  }
+
+  /* v2.6.6 (#160 follow-up family): Continuous mode stacks section documents in normal
+     flow (.epub-view relative wrappers inside the scrolling container). EPUB.js freezes
+     wrapper/frame heights at display time, so artwork that grows afterwards - late SVG
+     decode, or width caps narrowing an image and increasing its rendered height - leaves
+     the tail beyond the frozen slot where the next section visually crops it. Reconcile
+     idempotently: rewrite every frame/wrapper height to its document's exact extent and
+     clear stale inline tops; natural flow then always matches real content. */
+  function syncContinuousFrameHeights(contents){
+    try{
+      const doc=contents?.document,win=doc?.defaultView;
+      if(!win||!doc)return;
+      const doc0=doc;
+      if(!win.__sgTallSyncBound){
+        win.__sgTallSyncBound=true;
+        /* media loads inside a rendered document are what grow it late; reconcile again */
+        doc0.addEventListener("load",event=>{
+          const target=event.target;
+          if(target&&(target.tagName==="IMG"||(typeof SVGElement!=="undefined"&&target instanceof doc0.defaultView.SVGElement)))syncContinuousFrameHeights(contents);
+        },true);
+        /* media may already be decoded before these hooks attach, and engines differ in
+           when async svg sizing settles; guaranteed staggered passes cover both cases
+           without spamming the reconciler once growth is exhausted. */
+        [300,1200,2600,4200].forEach(delay=>setTimeout(()=>{try{syncContinuousFrameHeights(contents)}catch{}},delay));
+      }
+      clearTimeout(win.__sgTallSyncTimer);
+      win.__sgTallSyncTimer=setTimeout(()=>{
+        try{
+          const views=[...(document.querySelectorAll(".epub-view")||[])];
+          const targets=views.length
+            ? views.map(el=>({el,frame:el.querySelector?.("iframe")}))
+            : [...((document.getElementById("viewer")||{}).children||[])].map(el=>({el,frame:el.matches?.("iframe")?el:el.querySelector?.("iframe")}));
+          /* Idempotent truth-up: any drift between a section frame's frozen height and its
+             live document extent is rewritten to the exact current value, so natural flow
+             stacking always matches real content - late-growing tall artwork included.
+             Stale inline `top`s (absolute-position era leftovers) would visually offset
+             relative-flow sections and are cleared as well. */
+          for(const entry of targets){
+            const entryDoc=entry.frame?.contentDocument;
+            if(!entry.frame||!entryDoc||!entryDoc.documentElement)continue;
+            const need=Math.max(
+              entryDoc.documentElement.scrollHeight,
+              entryDoc.body?entryDoc.body.scrollHeight:0
+            );
+            if(!need)continue;
+            const current=Math.round(entry.frame.getBoundingClientRect().height);
+            if(Math.abs(need-current)>2){
+              entry.frame.style.height=`${need}px`;
+              if(entry.el!==entry.frame)entry.el.style.height=`${need}px`;
+            }
+            if(entry.el.style.top)entry.el.style.top="";
+          }
+        }catch{}
+      },150);
+    }catch{}
   }
 
   function patchBook(book){

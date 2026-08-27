@@ -1,10 +1,10 @@
-# Shadow Garden v2.6.5
+# Shadow Garden v2.6.6
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The current product release is **v2.6.5 — Continuous Full-Bleed Canvas**, the follow-up patch to the v2.6.1–v2.6.4 hotfixes on the v2.6 Reliability & Real-Browser Testing baseline. Per the owner's decision on reopened issue #160 item 2, the Continuous reading canvas structurally ends where the fixed seek rail begins and artwork bleeds across that full canvas to the rail boundary, while prose keeps readable insets and every containment cap from earlier hotfixes remains as defense-in-depth without changing the established security or browser-local reading-data boundaries.
+The accepted architecture baseline remains v2.0.0. The current product release is **v2.6.6 — Continuous Vertical Sync & Focus Controls**, the follow-up patch to the v2.6.1–v2.6.4 hotfixes on the v2.6 Reliability & Real-Browser Testing baseline. Per the owner's decision on reopened issue #160 item 2, the Continuous reading canvas structurally ends where the fixed seek rail begins and artwork bleeds across that full canvas to the rail boundary, while prose keeps readable insets and every containment cap from earlier hotfixes remains as defense-in-depth without changing the established security or browser-local reading-data boundaries.
 
 ## Current feature set
 
@@ -122,7 +122,7 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The R0–R10 full-codebase refactor is complete. `main` remains deployable, Security Milestones 1–9 and browser-local persistence contracts remain protected by CI, and the v2 source tree has explicit owners instead of accumulated patch layers.
 
-**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.6.5 is the current release baseline.**
+**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.6.6 is the current release baseline.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -143,6 +143,7 @@ The R0–R10 full-codebase refactor is complete. `main` remains deployable, Secu
 - v2.6.3 hotfix notes: [`docs/releases/v2.6.3.md`](./docs/releases/v2.6.3.md)
 - v2.6.4 hotfix notes: [`docs/releases/v2.6.4.md`](./docs/releases/v2.6.4.md)
 - v2.6.5 hotfix notes: [`docs/releases/v2.6.5.md`](./docs/releases/v2.6.5.md)
+- v2.6.6 release notes: [`docs/releases/v2.6.6.md`](./docs/releases/v2.6.6.md)
 
 ## Current architecture
 
@@ -340,4 +341,4 @@ npm run b2:upload -- "path/to/book.epub"
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/releases/v2.6.0.md`](./docs/releases/v2.6.0.md) for the v2.6 reliability baseline, and [`docs/releases/v2.6.5.md`](./docs/releases/v2.6.5.md) for the current hotfix record.
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/releases/v2.6.0.md`](./docs/releases/v2.6.0.md) for the v2.6 reliability baseline, and [`docs/releases/v2.6.6.md`](./docs/releases/v2.6.6.md) for the current hotfix record.

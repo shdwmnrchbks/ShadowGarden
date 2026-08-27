@@ -38,11 +38,41 @@ export function createImageFocusController({
   layer,
   image,
   closeButton,
+  hint,
   shouldSuppressOpen
 }={}){
   const state={active:false,scale:1,x:0,y:0,maxScale:4,gesture:null,suppressCloseClickUntil:0,returnFocus:null};
   const parentHits=new Map();
   let parentHitFrame=0;
+  /* v2.6.6 owner request (#160 follow-up family): desktop focus gets wheel-zoom +
+     pointer-drag pan + double-click return with a fine-pointer hint variant, and the
+     control hint fades after three seconds on every platform. */
+  const fineQuery=typeof matchMedia==="function"?matchMedia("(pointer: fine)"):null;
+  const coarseQuery=typeof matchMedia==="function"?matchMedia("(pointer: coarse)"):null;
+  const isFinePointer=()=>Boolean(fineQuery?.matches)&&!Boolean(coarseQuery?.matches);
+  let finePointer=isFinePointer();
+  let hintFadeTimer=0;
+  function applyHintCopy(){
+    if(!hint)return;
+    const fineCopy=hint.dataset?.hintFine||"";
+    const coarseCopy=hint.dataset?.hintCoarse||"Pinch to zoom · drag to inspect · tap again to return";
+    hint.textContent=finePointer&&fineCopy?fineCopy:(hint.textContent||coarseCopy).includes("tap again")?coarseCopy:hint.textContent;
+    if(!finePointer&&!hint.textContent.includes("Pinch"))hint.textContent=coarseCopy;
+  }
+  function showHint(){
+    if(!hint)return;
+    applyHintCopy();
+    clearTimeout(hintFadeTimer);hint.classList.remove("reader-image-focus-hint-faded");
+    hintFadeTimer=setTimeout(()=>{if(state.active)hint.classList.add("reader-image-focus-hint-faded")},3000);
+  }
+  function hideHintInstant(){clearTimeout(hintFadeTimer);hint?.classList.add("reader-image-focus-hint-faded")}
+  if(hint&&fineQuery?.addEventListener){
+    try{
+      const updatePointerMode=()=>{const was=finePointer;finePointer=isFinePointer();applyHintCopy();void was;hideHintInstant()};
+      fineQuery.addEventListener("change",updatePointerMode);
+      coarseQuery?.addEventListener("change",updatePointerMode);
+    }catch{}
+  }
 
   function viewportSize(){return{width:Math.max(1,Number(viewport?.clientWidth)||Number(window.innerWidth)||1),height:Math.max(1,Number(viewport?.clientHeight)||Number(window.innerHeight)||1)}}
   function pointInViewport(clientX,clientY){const rect=viewport?.getBoundingClientRect?.()||{left:0,top:0};return{x:(Number(clientX)||0)-rect.left,y:(Number(clientY)||0)-rect.top}}
@@ -80,12 +110,13 @@ export function createImageFocusController({
     state.active=true;state.scale=1;state.x=0;state.y=0;state.gesture=null;
     image.src=src;image.alt=String(sourceImage?.alt||"Book image");
     overlay.classList.remove("hidden","reader-image-focus-zoomed");overlay.setAttribute("aria-hidden","false");
-    render();requestAnimationFrame(()=>closeButton?.focus?.({preventScroll:true}));
+    render();showHint();requestAnimationFrame(()=>closeButton?.focus?.({preventScroll:true}));
     return true;
   }
   function closeImageFocus({restoreFocus=true}={}){
     if(!state.active)return false;
     state.active=false;state.scale=1;state.x=0;state.y=0;state.gesture=null;
+    hideHintInstant();
     if(image){image.style.transform="";image.removeAttribute("src");image.alt=""}
     overlay?.classList.add("hidden");overlay?.classList.remove("reader-image-focus-zoomed");overlay?.setAttribute("aria-hidden","true");
     document.body.classList.remove("reader-image-focused");
@@ -219,10 +250,32 @@ export function createImageFocusController({
   function handleWheel(event){
     if(!state.active)return;
     event.preventDefault();const delta=normalizeWheel(event);
-    if(event.ctrlKey||event.metaKey){
-      const point=pointInViewport(event.clientX,event.clientY);zoomAt(state.scale*Math.exp(-delta.y*.0022),point);return;
+    /* v2.6.6 desktop contract: plain wheel zooms (cursor-anchored); ctrl/meta stays a
+       zoom alias for trackpad pinch-reporting; horizontal wheel pans when zoomed. */
+    if(!finePointer&&!(event.ctrlKey||event.metaKey)){
+      if(state.scale>1.001)setTransform(state.scale,state.x-delta.x,state.y-delta.y);
+      return;
     }
-    if(state.scale>1.001)setTransform(state.scale,state.x-delta.x,state.y-delta.y);
+    const point=pointInViewport(event.clientX,event.clientY);
+    zoomAt(state.scale*Math.exp(-delta.y*.0016),point);
+  }
+  let pointerDrag=null;
+  function handlePointerDown(event){
+    if(!state.active||!finePointer||event.pointerType==="touch"||Number(event.button)>0){pointerDrag=null;return}
+    pointerDrag={id:event.pointerId,x:Number(event.clientX)||0,y:Number(event.clientY)||0,ox:state.x,oy:state.y,moved:false};
+    try{viewport?.setPointerCapture?.(event.pointerId)}catch{}
+    event.preventDefault();
+  }
+  function handlePointerMove(event){
+    if(!pointerDrag||pointerDrag.id!==event.pointerId||!state.active||state.scale<=1.001)return;
+    const dx=(Number(event.clientX)||0)-pointerDrag.x,dy=(Number(event.clientY)||0)-pointerDrag.y;
+    if(Math.hypot(dx,dy)>4)pointerDrag.moved=true;
+    setTransform(state.scale,pointerDrag.ox+dx,pointerDrag.oy+dy);
+    event.preventDefault();
+  }
+  function handlePointerUp(event){
+    if(pointerDrag&&pointerDrag.id===event.pointerId&&pointerDrag.moved)state.suppressCloseClickUntil=Date.now()+300;
+    pointerDrag=null;
   }
 
   viewport?.addEventListener("touchstart",beginTouch,{passive:false});
@@ -230,7 +283,21 @@ export function createImageFocusController({
   viewport?.addEventListener("touchend",endTouch,{passive:false});
   viewport?.addEventListener("touchcancel",()=>{state.gesture=null},{passive:true});
   viewport?.addEventListener("wheel",handleWheel,{passive:false});
-  viewport?.addEventListener("click",event=>{if(Date.now()<state.suppressCloseClickUntil)return;event.preventDefault();closeImageFocus()});
+  viewport?.addEventListener("pointerdown",handlePointerDown);
+  viewport?.addEventListener("pointermove",handlePointerMove);
+  viewport?.addEventListener("pointerup",handlePointerUp,{passive:true});
+  viewport?.addEventListener("pointercancel",()=>{pointerDrag=null},{passive:true});
+  viewport?.addEventListener("dblclick",event=>{
+    if(!finePointer||!state.active)return;
+    event.preventDefault();closeImageFocus();
+  });
+  viewport?.addEventListener("click",event=>{
+    if(Date.now()<state.suppressCloseClickUntil)return;
+    /* fine-pointer devices return via double-click or the close button; accidental
+       single clicks must not dismiss the focused image */
+    if(finePointer)return;
+    event.preventDefault();closeImageFocus();
+  });
   closeButton?.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();closeImageFocus()});
   image?.addEventListener("load",()=>{if(state.active)setTransform(state.scale,state.x,state.y)});
   window.addEventListener("resize",()=>{if(state.active)setTransform(state.scale,state.x,state.y);scheduleParentHitRefresh()});

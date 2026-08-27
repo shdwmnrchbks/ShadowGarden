@@ -2,6 +2,9 @@ name: Real Browser E2E
 
 on:
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
   push:
     branches:
       - main
@@ -34,10 +37,25 @@ jobs:
         run: npm ci --prefix tests/e2e --no-audit --no-fund --progress=false
       - name: Build production output
         run: npm run build
-      - name: Install Playwright browsers
+      - name: Generate Reader EPUB fixture
+        working-directory: tests/e2e
+        run: node support/build-reader-fixture.mjs
+      - name: Install Playwright browsers (full release matrix)
+        if: ${{ github.event_name != 'pull_request' }}
         run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium firefox webkit
+      - name: Install Playwright browsers (pull request subset)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium webkit
+      - name: Resolve real-browser projects
+        id: projects
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "args=--project=chromium-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
+          else
+            echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
+          fi
       - name: Run real-browser suite
-        run: npm run test:e2e
+        run: npm exec --prefix tests/e2e -- playwright test ${{ steps.projects.outputs.args }}
       - name: Upload Playwright failure artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

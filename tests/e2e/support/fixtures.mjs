@@ -68,7 +68,7 @@ async function installFixtureRoutes(page) {
   await page.route('**/data/source.json', route => fulfillJson(route, { mode: 'local' }));
   await page.route('**/data/catalog.json', route => fulfillJson(route, mainCatalog));
   await page.route('**/data/adult-catalog.json', route => fulfillJson(route, adultCatalog));
-  await page.route('**/data/version.json', route => fulfillJson(route, { version: '2.6.2-e2e', commit: 'fixture' }));
+  await page.route('**/data/version.json', route => fulfillJson(route, { version: '2.6.3-e2e', commit: 'fixture' }));
   await page.route('**/media/shadow-garden/covers/**', route => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: transparentSvg }));
   await page.route('**/book-access', async route => {
     if (route.request().method() !== 'POST') return route.fallback();

@@ -62,7 +62,7 @@ zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <li><a href="legacy-structure.xhtml">Legacy Structure</a></li>
 <li><a href="large-chapter.xhtml">Large Chapter</a></li>
 </ol></nav></body></html>`);
-zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;margin:0 6%} h1{margin:1.5em 0 .8em} p{margin:.8em 0} figure{margin:2em auto;text-align:center} img{max-width:70%;height:auto}.visual-page{min-height:90vh;display:grid;place-items:center}.oversized-visual{width:120vw;margin-left:0;margin-right:0}.oversized-visual img{width:1200px;max-width:none}.oversized-div{width:140vw;padding-left:40px}.oversized-div img{width:1600px;max-width:none;display:block}`);
+zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;margin:0 6%} h1{margin:1.5em 0 .8em} p{margin:.8em 0} figure{margin:2em auto;text-align:center} img{max-width:70%;height:auto}.visual-page{min-height:90vh;display:grid;place-items:center}.oversized-visual{width:120vw;margin-left:0;margin-right:0}.oversized-visual img{width:1200px;max-width:none}.oversized-div{width:140vw;padding-left:40px}.oversized-div img{width:1600px;max-width:none;display:block}.min-width-canvas{min-width:900px}.min-width-canvas img{width:100%;max-width:none;display:block}`);
 zip.file('OEBPS/chapter-1.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Chapter One</title><link rel="stylesheet" href="styles.css"/></head><body>
 <h1>Chapter One</h1>
@@ -92,6 +92,7 @@ zip.file('OEBPS/wide-visual.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <h1>Wide Visual</h1>
 <figure class="oversized-visual"><img src="images/illustration.svg" alt="An intentionally oversized image wrapper used to verify Continuous Reader containment"/><figcaption>Oversized publication wrapper fixture</figcaption></figure>
 <div class="oversized-div"><img src="images/illustration.svg" alt="An oversized bare publication wrapper without figure semantics used to verify Continuous Reader containment"/></div>
+<section class="min-width-canvas"><img src="images/illustration.svg" alt="A publication canvas forced wider than the viewport through min-width, which overrides max-width containment"/></section>
 ${paragraphs('Wide visual continuation', 4)}
 </body></html>`);
 zip.file('OEBPS/legacy-structure.xhtml', `<?xml version="1.0" encoding="UTF-8"?>

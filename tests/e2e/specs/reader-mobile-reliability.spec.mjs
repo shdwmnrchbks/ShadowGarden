@@ -37,11 +37,11 @@ async function oversizedImageGeometry(page) {
       const publication = frame.contentDocument;
       const view = frame.contentWindow;
       if (!publication || !view) continue;
-      for (const image of publication.querySelectorAll('.oversized-visual img, .oversized-div img')) {
+      for (const image of publication.querySelectorAll('.oversized-visual img, .oversized-div img, .min-width-canvas img')) {
         const rect = image.getBoundingClientRect();
         const frameRect = frame.getBoundingClientRect();
         results.push({
-          wrapper: image.closest('.oversized-div') ? 'div' : 'figure',
+          wrapper: image.closest('.oversized-div') ? 'div' : (image.closest('.min-width-canvas') ? 'canvas' : 'figure'),
           left: rect.left,
           right: rect.right,
           width: rect.width,
@@ -116,7 +116,7 @@ test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, a
   /* #160: both fixture shapes — a figure/picture wrapper and a bare publication div with
      fixed widths — must end before the transparent seek rail, not merely the viewport. */
   await expect.poll(async () => (await oversizedImageGeometry(page)).map(item => item.wrapper).sort().join('+'))
-    .toBe('div+figure');
+    .toBe('canvas+div+figure');
   const images = await oversizedImageGeometry(page);
   expect(images.find(item => item.seekLeft === null)).toBeUndefined();
   for (const image of images) {

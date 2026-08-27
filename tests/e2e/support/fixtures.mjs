@@ -6,6 +6,7 @@ const mainCatalog = JSON.parse(await fs.readFile(fixtureUrl('catalog-main.json')
 const adultCatalog = JSON.parse(await fs.readFile(fixtureUrl('catalog-adult.json'), 'utf8'));
 const readerEpub = await fs.readFile(new URL('../.generated/reader-fixture.epub', import.meta.url));
 const transparentSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="12" viewBox="0 0 8 12"><rect width="8" height="12" fill="#151a17"/></svg>';
+const BOOK_ID = /^bk_[A-Za-z0-9_-]{22}$/;
 
 export const READER_BOOK_ID = 'bk_1111111111111111111111';
 export const READER_SERIES_ID = 'moonlit-single';
@@ -54,18 +55,28 @@ async function fulfillReaderEpub(route) {
   });
 }
 
+async function requestedBookId(route) {
+  try {
+    const body = route.request().postDataJSON();
+    const bookId = String(body?.bookId || '');
+    if (BOOK_ID.test(bookId)) return bookId;
+  } catch {}
+  return READER_BOOK_ID;
+}
+
 async function installFixtureRoutes(page) {
   await page.route('**/data/source.json', route => fulfillJson(route, { mode: 'local' }));
   await page.route('**/data/catalog.json', route => fulfillJson(route, mainCatalog));
   await page.route('**/data/adult-catalog.json', route => fulfillJson(route, adultCatalog));
-  await page.route('**/data/version.json', route => fulfillJson(route, { version: '2.6.0-e2e', commit: 'fixture' }));
+  await page.route('**/data/version.json', route => fulfillJson(route, { version: '2.6.1-e2e', commit: 'fixture' }));
   await page.route('**/media/shadow-garden/covers/**', route => route.fulfill({ status: 200, contentType: 'image/svg+xml', body: transparentSvg }));
-  await page.route('**/book-access', route => {
+  await page.route('**/book-access', async route => {
     if (route.request().method() !== 'POST') return route.fallback();
     const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+    const bookId = await requestedBookId(route);
     return fulfillJson(route, {
       ok: true,
-      bookId: READER_BOOK_ID,
+      bookId,
       url: `${READER_MEDIA_PATH}?sig=e2e&exp=${expiresAt}`,
       expiresAt,
       ttlSeconds: 3600

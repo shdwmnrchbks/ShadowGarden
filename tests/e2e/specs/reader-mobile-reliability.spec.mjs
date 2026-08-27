@@ -31,17 +31,22 @@ async function firstImageCenter(page) {
 
 async function oversizedImageGeometry(page) {
   return page.locator('#viewer iframe').evaluateAll(frames => {
+    const seekLeft = document.getElementById('continuousSeek')?.getBoundingClientRect().left ?? null;
     for (const frame of frames) {
-      const document = frame.contentDocument;
-      const image = document?.querySelector('.oversized-visual img');
+      const publication = frame.contentDocument;
+      const image = publication?.querySelector('.oversized-visual img');
       const view = frame.contentWindow;
       if (!image || !view) continue;
       const rect = image.getBoundingClientRect();
+      const frameRect = frame.getBoundingClientRect();
       return {
         left: rect.left,
         right: rect.right,
         width: rect.width,
-        viewportWidth: view.innerWidth || document.documentElement.clientWidth
+        viewportWidth: view.innerWidth || publication.documentElement.clientWidth,
+        pageLeft: frameRect.left + rect.left,
+        pageRight: frameRect.left + rect.right,
+        seekLeft
       };
     }
     return null;
@@ -92,6 +97,7 @@ test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, a
       viewerRight: viewerStyle?.right || '',
       seekWidth: parseFloat(seekStyle?.width || '0'),
       seekBackground: seekStyle?.backgroundColor || '',
+      seekLeft: seekRect?.left ?? -1,
       seekTop: seekRect?.top ?? -1,
       thumbTop: thumbRect?.top ?? -1,
       topbarBottom: topbarRect?.bottom ?? -1
@@ -109,6 +115,9 @@ test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, a
   expect(image.width).toBeGreaterThan(20);
   expect(image.left).toBeGreaterThanOrEqual(-1);
   expect(image.right).toBeLessThanOrEqual(image.viewportWidth + 1);
+  expect(image.seekLeft).not.toBeNull();
+  expect(image.pageLeft).toBeGreaterThanOrEqual(-1);
+  expect(image.pageRight).toBeLessThanOrEqual(image.seekLeft + 1);
 
   await openChapter(page, 'Large Chapter');
   await expect(page.locator('#viewer .epub-container')).toBeVisible();

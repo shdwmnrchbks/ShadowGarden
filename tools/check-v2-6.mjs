@@ -44,6 +44,7 @@ const [
   containmentNotes,
   hardeningNotes,
   canvasNotes,
+  bleedNotes,
   railCss,
   roadmap,
   testArchitecture,
@@ -89,6 +90,7 @@ const [
   read('docs/releases/v2.6.2.md'),
   read('docs/releases/v2.6.3.md'),
   read('docs/releases/v2.6.4.md'),
+  read('docs/releases/v2.6.5.md'),
   read('src/assets/css/reader-continuous-rail.css'),
   read('docs/roadmaps/CURRENT_ROADMAP.md'),
   read('docs/architecture/TEST_ARCHITECTURE.md'),
@@ -208,7 +210,9 @@ assert.match(theme, /element\.isConnected === false/, 'Reader theme repair must 
 assert.match(theme, /try \{ return win\.getComputedStyle\(element\) \|\| null; \} catch \{ return null; \}/, 'Reader theme repair must tolerate engines returning or throwing around detached computed styles');
 assert.match(theme, /if \(!style\) return false;/, 'Reader theme inspection must stop when computed style is unavailable');
 assert.match(theme, /body\.isConnected === false/, 'Reader theme repair must abandon detached EPUB bodies before traversing descendants');
-assert.match(theme, /2\.5em 4vw !important/, 'Continuous publication bodies keep symmetric reading margins because the reading canvas itself excludes the seek rail');
+assert.match(theme, /padding: paginated \? "max\(2\.5em, 60px\) 4vw max\(2\.5em, 54px\) !important" : "2\.5em 0 !important"/, 'Continuous bodies drop horizontal padding so media bleeds to the rail boundary while text selectors carry readable insets');
+assert.match(theme, /"p, li, dd, dt, blockquote, figcaption": \{/, 'prose-only inset selectors must exist so full-bleed artwork is never indented');
+assert.match(theme, /"padding-left": "14px !important"/, 'prose insets keep readable measure without double-indenting artwork');
 assert.match(railCss, /body\.reader-flow-scrolled \.viewer\{right:34px\}/, 'the Continuous reading canvas must structurally end where the 34px seek rail begins (#160 item 2)');
 assert.match(railCss, /body\.reader-flow-scrolled \.viewer\{right:22px\}/, 'the Continuous reading canvas must exclude the 22px mobile seek rail column');
 
@@ -249,8 +253,8 @@ assert.doesNotMatch(motion, /guardTransition\(viewTransition\)/, 'pagereveal mus
 assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'cross-document completion or skip must clear navigation hints');
 assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped View Transition rejections unhandled');
 
-// v2.6 release reconciliation remains synchronized through the v2.6.1, v2.6.2, v2.6.3, and v2.6.4 hotfixes.
-assert.equal(rootPkg.version, '2.6.4', 'root package version must be v2.6.4 for the current v2.6 hotfix');
+// v2.6 release reconciliation remains synchronized through the v2.6.1–v2.6.5 hotfixes.
+assert.equal(rootPkg.version, '2.6.5', 'root package version must be v2.6.5 for the current v2.6 hotfix');
 assert.equal(rootLock.version, rootPkg.version, 'lockfile top-level version must match package.json');
 assert.equal(rootLock.packages?.['']?.version, rootPkg.version, 'lockfile workspace version must match package.json');
 assert.match(releaseNotes, /^# Shadow Garden v2\.6\.0 — Reliability & Real-Browser Testing/m);
@@ -269,18 +273,22 @@ assert.match(hardeningNotes, /min-width/i);
 assert.match(canvasNotes, /^# Shadow Garden v2\.6\.4 — Continuous Canvas Rail Exclusion/m);
 assert.match(canvasNotes, /issue #160/);
 assert.match(canvasNotes, /canvas/i);
+assert.match(bleedNotes, /^# Shadow Garden v2\.6\.5 — Continuous Full-Bleed Canvas/m);
+assert.match(bleedNotes, /issue #160/);
+assert.match(bleedNotes, /full-bleed/i);
 assert.match(theme, /"min-width": "0 !important"/, 'Continuous containment must neutralize publication min-width rules that override max-width caps');
 assert.match(theme, /position: "static !important"/, 'Continuous containment must keep replaced media statically positioned');
 assert.match(theme, /transform: "none !important"/, 'Continuous containment must strip rightward media transforms');
 assert.match(changelog, /## 2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(changelog, /## 2\.5\.0 — Motion & Continuity/, 'changelog must retain the previously omitted v2.5.0 release history');
-assert.match(rootReadme, /^# Shadow Garden v2\.6\.[0-4]/m);
+assert.match(rootReadme, /^# Shadow Garden v2\.6\.[0-5]/m);
 assert.match(rootReadme, /tests\/e2e\/.*Playwright/s);
 assert.match(docsReadme, /releases\/v2\.6\.0\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.1\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.2\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.3\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.4\.md/);
+assert.match(docsReadme, /releases\/v2\.6\.5\.md/);
 assert.match(docsReadme, /v2\.7\.0 Performance & Scale/);
 assert.match(roadmap, /Active release:\*\* v2\.7\.0 — Performance & Scale/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
@@ -314,4 +322,4 @@ assert.match(releaseWorkflow, /id=\"viewer\"/);
 assert.match(releaseWorkflow, /Disallow: \/media\//);
 assert.match(releaseWorkflow, /gh release create/);
 
-console.log('v2.6/v2.6.4 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');
+console.log('v2.6/v2.6.5 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');

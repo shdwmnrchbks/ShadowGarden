@@ -201,9 +201,12 @@ export function createThemeController({ getSettings, isAdult }) {
       "line-height": `${settings.lineHeight} !important`,
       margin: paginated ? "0 !important" : "0 auto !important",
       /* v2.6.4 owner decision (#160 item 2): the Continuous reading canvas itself ends
-         where the seek rail begins (reader-continuous-rail.css sets .viewer{right}), so
-         publication bodies only need their own symmetric reading margins here. */
-      padding: paginated ? "max(2.5em, 60px) 4vw max(2.5em, 54px) !important" : "2.5em 4vw !important",
+         where the seek rail begins (reader-continuous-rail.css sets .viewer{right}).
+         v2.6.5 owner follow-up: the reserved rail column read as an extra-wide bar next
+         to body side padding, so Continuous bodies drop horizontal padding entirely and
+         media can bleed to the rail boundary; readable prose insets move to the text
+         selectors below so full-page artwork is never indented twice. */
+      padding: paginated ? "max(2.5em, 60px) 4vw max(2.5em, 54px) !important" : "2.5em 0 !important",
       "touch-action": paginated ? "pan-y pinch-zoom !important" : "auto !important",
       "box-sizing": "border-box !important"
     };
@@ -279,7 +282,15 @@ export function createThemeController({ getSettings, isAdult }) {
         "max-width": "100% !important",
         height: "auto !important",
         "box-sizing": "border-box !important"
-      }
+      },
+      /* v2.6.5: prose keeps readable insets while artwork bleeds to the rail boundary;
+         applying insets only to text selectors avoids double-indenting full-page media. */
+      ...(paginated ? {} : {
+        "p, li, dd, dt, blockquote, figcaption": {
+          "padding-left": "14px !important",
+          "padding-right": "14px !important"
+        }
+      })
     };
   }
 

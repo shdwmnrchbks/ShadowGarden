@@ -42,6 +42,7 @@ const [
   releaseNotes,
   hotfixNotes,
   containmentNotes,
+  hardeningNotes,
   roadmap,
   testArchitecture,
   accessibilityDoc,
@@ -84,6 +85,7 @@ const [
   read('docs/releases/v2.6.0.md'),
   read('docs/releases/v2.6.1.md'),
   read('docs/releases/v2.6.2.md'),
+  read('docs/releases/v2.6.3.md'),
   read('docs/roadmaps/CURRENT_ROADMAP.md'),
   read('docs/architecture/TEST_ARCHITECTURE.md'),
   read('docs/architecture/ACCESSIBILITY_TESTING.md'),
@@ -242,8 +244,8 @@ assert.doesNotMatch(motion, /guardTransition\(viewTransition\)/, 'pagereveal mus
 assert.match(motion, /finished\.then\(clearNavigationHint,clearNavigationHint\)/, 'cross-document completion or skip must clear navigation hints');
 assert.doesNotMatch(motion, /finished\.finally\(clearNavigationHint\)/, 'do not leave skipped View Transition rejections unhandled');
 
-// v2.6 release reconciliation remains synchronized through the v2.6.1 and v2.6.2 hotfixes.
-assert.equal(rootPkg.version, '2.6.2', 'root package version must be v2.6.2 for the current v2.6 hotfix');
+// v2.6 release reconciliation remains synchronized through the v2.6.1, v2.6.2, and v2.6.3 hotfixes.
+assert.equal(rootPkg.version, '2.6.3', 'root package version must be v2.6.3 for the current v2.6 hotfix');
 assert.equal(rootLock.version, rootPkg.version, 'lockfile top-level version must match package.json');
 assert.equal(rootLock.packages?.['']?.version, rootPkg.version, 'lockfile workspace version must match package.json');
 assert.match(releaseNotes, /^# Shadow Garden v2\.6\.0 — Reliability & Real-Browser Testing/m);
@@ -256,13 +258,20 @@ assert.match(hotfixNotes, /seek rail/i);
 assert.match(containmentNotes, /^# Shadow Garden v2\.6\.2 — Continuous Media Containment Hotfix/m);
 assert.match(containmentNotes, /issue #160/);
 assert.match(containmentNotes, /content box/i);
+assert.match(hardeningNotes, /^# Shadow Garden v2\.6\.3 — Continuous Media Containment Hardening/m);
+assert.match(hardeningNotes, /issue #160/);
+assert.match(hardeningNotes, /min-width/i);
+assert.match(theme, /"min-width": "0 !important"/, 'Continuous containment must neutralize publication min-width rules that override max-width caps');
+assert.match(theme, /position: "static !important"/, 'Continuous containment must keep replaced media statically positioned');
+assert.match(theme, /transform: "none !important"/, 'Continuous containment must strip rightward media transforms');
 assert.match(changelog, /## 2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(changelog, /## 2\.5\.0 — Motion & Continuity/, 'changelog must retain the previously omitted v2.5.0 release history');
-assert.match(rootReadme, /^# Shadow Garden v2\.6\.[0-2]/m);
+assert.match(rootReadme, /^# Shadow Garden v2\.6\.[0-3]/m);
 assert.match(rootReadme, /tests\/e2e\/.*Playwright/s);
 assert.match(docsReadme, /releases\/v2\.6\.0\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.1\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.2\.md/);
+assert.match(docsReadme, /releases\/v2\.6\.3\.md/);
 assert.match(docsReadme, /v2\.7\.0 Performance & Scale/);
 assert.match(roadmap, /Active release:\*\* v2\.7\.0 — Performance & Scale/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
@@ -296,4 +305,4 @@ assert.match(releaseWorkflow, /id=\"viewer\"/);
 assert.match(releaseWorkflow, /Disallow: \/media\//);
 assert.match(releaseWorkflow, /gh release create/);
 
-console.log('v2.6/v2.6.2 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');
+console.log('v2.6/v2.6.3 release, real-browser, Library, Reader, Keeper, and accessibility contracts OK');

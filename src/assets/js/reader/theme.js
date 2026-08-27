@@ -217,6 +217,10 @@ export function createThemeController({ getSettings, isAdult }) {
     } else {
       body["max-width"] = `${settings.width}px !important`;
       body.width = "auto !important";
+      /* min-width overrides max-width in CSS resolution, so a publication rule such as
+         body{min-width:600px} recreates a canvas wider than the viewport and every
+         downstream width cap with it (#160). Reset it on the publication root. */
+      body["min-width"] = "0 !important";
       /* Nothing may paint past the EPUB viewport even when publication CSS uses
          transforms or positioned wrappers that width caps cannot reach (#160). */
       body["overflow-x"] = "clip !important";
@@ -237,23 +241,41 @@ export function createThemeController({ getSettings, isAdult }) {
       /* Real books rarely wrap artwork in figure/picture alone; plain divs/sections/
          tables can carry fixed or viewport widths that keep feeding oversized boxes to
          nested media. Capping every common publication wrapper keeps the max-width chain
-         intact from the padded body down to any nested media element (#160). */
+         intact from the padded body down to any nested media element (#160). min-width
+         resets matter just as much: a single {min-width:900px} wrapper overrides this
+         max-width cap outright and recreates an oversized canvas (#160). */
       "max-width": "100% !important",
+      "min-width": "0 !important",
+      "box-sizing": "border-box !important"
+    };
+    const mediaSanity = paginated ? {} : {
+      /* Replaced media escapes every width cap when publication CSS positions it against
+         the iframe viewport (position:absolute/fixed ignores body padding) or shifts it
+         rightward with transforms. Full-bleed positioning of media is exactly the #160
+         violation, so Continuous mode renders replaced media statically and untransformed;
+         text-level decorations elsewhere are untouched. */
+      position: "static !important",
+      transform: "none !important",
+      "min-width": "0 !important",
       "box-sizing": "border-box !important"
     };
     return {
       html: {
         background: `${theme.bg} !important`,
-        ...(paginated ? {} : { "overflow-x": "clip !important" })
+        ...(paginated ? {} : { "overflow-x": "clip !important", "min-width": "0 !important" })
       },
       body,
       p: { "line-height": `${settings.lineHeight} !important` },
       a: { color: `${theme.link} !important` },
       figure: mediaWrapper,
       picture: mediaWrapper,
-      "div, section, article, aside, main, table": blockCap,
-      "svg, video, canvas, object, embed": blockCap,
+      "div, section, article, aside, main, table, td, th": blockCap,
+      "svg, video, canvas, object, embed": {
+        ...mediaSanity,
+        "max-width": "100% !important"
+      },
       img: {
+        ...mediaSanity,
         /* The exact content box (viewport minus the reserved rail gutter) replaces the
            previous min(100%, 92vw) escape hatch, whose vw slack let wide media slip
            underneath the transparent seek rail again on mobile widths (#160). */

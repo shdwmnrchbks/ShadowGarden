@@ -193,10 +193,6 @@ export function createThemeController({ getSettings, isAdult }) {
     };
     const theme = themes[settings.theme] || themes.garden;
     const paginated = settings.flow === "paginated";
-    const compactRail = !paginated && typeof window !== "undefined"
-      && typeof window.matchMedia === "function"
-      && window.matchMedia("(max-width: 700px)").matches;
-    const continuousRailGutter = compactRail ? 22 : 34;
     const body = {
       background: `${theme.bg} !important`,
       color: `${theme.text} !important`,
@@ -204,9 +200,10 @@ export function createThemeController({ getSettings, isAdult }) {
       "font-size": `${settings.fontSize}% !important`,
       "line-height": `${settings.lineHeight} !important`,
       margin: paginated ? "0 !important" : "0 auto !important",
-      padding: paginated
-        ? "max(2.5em, 60px) 4vw max(2.5em, 54px) !important"
-        : `2.5em max(4vw, ${continuousRailGutter}px) 2.5em 4vw !important`,
+      /* v2.6.4 owner decision (#160 item 2): the Continuous reading canvas itself ends
+         where the seek rail begins (reader-continuous-rail.css sets .viewer{right}), so
+         publication bodies only need their own symmetric reading margins here. */
+      padding: paginated ? "max(2.5em, 60px) 4vw max(2.5em, 54px) !important" : "2.5em 4vw !important",
       "touch-action": paginated ? "pan-y pinch-zoom !important" : "auto !important",
       "box-sizing": "border-box !important"
     };
@@ -229,8 +226,8 @@ export function createThemeController({ getSettings, isAdult }) {
       /* Publication CSS sometimes gives figure/picture a fixed or viewport-relative width.
          Capping only the nested image still lets that oversized wrapper shift the image
          past the EPUB viewport. Keep common media wrappers inside the Continuous content
-         box and preserve their normal centered presentation. The Continuous body reserves
-         only the fixed seek rail on the right so artwork cannot render beneath Reader chrome. */
+         box and preserve their normal centered presentation. The reading canvas excludes
+         the seek-rail column structurally, so nothing inside can reach Reader chrome. */
       "max-width": "100% !important",
       width: "auto !important",
       "margin-left": "auto !important",

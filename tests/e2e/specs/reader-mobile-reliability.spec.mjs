@@ -32,24 +32,27 @@ async function firstImageCenter(page) {
 async function oversizedImageGeometry(page) {
   return page.locator('#viewer iframe').evaluateAll(frames => {
     const seekLeft = document.getElementById('continuousSeek')?.getBoundingClientRect().left ?? null;
+    const results = [];
     for (const frame of frames) {
       const publication = frame.contentDocument;
-      const image = publication?.querySelector('.oversized-visual img');
       const view = frame.contentWindow;
-      if (!image || !view) continue;
-      const rect = image.getBoundingClientRect();
-      const frameRect = frame.getBoundingClientRect();
-      return {
-        left: rect.left,
-        right: rect.right,
-        width: rect.width,
-        viewportWidth: view.innerWidth || publication.documentElement.clientWidth,
-        pageLeft: frameRect.left + rect.left,
-        pageRight: frameRect.left + rect.right,
-        seekLeft
-      };
+      if (!publication || !view) continue;
+      for (const image of publication.querySelectorAll('.oversized-visual img, .oversized-div img')) {
+        const rect = image.getBoundingClientRect();
+        const frameRect = frame.getBoundingClientRect();
+        results.push({
+          wrapper: image.closest('.oversized-div') ? 'div' : 'figure',
+          left: rect.left,
+          right: rect.right,
+          width: rect.width,
+          viewportWidth: view.innerWidth || publication.documentElement.clientWidth,
+          pageLeft: frameRect.left + rect.left,
+          pageRight: frameRect.left + rect.right,
+          seekLeft
+        });
+      }
     }
-    return null;
+    return results;
   });
 }
 
@@ -110,14 +113,19 @@ test('issues #154/#157/#160: Continuous keeps mobile chrome, progress, images, a
   expect(rail.thumbTop).toBeGreaterThanOrEqual(rail.topbarBottom - 1);
 
   await openChapter(page, 'Wide Visual');
-  await expect.poll(() => oversizedImageGeometry(page), { timeout: 10_000 }).not.toBeNull();
-  const image = await oversizedImageGeometry(page);
-  expect(image.width).toBeGreaterThan(20);
-  expect(image.left).toBeGreaterThanOrEqual(-1);
-  expect(image.right).toBeLessThanOrEqual(image.viewportWidth + 1);
-  expect(image.seekLeft).not.toBeNull();
-  expect(image.pageLeft).toBeGreaterThanOrEqual(-1);
-  expect(image.pageRight).toBeLessThanOrEqual(image.seekLeft + 1);
+  /* #160: both fixture shapes — a figure/picture wrapper and a bare publication div with
+     fixed widths — must end before the transparent seek rail, not merely the viewport. */
+  await expect.poll(async () => (await oversizedImageGeometry(page)).map(item => item.wrapper).sort().join('+'))
+    .toBe('div+figure');
+  const images = await oversizedImageGeometry(page);
+  expect(images.find(item => item.seekLeft === null)).toBeUndefined();
+  for (const image of images) {
+    expect(image.width).toBeGreaterThan(20);
+    expect(image.left).toBeGreaterThanOrEqual(-1);
+    expect(image.right).toBeLessThanOrEqual(image.viewportWidth + 1);
+    expect(image.pageLeft).toBeGreaterThanOrEqual(-1);
+    expect(image.pageRight).toBeLessThanOrEqual(image.seekLeft + 1);
+  }
 
   await openChapter(page, 'Large Chapter');
   await expect(page.locator('#viewer .epub-container')).toBeVisible();

@@ -217,6 +217,9 @@ export function createThemeController({ getSettings, isAdult }) {
     } else {
       body["max-width"] = `${settings.width}px !important`;
       body.width = "auto !important";
+      /* Nothing may paint past the EPUB viewport even when publication CSS uses
+         transforms or positioned wrappers that width caps cannot reach (#160). */
+      body["overflow-x"] = "clip !important";
     }
     const mediaWrapper = paginated ? {} : {
       /* Publication CSS sometimes gives figure/picture a fixed or viewport-relative width.
@@ -230,15 +233,31 @@ export function createThemeController({ getSettings, isAdult }) {
       "margin-right": "auto !important",
       "box-sizing": "border-box !important"
     };
+    const blockCap = paginated ? {} : {
+      /* Real books rarely wrap artwork in figure/picture alone; plain divs/sections/
+         tables can carry fixed or viewport widths that keep feeding oversized boxes to
+         nested media. Capping every common publication wrapper keeps the max-width chain
+         intact from the padded body down to any nested media element (#160). */
+      "max-width": "100% !important",
+      "box-sizing": "border-box !important"
+    };
     return {
-      html: { background: `${theme.bg} !important` },
+      html: {
+        background: `${theme.bg} !important`,
+        ...(paginated ? {} : { "overflow-x": "clip !important" })
+      },
       body,
       p: { "line-height": `${settings.lineHeight} !important` },
       a: { color: `${theme.link} !important` },
       figure: mediaWrapper,
       picture: mediaWrapper,
+      "div, section, article, aside, main, table": blockCap,
+      "svg, video, canvas, object, embed": blockCap,
       img: {
-        "max-width": paginated ? "100% !important" : "min(100%, 92vw) !important",
+        /* The exact content box (viewport minus the reserved rail gutter) replaces the
+           previous min(100%, 92vw) escape hatch, whose vw slack let wide media slip
+           underneath the transparent seek rail again on mobile widths (#160). */
+        "max-width": "100% !important",
         height: "auto !important",
         "box-sizing": "border-box !important"
       }

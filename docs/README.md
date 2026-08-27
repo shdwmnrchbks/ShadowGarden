@@ -4,7 +4,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## 🚧 Current work in progress
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 is the focused Continuous Reader rail hotfix; the active feature release remains **v2.7.0 Performance & Scale**, followed by Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 and v2.6.2 are focused Continuous Reader hotfixes; the active feature release remains **v2.7.0 Performance & Scale**, followed by Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
@@ -42,6 +42,7 @@ Release notes remain in `docs/releases/`; completed milestone planning records a
 - [`releases/v2.5.0.md`](./releases/v2.5.0.md) — Motion & Continuity release.
 - [`releases/v2.6.0.md`](./releases/v2.6.0.md) — Reliability & Real-Browser Testing release.
 - [`releases/v2.6.1.md`](./releases/v2.6.1.md) — Continuous Reader rail hotfix for the remaining #160 media-overlap case.
+- [`releases/v2.6.2.md`](./releases/v2.6.2.md) — Continuous media containment hotfix for the reopened #160 right-edge clipping case.
 
 ## Verification layers
 

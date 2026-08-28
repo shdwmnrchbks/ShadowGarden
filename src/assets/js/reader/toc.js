@@ -31,6 +31,17 @@ function genericVisualLabel(item) {
     /^(?:cover|cover page|illustration|illustration page|image|image page|plate|frontispiece)(?:\s+\d+)?$/i.test(label);
 }
 
+function sectionLabel(item) {
+  return String(item?.label || "section").trim() || "section";
+}
+
+function setBranchExpanded(toggle, childBox, expanded) {
+  toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+  toggle.textContent = expanded ? "▾" : "▸";
+  toggle.setAttribute("aria-label", `${expanded ? "Collapse" : "Expand"} ${toggle.dataset.label || "section"}`);
+  childBox.classList.toggle("collapsed", !expanded);
+}
+
 function spineIndexForHref(href, items) {
   if (!href) return null;
   for (let index = 0; index < items.length; index++) {
@@ -107,8 +118,9 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
       toggle.type = "button";
       toggle.className = "toc-expander";
       toggle.textContent = "▾";
+      toggle.dataset.label = sectionLabel(item);
       toggle.setAttribute("aria-expanded", "true");
-      toggle.setAttribute("aria-label", `Collapse ${String(item?.label || "section").trim()}`);
+      toggle.setAttribute("aria-label", `Collapse ${toggle.dataset.label}`);
       row.appendChild(toggle);
 
       const childBox = document.createElement("div");
@@ -119,10 +131,7 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
         event.preventDefault();
         event.stopPropagation();
         const expanded = toggle.getAttribute("aria-expanded") !== "false";
-        toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
-        toggle.textContent = expanded ? "▸" : "▾";
-        toggle.setAttribute("aria-label", `${expanded ? "Expand" : "Collapse"} ${String(item?.label || "section").trim()}`);
-        childBox.classList.toggle("collapsed", expanded);
+        setBranchExpanded(toggle, childBox, !expanded);
       });
 
       children.forEach((child, index) => childBox.appendChild(createNode(child, depth + 1, `${path}-${index}`)));
@@ -239,19 +248,56 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
     return String(match?.label || "").trim();
   }
 
+  function tocDrawer() {
+    return panel.closest?.(".reader-drawer") || null;
+  }
+
+  /* The current chapter can sit inside a branch the reader collapsed earlier or scrolled
+     out of view. While the drawer is closed, expand its ancestors and scroll the drawer
+     panel so opening the drawer always shows the highlighted position. */
+  function expandAncestorsOf(button) {
+    let box = button.closest?.(".toc-children") || null;
+    while (box) {
+      if (box.classList.contains("collapsed")) {
+        const toggle = panel.querySelector(`.toc-expander[aria-controls="${box.id}"]`);
+        if (toggle) setBranchExpanded(toggle, box, true);
+        else box.classList.remove("collapsed");
+      }
+      box = box.parentElement?.closest?.(".toc-children") || null;
+    }
+  }
+
+  function revealActiveButton(button) {
+    const drawer = tocDrawer();
+    if (!drawer || typeof button.getBoundingClientRect !== "function" || typeof drawer.getBoundingClientRect !== "function") return;
+    const drawerRect = drawer.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    const buttonHeight = Number(button.offsetHeight) || 0;
+    if (!drawerRect || !buttonRect || !drawer.clientHeight) return;
+    const target = drawer.scrollTop + (buttonRect.top - drawerRect.top) - (drawer.clientHeight - buttonHeight) / 2;
+    drawer.scrollTop = Math.max(0, target);
+  }
+
   function setActiveForLocation(location) {
     const match = matchForLocation(location);
     const href = String(match?.href || "");
-    if (activeButton) {
-      activeButton.classList.remove("active");
-      activeButton.removeAttribute("aria-current");
+    const previous = activeButton;
+    if (previous) {
+      previous.classList.remove("active");
+      previous.removeAttribute("aria-current");
       activeButton = null;
     }
     if (!href) return;
     activeButton = [...panel.querySelectorAll(".toc-entry-link")].find(button => button.dataset.href === href) || null;
-    if (activeButton) {
-      activeButton.classList.add("active");
-      activeButton.setAttribute("aria-current", "location");
+    if (!activeButton) return;
+    activeButton.classList.add("active");
+    activeButton.setAttribute("aria-current", "location");
+    if (activeButton !== previous) {
+      const drawer = tocDrawer();
+      if (drawer && !drawer.classList.contains("open")) {
+        expandAncestorsOf(activeButton);
+        revealActiveButton(activeButton);
+      }
     }
   }
 

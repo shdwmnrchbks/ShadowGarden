@@ -163,6 +163,15 @@ test('Pages controls and TOC navigate everywhere while desktop keyboard and supp
   await expect(currentTocEntry).toHaveClass(/active/);
   await expect(currentTocEntry).toHaveCSS('color', 'rgb(237, 233, 242)');
   await expect(currentTocEntry).toHaveText('Chapter One');
+  // Contents titles must sit close to the drawer's left edge: the expander column stays
+  // narrow (16px) so entry text begins ~36px from the edge instead of drifting right.
+  // offsetLeft ignores the drawer slide transition, so this is race-free while opening.
+  const tocTextInset = await page.locator('#tocPanel .toc-tree > .toc-node').first().locator('.toc-link').evaluate(link => {
+    const depth = Number(link.closest('.toc-node')?.style.getPropertyValue('--toc-depth')) || 0;
+    return link.offsetLeft - depth * 14 + parseFloat(getComputedStyle(link).paddingLeft);
+  });
+  expect(tocTextInset).toBeGreaterThan(33);
+  expect(tocTextInset).toBeLessThan(39);
   await page.getByRole('button', { name: 'Chapter Two', exact: true }).click();
   await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
   await expect(page.locator('#chapterTitle')).toHaveText('Chapter Two', { timeout: 8_000 });

@@ -4,7 +4,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## 🚧 Current work in progress
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 through v2.6.6 are focused Continuous Reader fixes; the active feature release remains **v2.7.0 Performance & Scale**, followed by Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 through v2.6.7 are focused Continuous Reader fixes; the active feature release remains **v2.7.0 Performance & Scale**, followed by Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
@@ -47,6 +47,7 @@ Release notes remain in `docs/releases/`; completed milestone planning records a
 - [`releases/v2.6.4.md`](./releases/v2.6.4.md) — Continuous canvas rail exclusion: the reading canvas structurally ends where the seek rail begins (reopened #160 item 2).
 - [`releases/v2.6.5.md`](./releases/v2.6.5.md) — Continuous full-bleed canvas: artwork bleeds to the rail boundary while prose keeps readable insets (reopened #160 item 2).
 - [`releases/v2.6.6.md`](./releases/v2.6.6.md) — Continuous vertical frame reconciliation for tall artwork plus pointer-aware image focus controls and fading hints.
+- [`releases/v2.6.7.md`](./releases/v2.6.7.md) — Continuous media width independence: artwork is no longer shaped by the text-width setting, and full-page image plates are immune to the prose column (desktop clipping fixes).
 
 ## Verification layers
 

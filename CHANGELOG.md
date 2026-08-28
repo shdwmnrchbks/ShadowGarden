@@ -1,5 +1,12 @@
 # Shadow Garden Changelog
 
+## 2.6.7 — Continuous Media Width Independence
+- Fixed desktop Continuous full-page images being clipped by the text-width setting: synthetic full-page image plates now re-assert their one-canvas geometry above every theme rule, so landscape plates no longer overflow the text-width column and portrait plates no longer lose their bottom edge to theme padding inside the fixed-height plate body.
+- Made Continuous artwork independent of the text-width setting: the setting now shapes prose only, while figure/picture wrappers, media-only containers, and bare media expand to the full reading canvas with re-centered symmetric negative margins capped at the canvas edge.
+- Released the epub.js page-column `max-height` image cap in Continuous mode so portrait artwork renders at its true aspect; Paginated mode keeps the cap because a page cannot overflow vertically.
+- Moved the Continuous containment guard from the text-width body to the canvas boundaries (iframe viewport, root overflow, container clipping) so the legitimate full-canvas bleed is never clipped while nothing can paint past the canvas or reach the seek rail.
+- Added a real-browser Continuous regression rendering landscape/portrait plates and inline artwork, asserting no canvas clipping, plate geometry, prose following the text-width setting, and artwork geometry unchanged across text-width changes.
+
 ## 2.6.0 — Reliability & Real-Browser Testing
 - Add an isolated Playwright 1.62.1 workspace and CI matrix covering Chromium, Firefox, and WebKit desktop plus Chromium Mobile and WebKit Mobile against the real production build with deterministic catalogs, authorization/media boundaries, generated EPUB fixtures, and retained failure artifacts.
 - Make Main/Adult isolation, canonical first paint, navigation restoration, pinned/suggestion behavior, and the full **Read → Continue → Finished → Read Again** bookmark-preserving lifecycle real-browser authoritative.

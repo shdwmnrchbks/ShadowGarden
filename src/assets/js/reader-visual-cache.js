@@ -436,6 +436,21 @@
     return{width,height};
   }
 
+  /* Continuous mode reshapes publication bodies through the rendition theme: the
+     text-width column caps the body, auto margins center it, and vertical padding insets
+     the content box. Left unopposed those rules wrapped the synthetic full-page plate in
+     the prose column — landscape artwork overflowed the narrowed body and was clipped
+     sideways, while the fixed-height body plus theme padding cut the bottom off portrait
+     plates. In Continuous flow the stylesheet therefore gains higher-specificity,
+     data-marker anchored rules that re-assert the exact one-canvas plate geometry, so no
+     theme rule order can reshape a full-page image. Paginated keeps its dedicated
+     inline-style frame controller (reader-paginated-visual-fit.js) and is unaffected. */
+  function syntheticPageCss(width,height,continuous){
+    const base=`html,body{margin:0!important;padding:0!important;width:100%!important;height:${height}px!important;min-height:${height}px!important;max-height:${height}px!important;overflow:hidden!important;overflow-anchor:none!important;box-sizing:border-box!important}body[data-sg-synthetic-visual="1"]{display:block!important;background:transparent!important}.sg-synthetic-visual-page{box-sizing:border-box!important;width:100%!important;height:${height}px!important;min-height:${height}px!important;display:grid!important;place-items:center!important;margin:0!important;padding:0!important;overflow:hidden!important}.sg-synthetic-visual-page>img{display:block!important;width:auto!important;height:auto!important;max-width:${width}px!important;max-height:${height}px!important;margin:auto!important;object-fit:contain!important}`;
+    if(!continuous)return base;
+    return base+`html[data-sg-synthetic-visual="1"]{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;overflow:hidden!important;box-sizing:border-box!important}html[data-sg-synthetic-visual="1"] body[data-sg-synthetic-visual="1"]{display:block!important;width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;padding:0!important;height:${height}px!important;min-height:${height}px!important;max-height:${height}px!important;overflow:hidden!important;overflow-anchor:none!important;box-sizing:border-box!important}`;
+  }
+
   function applySynthetic(contents,href,metrics={}){
     const record=recordForHref(href);if(!record?.blob)return false;
     const doc=contents?.document,body=doc?.body;if(!doc?.documentElement||!doc?.head||!body)return false;
@@ -451,7 +466,7 @@
     doc.head.replaceChildren();
     const meta=doc.createElement("meta");meta.setAttribute("charset","utf-8");
     const style=doc.createElement("style");
-    style.textContent=`html,body{margin:0!important;padding:0!important;width:100%!important;height:${height}px!important;min-height:${height}px!important;max-height:${height}px!important;overflow:hidden!important;overflow-anchor:none!important;box-sizing:border-box!important}body[data-sg-synthetic-visual="1"]{display:block!important;background:transparent!important}.sg-synthetic-visual-page{box-sizing:border-box!important;width:100%!important;height:${height}px!important;min-height:${height}px!important;display:grid!important;place-items:center!important;margin:0!important;padding:0!important;overflow:hidden!important}.sg-synthetic-visual-page>img{display:block!important;width:auto!important;height:auto!important;max-width:${width}px!important;max-height:${height}px!important;margin:auto!important;object-fit:contain!important}`;
+    style.textContent=syntheticPageCss(width,height,Boolean(document.body?.classList?.contains("reader-flow-scrolled")));
     doc.head.append(meta,style);
     body.replaceChildren();
     body.dataset.sgSyntheticVisual="1";

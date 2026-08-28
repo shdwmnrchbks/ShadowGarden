@@ -1,7 +1,7 @@
 /* Shadow Garden R4.1 — Reader application orchestrator. */
 import { createReaderStorage } from "./storage.js";
 import { createThemeController } from "./theme.js";
-import { createTocController } from "./toc.js?v=1.2.1";
+import { createTocController } from "./toc.js?v=1.2.2";
 import { createPageMapController } from "./page-map.js?v=1.2.0";
 import { createSettingsController } from "./settings.js";
 import { createProgressController } from "./progress-controller.js";

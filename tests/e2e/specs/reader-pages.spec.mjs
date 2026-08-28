@@ -155,6 +155,14 @@ test('Pages controls and TOC navigate everywhere while desktop keyboard and supp
 
   await page.locator('#tocToggle').click();
   await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
+  // The current reading position must be visibly highlighted in the Contents drawer
+  // (accent-tinted background, brightened text) the way the Libraries drawer marks the
+  // current library. Default reader theme is "garden", whose --text is #ede9f2.
+  const currentTocEntry = page.locator('#tocPanel .toc-entry-link[aria-current="location"]');
+  await expect(currentTocEntry).toHaveCount(1);
+  await expect(currentTocEntry).toHaveClass(/active/);
+  await expect(currentTocEntry).toHaveCSS('color', 'rgb(237, 233, 242)');
+  await expect(currentTocEntry).toHaveText('Chapter One');
   await page.getByRole('button', { name: 'Chapter Two', exact: true }).click();
   await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
   await expect(page.locator('#chapterTitle')).toHaveText('Chapter Two', { timeout: 8_000 });
@@ -162,6 +170,8 @@ test('Pages controls and TOC navigate everywhere while desktop keyboard and supp
   expect(chapterTwo).toContain('epubcfi');
 
   await page.locator('#tocToggle').click();
+  await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
+  await expect(currentTocEntry).toHaveText('Chapter Two', { timeout: 8_000 });
   await page.getByRole('button', { name: 'Chapter One', exact: true }).click();
   await expect(page.locator('#chapterTitle')).toHaveText('Chapter One', { timeout: 8_000 });
   const chapterOne = await currentCfi(page);

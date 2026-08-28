@@ -143,6 +143,11 @@ body,
 .toc-link,.toc-leaf .toc-link,.toc-branch>.toc-row>.toc-link,.bookmark-label{color:var(--muted)!important}
 .toc-link:hover,.toc-expander:hover{color:var(--leaf)!important;background:var(--sg-ui-hover)!important}
 .toc-entry-label:hover{color:var(--muted)!important;background:transparent!important}
+.toc-entry-link.active,.toc-entry-link[aria-current="location"]{
+  color:var(--text)!important;
+  background:color-mix(in srgb,var(--sg-ui-accent) 14%,transparent)!important;
+  box-shadow:inset 2px 0 0 var(--sg-ui-accent)!important;
+}
 .toc-expander,.toc-expander-spacer,.bookmark-meta,.bookmark-empty{color:color-mix(in srgb,var(--muted) 78%,transparent)!important}
 .bookmark-row{border-color:var(--line)!important}
 

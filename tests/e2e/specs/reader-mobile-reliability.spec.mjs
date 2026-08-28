@@ -93,7 +93,10 @@ test('v2.6.6: Continuous section frames stay true to their live document extents
       const frames = [...document.querySelectorAll('#viewer iframe')];
       const shortFrames = frames.filter(f => {
         const d = f.contentDocument;
-        return d && d.documentElement.scrollHeight - Math.round(f.getBoundingClientRect().height) > 4;
+        /* A recycled frame can expose a document without its root element yet; skip it
+           instead of racing the rendition teardown. */
+        return d && d.documentElement
+          && d.documentElement.scrollHeight - Math.round(f.getBoundingClientRect().height) > 4;
       }).length;
       let overlaps = 0;
       const views = [...document.querySelectorAll('.epub-view')];

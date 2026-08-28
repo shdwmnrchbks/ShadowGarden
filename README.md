@@ -1,10 +1,10 @@
-# Shadow Garden v2.6.6
+# Shadow Garden v2.6.7
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The current product release is **v2.6.6 — Continuous Vertical Sync & Focus Controls**, the follow-up patch to the v2.6.1–v2.6.4 hotfixes on the v2.6 Reliability & Real-Browser Testing baseline. Per the owner's decision on reopened issue #160 item 2, the Continuous reading canvas structurally ends where the fixed seek rail begins and artwork bleeds across that full canvas to the rail boundary, while prose keeps readable insets and every containment cap from earlier hotfixes remains as defense-in-depth without changing the established security or browser-local reading-data boundaries.
+The accepted architecture baseline remains v2.0.0. The current product release is **v2.6.7 — Continuous Media Width Independence**, the follow-up patch to the v2.6.1–v2.6.4 hotfixes on the v2.6 Reliability & Real-Browser Testing baseline. Per the owner's decision on reopened issue #160 item 2, the Continuous reading canvas structurally ends where the fixed seek rail begins and artwork bleeds across that full canvas to the rail boundary, while prose keeps readable insets and every containment cap from earlier hotfixes remains as defense-in-depth without changing the established security or browser-local reading-data boundaries. The text-width setting shapes prose only: Continuous artwork sizes against the full reading canvas, and synthetic full-page image plates are immune to the text-width column in every flow.
 
 ## Current feature set
 

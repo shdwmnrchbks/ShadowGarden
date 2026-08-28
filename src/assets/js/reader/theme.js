@@ -221,29 +221,21 @@ export function createThemeController({ getSettings, isAdult }) {
          body{min-width:600px} recreates a canvas wider than the viewport and every
          downstream width cap with it (#160). Reset it on the publication root. */
       body["min-width"] = "0 !important";
-      /* Nothing may paint past the EPUB viewport even when publication CSS uses
-         transforms or positioned wrappers that width caps cannot reach (#160). */
-      body["overflow-x"] = "clip !important";
+      /* No body-level overflow guard: the text-width body is a centered prose column, and
+         Continuous artwork legitimately paints through the slack beside it. Containment
+         (#160) is owned by the canvas boundaries instead — the iframe viewport, the html
+         overflow guard, and the .epub-container/.viewer clipping, all of which end exactly
+         where the structurally excluded seek-rail column begins. */
     }
-    const mediaWrapper = paginated ? {} : {
-      /* Publication CSS sometimes gives figure/picture a fixed or viewport-relative width.
-         Capping only the nested image still lets that oversized wrapper shift the image
-         past the EPUB viewport. Keep common media wrappers inside the Continuous content
-         box and preserve their normal centered presentation. The reading canvas excludes
-         the seek-rail column structurally, so nothing inside can reach Reader chrome. */
-      "max-width": "100% !important",
-      width: "auto !important",
-      "margin-left": "auto !important",
-      "margin-right": "auto !important",
-      "box-sizing": "border-box !important"
-    };
     const blockCap = paginated ? {} : {
       /* Real books rarely wrap artwork in figure/picture alone; plain divs/sections/
          tables can carry fixed or viewport widths that keep feeding oversized boxes to
          nested media. Capping every common publication wrapper keeps the max-width chain
          intact from the padded body down to any nested media element (#160). min-width
          resets matter just as much: a single {min-width:900px} wrapper overrides this
-         max-width cap outright and recreates an oversized canvas (#160). */
+         max-width cap outright and recreates an oversized canvas (#160). Media-only
+         containers escape this cap through the bleed rules below, so the cap continues to
+         own prose-carrying wrappers without re-imposing the text width on artwork. */
       "max-width": "100% !important",
       "min-width": "0 !important",
       "box-sizing": "border-box !important"
@@ -259,33 +251,74 @@ export function createThemeController({ getSettings, isAdult }) {
       "min-width": "0 !important",
       "box-sizing": "border-box !important"
     };
+    /* Continuous media is deliberately independent of the text-width setting: the column
+       cap shapes prose, while artwork expands to the full reading canvas (100vw inside the
+       EPUB iframe). Because a box wider than its containing block would otherwise stick out
+       only to the right and be clipped by the canvas guards, the expansion re-centers with
+       symmetric negative margins. The 100vw cap ends every expanded box exactly at the
+       canvas edge, which structurally excludes the seek-rail column, so the #160
+       containment contract still holds at any text width. Selectors are body-prefixed so
+       the bleed outranks publication !important width rules at equal specificity. */
+    const mediaBleed = {
+      "max-width": "100vw !important",
+      "width": "auto !important",
+      "min-width": "0 !important",
+      "margin-left": "calc((100% - 100vw) / 2) !important",
+      "margin-right": "calc((100% - 100vw) / 2) !important",
+      "padding-left": "0 !important",
+      "padding-right": "0 !important",
+      "box-sizing": "border-box !important"
+    };
+    const mediaBleedBlock = { ...mediaBleed, display: "block !important" };
+    const supportsMediaOnlyBleed = (() => {
+      try {
+        return typeof window !== "undefined" && typeof window.CSS?.supports === "function"
+          && window.CSS.supports("selector(div:has(> img:only-child))");
+      } catch { return false; }
+    })();
+    /* epub.js's default content hook caps img/svg at 95% of the body height measured
+       before the theme applies — a column-pagination helper that shrinks or letterboxes
+       tall artwork in a scrolling canvas. Continuous mode releases that cap; Paginated
+       keeps it because a page really cannot overflow vertically. */
+    const mediaRelease = { "max-height": "none !important" };
+    const mediaOnlySelectors = supportsMediaOnlyBleed
+      ? ["div", "section", "article", "aside", "main", "p", "li"]
+        .flatMap(tag => ["img", "svg", "video", "canvas", "object", "embed"].map(media => `body ${tag}:has(> ${media}:only-child)`))
+        .join(", ")
+      : "";
+    const mediaOnlyCanvas = mediaOnlySelectors ? { [mediaOnlySelectors]: mediaBleed } : {};
     return {
       html: {
         background: `${theme.bg} !important`,
+        /* The canvas-edge horizontal guard lives on the root: its clip boundary is the
+           iframe viewport itself, so the text-width slack beside the prose column stays
+           paintable for full-canvas artwork while nothing can reach past the canvas (#160). */
         ...(paginated ? {} : { "overflow-x": "clip !important", "min-width": "0 !important" })
       },
       body,
       p: { "line-height": `${settings.lineHeight} !important` },
       a: { color: `${theme.link} !important` },
-      figure: mediaWrapper,
-      picture: mediaWrapper,
-      "div, section, article, aside, main, table, td, th": blockCap,
-      "svg, video, canvas, object, embed": {
-        ...mediaSanity,
-        "max-width": "100% !important"
-      },
-      img: {
-        ...mediaSanity,
-        /* The exact content box (viewport minus the reserved rail gutter) replaces the
-           previous min(100%, 92vw) escape hatch, whose vw slack let wide media slip
-           underneath the transparent seek rail again on mobile widths (#160). */
-        "max-width": "100% !important",
-        height: "auto !important",
-        "box-sizing": "border-box !important"
-      },
-      /* v2.6.5: prose keeps readable insets while artwork bleeds to the rail boundary;
-         applying insets only to text selectors avoids double-indenting full-page media. */
       ...(paginated ? {} : {
+        "div, section, article, aside, main, table, td, th": blockCap,
+        "body figure, body picture": mediaBleedBlock,
+        ...mediaOnlyCanvas,
+        "body > img, body > svg, body > video, body > canvas, body > object, body > embed": mediaBleedBlock,
+        "svg, video, canvas, object, embed": {
+          ...mediaSanity,
+          "max-width": "100% !important",
+          ...mediaRelease
+        },
+        img: {
+          ...mediaSanity,
+          /* Inside a bleeded wrapper the 100% now resolves against the full canvas, so
+             artwork scales to the reading canvas instead of the text-width column. */
+          "max-width": "100% !important",
+          ...mediaRelease,
+          "height": "auto !important",
+          "box-sizing": "border-box !important"
+        },
+        /* v2.6.5: prose keeps readable insets while artwork bleeds to the rail boundary;
+           applying insets only to text selectors avoids double-indenting full-page media. */
         "p, li, dd, dt, blockquote, figcaption": {
           "padding-left": "14px !important",
           "padding-right": "14px !important"

@@ -1,4 +1,12 @@
-:root{--chrome:#0b0910;--chrome2:#14101b;--line:rgba(196,184,225,.14);--text:#ede9f2;--muted:#9e96a8;--leaf:#b5a3e5;--gold:#b99d6b;--sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+:root{--chrome:#0b0910;--chrome2:#14101b;--line:rgba(196,184,225,.14);--line2:rgba(196,184,225,.22);--text:#ede9f2;--muted:#9e96a8;--leaf:#b5a3e5;--gold:#b99d6b;--serif:Georgia,"Times New Roman",serif;--sans:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+/* The shared Read Again dialog (volume-actions.css) must render exactly like the public Library
+   dialog on every reader theme. Interface themes re-skin --text/--muted/--line per theme (paper
+   flips to light-page ink), which would put dark text on the dialog's fixed dark card, so the
+   dialog element pins the effective public tokens itself; custom properties on the element beat
+   the inherited theme values. The values mirror the nav.css :root re-declaration that every
+   public surface loads after site.css, so the dialog is token-for-token Library-identical.
+   Adult-reader rose accents stay owned by volume-actions.css. */
+.read-again-dialog{--text:#f0edf5;--muted:#aaa2b5;--line:rgba(196,184,225,.12);--line2:rgba(196,184,225,.22)}
 *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}body{font-family:var(--sans);background:#0b0910;color:var(--text)}button,select,input{font:inherit}.hidden{display:none!important}
 .reader-app{height:100dvh;display:grid;grid-template-rows:54px minmax(0,1fr) 48px;background:#0b0910}
 .reader-topbar,.reader-bottombar{position:relative;z-index:20;display:grid;align-items:center;border-color:var(--line);background:rgba(11,9,16,.95);backdrop-filter:blur(14px)}

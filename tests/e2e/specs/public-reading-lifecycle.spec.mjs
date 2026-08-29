@@ -108,6 +108,27 @@ async function expectAtBeginning(page, bookId) {
   }, { timeout: 12_000 }).toBe(true);
 }
 
+// The shared Read Again dialog must render with the same public Library presentation at every
+// entry point. Reader pages load the shared volume-actions stylesheet and pin the effective
+// public palette tokens (nav.css :root values) on the dialog element because Reader interface
+// themes re-skin --text/--muted/--line per theme; these computed-style assertions fail if
+// either half of that contract regresses. Both call sites must stay identical.
+async function expectLibraryDialogPresentation(page) {
+  const styles = await page.evaluate(() => {
+    const dialog = document.getElementById('readAgainDialog');
+    const cs = getComputedStyle(dialog);
+    const h2 = getComputedStyle(dialog.querySelector('.read-again-card h2'));
+    const copy = getComputedStyle(dialog.querySelector('.read-again-copy'));
+    return { color: cs.color, background: cs.backgroundColor, radius: cs.borderRadius, copyColor: copy.color, h2Font: h2.fontFamily, h2Size: h2.fontSize };
+  });
+  expect(styles.background).toBe('rgb(13, 11, 18)');
+  expect(styles.color).toBe('rgb(240, 237, 245)'); // effective public --text #f0edf5
+  expect(styles.copyColor).toBe('rgb(170, 162, 181)'); // effective public --muted #aaa2b5
+  expect(styles.radius).toBe('16px');
+  expect(styles.h2Font).toContain('Georgia');
+  expect(styles.h2Size).toBe('24.8px'); // 1.55rem serif heading, proving --serif resolves
+}
+
 test('Series → Reader → Continue → Finished → Read Again preserves bookmarks and route continuity', async ({ page, browserDiagnostics }) => {
   await page.goto(seriesUrl);
   await waitForSeries(page);
@@ -157,6 +178,7 @@ test('Series → Reader → Continue → Finished → Read Again preserves bookm
   await openSeriesAction(page, 'Read Again');
   const dialog = page.locator('#readAgainDialog');
   await expect(dialog).toBeVisible();
+  await expectLibraryDialogPresentation(page);
   await expect(page.getByRole('button', { name: 'Keep My Place' })).toBeFocused();
   await page.getByRole('button', { name: 'Begin Again' }).click();
   await expect(page).toHaveURL(/\/reader\.html\?.*restart=1/);
@@ -239,6 +261,7 @@ test('#162 finished-next and last-volume actions restart from the beginning', as
   const nextDialog = page.locator('#readAgainDialog');
   await expect(nextDialog).toBeVisible();
   await expect(nextDialog.locator('[data-read-again-title]')).toHaveText(SECOND_TITLE);
+  await expectLibraryDialogPresentation(page);
   await page.getByRole('button', { name: 'Begin Again' }).click();
   await expect(page).toHaveURL(new RegExp(`/reader\\.html\\?book=${SECOND_BOOK_ID}.*restart=1`));
   await waitForReaderBook(page, SECOND_BOOK_ID);

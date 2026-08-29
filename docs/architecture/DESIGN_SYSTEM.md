@@ -59,12 +59,13 @@ The complete contract is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGAT
 
 ## Reader ownership
 
-- `reader.css` — Reader token/chrome foundation and core layout.
+- `reader.css` — Reader token/chrome foundation and core layout, including the Library-parity token pin that keeps the shared Read Again dialog on the public dialog palette across every Reader interface theme.
 - `reader-continuous-rail.css` — Continuous seek rail.
 - `reader-page-map.css` — Page Map UI.
 - `reader-completion.css` — settings toggle plus volume-completion presentation.
 - `reader-end-page.css` — explicit end-page layout.
 - `reading-status.css` — shared Finished/read-state primitive.
+- `volume-actions.css` — shared Read Again confirmation dialog primitive; the Reader consumes the same primitive as the public Library/Series surfaces so the dialog is identical at both entry points.
 - `reader-image-focus.css` — isolated image-focus overlay.
 - `reader-a11y.css` — Reader accessibility adaptations.
 - `reader-interface-themes.css` — Reader interface theme palettes.

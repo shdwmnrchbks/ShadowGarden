@@ -13,10 +13,12 @@
 .read-again-confirm{border:1px solid rgba(181,163,229,.38);color:#efe9fb;background:rgba(154,134,211,.13)}
 .read-again-cancel:hover,.read-again-cancel:focus-visible{color:var(--text);border-color:var(--line2)}
 .read-again-confirm:hover,.read-again-confirm:focus-visible{border-color:rgba(202,186,242,.55);background:rgba(154,134,211,.2)}
-.adult-library .read-again-dialog{border-color:rgba(225,151,173,.24);background:#140b0f}
-.adult-library .read-again-mark{color:#e0a8b8;border-color:rgba(225,151,173,.26);background:rgba(201,130,153,.08)}
-.adult-library .read-again-kicker{color:#c98299}
-.adult-library .read-again-copy strong{color:#e6bec9}
-.adult-library .read-again-confirm{border-color:rgba(225,151,173,.36);color:#f1dce2;background:rgba(183,121,139,.12)}
+/* Adult variant covers both public scopes: .adult-library (Library/Series surfaces) and
+   .adult-reader (Reader surface), so the dialog is identical wherever it is invoked. */
+.adult-library .read-again-dialog,.adult-reader .read-again-dialog{border-color:rgba(225,151,173,.24);background:#140b0f}
+.adult-library .read-again-mark,.adult-reader .read-again-mark{color:#e0a8b8;border-color:rgba(225,151,173,.26);background:rgba(201,130,153,.08)}
+.adult-library .read-again-kicker,.adult-reader .read-again-kicker{color:#c98299}
+.adult-library .read-again-copy strong,.adult-reader .read-again-copy strong{color:#e6bec9}
+.adult-library .read-again-confirm,.adult-reader .read-again-confirm{border-color:rgba(225,151,173,.36);color:#f1dce2;background:rgba(183,121,139,.12)}
 @media(max-width:520px){.read-again-card{padding:19px}.read-again-actions{display:grid;grid-template-columns:1fr}.read-again-actions button{width:100%}}
 @media(prefers-reduced-motion:reduce){.read-again-dialog::backdrop{backdrop-filter:none}}

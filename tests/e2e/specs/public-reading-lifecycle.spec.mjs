@@ -126,7 +126,9 @@ async function expectLibraryDialogPresentation(page) {
   expect(styles.copyColor).toBe('rgb(170, 162, 181)'); // effective public --muted #aaa2b5
   expect(styles.radius).toBe('16px');
   expect(styles.h2Font).toContain('Georgia');
-  expect(styles.h2Size).toBe('24.8px'); // 1.55rem serif heading, proving --serif resolves
+  // 1.55rem serif heading; tolerant of WebKit's 24.799999px rounding. If --serif stopped
+  // resolving, the font shorthand would be invalid and the size would fall back to ~16px.
+  expect(Number.parseFloat(styles.h2Size)).toBeCloseTo(24.8, 1);
 }
 
 test('Series → Reader → Continue → Finished → Read Again preserves bookmarks and route continuity', async ({ page, browserDiagnostics }) => {

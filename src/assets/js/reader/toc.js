@@ -72,6 +72,8 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
   let pageResolver = null;
   let tree = null;
   let searchInput = null;
+  let searchTools = null;
+  let searchToggle = null;
   let currentButton = null;
   let filterEmpty = null;
 
@@ -209,9 +211,45 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
     applyFilter("");
   }
 
+  function setSearchExpanded(expanded, { focus = true } = {}) {
+    if (!searchTools || !searchToggle) return;
+    if (!expanded) clearFilter();
+    searchTools.hidden = !expanded;
+    searchToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    searchToggle.classList.toggle("active", expanded);
+    if (expanded && focus) queueMicrotask(() => searchInput?.focus());
+  }
+
+  function installSearchToggle() {
+    const drawer = panel.closest?.(".reader-drawer") || null;
+    const tabs = drawer?.querySelector?.(".drawer-tabs") || null;
+    if (!tabs) return;
+    tabs.querySelector(".toc-search-toggle")?.remove();
+
+    searchToggle = document.createElement("button");
+    searchToggle.type = "button";
+    searchToggle.className = "toc-search-toggle";
+    searchToggle.title = "Search contents";
+    searchToggle.setAttribute("aria-label", "Search contents");
+    searchToggle.setAttribute("aria-controls", "tocSearchTools");
+    searchToggle.setAttribute("aria-expanded", "false");
+    searchToggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>';
+    searchToggle.addEventListener("click", () => {
+      const contentsTab = tabs.querySelector('button[data-panel="toc"]');
+      if (contentsTab && !contentsTab.classList.contains("active")) contentsTab.click();
+      setSearchExpanded(searchTools?.hidden !== false);
+    });
+    tabs.appendChild(searchToggle);
+
+    const bookmarksTab = tabs.querySelector('button[data-panel="bookmarks"]');
+    bookmarksTab?.addEventListener("click", () => setSearchExpanded(false, { focus: false }));
+  }
+
   function createTools() {
     const tools = document.createElement("div");
+    tools.id = "tocSearchTools";
     tools.className = "toc-tools";
+    tools.hidden = true;
 
     searchInput = document.createElement("input");
     searchInput.className = "toc-search";
@@ -223,9 +261,13 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
     searchInput.setAttribute("aria-controls", "tocTree");
     searchInput.addEventListener("input", () => applyFilter(searchInput.value));
     searchInput.addEventListener("keydown", event => {
-      if (event.key !== "Escape" || !searchInput.value) return;
+      if (event.key !== "Escape") return;
       event.preventDefault();
-      clearFilter();
+      if (searchInput.value) clearFilter();
+      else {
+        setSearchExpanded(false, { focus: false });
+        searchToggle?.focus();
+      }
     });
     tools.appendChild(searchInput);
 
@@ -253,8 +295,11 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
     activeButton = null;
     tree = null;
     searchInput = null;
+    searchTools = null;
     currentButton = null;
     filterEmpty = null;
+    panel.closest?.(".reader-drawer")?.querySelector?.(".toc-search-toggle")?.remove();
+    searchToggle = null;
     panel.replaceChildren();
     if (!items.length) {
       const empty = document.createElement("p");
@@ -264,7 +309,9 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
       return;
     }
 
-    panel.appendChild(createTools());
+    searchTools = createTools();
+    panel.appendChild(searchTools);
+    installSearchToggle();
     tree = document.createElement("div");
     tree.id = "tocTree";
     tree.className = "toc-tree";

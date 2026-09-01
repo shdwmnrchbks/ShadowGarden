@@ -26,8 +26,10 @@ function epochToIso(value) {
 
 export async function loadBuildContext() {
   const pkg = JSON.parse(await fs.readFile(path.join(ROOT, "package.json"), "utf8"));
-  const version = String(pkg.version || "").trim();
-  if (!version) throw new Error("package.json version is required for deployment metadata.");
+  const releaseVersion = String(pkg.version || "").trim();
+  const version = String(pkg.deploymentVersion || releaseVersion).trim();
+  if (!releaseVersion) throw new Error("package.json version is required for release metadata.");
+  if (!version) throw new Error("package.json deploymentVersion or version is required for deployment metadata.");
 
   const commit = String(
     process.env.CF_PAGES_COMMIT_SHA ||
@@ -51,6 +53,7 @@ export async function loadBuildContext() {
   return {
     name: "Shadow Garden",
     version,
+    releaseVersion,
     commit: commit || null,
     shortCommit: commit ? commit.slice(0, 7) : null,
     branch: branch || null,

@@ -1,13 +1,28 @@
 /* Shadow Garden R4 — canonical Reader settings/UI owner. */
 const clamp=(value,min,max)=>Math.min(max,Math.max(min,Number(value)||min));
 
-export const READER_DEFAULTS={theme:"garden",font:"book",fontSize:100,lineHeight:1.6,width:760,flow:"paginated",swipeTurns:true};
+export const READER_FONT_CHOICES=Object.freeze([
+  Object.freeze({value:"default",label:"Default"}),
+  Object.freeze({value:"pt-sans",label:"Sans"}),
+  Object.freeze({value:"literata",label:"Serif"}),
+  Object.freeze({value:"inter",label:"Sans-Serif"})
+]);
+const READER_FONT_VALUES=new Set(READER_FONT_CHOICES.map(option=>option.value));
+
+function normalizeReaderFont(value){
+  if(READER_FONT_VALUES.has(value))return value;
+  if(value==="system")return "inter";
+  if(value==="classic")return "literata";
+  return "default";
+}
+
+export const READER_DEFAULTS={theme:"garden",font:"default",fontSize:100,lineHeight:1.6,width:760,flow:"paginated",swipeTurns:true};
 
 export function sanitizeReaderSettings(value){
   const input=value||{};
   return{
     theme:["garden","night","black","paper"].includes(input.theme)?input.theme:READER_DEFAULTS.theme,
-    font:["book","system","classic"].includes(input.font)?input.font:READER_DEFAULTS.font,
+    font:normalizeReaderFont(input.font),
     fontSize:clamp(input.fontSize??READER_DEFAULTS.fontSize,75,160),
     lineHeight:clamp(input.lineHeight??READER_DEFAULTS.lineHeight,1.25,2.1),
     width:clamp(input.width??READER_DEFAULTS.width,560,1050),
@@ -26,9 +41,21 @@ export function createSettingsController({storage,elements,isAdult=false,onApply
     const scrolled=settings.flow==="scrolled-doc";
     document.body.classList.toggle("reader-flow-scrolled",scrolled);document.body.classList.toggle("reader-flow-paginated",!scrolled);
   }
+  function syncFontOptions(){
+    const select=elements.fontSelect;if(!select)return;
+    const current=Array.from(select.options||[],option=>`${option.value}:${option.textContent}`).join("|");
+    const desired=READER_FONT_CHOICES.map(option=>`${option.value}:${option.label}`).join("|");
+    if(current!==desired){
+      const doc=select.ownerDocument||document;
+      select.replaceChildren(...READER_FONT_CHOICES.map(choice=>{
+        const option=doc.createElement("option");option.value=choice.value;option.textContent=choice.label;return option;
+      }));
+    }
+    select.value=settings.font;
+  }
   function syncControls(){
     if(elements.themeSelect)elements.themeSelect.value=settings.theme;
-    if(elements.fontSelect)elements.fontSelect.value=settings.font;
+    syncFontOptions();
     if(elements.fontSizeRange)elements.fontSizeRange.value=settings.fontSize;
     if(elements.fontSizeValue)elements.fontSizeValue.textContent=`${settings.fontSize}%`;
     if(elements.lineHeightRange)elements.lineHeightRange.value=settings.lineHeight;

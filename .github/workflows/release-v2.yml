@@ -3,7 +3,7 @@ name: Publish Shadow Garden v2
 on:
   workflow_run:
     workflows:
-      - Verify Shadow Garden
+      - Real Browser E2E
     types:
       - completed
 
@@ -18,10 +18,11 @@ concurrency:
 jobs:
   release:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
-    # This release gate is shell/Linux-oriented. Keep the OS requirement, but
-    # allow any Linux x64 self-hosted runner rather than one named machine.
+    # Release starts only after the matching Linux E2E run has completed, so it
+    # can never occupy the sole Linux runner while waiting for E2E on that same
+    # machine.
     runs-on: [self-hosted, Linux, X64]
-    timeout-minutes: 50
+    timeout-minutes: 30
     steps:
       - name: Checkout verified main commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -50,6 +51,47 @@ jobs:
           echo "notes=$NOTES" >> "$GITHUB_OUTPUT"
           echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Require matching Verify Shadow Garden
+        if: steps.release.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.release.outputs.head_sha }}
+        run: |
+          matched=false
+          for attempt in $(seq 1 30); do
+            runs="$(gh api --method GET \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/verify.yml/runs" \
+              -f branch=main \
+              -f event=push \
+              -f head_sha="$HEAD_SHA" \
+              -f per_page=10)"
+            run="$(printf '%s' "$runs" | jq -c '.workflow_runs | sort_by(.run_number) | last // empty')"
+            if [ -z "$run" ]; then
+              echo "Verify attempt $attempt: no main push run for $HEAD_SHA yet."
+              sleep 10
+              continue
+            fi
+
+            status="$(printf '%s' "$run" | jq -r '.status // empty')"
+            conclusion="$(printf '%s' "$run" | jq -r '.conclusion // empty')"
+            url="$(printf '%s' "$run" | jq -r '.html_url // empty')"
+            echo "Verify attempt $attempt: status=${status:-unknown} conclusion=${conclusion:-pending} ${url:-}"
+
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" = "success" ]; then
+                matched=true
+                break
+              fi
+              echo "Verify completed with ${conclusion:-unknown} for $HEAD_SHA." >&2
+              exit 1
+            fi
+            sleep 10
+          done
+          if [ "$matched" != "true" ]; then
+            echo "Verify never completed successfully for main commit $HEAD_SHA." >&2
+            exit 1
+          fi
+
       - name: Check whether GitHub release already exists
         id: existing
         if: steps.release.outputs.publish == 'true'
@@ -62,47 +104,6 @@ jobs:
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Require matching Real Browser E2E
-        if: steps.release.outputs.publish == 'true' && steps.existing.outputs.exists != 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ steps.release.outputs.head_sha }}
-        run: |
-          matched=false
-          for attempt in $(seq 1 90); do
-            runs="$(gh api --method GET \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/e2e.yml/runs" \
-              -f branch=main \
-              -f event=push \
-              -f head_sha="$HEAD_SHA" \
-              -f per_page=10)"
-            run="$(printf '%s' "$runs" | jq -c '.workflow_runs | sort_by(.run_number) | last // empty')"
-            if [ -z "$run" ]; then
-              echo "Real Browser E2E attempt $attempt: no main push run for $HEAD_SHA yet."
-              sleep 20
-              continue
-            fi
-
-            status="$(printf '%s' "$run" | jq -r '.status // empty')"
-            conclusion="$(printf '%s' "$run" | jq -r '.conclusion // empty')"
-            url="$(printf '%s' "$run" | jq -r '.html_url // empty')"
-            echo "Real Browser E2E attempt $attempt: status=${status:-unknown} conclusion=${conclusion:-pending} ${url:-}"
-
-            if [ "$status" = "completed" ]; then
-              if [ "$conclusion" = "success" ]; then
-                matched=true
-                break
-              fi
-              echo "Real Browser E2E completed with ${conclusion:-unknown} for $HEAD_SHA." >&2
-              exit 1
-            fi
-            sleep 20
-          done
-          if [ "$matched" != "true" ]; then
-            echo "Real Browser E2E never completed successfully for main commit $HEAD_SHA." >&2
-            exit 1
           fi
 
       - name: Wait for matching Cloudflare production deployment

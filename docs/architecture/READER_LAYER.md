@@ -3,9 +3,12 @@
 **Refactor milestone:** R4 + R4.1 Reader architecture and stabilization  
 **R4 release:** Shadow Garden v1.18.0  
 **R4.1 release:** Shadow Garden v1.19.0  
+**Ownership reconciliation:** Shadow Garden v2.8.0  
 **Security boundary:** authorized private EPUB source, browser-local reading state, no Reader accounts
 
 R4 replaced the Reader monolith with explicit session/application controllers. R4.1 consolidates what was learned from the v1.18.1–v1.18.3 corrective releases: Reader-wide zoom is retired, Continuous touch scrolling remains native, and Pages navigation input is separated from focused-image interaction.
+
+The v2.8 ownership audit keeps those boundaries but tightens two permanent seams: canonical progress presentation now crosses to the Continuous rail through an explicit Reader event, and coarse-pointer image activation compatibility is subordinate to the image-focus feature rather than being loaded by the accessibility bridge.
 
 ## Dependency direction
 
@@ -13,6 +16,7 @@ R4 replaced the Reader monolith with explicit session/application controllers. R
 reader-bootstrap.js
       |
       +--> reader/book-session.js ----> book-access.js + R2 domain
+      +--> reader/image-focus-touch-compat.js
       |
       v
 reader/app.js
@@ -42,12 +46,25 @@ Read Again reset happens before EPUB.js opens. Finished + progress aliases are c
 - `reader/paginated.js` — Pages next/previous commands.
 - `reader/continuous.js` — application-level Continuous navigation/target resolution.
 - `reader/page-map.js` — canonical device Page Map.
-- `reader/progress-controller.js` — live/saved progress and seeking over R2 persistence.
+- `reader/progress-controller.js` — live/saved progress, progress presentation, and seeking over R2 persistence.
 - `reader/bookmarks-controller.js` — bookmark UI/navigation over R2 persistence.
 - `reader/completion.js` — Finished toggle, end-page state and next-volume completion.
 - `reader/settings.js` / `reader/theme.js` — Reader settings and presentation.
 - `reader/page-navigation-input.js` — Pages-only horizontal swipe and desktop wheel turns.
 - `reader/image-focus.js` — image selection, focused-image overlay, pinch/pan/close behavior.
+- `reader/image-focus-touch-compat.js` — coarse-pointer delivery compatibility only; it converts a short TouchEvent tap into the existing image-focus click path and owns no focus state or presentation.
+
+## Progress presentation contract
+
+`reader/progress-controller.js` is the single writer for canonical Reader progress semantics. It derives the visible summary, compact summary, Continuous rail label, and accessible description from one `formatReaderProgress()` result.
+
+After writing the normal progress range/text surface, the controller publishes `sg:reader-progress` with that presentation object. `reader-continuous-rail.js` consumes this event and mirrors the presentation onto the vertical rail. The rail may proxy seek input back through `#progressRange`, but it must not infer canonical page/chapter semantics or observe `#progressText` mutations.
+
+In particular:
+
+- no second module writes an alternate `aria-valuetext` for the same progress state;
+- `MutationObserver` and `data-rail` / `data-accessible` are not synchronization channels;
+- Page Map readiness may enrich the canonical presentation, but Reader startup and seeking continue to have EPUB location/spine fallbacks.
 
 ## R4.1 input ownership
 
@@ -61,9 +78,11 @@ Pages mode recognizes a horizontal swipe only after the gesture ends. Continuous
 
 ### `image-focus.js`
 
-This module observes only image clicks inside EPUB documents. Selecting an `<img>` opens a top-level overlay without changing the live EPUB rendition.
+This module owns image activation and the focused-image experience. Selecting an `<img>` opens a top-level overlay without changing the live EPUB rendition.
 
-Inside that overlay only:
+Some coarse-pointer WebKit/EPUB iframe combinations need TouchEvent-to-click delivery help. `image-focus-touch-compat.js` is a subordinate transport adapter for that browser defect; it does not decide whether focus should open, does not mutate focus state, and does not implement zoom/pan behavior. It is loaded by Reader startup, not by accessibility code.
+
+Inside the focus overlay only:
 
 1. pinch zooms the focused image from 1x to 4x;
 2. one-finger drag pans only while magnified;
@@ -106,9 +125,10 @@ The stabilization pass folds the post-R4 corrective work back into architecture:
 - `reader-visual-cache.js` — standalone visual-page preprocessing/cache.
 - `reader-paginated-visual-fit.js` — visual-page fitting compatibility.
 - `reader-continuous-core.js` — bounded Continuous manager buffering/render lifecycle and physical end page.
-- `reader-continuous-rail.js` — vertical seek UI proxy.
+- `reader-continuous-rail.js` — vertical seek UI proxy consuming canonical progress presentation.
+- `reader/image-focus-touch-compat.js` — coarse-pointer activation transport subordinate to image focus.
 
-These may patch EPUB.js behavior, but they are not second owners for progress, bookmarks, Finished state, Reader settings, Page/Continuous input, or image focus.
+These may patch browser/EPUB.js delivery or rendering behavior, but they are not second owners for progress, bookmarks, Finished state, Reader settings, Page/Continuous input, or image-focus state.
 
 ## Reader state invariants
 
@@ -138,4 +158,6 @@ R4.1 additionally retires:
 - `src/assets/js/reader/gestures.js`
 - `src/assets/css/reader-zoom.css`
 
-Reader CSS consolidation beyond responsibility-correct image-focus naming remains R7 work; grandfathered `reader-polish.css` and `reader-v1.10.1.css` stay until that visual refactor.
+The v2.8 ownership reconciliation additionally retires `src/assets/js/reader-mobile-reliability.js`; its required browser fallback now lives at `reader/image-focus-touch-compat.js` under the image-focus boundary.
+
+Reader CSS responsibility was consolidated during R7. Historical R4/R4.1 references to future CSS consolidation are no longer current architecture guidance.

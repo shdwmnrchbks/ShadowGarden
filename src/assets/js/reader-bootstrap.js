@@ -2,6 +2,7 @@
 import { createAuthorizedBookSession, finalizeBookSession } from "./reader/book-session.js";
 import { startReader } from "./reader/app.js";
 import { installReaderInteractionController } from "./reader/interaction-controller.js";
+import "./reader/image-focus-touch-compat.js";
 
 const interactions=installReaderInteractionController();
 

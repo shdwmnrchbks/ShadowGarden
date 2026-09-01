@@ -1,4 +1,8 @@
-/* Shadow Garden v2.6 — coarse-pointer image activation reliability. */
+/* Coarse-pointer compatibility transport for reader/image-focus.js.
+ * This module does not own image-focus state or presentation. It only converts a
+ * short TouchEvent tap into the click activation already owned by image-focus.js
+ * on browsers where EPUB iframe pointer/click delivery is unreliable.
+ */
 
 const viewer=document.getElementById("viewer");
 const coarse=window.matchMedia?.("(pointer:coarse)")?.matches||Number(navigator.maxTouchPoints)>0;

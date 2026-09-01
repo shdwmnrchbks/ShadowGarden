@@ -23,6 +23,9 @@ export function createProgressController({storage,elements,getBook,getRendition,
     const value=clamp01(percentage),page=value>=1?total:Math.min(total,Math.floor(value*total)+1);
     return{page,totalPages:total,pageFraction:value>=1?1:(value*total)%1};
   }
+  function publishPresentation(presentation){
+    try{document.dispatchEvent(new CustomEvent("sg:reader-progress",{detail:presentation}))}catch{}
+  }
   function setProgressUI(percentage,position=state.currentPosition){
     const range=elements.progressRange,text=elements.progressText;
     const chapter=String(position?.chapter||(position?.cfi?getChapter?.():"")||"").trim();
@@ -31,12 +34,15 @@ export function createProgressController({storage,elements,getBook,getRendition,
     if(text){
       text.textContent=presentation.visual;
       text.dataset.compact=presentation.compact;
+      // Read-only diagnostics for browser tests and inspection. Continuous rail ownership
+      // remains event-driven through sg:reader-progress and never consumes these attributes.
       text.dataset.rail=presentation.rail;
       text.dataset.accessible=presentation.accessible;
       text.title=!Number(position?.totalPages)&&getPageMap?.()?.isGenerating?.()
         ?`${presentation.accessible} · Preparing device page map…`
         :presentation.accessible;
     }
+    publishPresentation(presentation);
   }
   function approximateProgress(location){
     const book=getBook?.(),displayed=location?.start?.displayed,href=String(location?.start?.href||"").split("#")[0];

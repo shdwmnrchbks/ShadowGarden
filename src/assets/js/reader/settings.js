@@ -36,11 +36,16 @@ export function sanitizeReaderSettings(value){
   };
   const requested=[...TYPOGRAPHY_PRESET_NAMES,"custom"].includes(input.typographyPreset)?input.typographyPreset:"";
   const inferred=inferredTypographyPreset(settings);
-  settings.typographyPreset=requested&&requested!=="custom"&&matchesTypography(settings,READER_TYPOGRAPHY_PRESETS[requested])?requested:inferred;
+  if(requested==="custom")settings.typographyPreset="custom";
+  else if(requested&&matchesTypography(settings,READER_TYPOGRAPHY_PRESETS[requested]))settings.typographyPreset=requested;
+  else settings.typographyPreset=inferred;
   return settings;
 }
 
 export function createSettingsController({storage,elements,isAdult=false,onApply,onFlowChange,onReset}={}){
+  elements=elements||{};
+  elements.typographyPresetSelect ||= document.querySelector("#typographyPresetSelect");
+  elements.paragraphSpacingSelect ||= document.querySelector("#paragraphSpacingSelect");
   let settings=sanitizeReaderSettings(storage.loadSettings(READER_DEFAULTS));
 
   function syncBody(){

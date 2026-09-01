@@ -163,9 +163,16 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [x] Migrate legacy browser-local font preferences safely (`book` → Default, `system` → Inter, `classic` → Literata).
 - [x] Keep font size, line height, text width, flow, and the rest of the existing Reader settings unchanged.
 
+## Slice 2 — Clear location and progress
+
+- [x] Present the canonical device page, volume percentage, and current chapter together in Pages mode without introducing a second progress calculation.
+- [x] Keep narrow/mobile chrome compact by prioritizing page and percentage visually while retaining full chapter context in the underlying label and accessibility text.
+- [x] Make the Continuous seek rail mirror the same canonical progress owner with a compact page label and a richer `aria-valuetext`/title.
+- [x] Preserve the existing browser-local progress payload and Page Map ownership; Slice 2 is a presentation change, not a persistence migration.
+- [x] Add deterministic formatter coverage and a real-browser regression spanning Pages and Continuous presentation.
+
 ## Candidate follow-up scope
 
-- [ ] Improve location/progress presentation so chapter and volume position are understandable without clutter.
 - [ ] Improve TOC and chapter navigation for long books.
 - [ ] Add in-book text search if EPUB.js/runtime constraints permit a robust implementation.
 - [ ] Improve bookmark management beyond add/remove at the current location.

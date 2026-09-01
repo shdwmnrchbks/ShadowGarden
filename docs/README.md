@@ -5,6 +5,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 ## 🚧 Current work in progress
 
 - [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 through v2.6.7 are focused Continuous Reader fixes; **v2.7.0 Performance Sanity is deferred/optional**, and the active feature release is **v2.8.0 Reader Experience**, followed by Keeper recovery/productivity and maintenance/supply-chain work.
+- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — **active version ownership**. The live deployment/product line is v2.8.0 while v2.6.7 remains the latest completed formal release until the v2.8 milestone is cut.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
@@ -18,6 +19,7 @@ Completed or superseded plans must not remain marked as current. Historical road
 - [`architecture/MODULE_CONVENTIONS.md`](./architecture/MODULE_CONVENTIONS.md) — module naming, ownership, DOM/state, and placement rules.
 - [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md) — authored/generated boundaries, Node/CI policy, dependency policy, root layout, and deploy asset versioning.
 - [`architecture/BUILD_DEPLOYMENT.md`](./architecture/BUILD_DEPLOYMENT.md) — locked dependency tree, `npm ci`, deterministic build context, deployment metadata, no-bundler decision, and verified v2 release-publisher contract.
+- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — active deployment version versus formal release version ownership and final-release convergence rules.
 - [`architecture/DOMAIN_LAYER.md`](./architecture/DOMAIN_LAYER.md) — canonical catalog, identity, progress, bookmarks, reading-state, preferences, URL, and formatting services.
 - [`architecture/PUBLIC_UI_LAYER.md`](./architecture/PUBLIC_UI_LAYER.md) — Library/Series controllers, renderers, shared volume actions, and removed public repair layers.
 - [`architecture/READER_LAYER.md`](./architecture/READER_LAYER.md) — authorized Reader session, app/controllers, Page/Continuous adapters, input ownership, image focus, native Continuous touch invariant, and retained EPUB.js compatibility boundaries.
@@ -35,7 +37,7 @@ Completed or superseded plans must not remain marked as current. Historical road
 
 ## Releases
 
-Release notes remain in `docs/releases/`; completed milestone planning records are also preserved in the planning archive.
+Release notes remain in `docs/releases/`; this list records completed formal releases. Active v2.8 slice work is tracked by the roadmap rather than by premature final release notes.
 
 - [`releases/v2.0.0.md`](./releases/v2.0.0.md) — v2 architecture baseline release.
 - [`releases/v2.4.0.md`](./releases/v2.4.0.md) — Interaction & UX Polish release.
@@ -59,7 +61,7 @@ The permanent release baseline now combines deterministic checks with real brows
 - `npm run test:e2e` — Playwright against generated production output across Chromium/Firefox/WebKit desktop and Chromium/WebKit mobile;
 - `.github/workflows/verify.yml` — complete repository checks and production build;
 - `.github/workflows/e2e.yml` — bounded real-browser matrix and retained failure artifacts;
-- `.github/workflows/release-v2.yml` — exact-main Verify + real-browser success, matching Cloudflare version/commit, production smoke, then GitHub v2 release publication.
+- `.github/workflows/release-v2.yml` — exact-main Verify + real-browser success, matching Cloudflare version/commit, production smoke, then GitHub v2 release publication from the formal release version.
 
 ## Archived roadmaps and milestones
 

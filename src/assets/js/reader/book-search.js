@@ -130,7 +130,6 @@ export function createBookSearchController({drawer,form,input,status,results,get
     for(let index=0;index<sections.length&&hits.length<MAX_RESULTS;index++){
       if(id!==runId)return[];
       const section=sections[index];
-      if(section?.linear===false)continue;
       const wasLoaded=Boolean(section?.contents);
       try{
         await section.load(book.load.bind(book));

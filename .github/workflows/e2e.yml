@@ -18,7 +18,9 @@ concurrency:
 
 jobs:
   playwright:
-    runs-on: [self-hosted, Linux, X64, steamdeck]
+    # Job containers require a Linux self-hosted runner. Do not bind this to a
+    # particular machine; any Linux x64 runner in the org can accept it.
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
     container:
       image: mcr.microsoft.com/playwright:v1.62.1-noble

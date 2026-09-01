@@ -1,11 +1,11 @@
-# Shadow Garden Current Roadmap — Reliability, Scale & Reader Experience
+# Shadow Garden Current Roadmap — Reliability, Reader Experience & Operations
 
 > **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
-> **Starting baseline:** v2.5.0 — Motion & Continuity  
-> **Active release:** v2.7.0 — Performance & Scale  
-> **Updated:** 2026-08-26
+> **Starting baseline:** v2.6.x — Reliability & Reader hardening  
+> **Active release:** v2.8.0 — Reader Experience  
+> **Updated:** 2026-09-01
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, and the v2.6 real-browser reliability milestone. The active phase now establishes measurable performance limits and scale fixtures before moving into deeper Reader experience and Garden Keeper recovery/productivity work.
+Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, and the v2.6 real-browser reliability milestone, followed by targeted v2.6.x Reader fixes. The next substantial product milestone is Reader Experience. Performance work is intentionally limited to realistic personal-library scale and should not displace Reader work unless measurements expose a real bottleneck.
 
 Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
 
@@ -13,12 +13,13 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 
 1. **Reliability before new surface area.** A feature is not complete if it works only in source-contract tests or one browser configuration.
 2. **Reader stability remains the highest-risk product contract.** Pages, Continuous, Page Map, progress, bookmarks, image focus, ticket renewal, orientation changes, and navigation require regression coverage.
-3. **Measure before optimizing.** Performance work begins with reproducible fixtures and budgets, not speculative rewrites.
-4. **Preserve v2 ownership.** Do not reintroduce duplicate state/UI owners, patch layers, or a framework rewrite without measured need.
-5. **Preserve security invariants.** Private B2, signed media tickets, opaque identities, Turnstile/Garden Pass, signed Keeper sessions, abuse controls, protected Range delivery, and public catalog redaction remain contracts.
-6. **Reading data stays browser-local.** No Reader accounts or server-side reading history are introduced by this roadmap.
-7. **Accessibility is a functional requirement.** Keyboard use, reduced motion, forced colors, increased contrast, zoom, focus restoration, and touch targets must be verified in a real browser.
-8. **Small release slices.** Each release must leave `main` deployable and pass the production release gate.
+3. **Measure realistic usage before optimizing.** Shadow Garden is a personal library; performance work should target the expected collection ceiling (roughly 250–300 series) plus representative large EPUBs, not speculative 1,000+ series workloads.
+4. **Optimize only demonstrated bottlenecks.** Do not add virtualization, framework/bundler changes, or architectural complexity without a measured problem at realistic scale.
+5. **Preserve v2 ownership.** Do not reintroduce duplicate state/UI owners, patch layers, or a framework rewrite without measured need.
+6. **Preserve security invariants.** Private B2, signed media tickets, opaque identities, Turnstile/Garden Pass, signed Keeper sessions, abuse controls, protected Range delivery, and public catalog redaction remain contracts.
+7. **Reading data stays browser-local.** No Reader accounts or server-side reading history are introduced by this roadmap.
+8. **Accessibility is a functional requirement.** Keyboard use, reduced motion, forced colors, increased contrast, zoom, focus restoration, and touch targets must be verified in a real browser.
+9. **Small release slices.** Each release must leave `main` deployable and pass the production release gate.
 
 ## Status legend
 
@@ -32,9 +33,9 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | Release | Status | Primary outcome |
 | --- | --- | --- |
 | **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
-| **v2.7.0 — Performance & Scale** | 🟨 In progress | Establish performance budgets and keep Library/Reader responsive as the collection and EPUB size grow |
-| **v2.8.0 — Reader Experience** | ⬜ Planned | Improve long-session reading ergonomics, navigation, typography, search/notes behavior, and EPUB resilience |
-| **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make large-library administration faster and prove recovery from catalog/storage failures |
+| **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
+| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, typography, search/notes behavior, and EPUB resilience |
+| **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make library administration faster and prove recovery from catalog/storage failures |
 | **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
 
 ---
@@ -106,45 +107,52 @@ The reusable v2 publisher now requires the exact `main` commit to pass both Veri
 
 ---
 
-# v2.7.0 — Performance & Scale
+# v2.7.0 — Performance Sanity
 
-**Status:** 🟨 In progress  
-**Goal:** establish measurable responsiveness budgets before the personal library becomes large enough to expose architectural bottlenecks.
+**Status:** ⏸ Deferred / optional  
+**Goal:** retain a small, realistic performance guard without spending a full development cycle on scale Shadow Garden is not expected to reach.
 
-## 2.7A — Reproducible scale fixtures
+This milestone is deliberately bounded. It may be completed as a small standalone release, folded into v2.8, or left deferred until profiling shows a real need. It must not block Reader Experience work merely to satisfy an arbitrary release number.
 
-- [ ] Add generated 50-, 250-, 1,000-, and larger-series catalog fixtures without committing real library metadata.
-- [ ] Add representative small, medium, and large EPUB fixtures/metadata profiles.
-- [ ] Keep performance fixtures deterministic and safe for CI.
+## 2.7A — Realistic fixtures
 
-## 2.7B — Budgets and measurement
+- [ ] Add one deterministic catalog stress fixture around the expected upper bound of **250–300 series** without committing real library metadata.
+- [ ] Add or identify one representative large EPUB fixture/profile for Reader startup and Continuous-mode sanity checks.
+- [ ] Keep fixtures deterministic, lightweight, and safe for CI.
 
-- [ ] Measure Library first meaningful catalog paint and post-hydration stability.
-- [ ] Measure search/filter/sort response latency at scale.
-- [ ] Measure Series render time for large volume counts.
-- [ ] Measure Reader time-to-first-readable-page for representative EPUB sizes.
-- [ ] Measure long-session Reader memory growth, Continuous scrolling stability, layout shifts, and long tasks.
-- [ ] Establish regression budgets with enough tolerance to avoid flaky CI while still catching meaningful degradation.
+## 2.7B — Minimal measurement
 
-## 2.7C — Targeted optimization
+- [ ] Confirm Library load, search, filtering, sorting, and Series navigation remain subjectively responsive at the 250–300-series fixture.
+- [ ] Record a lightweight baseline for Reader time-to-first-readable-page on the large EPUB fixture.
+- [ ] Exercise an extended Continuous-mode session well enough to catch obvious runaway memory growth, severe layout instability, or long-task regressions.
+- [ ] Prefer broad regression thresholds or documented observations over brittle micro-benchmarks.
 
-- [ ] Optimize only after a measured bottleneck is reproduced.
-- [ ] Evaluate incremental/virtualized Library rendering if existing incremental rendering no longer meets the budget.
-- [ ] Avoid bundler/framework adoption unless profiling demonstrates a concrete startup or delivery problem it would solve.
-- [ ] Preserve stable motion identities and accessibility while optimizing DOM work.
+## 2.7C — Optimization only when justified
+
+- [ ] Fix only bottlenecks that are reproduced at realistic scale.
+- [ ] Do **not** add Library virtualization/infinite rendering solely for hypothetical 1,000+ series collections.
+- [ ] Do **not** adopt a framework/bundler or split state ownership as a performance shortcut.
+- [ ] Preserve motion identity, accessibility, Reader behavior, and existing E2E coverage in any optimization that is actually required.
 
 ## v2.7.0 acceptance
 
-- [ ] Performance baselines and budgets are documented.
-- [ ] Large Library fixtures remain responsive within accepted budgets.
-- [ ] Reader large-EPUB startup and long-session behavior are measured and protected.
-- [ ] No optimization introduces duplicate state ownership or weakens existing E2E coverage.
+- [ ] The Library remains healthy around the expected 250–300-series ceiling.
+- [ ] A representative large EPUB reaches readable content and survives extended Continuous reading without an obvious severe regression.
+- [ ] Any optimization included in the release is backed by a reproduced problem, not speculative scale planning.
+- [ ] No performance work weakens the existing real-browser release gate.
+
+### Explicitly dropped from the former v2.7 scope
+
+- 1,000+ and larger-series catalog targets.
+- A dedicated performance-budget infrastructure project.
+- Virtualization or incremental-rendering rewrites without measured need.
+- Broad long-session profiling work that is not tied to a reproducible Reader problem.
 
 ---
 
 # v2.8.0 — Reader Experience
 
-**Status:** ⬜ Planned  
+**Status:** 🟨 In progress  
 **Goal:** improve the surface used for hours at a time without destabilizing the Reader architecture.
 
 ## Candidate scope
@@ -213,7 +221,7 @@ The reusable v2 publisher now requires the exact `main` commit to pass both Veri
 - [ ] Review Node/npm version policy and lockfile integrity on a regular cadence.
 - [ ] Add a documentation freshness guard for current version/current roadmap links where practical.
 - [ ] Keep release notes, package version, lockfile version metadata, and production version metadata synchronized.
-- [ ] Periodically rerun the security, recovery, browser, accessibility, and performance matrices against the current baseline.
+- [ ] Periodically rerun the security, recovery, browser, accessibility, and realistic-scale performance matrices against the current baseline.
 
 ## v2.10.0 acceptance
 
@@ -232,6 +240,7 @@ These are useful ideas, but they should be pulled into a release only when the a
 - Additional metadata cleanup tools in Garden Keeper.
 - More EPUB compatibility fixtures from real-world failures.
 - Optional customer-owned Cloudflare-zone hardening if Shadow Garden ever leaves `pages.dev`.
+- Revisit deeper performance engineering only if realistic fixtures or production use expose an actual bottleneck.
 
 ## Explicit non-goals for this roadmap
 
@@ -240,7 +249,8 @@ These are useful ideas, but they should be pulled into a release only when the a
 - Server-side Reader accounts/history.
 - DRM-like client restrictions such as disabling right-click or DevTools.
 - Motion for its own sake.
-- Broad feature expansion before real-browser reliability and scale budgets are established.
+- Engineering for hypothetical 1,000+ series collections without evidence that Shadow Garden needs it.
+- Blocking Reader improvements on speculative performance infrastructure.
 
 ## Completion rule
 

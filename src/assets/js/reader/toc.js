@@ -24,6 +24,10 @@ function flatten(items, depth = 0, output = []) {
   return output;
 }
 
+function normalizeSearchText(value) {
+  return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase();
+}
+
 function genericVisualLabel(item) {
   const label = String(item?.label || "").trim();
   if (!label) return true;
@@ -66,6 +70,10 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
   let flat = [];
   let activeButton = null;
   let pageResolver = null;
+  let tree = null;
+  let searchInput = null;
+  let currentButton = null;
+  let filterEmpty = null;
 
   function readerSpineItems() {
     const values = getBook?.()?.spine?.spineItems;
@@ -106,8 +114,10 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
   function createNode(item, depth, path) {
     const node = document.createElement("div");
     const children = childrenOf(item);
+    const label = String(item?.label || "Untitled section").trim() || "Untitled section";
     node.className = `toc-node ${children.length ? "toc-branch" : "toc-leaf"}`;
     node.style.setProperty("--toc-depth", String(depth));
+    node.dataset.tocLabel = normalizeSearchText(label);
 
     const row = document.createElement("div");
     row.className = "toc-row";
@@ -143,7 +153,6 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
       row.appendChild(spacer);
     }
 
-    const label = String(item?.label || "Untitled section").trim() || "Untitled section";
     const href = String(item?.href || "");
     if (href) {
       const button = document.createElement("button");
@@ -178,10 +187,74 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
     return node;
   }
 
+  function filterNode(node, query, ancestorMatched = false) {
+    const ownMatch = ancestorMatched || node.dataset.tocLabel.includes(query);
+    const childBox = [...node.children].find(child => child.classList?.contains("toc-children")) || null;
+    const childMatches = childBox ? [...childBox.children].map(child => filterNode(child, query, ownMatch)) : [];
+    const visible = !query || ownMatch || childMatches.some(Boolean);
+    node.hidden = !visible;
+    return visible;
+  }
+
+  function applyFilter(value) {
+    const query = normalizeSearchText(value);
+    if (!tree) return;
+    tree.classList.toggle("toc-filtering", Boolean(query));
+    const visible = [...tree.children].map(node => filterNode(node, query)).some(Boolean);
+    if (filterEmpty) filterEmpty.hidden = !query || visible;
+  }
+
+  function clearFilter() {
+    if (searchInput) searchInput.value = "";
+    applyFilter("");
+  }
+
+  function createTools() {
+    const tools = document.createElement("div");
+    tools.className = "toc-tools";
+
+    searchInput = document.createElement("input");
+    searchInput.className = "toc-search";
+    searchInput.type = "search";
+    searchInput.autocomplete = "off";
+    searchInput.spellcheck = false;
+    searchInput.placeholder = "Search contents";
+    searchInput.setAttribute("aria-label", "Search contents");
+    searchInput.setAttribute("aria-controls", "tocTree");
+    searchInput.addEventListener("input", () => applyFilter(searchInput.value));
+    searchInput.addEventListener("keydown", event => {
+      if (event.key !== "Escape" || !searchInput.value) return;
+      event.preventDefault();
+      clearFilter();
+    });
+    tools.appendChild(searchInput);
+
+    currentButton = document.createElement("button");
+    currentButton.type = "button";
+    currentButton.className = "toc-current-button";
+    currentButton.textContent = "Current";
+    currentButton.title = "Show current chapter";
+    currentButton.disabled = !activeButton;
+    currentButton.addEventListener("click", () => {
+      if (!activeButton) return;
+      clearFilter();
+      expandAncestorsOf(activeButton);
+      activeButton.focus({ preventScroll: true });
+      revealActiveButton(activeButton);
+    });
+    tools.appendChild(currentButton);
+
+    return tools;
+  }
+
   function render(navigationItems) {
     items = Array.isArray(navigationItems) ? navigationItems : [];
     flat = flatten(items);
     activeButton = null;
+    tree = null;
+    searchInput = null;
+    currentButton = null;
+    filterEmpty = null;
     panel.replaceChildren();
     if (!items.length) {
       const empty = document.createElement("p");
@@ -190,11 +263,21 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
       panel.appendChild(empty);
       return;
     }
-    const tree = document.createElement("div");
+
+    panel.appendChild(createTools());
+    tree = document.createElement("div");
+    tree.id = "tocTree";
     tree.className = "toc-tree";
     tree.setAttribute("role", "tree");
     items.forEach((item, index) => tree.appendChild(createNode(item, 0, String(index))));
     panel.appendChild(tree);
+
+    filterEmpty = document.createElement("p");
+    filterEmpty.className = "bookmark-empty toc-filter-empty";
+    filterEmpty.textContent = "No matching chapters.";
+    filterEmpty.setAttribute("role", "status");
+    filterEmpty.hidden = true;
+    panel.appendChild(filterEmpty);
     syncPageNumbers();
   }
 
@@ -287,8 +370,12 @@ export function createTocController({ panel, navigate, closeDrawers, getBook }) 
       previous.removeAttribute("aria-current");
       activeButton = null;
     }
-    if (!href) return;
+    if (!href) {
+      if (currentButton) currentButton.disabled = true;
+      return;
+    }
     activeButton = [...panel.querySelectorAll(".toc-entry-link")].find(button => button.dataset.href === href) || null;
+    if (currentButton) currentButton.disabled = !activeButton;
     if (!activeButton) return;
     activeButton.classList.add("active");
     activeButton.setAttribute("aria-current", "location");

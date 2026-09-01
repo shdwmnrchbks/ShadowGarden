@@ -1,8 +1,8 @@
 # Shadow Garden Architecture
 
-This directory records both the **R0 frozen v1.15.14 starting baseline** and the accepted **R10 v2.0.0 architecture baseline**, plus post-baseline contracts that remain authoritative for current v2 releases.
+This directory records both the **R0 frozen v1.15.14 starting baseline** and the accepted **R10 v2.0.0 architecture baseline**, plus post-baseline contracts that remain authoritative for current v2 work.
 
-Shadow Garden v2.6.0 does not replace the v2.0 ownership model. It strengthens acceptance by making real Chromium/Firefox/WebKit behavior a permanent release gate while preserving the deterministic architecture/security layers.
+Shadow Garden's active product line is **v2.8.0 Reader Experience**, currently in progress. It builds on the v2.6 Reliability & Real-Browser Testing baseline and the completed v2.6.1–v2.6.7 Continuous Reader fixes without replacing the v2.0 ownership model.
 
 ## Baselines
 
@@ -38,6 +38,7 @@ Shadow Garden v2.6.0 does not replace the v2.0 ownership model. It strengthens a
 - Continuous EPUB documents receive no Reader-owned `touchmove` interception; v2.6 further guards flow-specific touch policy and capability-aware mobile input behavior.
 - Split-XHTML chapter title tracking uses canonical navigation/spine ownership rather than a hidden global or filename heuristic.
 - Continuous visual containment caps publication images against the EPUB viewport as well as their containing block, preventing oversized publication wrappers from pushing artwork under the right edge while preserving native vertical scrolling.
+- v2.8 Reader Experience keeps these owners intact while improving typeface selection and canonical progress presentation across Pages and Continuous.
 
 ## R5 Garden Keeper application
 
@@ -70,13 +71,14 @@ Shadow Garden v2.6.0 does not replace the v2.0 ownership model. It strengthens a
 ## R9 build and deployment layer
 
 - [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) — locked dependency/install contract, direct-dependency audit, deterministic build metadata, CI pins, dependency-free preview and explicit no-bundler decision introduced in v1.24.0.
+- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) — separates the active deployed product version from the latest formal release version, so in-progress v2.8 deployments can identify as v2.8.0 without prematurely publishing a GitHub release.
 - `package-lock.json` is committed at lockfile version 3; Verify CI uses `npm ci`, Node 22 and `contents: read`.
-- `tools/lib/build-context.mjs` owns version/commit/branch/build-time context.
-- The current reusable v2 publisher additionally requires the exact main Real Browser E2E result before production smoke/release publication.
+- `tools/lib/build-context.mjs` owns deployment version/commit/branch/build-time context and exposes the formal release version separately.
+- The reusable v2 publisher continues to key formal releases from `package.json#version` and requires the exact main Real Browser E2E result before production smoke/release publication.
 
 ## R10 final cutover and release gate
 
-R10 established v2.0.0 and removed the final known obsolete compatibility/patch pathnames. Its v2 release baseline remains the ownership foundation beneath the current v2.6 release:
+R10 established v2.0.0 and removed the final known obsolete compatibility/patch pathnames. Its v2 release baseline remains the ownership foundation beneath current work:
 
 - no grandfathered patch-style JS/CSS source remains;
 - no old R5 Garden Keeper alternate owner remains;
@@ -98,8 +100,16 @@ v2.6 makes real browser behavior authoritative for high-risk flows without weake
 - [`TEST_ARCHITECTURE.md`](./TEST_ARCHITECTURE.md) documents the isolated Playwright 1.62.1 workspace, generated EPUB, five browser projects, diagnostics/artifacts, capability-aware WebKit handling, and release ownership.
 - [`ACCESSIBILITY_TESTING.md`](./ACCESSIBILITY_TESTING.md) documents Library/Series/Reader/Keeper accessibility verification and the application-chrome versus publication-content boundary.
 - `.github/workflows/e2e.yml` runs Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile on pull requests and `main`.
-- `tools/check-v2-6.mjs` keeps the E2E structure, source ownership, release metadata, and exact-main browser release gate from silently regressing.
+- `tools/check-v2-6.mjs` keeps the E2E structure, source ownership, completed v2.6 release metadata, and exact-main browser release gate from silently regressing.
 - Issues #154, #157, and #160 are represented by permanent Reader regressions rather than one-off patches.
+
+## v2.8 Reader Experience
+
+v2.8 is the active in-progress product line. The canonical scope and slice status live in [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md).
+
+- Slice 1: focused Reader typeface choices with publication-owned Default behavior and explicit Sans / Serif / Sans-Serif choices.
+- Slice 2: clearer Reader progress presentation using the existing canonical Page Map/progress owner across Pages and Continuous.
+- Remaining slices stay governed by the existing Reader/session/persistence/security ownership contracts rather than introducing parallel state owners.
 
 ## Permanent guardrails
 
@@ -114,7 +124,7 @@ v2.6 makes real browser behavior authoritative for high-risk flows without weake
 - `tools/check-r8.mjs` — layered deterministic test/fixture and priority-flow contracts.
 - `tools/check-r9.mjs` — lockfile/build/deployment/no-bundler boundary.
 - `tools/check-r10.mjs` — v2 manifest, legacy tombstones, source cache-version cleanup, docs/release gate and final major-version baseline.
-- `tools/check-v2-6.mjs` — real-browser harness, Reader/public/Keeper reliability source contracts, release/document synchronization, and exact-main E2E release gate.
+- `tools/check-v2-6.mjs` — completed v2.6 real-browser harness, Reader/public/Keeper reliability source contracts, release/document synchronization, and exact-main E2E release gate.
 
 Future work starts from [`V2_BASELINE.md`](./V2_BASELINE.md), the current post-baseline contracts above, and [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md). A historical implementation may only be restored when it is an intentional compatibility requirement with explicit ownership and regression coverage; obsolete duplicate owners must not return.
 

@@ -1,10 +1,10 @@
-# Shadow Garden v2.6.7
+# Shadow Garden v2.8.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The current product release is **v2.6.7 — Continuous Media Width Independence**, the follow-up patch to the v2.6.1–v2.6.4 hotfixes on the v2.6 Reliability & Real-Browser Testing baseline. Per the owner's decision on reopened issue #160 item 2, the Continuous reading canvas structurally ends where the fixed seek rail begins and artwork bleeds across that full canvas to the rail boundary, while prose keeps readable insets and every containment cap from earlier hotfixes remains as defense-in-depth without changing the established security or browser-local reading-data boundaries. The text-width setting shapes prose only: Continuous artwork sizes against the full reading canvas, and synthetic full-page image plates are immune to the text-width column in every flow.
+The accepted architecture baseline remains v2.0.0. The active product line is **v2.8.0 — Reader Experience**, currently in progress on top of the completed v2.6 Reliability & Real-Browser Testing baseline and its v2.6.1–v2.6.7 Continuous Reader fixes. v2.8 Slice 1 has landed focused Reader typeface choices with publication-owned Default behavior and explicit Sans / Serif / Sans-Serif options; Slice 2 has landed clearer canonical progress presentation across Pages and Continuous, combining device Page Map position, volume percentage, and chapter context without adding a second progress owner or changing browser-local reading-data contracts. The remaining v2.8 scope is tracked in [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md); this heading identifies the active deployment/product version and does not imply the entire v2.8 milestone is complete.
 
 ## Current feature set
 
@@ -24,6 +24,8 @@ The accepted architecture baseline remains v2.0.0. The current product release i
 - EPUB.js-based **Pages** and **Continuous** modes behind one Reader application layer.
 - Explicit authorized book-session boundary for opaque public `bk_...` identity and private EPUB source identity.
 - Canonical device Page Map shared by both reading modes.
+- v2.8 typeface choices are intentionally focused: **Default** preserves the publication's typography, while Sans, Serif, and Sans-Serif map to the supported Reader font families with legacy preferences migrated forward.
+- v2.8 progress presentation keeps the canonical Page Map/progress owner: Pages can show device page, volume percentage, and chapter context together; Continuous mirrors the same canonical progress through its dedicated rail with compact visual text and richer accessible context.
 - Persistent progress, bookmarks, Finished state, themes, typography, flow, and layout preferences through the shared browser domain layer.
 - Visual Page Cache and fitting for standalone covers, maps, and illustration pages.
 - Pages-only navigation ownership for horizontal swipe turns and desktop wheel page turns; Pointer Events are preferred with Touch Events fallback.
@@ -114,7 +116,7 @@ See [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITEC
 
 Security Milestones **1–9 are complete** and remain permanent contracts: private B2 origin storage, signed EPUB tickets, opaque `bk_...` identifiers, Garden Pass/Turnstile, acquisition throttling, crawler screening, Reader anti-indexing, signed Garden Keeper sessions, server-side cooldowns, HMAC-derived abuse controls, private Abuse Watch telemetry, and opaque cover keys.
 
-Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.6 requires no reading-data migration and introduces no server-side Reader account/history.
+Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.8 requires no reading-data migration and introduces no server-side Reader account/history.
 
 See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
@@ -122,7 +124,7 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The R0–R10 full-codebase refactor is complete. `main` remains deployable, Security Milestones 1–9 and browser-local persistence contracts remain protected by CI, and the v2 source tree has explicit owners instead of accumulated patch layers.
 
-**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.6.6 is the current release baseline.**
+**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.6.7 is the latest completed reliability/hotfix release record, and v2.8.0 Reader Experience is the active in-progress product version.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -144,6 +146,7 @@ The R0–R10 full-codebase refactor is complete. `main` remains deployable, Secu
 - v2.6.4 hotfix notes: [`docs/releases/v2.6.4.md`](./docs/releases/v2.6.4.md)
 - v2.6.5 hotfix notes: [`docs/releases/v2.6.5.md`](./docs/releases/v2.6.5.md)
 - v2.6.6 release notes: [`docs/releases/v2.6.6.md`](./docs/releases/v2.6.6.md)
+- v2.6.7 release notes: [`docs/releases/v2.6.7.md`](./docs/releases/v2.6.7.md)
 
 ## Current architecture
 
@@ -341,4 +344,4 @@ npm run b2:upload -- "path/to/book.epub"
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/releases/v2.6.0.md`](./docs/releases/v2.6.0.md) for the v2.6 reliability baseline, and [`docs/releases/v2.6.6.md`](./docs/releases/v2.6.6.md) for the current hotfix record.
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the active v2.8 Reader Experience work, and [`docs/releases/v2.6.7.md`](./docs/releases/v2.6.7.md) for the latest completed v2.6 hotfix record.

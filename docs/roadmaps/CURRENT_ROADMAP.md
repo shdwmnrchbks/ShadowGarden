@@ -58,7 +58,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 
 ## 2.6B — Critical public flows
 
-- [x] Main and Adult libraries load independently with correct shelf isolation.
+- [x] Main and Adult Library load independently with correct shelf isolation.
 - [x] Search, filters, sorting, Grid/Compact switching, Recently Added, pinned state, and Back/Forward restoration work in a real browser.
 - [x] Series → Reader → Series/Library navigation preserves expected reading state and route continuity.
 - [x] Verify **Read → Continue → Finished → Read Again** end to end, including bookmark preservation and page-1 restart.

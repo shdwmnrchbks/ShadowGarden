@@ -34,7 +34,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | --- | --- | --- |
 | **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
-| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, focused typography choices, search/notes behavior, and EPUB resilience |
+| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
 | **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make library administration faster and prove recovery from catalog/storage failures |
 | **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
 
@@ -181,16 +181,19 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 
 ## Slice 4 — In-book text search
 
-- [x] Add a dedicated whole-book search drawer opened from a Reader magnifying-glass action and `Ctrl/Cmd+F`, without mixing it into Contents filtering.
+- [x] Use the existing Contents search surface as the single Reader search entry point, with matching Contents entries listed before whole-book text results; `Ctrl/Cmd+F` opens and focuses the same unified search.
 - [x] Search the canonical EPUB spine sequentially through the existing EPUB.js `Book`/`Section` objects rather than creating a second rendition or loading the whole book into the live DOM.
 - [x] Generate CFI-backed results with chapter/context excerpts and open them through the existing Reader `navigate()` path.
 - [x] Bound expensive searches with a three-character minimum, cancellable sequential scanning, per-section unloading, and a 100-result cap.
 - [x] Preserve Page Map, progress, bookmark persistence, Pages/Continuous input ownership, and browser-local reading data.
 - [x] Add deterministic query coverage plus real-browser search, result navigation, keyboard shortcut, cap, focus, and Escape behavior.
 
+### Explicitly skipped from v2.8 scope
+
+- Expanded bookmark management beyond the existing save/open/remove behavior. Bookmark data is intentionally browser-local and can disappear when browser site data is cleared, so v2.8 will not add bookmark naming, notes, sorting, bulk management, or related persistence-heavy UI.
+
 ## Candidate follow-up scope
 
-- [ ] Improve bookmark management beyond add/remove at the current location.
 - [ ] Audit footnote/endnote/pop-up behavior across common EPUB patterns.
 - [ ] Improve resume behavior after orientation changes, reloads, backgrounding, and long idle periods.
 - [ ] Expand malformed/common-EPUB compatibility fixtures and graceful error presentation.

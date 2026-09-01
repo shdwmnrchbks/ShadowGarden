@@ -58,7 +58,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 
 ## 2.6B — Critical public flows
 
-- [x] Main and Adult Library load independently with correct shelf isolation.
+- [x] Main and Adult libraries load independently with correct shelf isolation.
 - [x] Search, filters, sorting, Grid/Compact switching, Recently Added, pinned state, and Back/Forward restoration work in a real browser.
 - [x] Series → Reader → Series/Library navigation preserves expected reading state and route continuity.
 - [x] Verify **Read → Continue → Finished → Read Again** end to end, including bookmark preservation and page-1 restart.
@@ -235,3 +235,30 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [ ] Dependency changes are reproducible, reviewable, and covered by the same release gates as product changes.
 - [ ] Current documentation no longer presents an archived roadmap as active work.
 - [ ] Operational/security checks remain visible without adding fake client-side protection or unnecessary infrastructure.
+
+---
+
+# Cross-release backlog
+
+These are useful ideas, but they should be pulled into a release only when the active milestone has capacity and the change has a clear owner.
+
+- Richer browser-local “Recently Read” and completion history.
+- Better multi-filter composition and saved Library views.
+- Additional metadata cleanup tools in Garden Keeper.
+- More EPUB compatibility fixtures from real-world failures.
+- Optional customer-owned Cloudflare-zone hardening if Shadow Garden ever leaves `pages.dev`.
+- Revisit deeper performance engineering only if realistic fixtures or production use expose an actual bottleneck.
+
+## Explicit non-goals for this roadmap
+
+- Another full-codebase refactor.
+- A framework rewrite without measured benefit.
+- Server-side Reader accounts/history.
+- DRM-like client restrictions such as disabling right-click or DevTools.
+- Motion for its own sake.
+- Engineering for hypothetical 1,000+ series collections without evidence that Shadow Garden needs it.
+- Blocking Reader improvements on speculative performance infrastructure.
+
+## Completion rule
+
+This roadmap remains **CURRENT WORK IN PROGRESS** until its active release and subsequent planned releases are either completed, intentionally deferred, or superseded by a new roadmap. When superseded, archive this file and create a new single active roadmap rather than accumulating multiple “current” plans.

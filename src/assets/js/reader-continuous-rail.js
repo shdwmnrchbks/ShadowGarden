@@ -117,6 +117,11 @@
     forwardToCore(clamp01(p),"change");
   }
 
-  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});
+  function initWhenParsed(){
+    if(document.readyState==="loading")return;
+    document.removeEventListener("readystatechange",initWhenParsed);
+    init();
+  }
+  if(document.readyState==="loading")document.addEventListener("readystatechange",initWhenParsed);
   else init();
 })();

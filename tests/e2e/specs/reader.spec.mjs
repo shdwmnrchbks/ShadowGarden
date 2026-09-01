@@ -110,11 +110,25 @@ test('Reader typeface menu keeps Default publication-owned and applies the three
 });
 
 test('Reader progress summary combines canonical page, volume percentage, and chapter context', async ({ page, browserDiagnostics }) => {
+  test.setTimeout(90_000);
   await waitForReader(page);
   const progressText = page.locator('#progressText');
   const progressRange = page.locator('#progressRange');
 
-  await expect.poll(async () => progressText.textContent(), { timeout: 20_000 })
+  // Reader startup must remain non-blocking while the canonical Page Map builds in its
+  // hidden sandbox. Before that map is finalized, percentage + chapter is already useful;
+  // if a cached map wins the race, the richer page form is equally valid here.
+  await expect(progressText).toHaveText(/^(?:Page \d+\/\d+ · )?\d+% · Chapter/);
+  await expect(progressRange).toHaveAttribute('aria-valuetext', /Chapter.+\d+% of volume/);
+
+  // Page Map readiness is explicit: totalPages is 0 during generation and becomes the
+  // finalized canonical total only when the controller activates a complete map.
+  await expect.poll(
+    async () => page.evaluate(() => Number(window.__sgCanonicalPageMap?.totalPages || 0)),
+    { timeout: 70_000 }
+  ).toBeGreaterThan(0);
+
+  await expect.poll(async () => progressText.textContent(), { timeout: 8_000 })
     .toMatch(/^Page \d+\/\d+ · \d+% · Chapter/);
   await expect(progressText).toHaveAttribute('data-compact', /^\d+\/\d+ · \d+%$/);
   await expect(progressText).toHaveAttribute('data-rail', /^\d+\/\d+$/);

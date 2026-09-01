@@ -104,3 +104,15 @@ body.reader-flow-scrolled .continuous-seek-text{font-weight:700;font-variant-num
 
 @media(max-width:520px){.reader-external-dialog{width:min(420px,calc(100vw - 22px));border-radius:15px}.reader-external-card{padding:24px 18px 18px}.reader-external-actions{grid-template-columns:1fr}.reader-external-actions button{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.reader-loading span{animation-duration:1.8s}.reader-external-dialog[open]{animation:none}.reader-icon,.reader-bottombar>button,.drawer-close,.drawer-tabs button,.reader-reset,.reader-external-actions button,.reader-loading p,body.reader-flow-paginated .reader-topbar,body.reader-flow-paginated .reader-bottombar,body.reader-flow-scrolled .reader-topbar,.reader-brand{transition:none}.reader-icon:active,.reader-bottombar>button:active,.drawer-close:active,.drawer-tabs button:active,.reader-reset:active,.reader-external-actions button:active{transform:none}}
+
+/* v2.8 Slice 2 — expose canonical page, volume percentage, and chapter context without
+   growing a second progress owner. The full summary is available on roomy screens; narrow
+   mobile chrome uses the formatter's compact data attribute while retaining the full text
+   and aria-valuetext for assistive technology. */
+.progress-wrap{grid-template-columns:minmax(120px,1fr) minmax(110px,auto)}
+#progressText{max-width:min(42vw,280px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+@media(max-width:700px){
+  .progress-wrap{grid-template-columns:minmax(0,1fr) minmax(88px,104px)}
+  #progressText{max-width:104px;font-size:0;text-align:center}
+  #progressText::after{content:attr(data-compact);font-size:.66rem}
+}

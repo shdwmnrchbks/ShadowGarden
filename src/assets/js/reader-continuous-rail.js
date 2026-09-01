@@ -24,7 +24,7 @@
     syncFromCore();
     new MutationObserver(()=>{
       if(activePointer===null)syncFromCore();
-    }).observe(coreText,{childList:true,characterData:true,subtree:true});
+    }).observe(coreText,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:["data-rail","data-accessible"]});
 
     track.addEventListener("pointerdown",pointerDown);
     rail.addEventListener("keydown",keyDown);
@@ -41,7 +41,11 @@
     if(!range||!rail)return;
     const p=clamp01(Number(range.value||0)/1000);
     render(p);
-    if(coreText?.textContent)label.textContent=coreText.textContent;
+    const railText=coreText?.dataset?.rail||coreText?.textContent||`${Math.round(p*100)}%`;
+    const accessible=coreText?.dataset?.accessible||`${Math.round(p*100)}% of volume`;
+    label.textContent=railText;
+    rail.setAttribute("aria-valuetext",accessible);
+    rail.title=accessible;
   }
 
   function valueFromY(clientY){

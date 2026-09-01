@@ -57,11 +57,9 @@
   chapter?.setAttribute('aria-live','polite');
   chapter?.setAttribute('aria-atomic','true');
 
-  const continuousText=$('#continuousSeekText'),continuous=$('#continuousSeek');
-  if(continuousText&&continuous){
-    const syncContinuous=()=>continuous.setAttribute('aria-valuetext',continuousText.textContent||'0%');
-    new MutationObserver(syncContinuous).observe(continuousText,{childList:true,characterData:true,subtree:true});syncContinuous();
-  }
+  // Continuous progress accessibility is owned by reader-continuous-rail.js, which mirrors
+  // the canonical Reader progress presentation. Do not duplicate that writer here: the old
+  // bridge collapsed aria-valuetext back to the short visible rail label (for example, "1%").
 
   void import('/assets/js/reader-mobile-reliability.js').catch(error=>console.warn('Reader mobile reliability bridge unavailable',error));
   void import('/assets/js/site-flavor.js').catch(error=>console.warn('Shadow Garden flavor copy unavailable',error));

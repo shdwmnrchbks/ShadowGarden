@@ -2,6 +2,19 @@
 const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
+export function formatReaderProgress({percentage=0,position=null,chapter=""}={}){
+  const value=clamp01(percentage),percent=`${Math.round(value*100)}%`;
+  const rawPage=Number(position?.page),rawTotal=Number(position?.totalPages);
+  const hasPages=Number.isFinite(rawPage)&&Number.isFinite(rawTotal)&&rawPage>=1&&rawTotal>0;
+  const page=hasPages?Math.trunc(rawPage):null,total=hasPages?Math.trunc(rawTotal):null;
+  const chapterLabel=String(chapter||"").trim();
+  const rail=hasPages?`${page}/${total}`:percent;
+  const compact=hasPages?`${rail} · ${percent}`:percent;
+  const visual=`${hasPages?`Page ${rail} · `:""}${percent}${chapterLabel?` · ${chapterLabel}`:""}`;
+  const accessible=`${chapterLabel?`${chapterLabel} · `:""}${hasPages?`Page ${page} of ${total} · `:""}${percent} of volume`;
+  return{value,percent,rail,compact,visual,accessible};
+}
+
 export function createProgressController({storage,elements,getBook,getRendition,getPageMap,getFlow,getChapter,toast,onPositionChange}={}){
   const state={currentCfi:"",currentPosition:null,locationsReady:false,locationsFailed:false,pendingSeek:null,seekTimer:0};
 
@@ -11,11 +24,19 @@ export function createProgressController({storage,elements,getBook,getRendition,
     return{page,totalPages:total,pageFraction:value>=1?1:(value*total)%1};
   }
   function setProgressUI(percentage,position=state.currentPosition){
-    const value=clamp01(percentage),range=elements.progressRange,text=elements.progressText;
-    if(range)range.value=Math.round(value*1000);
-    const page=Number(position?.page),total=Number(position?.totalPages);
-    if(text&&Number.isFinite(page)&&Number.isFinite(total)&&page>=1&&total>0){text.textContent=`${page}/${total}`;text.title=`Page ${page} of ${total} · ${Math.round(value*100)}%`}
-    else if(text){text.textContent=`${Math.round(value*100)}%`;text.title=getPageMap?.()?.isGenerating?.()?"Preparing device page map…":"Reading progress"}
+    const range=elements.progressRange,text=elements.progressText;
+    const chapter=String(position?.chapter||(position?.cfi?getChapter?.():"")||"").trim();
+    const presentation=formatReaderProgress({percentage,position,chapter});
+    if(range){range.value=Math.round(presentation.value*1000);range.setAttribute("aria-valuetext",presentation.accessible)}
+    if(text){
+      text.textContent=presentation.visual;
+      text.dataset.compact=presentation.compact;
+      text.dataset.rail=presentation.rail;
+      text.dataset.accessible=presentation.accessible;
+      text.title=!Number(position?.totalPages)&&getPageMap?.()?.isGenerating?.()
+        ?`${presentation.accessible} · Preparing device page map…`
+        :presentation.accessible;
+    }
   }
   function approximateProgress(location){
     const book=getBook?.(),displayed=location?.start?.displayed,href=String(location?.start?.href||"").split("#")[0];
@@ -39,13 +60,14 @@ export function createProgressController({storage,elements,getBook,getRendition,
   function save(location){
     const reportedCfi=location?.start?.cfi;if(!reportedCfi)return state.currentPosition;
     const pageMap=getPageMap?.(),position=currentPageMapPosition(location)||{cfi:reportedCfi},cfi=position.cfi||reportedCfi;
+    const chapter=getChapter?.()||"";
     state.currentCfi=cfi;
     const fallback=progressFromLocation(location),percentage=pageMap?.percentageForPosition?.(position,fallback)??fallback;
-    state.currentPosition={...position,cfi,percentage};
+    state.currentPosition={...position,cfi,percentage,chapter};
     storage.saveProgress({
       file:storage.canonicalIdentity,cfi,percentage,page:position.page||null,totalPages:position.totalPages||null,pageFraction:position.pageFraction||0,
       sectionIndex:position.sectionIndex??null,localPage:position.localPage||null,pageMapFingerprint:pageMap?.fingerprint?.()||null,
-      chapter:getChapter?.()||"",title:elements.bookTitle?.textContent||"",updatedAt:Date.now()
+      chapter,title:elements.bookTitle?.textContent||"",updatedAt:Date.now()
     });
     setProgressUI(percentage,state.currentPosition);onPositionChange?.(state.currentPosition);return state.currentPosition;
   }

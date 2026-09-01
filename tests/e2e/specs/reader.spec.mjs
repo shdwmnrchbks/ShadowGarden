@@ -96,7 +96,6 @@ test('Reader typeface menu keeps Default publication-owned and applies the three
   let rendered = await renderedTypeface();
   expect(rendered.override).toBe('');
   expect(rendered.family.toLowerCase()).toContain('serif');
-
   for (const [value, family] of [['pt-sans', 'PT Sans'], ['literata', 'Literata'], ['inter', 'Inter']]) {
     await fontSelect.selectOption(value);
     await expect.poll(async () => (await renderedTypeface()).override).toContain(family);
@@ -106,6 +105,41 @@ test('Reader typeface menu keeps Default publication-owned and applies the three
   await expect.poll(async () => (await renderedTypeface()).override).toBe('');
   await expect.poll(async () => (await renderedTypeface()).family.toLowerCase()).toContain('serif');
   expect((await storedJson(page, 'sg-reader-settings'))?.font).toBe('default');
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('Reader progress summary exposes chapter context and canonical page details when available', async ({ page, browserDiagnostics }) => {
+  await waitForReader(page);
+  const progressText = page.locator('#progressText');
+  const progressRange = page.locator('#progressRange');
+  const visualPattern = /^(?:Page \d+\/\d+ · )?\d+% · Chapter/;
+  const compactPattern = /^(?:\d+\/\d+ · )?\d+%$/;
+  const railPattern = /^(?:\d+\/\d+|\d+%)$/;
+  const accessiblePattern = /Chapter.+(?:Page \d+ of \d+.+)?\d+% of volume/;
+
+  // Reader startup must remain non-blocking while the canonical Page Map builds in its
+  // hidden sandbox. Percentage + chapter is the production fallback; if a cached/completed
+  // map wins the race, the same controls expose the richer canonical page presentation.
+  await expect(progressText).toHaveText(visualPattern);
+  await expect(progressText).toHaveAttribute('data-compact', compactPattern);
+  await expect(progressText).toHaveAttribute('data-rail', railPattern);
+  await expect(progressText).toHaveAttribute('data-accessible', accessiblePattern);
+  await expect(progressRange).toHaveAttribute('aria-valuetext', accessiblePattern);
+
+  const canonicalTotal = await page.evaluate(() => Number(window.__sgCanonicalPageMap?.totalPages || 0));
+  if (canonicalTotal > 0) {
+    await expect(progressText).toHaveText(/^Page \d+\/\d+ · \d+% · Chapter/);
+    await expect(progressText).toHaveAttribute('data-compact', /^\d+\/\d+ · \d+%$/);
+    await expect(progressText).toHaveAttribute('data-rail', /^\d+\/\d+$/);
+    await expect(progressRange).toHaveAttribute('aria-valuetext', /Chapter.+Page \d+ of \d+.+\d+% of volume/);
+  }
+
+  await page.locator('#settingsToggle').click();
+  await page.locator('#flowSelect').selectOption('scrolled-doc');
+  await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
+  await expect.poll(async () => page.locator('#continuousSeek').getAttribute('aria-valuetext'), { timeout: 12_000 })
+    .toMatch(accessiblePattern);
+  await expect(page.locator('#continuousSeekText')).toHaveText(railPattern);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 

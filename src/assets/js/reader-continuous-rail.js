@@ -1,11 +1,12 @@
 /* Dedicated Continuous-mode seek rail.
  * This is only a vertical UI proxy for the normal #progressRange control.
- * It writes the same value and fires the same input/change events, so Paged and
- * Continuous modes use exactly the same reader.js seekTo()/navigateToPercentage() path.
+ * It writes the same value and fires the same input/change events, so Pages and
+ * Continuous modes use exactly the same canonical progress seek path.
+ * Presentation is supplied explicitly by reader/progress-controller.js.
  */
 (()=>{
   let activePointer=null;
-  let rail=null,track=null,label=null,range=null,coreText=null;
+  let rail=null,track=null,label=null,range=null;
 
   const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 
@@ -18,14 +19,10 @@
     track=document.getElementById("continuousSeekTrack");
     label=document.getElementById("continuousSeekText");
     range=document.getElementById("progressRange");
-    coreText=document.getElementById("progressText");
-    if(!rail||!track||!label||!range||!coreText)return;
+    if(!rail||!track||!label||!range)return;
 
     syncFromCore();
-    new MutationObserver(()=>{
-      if(activePointer===null)syncFromCore();
-    }).observe(coreText,{childList:true,characterData:true,subtree:true,attributes:true,attributeFilter:["data-rail","data-accessible"]});
-
+    document.addEventListener("sg:reader-progress",progressChanged);
     track.addEventListener("pointerdown",pointerDown);
     rail.addEventListener("keydown",keyDown);
   }
@@ -37,13 +34,24 @@
     label.textContent=`${Math.round(p*100)}%`;
   }
 
+  function applyPresentation(presentation){
+    if(!rail||!label||!presentation)return;
+    render(presentation.value);
+    label.textContent=String(presentation.rail||presentation.percent||label.textContent);
+    const accessible=String(presentation.accessible||`${Math.round(clamp01(presentation.value)*100)}% of volume`);
+    rail.setAttribute("aria-valuetext",accessible);
+    rail.title=accessible;
+  }
+
+  function progressChanged(event){
+    if(activePointer===null)applyPresentation(event.detail);
+  }
+
   function syncFromCore(){
     if(!range||!rail)return;
     const p=clamp01(Number(range.value||0)/1000);
     render(p);
-    const railText=coreText?.dataset?.rail||coreText?.textContent||`${Math.round(p*100)}%`;
-    const accessible=coreText?.dataset?.accessible||`${Math.round(p*100)}% of volume`;
-    label.textContent=railText;
+    const accessible=range.getAttribute("aria-valuetext")||`${Math.round(p*100)}% of volume`;
     rail.setAttribute("aria-valuetext",accessible);
     rail.title=accessible;
   }

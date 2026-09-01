@@ -29,7 +29,6 @@ jobs:
           ROUTER_TOKEN: ${{ secrets.RUNNER_ROUTER_TOKEN }}
           ORG: ${{ github.repository_owner }}
           EVENT_NAME: ${{ github.event_name }}
-          PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name || '' }}
         run: |
           set -euo pipefail
 
@@ -38,9 +37,12 @@ jobs:
             echo 'kind=github-hosted' >> "$GITHUB_OUTPUT"
           }
 
-          # Never execute code from an external fork on a self-hosted machine.
-          if [[ "$EVENT_NAME" == "pull_request" && "$PR_HEAD_REPO" != "$GITHUB_REPOSITORY" ]]; then
-            echo "External pull request: using GitHub-hosted runner."
+          # Pull requests always use GitHub-hosted runners. The self-hosted Default pool
+          # can report online while actions/checkout cannot target it reliably, which
+          # leaves PR checks queued or fails them before repository code is checked.
+          # Keep self-hosted routing for trusted pushes to main only.
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            echo "Pull request: using GitHub-hosted runner."
             use_hosted
             exit 0
           fi

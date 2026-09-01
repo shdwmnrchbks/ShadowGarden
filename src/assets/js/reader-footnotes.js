@@ -7,7 +7,8 @@
 
   const EPUB_NS="http://www.idpf.org/2007/ops";
   const NOTE_REF_CLASSES=new Set(["noteref","note-ref","footnote-ref","endnote-ref"]);
-  let activeBook=null,activeRendition=null,noteOrigin=null,noteSerial=0;
+  const NOTE_MARKER_PREFIX="sg-note-";
+  let activeBook=null,activeRendition=null,noteOrigin=null,noteSerial=0,markerSerial=0,markerTimer=0;
 
   const cleanText=value=>String(value||"").replace(/\s+/g," ").trim();
   const decode=value=>{try{return decodeURIComponent(value)}catch{return value}};
@@ -86,7 +87,7 @@
   }
 
   function originalNoteHref(anchor){
-    return internalHrefValue(anchor?.dataset?.sgNoteHref||anchor?.getAttribute?.("href")||"");
+    return internalHrefValue(anchor?.dataset?.sgNoteHref||"");
   }
 
   function currentSectionFor(contents,renderedSection,book=activeBook){
@@ -188,10 +189,7 @@
     try{await activeRendition.display(target.displayHref)}catch(error){console.warn("Footnote fallback navigation failed",error)}
   }
 
-  function activateNoteReference(contents,anchor,renderedSection,event){
-    try{event?.preventDefault?.()}catch{}
-    try{event?.stopPropagation?.()}catch{}
-    try{event?.stopImmediatePropagation?.()}catch{}
+  function activateNoteReference(contents,anchor,renderedSection){
     const serial=++noteSerial;
     (async()=>{
       try{
@@ -201,34 +199,33 @@
       }catch(error){console.warn("Footnote popup unavailable",error)}
       if(serial===noteSerial)await fallbackToTarget(contents,anchor,renderedSection);
     })();
-    return false;
   }
 
-  function makeNoteReferenceInert(contents,anchor,renderedSection){
+  function markerFor(anchor){
+    let marker=String(anchor?.dataset?.sgNoteMarker||"").trim();
+    if(marker)return marker;
+    marker=`${NOTE_MARKER_PREFIX}${++markerSerial}`;
+    anchor.dataset.sgNoteMarker=marker;
+    return marker;
+  }
+
+  function markNoteReference(anchor){
     if(!anchor?.getAttribute||!isNoteReference(anchor))return;
     const stored=internalHrefValue(anchor.dataset?.sgNoteHref||"");
-    const raw=stored||internalHrefValue(anchor.getAttribute("href"));
+    const current=String(anchor.getAttribute("href")||"").trim();
+    const raw=stored||internalHrefValue(current);
     if(!raw)return;
     if(!stored)anchor.dataset.sgNoteHref=raw;
 
-    // WebKit 26.5 follows the real href in EPUB.js' script-disabled srcdoc iframe even
-    // when a parent-realm listener calls preventDefault(). Remove that destructive
-    // default action entirely and preserve the EPUB target in data-sg-note-href.
-    if(anchor.hasAttribute("href"))anchor.removeAttribute("href");
+    const marker=markerFor(anchor);
+    // WebKit blocks callbacks injected into EPUB.js' script-disabled srcdoc iframe. Keep
+    // activation entirely native inside the child: the link only moves that same srcdoc
+    // to a private marker. Parent Reader code observes the marker and opens the dialog.
+    anchor.setAttribute("href",`about:srcdoc#${marker}`);
+    try{anchor.onclick=null}catch{}
     anchor.classList.add("sg-note-reference");
     anchor.setAttribute("aria-haspopup","dialog");
-    if(!anchor.hasAttribute("tabindex"))anchor.tabIndex=0;
-    if(!anchor.hasAttribute("role"))anchor.setAttribute("role","link");
-    if(anchor.dataset.sgNoteReady==="1")return;
     anchor.dataset.sgNoteReady="1";
-
-    const activate=event=>{
-      if(event?.type==="keydown"&&event.key!=="Enter")return;
-      activateNoteReference(contents,anchor,contents.__sgNoteSection||renderedSection,event);
-    };
-    anchor.__sgNoteHandler=activate;
-    anchor.addEventListener("click",activate,{capture:true});
-    anchor.addEventListener("keydown",activate,{capture:true});
   }
 
   function installNoteGuard(contents,renderedSection){
@@ -238,13 +235,53 @@
     contents.__sgNoteSection=renderedSection||contents.__sgNoteSection||null;
     let anchors=[];
     try{anchors=[...doc.querySelectorAll("a[href],a[data-sg-note-href]")]}catch{}
-    anchors.forEach(anchor=>makeNoteReferenceInert(contents,anchor,contents.__sgNoteSection));
+    anchors.forEach(markNoteReference);
+  }
+
+  function markerNameFrom(contents){
+    const doc=contents?.document||contents?.contentDocument||contents;
+    const win=doc?.defaultView;
+    try{return decode(String(win?.location?.hash||"").replace(/^#/,""))}catch{return""}
+  }
+
+  function resetMarker(contents,marker){
+    const doc=contents?.document||contents?.contentDocument||contents;
+    const win=doc?.defaultView;
+    try{if(win?.location?.hash)win.location.hash=""}catch{}
+    setTimeout(()=>{
+      if(contents.__sgConsumedNoteMarker!==marker)return;
+      if(markerNameFrom(contents)!==marker)contents.__sgConsumedNoteMarker="";
+    },180);
+  }
+
+  function scanNoteMarkers(){
+    const rendition=activeRendition;
+    if(!rendition)return;
+    let all=[];
+    try{all=rendition.getContents?.()||[]}catch{}
+    for(const contents of all){
+      const marker=markerNameFrom(contents);
+      if(!marker.startsWith(NOTE_MARKER_PREFIX)||contents.__sgConsumedNoteMarker===marker)continue;
+      const doc=contents?.document||contents?.contentDocument||contents;
+      let anchor=null;
+      try{anchor=doc?.querySelector?.(`[data-sg-note-marker="${marker}"]`)||null}catch{}
+      if(!anchor)continue;
+      contents.__sgConsumedNoteMarker=marker;
+      resetMarker(contents,marker);
+      activateNoteReference(contents,anchor,contents.__sgNoteSection);
+    }
+  }
+
+  function ensureMarkerObserver(){
+    if(markerTimer)return;
+    markerTimer=window.setInterval(scanNoteMarkers,50);
   }
 
   function patchRendition(rendition){
     if(!rendition||rendition.__sgFootnotesPatched)return rendition;
     if(activeRendition&&activeRendition!==rendition)closeNoteDialog({restoreFocus:false});
     activeRendition=rendition;rendition.__sgFootnotesPatched=true;
+    ensureMarkerObserver();
     try{rendition.hooks?.content?.register?.((contents,view)=>installNoteGuard(contents,view?.section))}catch(error){console.warn("EPUB note hook unavailable",error)}
     try{rendition.on?.("rendered",(section,view)=>{
       if(rendition!==activeRendition)return;

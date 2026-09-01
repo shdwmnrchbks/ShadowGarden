@@ -15,7 +15,9 @@ concurrency:
 
 jobs:
   check:
-    runs-on: [self-hosted, Linux, X64, steamdeck]
+    # This job is pure Node.js and is portable across the org's current Windows
+    # and Linux x64 self-hosted runners. Let GitHub pick whichever is available.
+    runs-on: [self-hosted, X64]
     timeout-minutes: 10
     steps:
       - name: Checkout

@@ -32,26 +32,55 @@ sudo pacman -S --needed --noconfirm \
 log "Enabling Docker"
 sudo systemctl enable --now docker
 
-GROUP_CHANGED=0
+if ! getent group docker >/dev/null 2>&1; then
+  die "Docker group was not created by the package installation."
+fi
+
 if ! id -nG "$USER" | tr ' ' '\n' | grep -Fxq docker; then
   sudo usermod -aG docker "$USER"
-  GROUP_CHANGED=1
   ok "Added $USER to the docker group"
 fi
 
 RUNNER_SERVICE="$(systemctl list-unit-files --type=service --no-legend 'actions.runner.*.service' 2>/dev/null | awk 'NR==1 {print $1}')"
 if [[ -n "$RUNNER_SERVICE" ]]; then
-  log "Restarting GitHub Actions runner service"
+  # A self-hosted runner may have been started before the user was added to the
+  # docker group. Explicitly attach the supplementary group to the systemd unit
+  # so container jobs can always reach /var/run/docker.sock, independent of the
+  # current login session or when group membership changed.
+  log "Granting the runner service Docker socket access"
+  OVERRIDE_DIR="/etc/systemd/system/${RUNNER_SERVICE}.d"
+  sudo mkdir -p "$OVERRIDE_DIR"
+  printf '[Service]\nSupplementaryGroups=docker\n' \
+    | sudo tee "$OVERRIDE_DIR/docker.conf" >/dev/null
+
+  sudo systemctl daemon-reload
+  sudo systemctl restart docker
   sudo systemctl restart "$RUNNER_SERVICE"
+
   sudo systemctl --no-pager --full status "$RUNNER_SERVICE" || true
-  ok "Restarted $RUNNER_SERVICE"
+  ok "Restarted $RUNNER_SERVICE with docker as a supplementary group"
 else
   printf '\033[1;33m!\033[0m No actions.runner.* service was found; restart your runner after this script.\n' >&2
 fi
 
 log "Verifying Docker daemon"
 sudo docker version >/dev/null
-ok "Docker is running"
+ok "Docker daemon is running"
+
+if [[ -n "$RUNNER_SERVICE" ]]; then
+  RUNNER_USER="$(systemctl show "$RUNNER_SERVICE" -p User --value)"
+  [[ -n "$RUNNER_USER" ]] || RUNNER_USER="$USER"
+
+  log "Verifying Docker access as runner service user ($RUNNER_USER)"
+  if ! sudo -u "$RUNNER_USER" -H docker version >/dev/null 2>&1; then
+    echo "Runner service properties:" >&2
+    systemctl show "$RUNNER_SERVICE" -p User -p Group -p SupplementaryGroups >&2 || true
+    echo "Docker socket:" >&2
+    ls -l /var/run/docker.sock >&2 || true
+    die "The runner service user still cannot access Docker."
+  fi
+  ok "Runner service user can access Docker without sudo"
+fi
 
 cat <<EOF
 
@@ -67,9 +96,3 @@ Required built-in labels for this host:
 Custom labels such as steamdeck/cachyos remain optional; workflows no longer
 bind themselves to one named machine.
 EOF
-
-if (( GROUP_CHANGED )); then
-  echo
-  echo "Your interactive shell will see docker-group membership after logout/login."
-  echo "The restarted GitHub Actions systemd service already receives the new group."
-fi

@@ -322,12 +322,15 @@ assert.match(docsReadme, /releases\/v2\.6\.4\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.5\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.6\.md/);
 assert.match(docsReadme, /releases\/v2\.6\.7\.md/);
-assert.match(docsReadme, /v2\.7\.0 Performance & Scale/);
-assert.match(roadmap, /Active release:\*\* v2\.7\.0 — Performance & Scale/);
+// The v2.6 historical guard follows the current roadmap handoff without freezing a superseded future milestone.
+assert.match(docsReadme, /v2\.7\.0 Performance Sanity is deferred\/optional/);
+assert.match(docsReadme, /active feature release is \*\*v2\.8\.0 Reader Experience\*\*/);
+assert.match(roadmap, /Active release:\*\* v2\.8\.0 — Reader Experience/);
 assert.match(roadmap, /# v2\.6\.0 — Reliability & Real-Browser Testing/);
 assert.match(roadmap, /\*\*Status:\*\* ✅ Done/);
 assert.match(roadmap, /\*\*v2\.6\.0 — Reliability & Real-Browser Testing\*\* \| ✅ Done/);
-assert.match(roadmap, /\*\*v2\.7\.0 — Performance & Scale\*\* \| 🟨 In progress/);
+assert.match(roadmap, /\*\*v2\.7\.0 — Performance Sanity\*\* \| ⏸ Deferred \/ optional/);
+assert.match(roadmap, /\*\*v2\.8\.0 — Reader Experience\*\* \| 🟨 In progress/);
 const v26RoadmapSection = roadmap.split('# v2.6.0 — Reliability & Real-Browser Testing')[1]?.split('\n---\n')[0] || '';
 assert.ok(v26RoadmapSection, 'v2.6 roadmap section must remain present');
 assert.doesNotMatch(v26RoadmapSection, /- \[ \]/, 'completed v2.6 section must not retain unchecked milestone items');

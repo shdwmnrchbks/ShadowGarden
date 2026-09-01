@@ -18,10 +18,13 @@ concurrency:
 
 jobs:
   playwright:
-    # Run directly on any Linux x64 self-hosted runner. Playwright browser
-    # binaries and npm packages persist in the runner user's home directory,
-    # so later jobs reuse them instead of requiring Docker or re-downloading.
+    # Keep the self-hosted host generic, but run the browser suite in the
+    # official Playwright image so Chromium, Firefox, WebKit, and their Linux
+    # system dependencies are pinned independently of the host distribution.
     runs-on: [self-hosted, Linux, X64]
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --ipc=host --init
     timeout-minutes: 30
     steps:
       - name: Checkout
@@ -37,20 +40,6 @@ jobs:
 
       - name: Install E2E dependencies
         run: npm ci --prefix tests/e2e --prefer-offline --no-audit --no-fund --progress=false
-
-      - name: Prepare persistent Playwright browsers
-        run: |
-          set -euo pipefail
-          BROWSER_CACHE="$HOME/.cache/ms-playwright"
-          mkdir -p "$BROWSER_CACHE"
-          echo "PLAYWRIGHT_BROWSERS_PATH=$BROWSER_CACHE" >> "$GITHUB_ENV"
-          export PLAYWRIGHT_BROWSERS_PATH="$BROWSER_CACHE"
-
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            npm exec --prefix tests/e2e -- playwright install chromium webkit
-          else
-            npm exec --prefix tests/e2e -- playwright install chromium firefox webkit
-          fi
 
       - name: Build production output
         run: npm run build

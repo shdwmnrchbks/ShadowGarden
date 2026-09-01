@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="/assets/css/reading-status.css">
   <link rel="stylesheet" href="/assets/css/volume-actions.css">
   <link rel="stylesheet" href="/assets/css/reader-image-focus.css">
+  <link rel="stylesheet" href="/assets/css/reader-notes.css">
   <link rel="stylesheet" href="/assets/css/reader-a11y.css">
   <link rel="stylesheet" href="/assets/css/reader-interface-themes.css">
   <link rel="stylesheet" href="/assets/css/reader-presentation.css">
@@ -36,6 +37,7 @@
   <script src="/assets/js/book-access.js"></script>
   <script src="/assets/js/reader-continuous-rail.js"></script>
   <script src="/assets/js/reader-epub-adapter.js"></script>
+  <script src="/assets/js/reader-footnotes.js"></script>
   <script src="/assets/js/reader-visual-cache.js"></script>
   <script src="/assets/js/reader-paginated-visual-fit.js"></script>
   <script src="/assets/js/reader-continuous-core.js"></script>
@@ -138,6 +140,17 @@
       </div>
       <p class="reader-image-focus-hint" id="imageFocusHint" data-hint-fine="Scroll to zoom · drag to inspect · double-click to return">Pinch to zoom · drag to inspect · tap again to return</p>
     </div>
+
+    <dialog id="readerNoteDialog" class="reader-note-dialog" aria-labelledby="readerNoteHeading" aria-describedby="readerNoteBody">
+      <div class="reader-note-card">
+        <div class="reader-note-head">
+          <div><p class="reader-note-kicker">BOOK NOTE</p><h2 id="readerNoteHeading">Note</h2></div>
+          <button id="readerNoteClose" class="reader-note-close" type="button" aria-label="Close note">×</button>
+        </div>
+        <div id="readerNoteBody" class="reader-note-body"></div>
+        <div class="reader-note-foot">This note is shown without leaving your current reading position.</div>
+      </div>
+    </dialog>
 
     <dialog id="externalLinkDialog" class="reader-external-dialog" aria-labelledby="externalLinkHeading" aria-describedby="externalLinkDescription">
       <div class="reader-external-card">

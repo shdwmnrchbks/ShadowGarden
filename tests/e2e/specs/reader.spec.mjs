@@ -74,6 +74,41 @@ test('protected Reader session opens the deterministic EPUB in a real rendition'
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
+test('Reader typeface menu keeps Default publication-owned and applies the three named families', async ({ page, browserDiagnostics }) => {
+  await waitForReader(page);
+  await page.locator('#settingsToggle').click();
+  await expect(page.locator('#settingsDrawer')).toHaveClass(/open/);
+
+  const fontSelect = page.locator('#fontSelect');
+  await expect(fontSelect.locator('option')).toHaveText(['Default', 'Sans', 'Serif', 'Sans-Serif']);
+  await expect(fontSelect).toHaveValue('default');
+
+  const renderedTypeface = () => page.locator('#viewer iframe').first().evaluate(frame => {
+    const doc = frame.contentDocument;
+    const body = doc?.body;
+    const win = frame.contentWindow;
+    return {
+      override: doc?.getElementById('sg-reader-typeface')?.textContent || '',
+      family: body && win ? win.getComputedStyle(body).fontFamily : ''
+    };
+  });
+
+  let rendered = await renderedTypeface();
+  expect(rendered.override).toBe('');
+  expect(rendered.family.toLowerCase()).toContain('serif');
+
+  for (const [value, family] of [['pt-sans', 'PT Sans'], ['literata', 'Literata'], ['inter', 'Inter']]) {
+    await fontSelect.selectOption(value);
+    await expect.poll(async () => (await renderedTypeface()).override).toContain(family);
+  }
+
+  await fontSelect.selectOption('default');
+  await expect.poll(async () => (await renderedTypeface()).override).toBe('');
+  await expect.poll(async () => (await renderedTypeface()).family.toLowerCase()).toContain('serif');
+  expect((await storedJson(page, 'sg-reader-settings'))?.font).toBe('default');
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
 test('Pages progress and bookmark persist through a full Reader reload', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'desktop keyboard/Page-controls regression; mobile input follows in the Reader gesture slice');
   await waitForReader(page);

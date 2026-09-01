@@ -34,7 +34,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | --- | --- | --- |
 | **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
-| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, typography, search/notes behavior, and EPUB resilience |
+| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, focused typography choices, search/notes behavior, and EPUB resilience |
 | **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make library administration faster and prove recovery from catalog/storage failures |
 | **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
 
@@ -155,9 +155,16 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 **Status:** 🟨 In progress  
 **Goal:** improve the surface used for hours at a time without destabilizing the Reader architecture.
 
-## Candidate scope
+## Slice 1 — Focused typeface choices
 
-- [ ] Refine typography controls/presets: font family, size, line height, paragraph spacing/margins, and readable defaults.
+- [x] Replace the legacy Book/System/Classic menu with exactly four choices: **Default**, **Sans**, **Serif**, and **Sans-Serif**.
+- [x] Make **Default** publication-owned: Shadow Garden must not force a `font-family`, so the EPUB's own default font remains authoritative.
+- [x] Use **PT Sans** for Sans, **Literata** for Serif, and **Inter** for Sans-Serif.
+- [x] Migrate legacy browser-local font preferences safely (`book` → Default, `system` → Inter, `classic` → Literata).
+- [x] Keep font size, line height, text width, flow, and the rest of the existing Reader settings unchanged.
+
+## Candidate follow-up scope
+
 - [ ] Improve location/progress presentation so chapter and volume position are understandable without clutter.
 - [ ] Improve TOC and chapter navigation for long books.
 - [ ] Add in-book text search if EPUB.js/runtime constraints permit a robust implementation.

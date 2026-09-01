@@ -191,6 +191,11 @@ export function createThemeController({ getSettings, isAdult }) {
       system: 'Inter, system-ui, sans-serif',
       classic: '"Palatino Linotype", Palatino, serif'
     };
+    const paragraphMargins = {
+      tight: { "margin-top": "0 !important", "margin-bottom": "0.35em !important" },
+      comfortable: { "margin-top": "0 !important", "margin-bottom": "0.7em !important" },
+      spacious: { "margin-top": "0 !important", "margin-bottom": "1em !important" }
+    };
     const theme = themes[settings.theme] || themes.garden;
     const paginated = settings.flow === "paginated";
     const body = {
@@ -296,7 +301,10 @@ export function createThemeController({ getSettings, isAdult }) {
         ...(paginated ? {} : { "overflow-x": "clip !important", "min-width": "0 !important" })
       },
       body,
-      p: { "line-height": `${settings.lineHeight} !important` },
+      p: {
+        "line-height": `${settings.lineHeight} !important`,
+        ...(paragraphMargins[settings.paragraphSpacing] || {})
+      },
       a: { color: `${theme.link} !important` },
       ...(paginated ? {} : {
         "div, section, article, aside, main, table, td, th": blockCap,

@@ -34,7 +34,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | --- | --- | --- |
 | **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
-| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, typography, search/notes behavior, and EPUB resilience |
+| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, focused typography choices, search/notes behavior, and EPUB resilience |
 | **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make library administration faster and prove recovery from catalog/storage failures |
 | **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
 
@@ -155,9 +155,16 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 **Status:** 🟨 In progress  
 **Goal:** improve the surface used for hours at a time without destabilizing the Reader architecture.
 
-## Candidate scope
+## Slice 1 — Focused typeface choices
 
-- [ ] Refine typography controls/presets: font family, size, line height, paragraph spacing/margins, and readable defaults.
+- [x] Replace the legacy Book/System/Classic menu with exactly four choices: **Default**, **Sans**, **Serif**, and **Sans-Serif**.
+- [x] Make **Default** publication-owned: Shadow Garden must not force a `font-family`, so the EPUB's own default font remains authoritative.
+- [x] Use **PT Sans** for Sans, **Literata** for Serif, and **Inter** for Sans-Serif.
+- [x] Migrate legacy browser-local font preferences safely (`book` → Default, `system` → Inter, `classic` → Literata).
+- [x] Keep font size, line height, text width, flow, and the rest of the existing Reader settings unchanged.
+
+## Candidate follow-up scope
+
 - [ ] Improve location/progress presentation so chapter and volume position are understandable without clutter.
 - [ ] Improve TOC and chapter navigation for long books.
 - [ ] Add in-book text search if EPUB.js/runtime constraints permit a robust implementation.
@@ -228,30 +235,3 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [ ] Dependency changes are reproducible, reviewable, and covered by the same release gates as product changes.
 - [ ] Current documentation no longer presents an archived roadmap as active work.
 - [ ] Operational/security checks remain visible without adding fake client-side protection or unnecessary infrastructure.
-
----
-
-# Cross-release backlog
-
-These are useful ideas, but they should be pulled into a release only when the active milestone has capacity and the change has a clear owner.
-
-- Richer browser-local “Recently Read” and completion history.
-- Better multi-filter composition and saved Library views.
-- Additional metadata cleanup tools in Garden Keeper.
-- More EPUB compatibility fixtures from real-world failures.
-- Optional customer-owned Cloudflare-zone hardening if Shadow Garden ever leaves `pages.dev`.
-- Revisit deeper performance engineering only if realistic fixtures or production use expose an actual bottleneck.
-
-## Explicit non-goals for this roadmap
-
-- Another full-codebase refactor.
-- A framework rewrite without measured benefit.
-- Server-side Reader accounts/history.
-- DRM-like client restrictions such as disabling right-click or DevTools.
-- Motion for its own sake.
-- Engineering for hypothetical 1,000+ series collections without evidence that Shadow Garden needs it.
-- Blocking Reader improvements on speculative performance infrastructure.
-
-## Completion rule
-
-This roadmap remains **CURRENT WORK IN PROGRESS** until its active release and subsequent planned releases are either completed, intentionally deferred, or superseded by a new roadmap. When superseded, archive this file and create a new single active roadmap rather than accumulating multiple “current” plans.

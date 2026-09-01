@@ -7,6 +7,7 @@
 
   const EPUB_NS="http://www.idpf.org/2007/ops";
   const NOTE_REF_CLASSES=new Set(["noteref","note-ref","footnote-ref","endnote-ref"]);
+  const LINK_EVENTS=new Set(["link","linkclicked"]);
   let activeBook=null,activeRendition=null,noteOrigin=null,noteSerial=0;
 
   const cleanText=value=>String(value||"").replace(/\s+/g," ").trim();
@@ -184,10 +185,7 @@
     try{await activeRendition.display(target.displayHref)}catch(error){console.warn("Footnote fallback navigation failed",error)}
   }
 
-  function activateNoteReference(contents,anchor,renderedSection,event){
-    try{event?.preventDefault?.()}catch{}
-    try{event?.stopPropagation?.()}catch{}
-    try{event?.stopImmediatePropagation?.()}catch{}
+  function activateNoteReference(contents,anchor,renderedSection){
     const serial=++noteSerial;
     (async()=>{
       try{
@@ -197,24 +195,64 @@
       }catch(error){console.warn("Footnote popup unavailable",error)}
       if(serial===noteSerial)await fallbackToTarget(contents,anchor,renderedSection);
     })();
-    return false;
+  }
+
+  function canonicalBase(doc){
+    const canonical=doc?.querySelector?.("link[rel='canonical']")?.getAttribute?.("href")||"";
+    if(canonical){
+      try{return new URL(canonical,window.location.href).href}catch{}
+    }
+    const base=String(doc?.baseURI||"");
+    return base&&base!=="about:srcdoc"?base:window.location.href;
+  }
+
+  function normalizedLink(value,doc){
+    const text=String(value||"").trim();
+    if(!text)return"";
+    try{return decode(new URL(text,canonicalBase(doc)).href)}catch{return decode(text.replace(/^\.\//,""))}
+  }
+
+  function noteAnchorForHref(contents,href){
+    const doc=contents?.document||contents?.contentDocument||contents;
+    if(!doc?.querySelectorAll)return null;
+    const emitted=normalizedLink(href,doc);
+    if(!emitted)return null;
+    let matches=[];
+    try{
+      matches=[...doc.querySelectorAll("a[href]")].filter(anchor=>{
+        const raw=internalHref(anchor);
+        return raw&&normalizedLink(raw,doc)===emitted;
+      });
+    }catch{return null}
+    if(!matches.length)return null;
+    const active=doc.activeElement;
+    if(active&&matches.includes(active)&&isNoteReference(active))return active;
+    const marked=matches.filter(isNoteReference);
+    if(marked.length===matches.length)return marked[0]||null;
+    // If a publication intentionally uses the same href as both a normal internal link and a
+    // noteref, preserve ordinary navigation unless the active element identifies the noteref.
+    return null;
   }
 
   function installNoteGuard(contents,renderedSection){
     const doc=contents?.document||contents?.contentDocument||contents;
-    if(!doc?.documentElement)return;
+    if(!doc?.documentElement||typeof contents?.emit!=="function")return;
     doc.documentElement.dataset.sgFootnotes="1";
-    let anchors=[];
-    try{anchors=[...doc.querySelectorAll("a[href]")]}catch{}
-    anchors.forEach(anchor=>{
-      if(!isNoteReference(anchor)||!internalHref(anchor))return;
-      const handler=event=>activateNoteReference(contents,anchor,renderedSection,event);
-      anchor.__sgNoteHandler=handler;
-      // EPUB.js itself wires internal links through the element's onclick property. Replacing
-      // that property for explicit noterefs keeps WebKit's sandboxed srcdoc iframe on the
-      // current passage while leaving every ordinary internal link EPUB.js-owned.
-      anchor.onclick=handler;
-    });
+    contents.__sgNoteSection=renderedSection||contents.__sgNoteSection||null;
+    if(contents.__sgNoteEmitWrapped)return;
+    contents.__sgNoteEmitWrapped=true;
+    const rawEmit=contents.emit.bind(contents);
+    contents.emit=(type,...args)=>{
+      const eventName=String(type||"").toLowerCase();
+      if(LINK_EVENTS.has(eventName)){
+        const anchor=noteAnchorForHref(contents,args[0]);
+        if(anchor){
+          activateNoteReference(contents,anchor,contents.__sgNoteSection);
+          return contents;
+        }
+      }
+      return rawEmit(type,...args);
+    };
   }
 
   function patchRendition(rendition){
@@ -225,12 +263,8 @@
     try{rendition.on?.("rendered",(section,view)=>{
       if(rendition!==activeRendition)return;
       const contents=view?.contents;
-      if(contents){
-        installNoteGuard(contents,section);
-        // Run once after EPUB.js finishes the render turn as well, so its standard link
-        // handler cannot overwrite the explicit-noteref override on WebKit.
-        setTimeout(()=>installNoteGuard(contents,section),0);
-      }else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
+      if(contents)installNoteGuard(contents,section);
+      else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
     })}catch{}
     return rendition;
   }

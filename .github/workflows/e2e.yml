@@ -18,34 +18,47 @@ concurrency:
 
 jobs:
   playwright:
-    # Job containers require Linux + Docker. Any Linux x64 self-hosted runner
-    # can accept the job; the Playwright image is cached by Docker after its
-    # first pull on each runner.
+    # Run directly on any Linux x64 self-hosted runner. Playwright browser
+    # binaries and npm packages persist in the runner user's home directory,
+    # so later jobs reuse them instead of requiring Docker or re-downloading.
     runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 30
-    container:
-      image: mcr.microsoft.com/playwright:v1.62.1-noble
-      options: --ipc=host
-      # Keep npm's package cache on the runner across disposable job containers.
-      # GitHub supports named Docker volumes for job containers.
-      volumes:
-        - shadowgarden-e2e-npm-cache:/root/.npm
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
+
       - name: Install production/build dependencies
         run: npm ci --prefer-offline --no-audit --no-fund --progress=false
+
       - name: Install E2E dependencies
         run: npm ci --prefix tests/e2e --prefer-offline --no-audit --no-fund --progress=false
+
+      - name: Prepare persistent Playwright browsers
+        run: |
+          set -euo pipefail
+          BROWSER_CACHE="$HOME/.cache/ms-playwright"
+          mkdir -p "$BROWSER_CACHE"
+          echo "PLAYWRIGHT_BROWSERS_PATH=$BROWSER_CACHE" >> "$GITHUB_ENV"
+          export PLAYWRIGHT_BROWSERS_PATH="$BROWSER_CACHE"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            npm exec --prefix tests/e2e -- playwright install chromium webkit
+          else
+            npm exec --prefix tests/e2e -- playwright install chromium firefox webkit
+          fi
+
       - name: Build production output
         run: npm run build
+
       - name: Generate Reader EPUB fixture
         working-directory: tests/e2e
         run: node support/build-reader-fixture.mjs
+
       - name: Resolve real-browser projects
         id: projects
         run: |
@@ -54,9 +67,11 @@ jobs:
           else
             echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
           fi
+
       - name: Run real-browser suite
         working-directory: tests/e2e
         run: npx playwright test ${{ steps.projects.outputs.args }}
+
       - name: Upload Playwright failure artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

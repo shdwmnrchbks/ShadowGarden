@@ -7,7 +7,7 @@
   let returnTarget=null;
 
   const triggerFor=drawer=>drawer===tocDrawer?tocToggle:drawer===bookSearchDrawer?bookSearchToggle:drawer===settingsDrawer?settingsToggle:null;
-  const focusable=drawer=>drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
+  const focusable=drawer=>drawer===bookSearchDrawer?$('#bookSearchInput'):drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
 
   function syncDrawers(){
     let openDrawer=null;

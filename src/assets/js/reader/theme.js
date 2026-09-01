@@ -177,13 +177,13 @@ export function createThemeController({ getSettings, isAdult }) {
   function applyTypeface(contents) {
     const document = contents?.document;
     if (!document?.head) return;
-    injectReaderFonts(contents);
     const family = READER_FONT_FAMILIES[getSettings()?.font] || "";
     let style = document.getElementById("sg-reader-typeface");
     if (!family) {
       style?.remove();
       return;
     }
+    injectReaderFonts(contents);
     if (!style) {
       style = document.createElement("style");
       style.id = "sg-reader-typeface";

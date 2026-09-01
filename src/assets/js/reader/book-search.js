@@ -1,4 +1,4 @@
-/* Shadow Garden v2.8 Slice 4 — bounded in-book EPUB text search. */
+/* Shadow Garden v2.8 — bounded EPUB text-search engine shared by Contents search. */
 const MIN_QUERY_LENGTH=3;
 const MAX_RESULTS=100;
 const EXCERPT_RADIUS=78;
@@ -85,83 +85,42 @@ export function findSectionMatches(section,query,limit=MAX_RESULTS){
   return matches;
 }
 
-function resultLabel(count,capped){
-  if(!count)return"No matches in this book.";
-  if(capped)return`${count}+ matches · Refine your search for more precise results.`;
-  return`${count} ${count===1?"match":"matches"} in this book.`;
-}
-
-export function createBookSearchController({drawer,form,input,status,results,getBook,getChapter,navigate,closeDrawers,toast}={}){
+export function createBookSearchController({getBook}={}){
   let runId=0;
   let busy=false;
 
-  function setStatus(message){if(status)status.textContent=message}
-  function clearResults(){results?.replaceChildren()}
   function cancel(){if(busy)runId+=1;busy=false}
-  function focus(){queueMicrotask(()=>input?.focus())}
 
-  function renderResult(hit,index){
-    const button=document.createElement("button");
-    button.type="button";
-    button.className="book-search-result";
-    button.dataset.cfi=hit.cfi;
-    const chapter=document.createElement("span");
-    chapter.className="book-search-result-chapter";
-    chapter.textContent=hit.chapter||`Result ${index+1}`;
-    const excerpt=document.createElement("span");
-    excerpt.className="book-search-result-excerpt";
-    excerpt.textContent=hit.excerpt||"Matching text";
-    button.append(chapter,excerpt);
-    button.addEventListener("click",async()=>{
-      try{await navigate?.(hit.cfi);closeDrawers?.()}catch(error){console.error("Book search navigation failed",error);toast?.("Could not open search result")}
-    });
-    return button;
-  }
-
-  async function search(rawQuery){
+  async function search(rawQuery,{onProgress}={}){
     const query=normalizeBookSearchQuery(rawQuery);
-    if(query.length<MIN_QUERY_LENGTH){cancel();clearResults();setStatus(`Enter at least ${MIN_QUERY_LENGTH} characters.`);return[]}
+    if(query.length<MIN_QUERY_LENGTH){cancel();return{hits:[],capped:false,tooShort:true,totalSections:0}}
     const book=getBook?.();
     const sections=Array.isArray(book?.spine?.spineItems)?book.spine.spineItems:[];
-    if(!book||!sections.length){clearResults();setStatus("Book search is unavailable for this EPUB.");return[]}
+    if(!book||!sections.length)return{hits:[],capped:false,unavailable:true,totalSections:0};
 
     const id=++runId,hits=[];
-    busy=true;clearResults();setStatus(`Searching ${sections.length} book sections…`);
+    busy=true;
+    onProgress?.({scanned:0,total:sections.length,count:0});
     for(let index=0;index<sections.length&&hits.length<MAX_RESULTS;index++){
-      if(id!==runId)return[];
+      if(id!==runId)return{hits:[],capped:false,cancelled:true,totalSections:sections.length};
       const section=sections[index];
       const wasLoaded=Boolean(section?.contents);
       try{
         await section.load(book.load.bind(book));
-        if(id!==runId)return[];
+        if(id!==runId)return{hits:[],capped:false,cancelled:true,totalSections:sections.length};
         const remaining=MAX_RESULTS-hits.length;
         const matches=findSectionMatches(section,query,remaining);
-        const location={start:{href:section.href||"",index:Number(section.index)}};
-        const chapter=String(getChapter?.(location)||"").trim()||String(section.href||`Section ${index+1}`);
-        for(const match of matches)hits.push({...match,chapter,href:section.href||"",sectionIndex:Number(section.index)});
+        for(const match of matches)hits.push({...match,href:section.href||"",sectionIndex:Number(section.index)});
       }catch(error){console.warn(`Book search skipped section ${section?.href||index}`,error)}finally{
         if(!wasLoaded){try{section?.unload?.()}catch{}}
       }
-      if(id===runId)setStatus(`Searching ${Math.min(index+1,sections.length)} of ${sections.length}… ${hits.length} ${hits.length===1?"match":"matches"}`);
+      if(id===runId)onProgress?.({scanned:Math.min(index+1,sections.length),total:sections.length,count:hits.length});
       await Promise.resolve();
     }
-    if(id!==runId)return[];
+    if(id!==runId)return{hits:[],capped:false,cancelled:true,totalSections:sections.length};
     busy=false;
-    const capped=hits.length>=MAX_RESULTS;
-    const fragment=document.createDocumentFragment();
-    hits.forEach((hit,index)=>fragment.appendChild(renderResult(hit,index)));
-    results?.replaceChildren(fragment);
-    setStatus(resultLabel(hits.length,capped));
-    return hits;
+    return{hits,capped:hits.length>=MAX_RESULTS,totalSections:sections.length};
   }
 
-  form?.addEventListener("submit",event=>{event.preventDefault();void search(input?.value||"")});
-  input?.addEventListener("keydown",event=>{
-    if(event.key!=="Escape")return;
-    event.preventDefault();
-    if(input.value||results?.childElementCount){cancel();input.value="";clearResults();setStatus("Search this book for a word or phrase.");return}
-    closeDrawers?.();
-  });
-
-  return{search,cancel,focus,isBusy:()=>busy};
+  return{search,cancel,isBusy:()=>busy,minQueryLength:MIN_QUERY_LENGTH,maxResults:MAX_RESULTS};
 }

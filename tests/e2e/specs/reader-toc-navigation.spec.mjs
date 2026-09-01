@@ -12,8 +12,8 @@ async function waitForReader(page) {
 async function openContents(page) {
   await page.locator('#tocToggle').click();
   await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
-  const toggle = page.getByRole('button', { name: 'Search contents', exact: true });
-  const search = page.getByRole('searchbox', { name: 'Search contents' });
+  const toggle = page.getByRole('button', { name: 'Search contents and book', exact: true });
+  const search = page.getByRole('searchbox', { name: 'Search contents and book' });
   await expect(toggle).toBeVisible();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(search).toBeHidden();
@@ -21,8 +21,8 @@ async function openContents(page) {
 }
 
 async function expandSearch(page) {
-  const toggle = page.getByRole('button', { name: 'Search contents', exact: true });
-  const search = page.getByRole('searchbox', { name: 'Search contents' });
+  const toggle = page.getByRole('button', { name: 'Search contents and book', exact: true });
+  const search = page.getByRole('searchbox', { name: 'Search contents and book' });
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(search).toBeVisible();
@@ -30,7 +30,7 @@ async function expandSearch(page) {
   return { toggle, search };
 }
 
-test('Slice 3 Contents search stays collapsed behind the header icon until requested', async ({ page, browserDiagnostics }) => {
+test('Unified Contents search stays collapsed behind the header icon until requested', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
   const { toggle, search } = await openContents(page);
 
@@ -42,16 +42,16 @@ test('Slice 3 Contents search stays collapsed behind the header icon until reque
   await expect(page.getByRole('button', { name: 'Chapter One', exact: true })).toBeHidden();
 
   await search.fill('does not exist');
-  await expect(page.getByText('No matching chapters.', { exact: true })).toBeVisible();
+  await expect(page.getByText('No matching contents.', { exact: true })).toBeVisible();
+  await expect(page.getByText('No matching book text.', { exact: true })).toBeVisible({ timeout: 20_000 });
 
   await search.press('Escape');
   await expect(search).toHaveValue('');
   await expect(search).toBeVisible();
   await expect(page.getByRole('button', { name: 'Chapter One', exact: true })).toBeVisible();
-  await expect(page.getByText('No matching chapters.', { exact: true })).toBeHidden();
+  await expect(page.getByText('No matching contents.', { exact: true })).toBeHidden();
+  await expect(page.locator('.toc-book-search-section')).toBeHidden();
 
-  // With an empty search, Escape collapses the tray and then follows the Reader's existing
-  // drawer Escape contract. Reopening Contents must return to the uncluttered collapsed state.
   await search.press('Escape');
   await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
   await expect(page.locator('.toc-search-toggle')).toHaveAttribute('aria-expanded', 'false');
@@ -61,7 +61,7 @@ test('Slice 3 Contents search stays collapsed behind the header icon until reque
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('Slice 3 search icon returns from Bookmarks to Contents and Current reveals the live chapter', async ({ page, browserDiagnostics }) => {
+test('Unified search returns from Bookmarks to Contents and Current reveals the live chapter', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
   await openContents(page);
 
@@ -76,7 +76,7 @@ test('Slice 3 search icon returns from Bookmarks to Contents and Current reveals
   await expect(page.getByRole('tab', { name: 'Contents', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#tocPanel')).toBeVisible();
 
-  const search = page.getByRole('searchbox', { name: 'Search contents' });
+  const search = page.getByRole('searchbox', { name: 'Search contents and book' });
   await expect(search).toBeVisible();
   await search.fill('visual');
   await expect(page.getByRole('button', { name: 'Visual Plate', exact: true })).toBeVisible();

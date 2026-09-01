@@ -57,10 +57,8 @@
   chapter?.setAttribute('aria-live','polite');
   chapter?.setAttribute('aria-atomic','true');
 
-  // Continuous progress accessibility is owned by reader-continuous-rail.js, which mirrors
-  // the canonical Reader progress presentation. Do not duplicate that writer here: the old
-  // bridge collapsed aria-valuetext back to the short visible rail label (for example, "1%").
+  // Progress semantics are owned by reader/progress-controller.js and mirrored by
+  // reader-continuous-rail.js. This bridge must not write progress aria state.
 
-  void import('/assets/js/reader-mobile-reliability.js').catch(error=>console.warn('Reader mobile reliability bridge unavailable',error));
   void import('/assets/js/site-flavor.js').catch(error=>console.warn('Shadow Garden flavor copy unavailable',error));
 })();

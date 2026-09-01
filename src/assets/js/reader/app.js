@@ -1,12 +1,12 @@
 /* Shadow Garden R4.1 — Reader application orchestrator. */
 import { createReaderStorage } from "./storage.js";
 import { createThemeController } from "./theme.js";
-import { createTocController } from "./toc.js?v=1.2.2";
+import { createTocController } from "./toc.js?v=1.2.3";
 import { createPageMapController } from "./page-map.js?v=1.2.0";
 import { createSettingsController } from "./settings.js";
 import { createProgressController } from "./progress-controller.js";
 import { createBookmarksController } from "./bookmarks-controller.js";
-import { createBookSearchController } from "./book-search.js";
+import { createBookSearchController } from "./book-search.js?v=2.8.1";
 import { createPageNavigationInput } from "./page-navigation-input.js";
 import { createImageFocusController } from "./image-focus.js";
 import { createCompletionController } from "./completion.js";
@@ -22,7 +22,6 @@ function readerElements(){return{
   readerApp:$("#readerApp"),loading:$("#readerLoading"),viewerShell:$("#viewerShell"),viewer:$("#viewer"),
   imageFocus:$("#imageFocus"),imageFocusViewport:$("#imageFocusViewport"),imageFocusLayer:$("#imageFocusLayer"),imageFocusImage:$("#imageFocusImage"),imageFocusClose:$("#imageFocusClose"),
   bookTitle:$("#bookTitle"),chapterTitle:$("#chapterTitle"),tocToggle:$("#tocToggle"),tocDrawer:$("#tocDrawer"),tocPanel:$("#tocPanel"),bookmarksPanel:$("#bookmarksPanel"),
-  bookSearchToggle:$("#bookSearchToggle"),bookSearchDrawer:$("#bookSearchDrawer"),bookSearchForm:$("#bookSearchForm"),bookSearchInput:$("#bookSearchInput"),bookSearchStatus:$("#bookSearchStatus"),bookSearchResults:$("#bookSearchResults"),
   settingsToggle:$("#settingsToggle"),settingsDrawer:$("#settingsDrawer"),backdrop:$("#drawerBackdrop"),bookmarkButton:$("#bookmarkButton"),backLink:$("#backLink"),returnButton:$("#returnButton"),
   fullscreenButton:$("#fullscreenButton"),progressRange:$("#progressRange"),progressText:$("#progressText"),prevPage:$("#prevPage"),nextPage:$("#nextPage"),prevBottom:$("#prevBottom"),nextBottom:$("#nextBottom"),
   themeSelect:$("#themeSelect"),fontSelect:$("#fontSelect"),fontSizeRange:$("#fontSizeRange"),fontSizeValue:$("#fontSizeValue"),lineHeightRange:$("#lineHeightRange"),lineHeightValue:$("#lineHeightValue"),
@@ -35,15 +34,16 @@ export async function startReader(session){
   const elements=readerElements();
   const storage=createReaderStorage({sourceIdentity:session.sourcePath,publicIdentity:session.publicBookId});
   const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};
-  let settingsController,progressController,bookmarksController,bookSearchController,pageInputController,imageFocusController,paginatedController,continuousController,completionController;
+  let settingsController,progressController,bookmarksController,pageInputController,imageFocusController,paginatedController,continuousController,completionController;
 
   const themeController=createThemeController({getSettings:()=>settingsController?.get?.()||{},isAdult:session.adult});
 
   function toast(message){
     if(!elements.toast)return;elements.toast.textContent=message;elements.toast.classList.remove("hidden");clearTimeout(state.toastTimer);state.toastTimer=setTimeout(()=>elements.toast.classList.add("hidden"),1800);
   }
-  function openDrawer(drawer){if(drawer!==elements.bookSearchDrawer)bookSearchController?.cancel?.();document.querySelectorAll(".reader-drawer").forEach(item=>item.classList.toggle("open",item===drawer));elements.backdrop?.classList.remove("hidden")}
-  function closeDrawers(){bookSearchController?.cancel?.();document.querySelectorAll(".reader-drawer").forEach(item=>item.classList.remove("open"));elements.backdrop?.classList.add("hidden")}
+  let tocController=null;
+  function openDrawer(drawer){if(drawer!==elements.tocDrawer)tocController?.cancelSearch?.();document.querySelectorAll(".reader-drawer").forEach(item=>item.classList.toggle("open",item===drawer));elements.backdrop?.classList.remove("hidden")}
+  function closeDrawers(){tocController?.cancelSearch?.();document.querySelectorAll(".reader-drawer").forEach(item=>item.classList.remove("open"));elements.backdrop?.classList.add("hidden")}
   function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}
 
   async function navigate(target){
@@ -53,7 +53,8 @@ export async function startReader(session){
     else await state.rendition.display(target);
   }
 
-  const tocController=createTocController({panel:elements.tocPanel,navigate,closeDrawers,getBook:()=>state.book});
+  const bookSearchController=createBookSearchController({getBook:()=>state.book});
+  tocController=createTocController({panel:elements.tocPanel,navigate,closeDrawers,getBook:()=>state.book,bookSearch:bookSearchController});
 
   function mapMetrics(){return pageMapLayoutMetrics(elements.viewerShell)}
   function mapLayoutChangedSignificantly(){
@@ -95,7 +96,6 @@ export async function startReader(session){
   });
 
   bookmarksController=createBookmarksController({storage,elements,getPosition:()=>progressController.currentPosition(),getCfi:()=>progressController.currentCfi(),getChapter:()=>state.currentChapter,getPageMap:()=>state.pageMap,navigate,closeDrawers,toast});
-  bookSearchController=createBookSearchController({drawer:elements.bookSearchDrawer,form:elements.bookSearchForm,input:elements.bookSearchInput,status:elements.bookSearchStatus,results:elements.bookSearchResults,getBook:()=>state.book,getChapter:location=>tocController.chapterForLocation(location),navigate,closeDrawers,toast});
 
   function turn(direction){if(settingsController.get().flow!=="paginated")return;paginatedController?.turn(direction)}
   pageInputController=createPageNavigationInput({getFlow:()=>settingsController.get().flow,getSwipeTurns:()=>settingsController.get().swipeTurns,turn});
@@ -156,9 +156,9 @@ export async function startReader(session){
   }
 
   function bindDrawers(){
-    elements.tocToggle?.addEventListener("click",()=>openDrawer(elements.tocDrawer));elements.bookSearchToggle?.addEventListener("click",()=>{openDrawer(elements.bookSearchDrawer);bookSearchController?.focus?.()});elements.settingsToggle?.addEventListener("click",()=>openDrawer(elements.settingsDrawer));elements.backdrop?.addEventListener("click",closeDrawers);
+    elements.tocToggle?.addEventListener("click",()=>openDrawer(elements.tocDrawer));elements.settingsToggle?.addEventListener("click",()=>openDrawer(elements.settingsDrawer));elements.backdrop?.addEventListener("click",closeDrawers);
     document.querySelectorAll("[data-close]").forEach(button=>button.addEventListener("click",closeDrawers));
-    document.querySelector(".drawer-tabs")?.addEventListener("click",event=>{const button=event.target.closest("button[data-panel]");if(!button)return;document.querySelectorAll(".drawer-tabs button").forEach(item=>item.classList.toggle("active",item===button));elements.tocPanel?.classList.toggle("hidden",button.dataset.panel!=="toc");elements.bookmarksPanel?.classList.toggle("hidden",button.dataset.panel!=="bookmarks");if(button.dataset.panel==="bookmarks")bookmarksController.render()});
+    document.querySelector(".drawer-tabs")?.addEventListener("click",event=>{const button=event.target.closest("button[data-panel]");if(!button)return;document.querySelectorAll(".drawer-tabs button[data-panel]").forEach(item=>item.classList.toggle("active",item===button));elements.tocPanel?.classList.toggle("hidden",button.dataset.panel!=="toc");elements.bookmarksPanel?.classList.toggle("hidden",button.dataset.panel!=="bookmarks");if(button.dataset.panel==="bookmarks")bookmarksController.render()});
   }
   function bindNavigation(){
     elements.prevPage?.addEventListener("click",()=>turn(-1));elements.prevBottom?.addEventListener("click",()=>turn(-1));elements.nextPage?.addEventListener("click",()=>turn(1));elements.nextBottom?.addEventListener("click",()=>turn(1));
@@ -168,7 +168,7 @@ export async function startReader(session){
     elements.progressRange?.addEventListener("touchend",event=>{if(settingsController.get().flow==="paginated"){resetReaderInput();progressController.seekTo(Number(event.currentTarget.value)/1000,true)}},{passive:true});
     elements.fullscreenButton?.addEventListener("click",()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.()});
     document.addEventListener("keydown",event=>{
-      if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="f"&&!imageFocusController.isFocused()){event.preventDefault();openDrawer(elements.bookSearchDrawer);bookSearchController?.focus?.();return}
+      if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==="f"&&!imageFocusController.isFocused()){event.preventDefault();openDrawer(elements.tocDrawer);tocController.openSearch();return}
       if(["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName))return;
       if(event.key==="Escape"){if(imageFocusController.isFocused())imageFocusController.closeImageFocus();else closeDrawers();return}
       if(event.key.toLowerCase()==="t"){openDrawer(elements.tocDrawer);return}

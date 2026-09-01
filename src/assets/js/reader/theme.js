@@ -1,5 +1,11 @@
 const DARK_TEXT = "#17151b";
 const LIGHT_TEXT = "#f1edf6";
+const READER_FONT_STYLESHEET = "https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700;1,400;1,700&family=Literata:ital,wght@0,400;0,700;1,400;1,700&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap";
+const READER_FONT_FAMILIES = Object.freeze({
+  "pt-sans": '"PT Sans", Arial, sans-serif',
+  literata: 'Literata, Georgia, serif',
+  inter: 'Inter, system-ui, sans-serif'
+});
 const SKIP_TEXT_TAGS = new Set([
   "SCRIPT", "STYLE", "NOSCRIPT", "IMG", "VIDEO", "AUDIO", "CANVAS",
   "SVG", "MATH", "IFRAME", "OBJECT", "EMBED"
@@ -157,8 +163,38 @@ export function createThemeController({ getSettings, isAdult }) {
     }
   }
 
+  function injectReaderFonts(contents) {
+    const document = contents?.document;
+    if (!document?.head || document.getElementById("sg-reader-fonts")) return;
+    const link = document.createElement("link");
+    link.id = "sg-reader-fonts";
+    link.rel = "stylesheet";
+    link.href = READER_FONT_STYLESHEET;
+    link.referrerPolicy = "no-referrer";
+    document.head.appendChild(link);
+  }
+
+  function applyTypeface(contents) {
+    const document = contents?.document;
+    if (!document?.head) return;
+    injectReaderFonts(contents);
+    const family = READER_FONT_FAMILIES[getSettings()?.font] || "";
+    let style = document.getElementById("sg-reader-typeface");
+    if (!family) {
+      style?.remove();
+      return;
+    }
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "sg-reader-typeface";
+      document.head.appendChild(style);
+    }
+    style.textContent = `body{font-family:${family}!important}`;
+  }
+
   function prepare(contents) {
     const settings = getSettings();
+    applyTypeface(contents);
     if (settings.flow === "scrolled-doc") injectScrollChrome(contents);
     requestAnimationFrame(() => repair(contents));
   }
@@ -168,6 +204,7 @@ export function createThemeController({ getSettings, isAdult }) {
     requestAnimationFrame(() => {
       try {
         rendition.getContents().forEach(contents => {
+          applyTypeface(contents);
           if (getSettings().flow === "scrolled-doc") injectScrollChrome(contents);
           repair(contents);
         });
@@ -186,17 +223,11 @@ export function createThemeController({ getSettings, isAdult }) {
       black: { bg: "#000000", text: "#d7d7d7", link: isAdult ? "#d29aa9" : "#b9a8e3" },
       paper: { bg: "#ffffff", text: "#292a25", link: "#536e55" }
     };
-    const fonts = {
-      book: 'Georgia, "Times New Roman", serif',
-      system: 'Inter, system-ui, sans-serif',
-      classic: '"Palatino Linotype", Palatino, serif'
-    };
     const theme = themes[settings.theme] || themes.garden;
     const paginated = settings.flow === "paginated";
     const body = {
       background: `${theme.bg} !important`,
       color: `${theme.text} !important`,
-      "font-family": `${fonts[settings.font] || fonts.book} !important`,
       "font-size": `${settings.fontSize}% !important`,
       "line-height": `${settings.lineHeight} !important`,
       margin: paginated ? "0 !important" : "0 auto !important",

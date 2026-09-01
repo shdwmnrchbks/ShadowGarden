@@ -19,10 +19,8 @@ async function frameWith(page, selector) {
 async function activateLink(page, selector) {
   const frame = await frameWith(page, selector);
   const link = frame.locator(selector);
-  await link.evaluate(element => {
-    element.focus();
-    element.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: element.ownerDocument.defaultView }));
-  });
+  await link.focus();
+  await link.click();
   return { frame, link };
 }
 

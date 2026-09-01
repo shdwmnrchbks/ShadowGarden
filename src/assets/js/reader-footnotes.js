@@ -7,7 +7,6 @@
 
   const EPUB_NS="http://www.idpf.org/2007/ops";
   const NOTE_REF_CLASSES=new Set(["noteref","note-ref","footnote-ref","endnote-ref"]);
-  const LINK_EVENTS=new Set(["link","linkclicked"]);
   let activeBook=null,activeRendition=null,noteOrigin=null,noteSerial=0;
 
   const cleanText=value=>String(value||"").replace(/\s+/g," ").trim();
@@ -80,10 +79,14 @@
     return false;
   }
 
-  function internalHref(anchor){
-    const raw=String(anchor?.getAttribute?.("href")||"").trim();
+  function internalHrefValue(value){
+    const raw=String(value||"").trim();
     if(!raw||/^([a-z][a-z0-9+.-]*:|\/\/)/i.test(raw))return"";
     return raw;
+  }
+
+  function originalNoteHref(anchor){
+    return internalHrefValue(anchor?.dataset?.sgNoteHref||anchor?.getAttribute?.("href")||"");
   }
 
   function currentSectionFor(contents,renderedSection,book=activeBook){
@@ -160,7 +163,7 @@
   }
 
   async function loadNote(contents,anchor,renderedSection){
-    const book=activeBook,current=currentSectionFor(contents,renderedSection,book),href=internalHref(anchor);
+    const book=activeBook,current=currentSectionFor(contents,renderedSection,book),href=originalNoteHref(anchor);
     if(!book||!current||!href)return null;
     const targetInfo=resolveInternalTarget(current,href);
     if(!targetInfo?.fragment)return null;
@@ -180,12 +183,15 @@
   }
 
   async function fallbackToTarget(contents,anchor,renderedSection){
-    const current=currentSectionFor(contents,renderedSection),href=internalHref(anchor),target=resolveInternalTarget(current,href);
+    const current=currentSectionFor(contents,renderedSection),href=originalNoteHref(anchor),target=resolveInternalTarget(current,href);
     if(!activeRendition||!target?.displayHref)return;
     try{await activeRendition.display(target.displayHref)}catch(error){console.warn("Footnote fallback navigation failed",error)}
   }
 
-  function activateNoteReference(contents,anchor,renderedSection){
+  function activateNoteReference(contents,anchor,renderedSection,event){
+    try{event?.preventDefault?.()}catch{}
+    try{event?.stopPropagation?.()}catch{}
+    try{event?.stopImmediatePropagation?.()}catch{}
     const serial=++noteSerial;
     (async()=>{
       try{
@@ -195,64 +201,44 @@
       }catch(error){console.warn("Footnote popup unavailable",error)}
       if(serial===noteSerial)await fallbackToTarget(contents,anchor,renderedSection);
     })();
+    return false;
   }
 
-  function canonicalBase(doc){
-    const canonical=doc?.querySelector?.("link[rel='canonical']")?.getAttribute?.("href")||"";
-    if(canonical){
-      try{return new URL(canonical,window.location.href).href}catch{}
-    }
-    const base=String(doc?.baseURI||"");
-    return base&&base!=="about:srcdoc"?base:window.location.href;
-  }
+  function makeNoteReferenceInert(contents,anchor,renderedSection){
+    if(!anchor?.getAttribute||!isNoteReference(anchor))return;
+    const stored=internalHrefValue(anchor.dataset?.sgNoteHref||"");
+    const raw=stored||internalHrefValue(anchor.getAttribute("href"));
+    if(!raw)return;
+    if(!stored)anchor.dataset.sgNoteHref=raw;
 
-  function normalizedLink(value,doc){
-    const text=String(value||"").trim();
-    if(!text)return"";
-    try{return decode(new URL(text,canonicalBase(doc)).href)}catch{return decode(text.replace(/^\.\//,""))}
-  }
+    // WebKit 26.5 follows the real href in EPUB.js' script-disabled srcdoc iframe even
+    // when a parent-realm listener calls preventDefault(). Remove that destructive
+    // default action entirely and preserve the EPUB target in data-sg-note-href.
+    if(anchor.hasAttribute("href"))anchor.removeAttribute("href");
+    anchor.classList.add("sg-note-reference");
+    anchor.setAttribute("aria-haspopup","dialog");
+    if(!anchor.hasAttribute("tabindex"))anchor.tabIndex=0;
+    if(!anchor.hasAttribute("role"))anchor.setAttribute("role","link");
+    if(anchor.dataset.sgNoteReady==="1")return;
+    anchor.dataset.sgNoteReady="1";
 
-  function noteAnchorForHref(contents,href){
-    const doc=contents?.document||contents?.contentDocument||contents;
-    if(!doc?.querySelectorAll)return null;
-    const emitted=normalizedLink(href,doc);
-    if(!emitted)return null;
-    let matches=[];
-    try{
-      matches=[...doc.querySelectorAll("a[href]")].filter(anchor=>{
-        const raw=internalHref(anchor);
-        return raw&&normalizedLink(raw,doc)===emitted;
-      });
-    }catch{return null}
-    if(!matches.length)return null;
-    const active=doc.activeElement;
-    if(active&&matches.includes(active)&&isNoteReference(active))return active;
-    const marked=matches.filter(isNoteReference);
-    if(marked.length===matches.length)return marked[0]||null;
-    // If a publication intentionally uses the same href as both a normal internal link and a
-    // noteref, preserve ordinary navigation unless the active element identifies the noteref.
-    return null;
+    const activate=event=>{
+      if(event?.type==="keydown"&&event.key!=="Enter")return;
+      activateNoteReference(contents,anchor,contents.__sgNoteSection||renderedSection,event);
+    };
+    anchor.__sgNoteHandler=activate;
+    anchor.addEventListener("click",activate,{capture:true});
+    anchor.addEventListener("keydown",activate,{capture:true});
   }
 
   function installNoteGuard(contents,renderedSection){
     const doc=contents?.document||contents?.contentDocument||contents;
-    if(!doc?.documentElement||typeof contents?.emit!=="function")return;
+    if(!doc?.documentElement)return;
     doc.documentElement.dataset.sgFootnotes="1";
     contents.__sgNoteSection=renderedSection||contents.__sgNoteSection||null;
-    if(contents.__sgNoteEmitWrapped)return;
-    contents.__sgNoteEmitWrapped=true;
-    const rawEmit=contents.emit.bind(contents);
-    contents.emit=(type,...args)=>{
-      const eventName=String(type||"").toLowerCase();
-      if(LINK_EVENTS.has(eventName)){
-        const anchor=noteAnchorForHref(contents,args[0]);
-        if(anchor){
-          activateNoteReference(contents,anchor,contents.__sgNoteSection);
-          return contents;
-        }
-      }
-      return rawEmit(type,...args);
-    };
+    let anchors=[];
+    try{anchors=[...doc.querySelectorAll("a[href],a[data-sg-note-href]")]}catch{}
+    anchors.forEach(anchor=>makeNoteReferenceInert(contents,anchor,contents.__sgNoteSection));
   }
 
   function patchRendition(rendition){
@@ -263,8 +249,10 @@
     try{rendition.on?.("rendered",(section,view)=>{
       if(rendition!==activeRendition)return;
       const contents=view?.contents;
-      if(contents)installNoteGuard(contents,section);
-      else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
+      if(contents){
+        installNoteGuard(contents,section);
+        setTimeout(()=>installNoteGuard(contents,section),0);
+      }else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
     })}catch{}
     return rendition;
   }

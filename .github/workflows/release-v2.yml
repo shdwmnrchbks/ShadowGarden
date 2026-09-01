@@ -18,7 +18,9 @@ concurrency:
 jobs:
   release:
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
-    runs-on: [self-hosted, Linux, X64, steamdeck]
+    # This release gate is shell/Linux-oriented. Keep the OS requirement, but
+    # allow any Linux x64 self-hosted runner rather than one named machine.
+    runs-on: [self-hosted, Linux, X64]
     timeout-minutes: 50
     steps:
       - name: Checkout verified main commit

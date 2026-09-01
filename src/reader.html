@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/assets/css/motion.css">
   <link rel="stylesheet" href="/assets/css/reader-continuous-rail.css">
   <link rel="stylesheet" href="/assets/css/reader-page-map.css">
+  <link rel="stylesheet" href="/assets/css/reader-book-search.css">
   <link rel="stylesheet" href="/assets/css/reader-completion.css">
   <link rel="stylesheet" href="/assets/css/reader-end-page.css">
   <link rel="stylesheet" href="/assets/css/reading-status.css">
@@ -68,6 +69,7 @@
       </div>
       <div class="reader-actions">
         <button id="bookmarkButton" class="reader-icon" type="button" title="Bookmark this location" aria-label="Bookmark this location" aria-pressed="false">◇</button>
+        <button id="bookSearchToggle" class="reader-icon reader-search-icon" type="button" title="Search this book" aria-label="Search this book" aria-controls="bookSearchDrawer" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg></button>
         <button id="settingsToggle" class="reader-icon" type="button" aria-label="Reader settings" aria-controls="settingsDrawer" aria-expanded="false">Aa</button>
         <button id="fullscreenButton" class="reader-icon" type="button" aria-label="Fullscreen" aria-pressed="false">⛶</button>
         <a id="returnButton" class="reader-icon reader-return" href="/" title="Return to series" aria-label="Return to series">◀</a>
@@ -84,6 +86,21 @@
       </div>
       <div id="tocPanel" class="drawer-panel"></div>
       <div id="bookmarksPanel" class="drawer-panel hidden"></div>
+    </aside>
+
+    <aside id="bookSearchDrawer" class="reader-drawer drawer-left" aria-label="Search this book" aria-hidden="true">
+      <div class="drawer-head">
+        <strong>Search this book</strong>
+        <button class="drawer-close" data-close="bookSearchDrawer" type="button" aria-label="Close book search">×</button>
+      </div>
+      <div class="book-search-panel">
+        <form id="bookSearchForm" class="book-search-form" role="search">
+          <input id="bookSearchInput" class="book-search-input" type="search" autocomplete="off" spellcheck="false" placeholder="Word or phrase" aria-label="Search this book">
+          <button class="book-search-submit" type="submit">Search</button>
+        </form>
+        <p id="bookSearchStatus" class="book-search-status" role="status" aria-live="polite">Search this book for a word or phrase.</p>
+        <div id="bookSearchResults" class="book-search-results" aria-label="Book search results"></div>
+      </div>
     </aside>
 
     <aside id="settingsDrawer" class="reader-drawer drawer-right" aria-label="Reading settings" aria-hidden="true">

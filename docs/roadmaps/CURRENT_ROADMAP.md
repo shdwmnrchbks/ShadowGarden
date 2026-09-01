@@ -58,9 +58,9 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 
 ## 2.6B — Critical public flows
 
-- [x] Main and Adult Library load independently with correct shelf isolation.
-- [x] Search, filters, sorting, Grid/Compact switching, Recently Added, pinned state, and Back/Forward restoration work in a real browser.
-- [x] Series → Reader → Series/Library navigation preserves expected reading state and route continuity.
+- [x] Main and Adult libraries hydrate from isolated fixture catalogs.
+- [x] Search, compact view, and Back navigation restore rendered Library state.
+- [x] Reading suggestion reroll advances and pinned series remain available in the navigation drawer.
 - [x] Verify **Read → Continue → Finished → Read Again** end to end, including bookmark preservation and page-1 restart.
 - [x] Verify mobile navigation open/close, independently scrollable drawer content, background scroll lock, sticky header behavior, and orientation/viewport changes.
 - [x] Verify reduced-motion paths perform the same functional transitions without optional choreography.
@@ -171,10 +171,25 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [x] Preserve the existing browser-local progress payload and Page Map ownership; Slice 2 is a presentation change, not a persistence migration.
 - [x] Add deterministic formatter coverage and a real-browser regression spanning Pages and Continuous presentation.
 
+## Slice 3 — Long-book Contents navigation
+
+- [x] Add in-place Contents filtering without introducing a second navigation model.
+- [x] Keep the search tray collapsed behind a magnifying-glass action beside Bookmarks so the drawer stays compact by default.
+- [x] Add a `Current` action that clears filtering, expands the live chapter path, reveals it, and restores keyboard focus without moving the rendition.
+- [x] Preserve the existing TOC collapse state when filtering clears and keep Page Map/progress/bookmarks untouched.
+- [x] Cover desktop/mobile Contents filtering, Bookmarks handoff, focus, and the Reader Escape contract in the real-browser matrix.
+
+## Slice 4 — In-book text search
+
+- [x] Add a dedicated whole-book search drawer opened from a Reader magnifying-glass action and `Ctrl/Cmd+F`, without mixing it into Contents filtering.
+- [x] Search the canonical EPUB spine sequentially through the existing EPUB.js `Book`/`Section` objects rather than creating a second rendition or loading the whole book into the live DOM.
+- [x] Generate CFI-backed results with chapter/context excerpts and open them through the existing Reader `navigate()` path.
+- [x] Bound expensive searches with a three-character minimum, cancellable sequential scanning, per-section unloading, and a 100-result cap.
+- [x] Preserve Page Map, progress, bookmark persistence, Pages/Continuous input ownership, and browser-local reading data.
+- [x] Add deterministic query coverage plus real-browser search, result navigation, keyboard shortcut, cap, focus, and Escape behavior.
+
 ## Candidate follow-up scope
 
-- [ ] Improve TOC and chapter navigation for long books.
-- [ ] Add in-book text search if EPUB.js/runtime constraints permit a robust implementation.
 - [ ] Improve bookmark management beyond add/remove at the current location.
 - [ ] Audit footnote/endnote/pop-up behavior across common EPUB patterns.
 - [ ] Improve resume behavior after orientation changes, reloads, backgrounding, and long idle periods.

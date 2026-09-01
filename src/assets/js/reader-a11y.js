@@ -1,13 +1,13 @@
 /* Shadow Garden — accessibility bridge around the existing reader UI. */
 (()=>{
   const $=selector=>document.querySelector(selector);
-  const tocToggle=$('#tocToggle'),settingsToggle=$('#settingsToggle');
-  const tocDrawer=$('#tocDrawer'),settingsDrawer=$('#settingsDrawer');
-  const drawers=[tocDrawer,settingsDrawer].filter(Boolean);
+  const tocToggle=$('#tocToggle'),bookSearchToggle=$('#bookSearchToggle'),settingsToggle=$('#settingsToggle');
+  const tocDrawer=$('#tocDrawer'),bookSearchDrawer=$('#bookSearchDrawer'),settingsDrawer=$('#settingsDrawer');
+  const drawers=[tocDrawer,bookSearchDrawer,settingsDrawer].filter(Boolean);
   let returnTarget=null;
 
-  const triggerFor=drawer=>drawer===tocDrawer?tocToggle:drawer===settingsDrawer?settingsToggle:null;
-  const focusable=drawer=>drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
+  const triggerFor=drawer=>drawer===tocDrawer?tocToggle:drawer===bookSearchDrawer?bookSearchToggle:drawer===settingsDrawer?settingsToggle:null;
+  const focusable=drawer=>drawer===bookSearchDrawer?$('#bookSearchInput'):drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
 
   function syncDrawers(){
     let openDrawer=null;
@@ -27,6 +27,7 @@
   }
 
   tocToggle?.addEventListener('click',()=>{returnTarget=tocToggle},{capture:true});
+  bookSearchToggle?.addEventListener('click',()=>{returnTarget=bookSearchToggle},{capture:true});
   settingsToggle?.addEventListener('click',()=>{returnTarget=settingsToggle},{capture:true});
   drawers.forEach(drawer=>new MutationObserver(syncDrawers).observe(drawer,{attributes:true,attributeFilter:['class']}));
   syncDrawers();

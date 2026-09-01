@@ -7,7 +7,13 @@
   let returnTarget=null;
 
   const triggerFor=drawer=>drawer===tocDrawer?tocToggle:drawer===settingsDrawer?settingsToggle:null;
-  const focusable=drawer=>drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
+  const focusable=drawer=>{
+    if(drawer===tocDrawer&&drawer.querySelector('.toc-search-toggle[aria-expanded="true"]')){
+      const search=drawer.querySelector('.toc-search');
+      if(search)return search;
+    }
+    return drawer?.querySelector('button:not([disabled]),a[href],select,input,[tabindex]:not([tabindex="-1"])');
+  };
 
   function syncDrawers(){
     let openDrawer=null;

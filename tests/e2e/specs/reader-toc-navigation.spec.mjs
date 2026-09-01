@@ -50,10 +50,13 @@ test('Slice 3 Contents search stays collapsed behind the header icon until reque
   await expect(page.getByRole('button', { name: 'Chapter One', exact: true })).toBeVisible();
   await expect(page.getByText('No matching chapters.', { exact: true })).toBeHidden();
 
+  // With an empty search, Escape collapses the tray and then follows the Reader's existing
+  // drawer Escape contract. Reopening Contents must return to the uncluttered collapsed state.
   await search.press('Escape');
-  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
-  await expect(search).toBeHidden();
-  await expect(toggle).toBeFocused();
+  await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
+  await expect(page.locator('.toc-search-toggle')).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.toc-search')).toBeHidden();
+  await openContents(page);
 
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
@@ -67,10 +70,10 @@ test('Slice 3 search icon returns from Bookmarks to Contents and Current reveals
   await expect(page.locator('#chapterTitle')).toHaveText('Chapter Two', { timeout: 8_000 });
 
   const { toggle } = await openContents(page);
-  await page.getByRole('button', { name: 'Bookmarks', exact: true }).click();
+  await page.getByRole('tab', { name: 'Bookmarks', exact: true }).click();
   await expect(page.locator('#bookmarksPanel')).toBeVisible();
   await toggle.click();
-  await expect(page.locator('.drawer-tabs button[data-panel="toc"]')).toHaveClass(/active/);
+  await expect(page.getByRole('tab', { name: 'Contents', exact: true })).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('#tocPanel')).toBeVisible();
 
   const search = page.getByRole('searchbox', { name: 'Search contents' });

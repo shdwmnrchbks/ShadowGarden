@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# One-time host bootstrap for the shdwmnrchbks Steam Deck/CachyOS runner.
-# Dayloop provisions JDK 17 and Android SDK 35 inside its workflow; the host
-# only needs common archive/network tools. Docker is installed so ShadowGarden
-# can execute its pinned Playwright container on the self-hosted runner.
+# One-time host bootstrap for a CachyOS/Arch Linux x64 runner in shdwmnrchbks.
+# Workflows target runner capabilities rather than a specific machine label.
+# Docker is installed so ShadowGarden can execute its pinned Playwright image.
 
 log() { printf '\n\033[1;34m==>\033[0m %s\n' "$*"; }
 ok() { printf '\033[1;32m✓\033[0m %s\n' "$*"; }
@@ -40,9 +39,6 @@ if ! id -nG "$USER" | tr ' ' '\n' | grep -Fxq docker; then
   ok "Added $USER to the docker group"
 fi
 
-# A systemd service resolves supplementary groups when it starts, so restarting
-# the Actions service is enough for it to pick up docker-group membership even
-# before the interactive desktop session is restarted.
 RUNNER_SERVICE="$(systemctl list-unit-files --type=service --no-legend 'actions.runner.*.service' 2>/dev/null | awk 'NR==1 {print $1}')"
 if [[ -n "$RUNNER_SERVICE" ]]; then
   log "Restarting GitHub Actions runner service"
@@ -61,19 +57,15 @@ cat <<EOF
 
 CachyOS runner host dependencies are ready.
 
-Dayloop CI will provision:
-  - JDK 17
-  - Android SDK platform 35
-  - Android Build Tools 35.0.0
-  - Gradle dependencies/caches
+ShadowGarden verify can run on any x64 self-hosted runner. Playwright E2E and
+the release gate use the Linux x64 pool because job containers and their shell
+tooling are Linux-specific.
 
-ShadowGarden CI will provision:
-  - Node.js 22
-  - npm dependencies
-  - Playwright 1.62.1 browsers and Linux libraries through its pinned container
+Required built-in labels for this host:
+  self-hosted, Linux, X64
 
-The GitHub runner itself must have these labels:
-  self-hosted, Linux, X64, steamdeck
+Custom labels such as steamdeck/cachyos remain optional; workflows no longer
+bind themselves to one named machine.
 EOF
 
 if (( GROUP_CHANGED )); then

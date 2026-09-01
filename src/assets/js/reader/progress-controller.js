@@ -34,6 +34,10 @@ export function createProgressController({storage,elements,getBook,getRendition,
     if(text){
       text.textContent=presentation.visual;
       text.dataset.compact=presentation.compact;
+      // Read-only diagnostics for browser tests and inspection. Continuous rail ownership
+      // remains event-driven through sg:reader-progress and never consumes these attributes.
+      text.dataset.rail=presentation.rail;
+      text.dataset.accessible=presentation.accessible;
       text.title=!Number(position?.totalPages)&&getPageMap?.()?.isGenerating?.()
         ?`${presentation.accessible} · Preparing device page map…`
         :presentation.accessible;

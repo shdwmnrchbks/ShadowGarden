@@ -18,8 +18,11 @@ concurrency:
 
 jobs:
   playwright:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
+    runs-on: [self-hosted, Linux, X64, steamdeck]
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.1-noble
+      options: --ipc=host
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,12 +43,6 @@ jobs:
       - name: Generate Reader EPUB fixture
         working-directory: tests/e2e
         run: node support/build-reader-fixture.mjs
-      - name: Install Playwright browsers (full release matrix)
-        if: ${{ github.event_name != 'pull_request' }}
-        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium firefox webkit
-      - name: Install Playwright browsers (pull request subset)
-        if: ${{ github.event_name == 'pull_request' }}
-        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium webkit
       - name: Resolve real-browser projects
         id: projects
         run: |

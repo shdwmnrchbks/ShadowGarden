@@ -85,7 +85,8 @@
     return raw;
   }
 
-  function currentSectionFor(contents,book=activeBook){
+  function currentSectionFor(contents,renderedSection,book=activeBook){
+    if(renderedSection?.href)return renderedSection;
     const index=Number(contents?.sectionIndex);
     const items=book?.spine?.spineItems||[];
     if(Number.isInteger(index)&&index>=0&&items[index])return items[index];
@@ -157,8 +158,8 @@
     const text=cleanText(clone.textContent);return text?[text]:[];
   }
 
-  async function loadNote(contents,anchor){
-    const book=activeBook,current=currentSectionFor(contents,book),href=internalHref(anchor);
+  async function loadNote(contents,anchor,renderedSection){
+    const book=activeBook,current=currentSectionFor(contents,renderedSection,book),href=internalHref(anchor);
     if(!book||!current||!href)return null;
     const targetInfo=resolveInternalTarget(current,href);
     if(!targetInfo?.fragment)return null;
@@ -177,13 +178,13 @@
     }
   }
 
-  async function fallbackToTarget(contents,anchor){
-    const current=currentSectionFor(contents),href=internalHref(anchor),target=resolveInternalTarget(current,href);
+  async function fallbackToTarget(contents,anchor,renderedSection){
+    const current=currentSectionFor(contents,renderedSection),href=internalHref(anchor),target=resolveInternalTarget(current,href);
     if(!activeRendition||!target?.displayHref)return;
     try{await activeRendition.display(target.displayHref)}catch(error){console.warn("Footnote fallback navigation failed",error)}
   }
 
-  function installNoteGuard(contents){
+  function installNoteGuard(contents,renderedSection){
     const doc=contents?.document||contents?.contentDocument||contents;
     if(!doc?.documentElement||doc.documentElement.dataset.sgFootnotes==="1")return;
     doc.documentElement.dataset.sgFootnotes="1";
@@ -196,11 +197,11 @@
       const serial=++noteSerial;
       (async()=>{
         try{
-          const note=await loadNote(contents,anchor);
+          const note=await loadNote(contents,anchor,renderedSection);
           if(serial!==noteSerial)return;
           if(note&&showNoteDialog(note,anchor))return;
         }catch(error){console.warn("Footnote popup unavailable",error)}
-        if(serial===noteSerial)await fallbackToTarget(contents,anchor);
+        if(serial===noteSerial)await fallbackToTarget(contents,anchor,renderedSection);
       })();
     },{capture:true});
   }
@@ -209,12 +210,12 @@
     if(!rendition||rendition.__sgFootnotesPatched)return rendition;
     if(activeRendition&&activeRendition!==rendition)closeNoteDialog({restoreFocus:false});
     activeRendition=rendition;rendition.__sgFootnotesPatched=true;
-    try{rendition.hooks?.content?.register?.(contents=>installNoteGuard(contents))}catch(error){console.warn("EPUB note hook unavailable",error)}
-    try{rendition.on?.("rendered",(_,view)=>{
+    try{rendition.hooks?.content?.register?.((contents,view)=>installNoteGuard(contents,view?.section))}catch(error){console.warn("EPUB note hook unavailable",error)}
+    try{rendition.on?.("rendered",(section,view)=>{
       if(rendition!==activeRendition)return;
       const contents=view?.contents;
-      if(contents)setTimeout(()=>installNoteGuard(contents),0);
-      else setTimeout(()=>{try{rendition.getContents?.().forEach(installNoteGuard)}catch{}},0);
+      if(contents)setTimeout(()=>installNoteGuard(contents,section),0);
+      else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
     })}catch{}
     return rendition;
   }

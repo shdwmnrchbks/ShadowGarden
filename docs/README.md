@@ -4,7 +4,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## 🚧 Current work in progress
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 through v2.6.7 are focused Continuous Reader fixes; the active feature release remains **v2.7.0 Performance & Scale**, followed by Reader experience, Keeper recovery/productivity, and maintenance/supply-chain work.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 through v2.6.7 are focused Continuous Reader fixes; **v2.7.0 Performance Sanity is deferred/optional**, and the active feature release is **v2.8.0 Reader Experience**, followed by Keeper recovery/productivity and maintenance/supply-chain work.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 

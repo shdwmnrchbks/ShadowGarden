@@ -109,6 +109,26 @@ test('Reader typeface menu keeps Default publication-owned and applies the three
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
+test('Reader progress summary combines canonical page, volume percentage, and chapter context', async ({ page, browserDiagnostics }) => {
+  await waitForReader(page);
+  const progressText = page.locator('#progressText');
+  const progressRange = page.locator('#progressRange');
+
+  await expect.poll(async () => progressText.textContent(), { timeout: 20_000 })
+    .toMatch(/^Page \d+\/\d+ · \d+% · Chapter/);
+  await expect(progressText).toHaveAttribute('data-compact', /^\d+\/\d+ · \d+%$/);
+  await expect(progressText).toHaveAttribute('data-rail', /^\d+\/\d+$/);
+  await expect(progressRange).toHaveAttribute('aria-valuetext', /Chapter.+Page \d+ of \d+.+\d+% of volume/);
+
+  await page.locator('#settingsToggle').click();
+  await page.locator('#flowSelect').selectOption('scrolled-doc');
+  await expect(page.locator('body')).toHaveClass(/reader-flow-scrolled/, { timeout: 12_000 });
+  await expect.poll(async () => page.locator('#continuousSeek').getAttribute('aria-valuetext'), { timeout: 12_000 })
+    .toMatch(/Chapter.+Page \d+ of \d+.+\d+% of volume/);
+  await expect(page.locator('#continuousSeekText')).toHaveText(/^\d+\/\d+$/);
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
 test('Pages progress and bookmark persist through a full Reader reload', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(testInfo.project.name.includes('mobile'), 'desktop keyboard/Page-controls regression; mobile input follows in the Reader gesture slice');
   await waitForReader(page);

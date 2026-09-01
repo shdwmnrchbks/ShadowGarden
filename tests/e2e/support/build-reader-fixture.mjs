@@ -31,6 +31,7 @@ zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
     <item id="css" href="styles.css" media-type="text/css"/>
     <item id="chapter-1" href="chapter-1.xhtml" media-type="application/xhtml+xml"/>
     <item id="chapter-2" href="chapter-2.xhtml" media-type="application/xhtml+xml"/>
+    <item id="notes" href="notes.xhtml" media-type="application/xhtml+xml"/>
     <item id="split-chapter-a" href="split-chapter-a.xhtml" media-type="application/xhtml+xml"/>
     <item id="split-chapter-b" href="split-chapter-b.xhtml" media-type="application/xhtml+xml"/>
     <item id="visual-only" href="visual-only.xhtml" media-type="application/xhtml+xml"/>
@@ -44,6 +45,7 @@ zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
   <spine>
     <itemref idref="chapter-1"/>
     <itemref idref="chapter-2"/>
+    <itemref idref="notes" linear="no"/>
     <itemref idref="split-chapter-a"/>
     <itemref idref="split-chapter-b"/>
     <itemref idref="visual-only"/>
@@ -64,17 +66,23 @@ zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <li><a href="legacy-structure.xhtml">Legacy Structure</a></li>
 <li><a href="large-chapter.xhtml">Large Chapter</a></li>
 </ol></nav></body></html>`);
-zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;margin:0 6%} h1{margin:1.5em 0 .8em} p{margin:.8em 0} figure{margin:2em auto;text-align:center} img{max-width:70%;height:auto}.visual-page{min-height:90vh;display:grid;place-items:center}.oversized-visual{width:120vw;margin-left:0;margin-right:0}.oversized-visual img{width:1200px;max-width:none}.oversized-div{width:140vw;padding-left:40px}.oversized-div img{width:1600px;max-width:none;display:block}.min-width-canvas{min-width:900px}.min-width-canvas img{width:100%;max-width:none;display:block}.fullbleed-dark{width:100vw;padding:0}.fullbleed-dark img{width:100%;height:auto;display:block;background:#050507}.abs-canvas{position:absolute;width:120vw;padding:0;margin:0}.abs-canvas img{width:100%;max-width:none;display:block}.tall-strip{margin:2em 0;padding:0}.tall-strip img{width:100%;height:auto;display:block}`);
+zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;margin:0 6%} h1{margin:1.5em 0 .8em} p{margin:.8em 0} figure{margin:2em auto;text-align:center} img{max-width:70%;height:auto}.visual-page{min-height:90vh;display:grid;place-items:center}.fixture-note{display:none}.oversized-visual{width:120vw;margin-left:0;margin-right:0}.oversized-visual img{width:1200px;max-width:none}.oversized-div{width:140vw;padding-left:40px}.oversized-div img{width:1600px;max-width:none;display:block}.min-width-canvas{min-width:900px}.min-width-canvas img{width:100%;max-width:none;display:block}.fullbleed-dark{width:100vw;padding:0}.fullbleed-dark img{width:100%;height:auto;display:block;background:#050507}.abs-canvas{position:absolute;width:120vw;padding:0;margin:0}.abs-canvas img{width:100%;max-width:none;display:block}.tall-strip{margin:2em 0;padding:0}.tall-strip img{width:100%;height:auto;display:block}`);
 zip.file('OEBPS/chapter-1.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
-<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Chapter One</title><link rel="stylesheet" href="styles.css"/></head><body>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en"><head><title>Chapter One</title><link rel="stylesheet" href="styles.css"/></head><body>
 <h1>Chapter One</h1>
+<p id="note-fixtures">Reader note fixtures: <a id="same-note-ref" href="#same-note" epub:type="noteref">Same-page footnote</a>, <a id="cross-note-ref" href="notes.xhtml#endnote-one" role="doc-noteref">Cross-document endnote</a>, and <a id="ordinary-internal-link" href="chapter-2.xhtml#ordinary-target">Ordinary internal link</a>.</p>
+<aside id="same-note" class="fixture-note" epub:type="footnote" role="doc-footnote"><p><a href="#same-note-ref" epub:type="backlink" role="doc-backlink">1</a> Same-page note text remains beside the current passage while Shadow Garden shows the note in Reader chrome.</p><p>A second paragraph verifies that multi-paragraph footnotes remain readable.</p></aside>
 <figure><img src="images/illustration.svg" alt="A moonlit geometric garden used to test image focus"/><figcaption>Moonlit test illustration</figcaption></figure>
 ${paragraphs('First chapter')}
 </body></html>`);
 zip.file('OEBPS/chapter-2.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Chapter Two</title><link rel="stylesheet" href="styles.css"/></head><body>
-<h1>Chapter Two</h1>
+<h1 id="ordinary-target">Chapter Two</h1>
 ${paragraphs('Second chapter')}
+</body></html>`);
+zip.file('OEBPS/notes.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en"><head><title>Endnotes</title><link rel="stylesheet" href="styles.css"/></head><body>
+<section epub:type="endnotes" role="doc-endnotes"><h1>Endnotes</h1><aside id="endnote-one" epub:type="endnote" role="doc-endnote"><p><a href="chapter-1.xhtml#cross-note-ref" epub:type="backlink" role="doc-backlink">2</a> Cross-document endnote text is loaded from a non-linear spine resource without navigating away from Chapter One.</p></aside></section>
 </body></html>`);
 zip.file('OEBPS/split-chapter-a.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><title>Split Chapter</title><link rel="stylesheet" href="styles.css"/></head><body>

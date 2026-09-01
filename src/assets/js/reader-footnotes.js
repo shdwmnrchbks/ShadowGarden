@@ -184,26 +184,37 @@
     try{await activeRendition.display(target.displayHref)}catch(error){console.warn("Footnote fallback navigation failed",error)}
   }
 
+  function activateNoteReference(contents,anchor,renderedSection,event){
+    try{event?.preventDefault?.()}catch{}
+    try{event?.stopPropagation?.()}catch{}
+    try{event?.stopImmediatePropagation?.()}catch{}
+    const serial=++noteSerial;
+    (async()=>{
+      try{
+        const note=await loadNote(contents,anchor,renderedSection);
+        if(serial!==noteSerial)return;
+        if(note&&showNoteDialog(note,anchor))return;
+      }catch(error){console.warn("Footnote popup unavailable",error)}
+      if(serial===noteSerial)await fallbackToTarget(contents,anchor,renderedSection);
+    })();
+    return false;
+  }
+
   function installNoteGuard(contents,renderedSection){
     const doc=contents?.document||contents?.contentDocument||contents;
-    if(!doc?.documentElement||doc.documentElement.dataset.sgFootnotes==="1")return;
+    if(!doc?.documentElement)return;
     doc.documentElement.dataset.sgFootnotes="1";
-    doc.addEventListener("click",event=>{
-      const anchor=event.target?.closest?.("a[href]");
+    let anchors=[];
+    try{anchors=[...doc.querySelectorAll("a[href]")]}catch{}
+    anchors.forEach(anchor=>{
       if(!isNoteReference(anchor)||!internalHref(anchor))return;
-      try{event.preventDefault()}catch{}
-      try{event.stopPropagation()}catch{}
-      try{event.stopImmediatePropagation()}catch{}
-      const serial=++noteSerial;
-      (async()=>{
-        try{
-          const note=await loadNote(contents,anchor,renderedSection);
-          if(serial!==noteSerial)return;
-          if(note&&showNoteDialog(note,anchor))return;
-        }catch(error){console.warn("Footnote popup unavailable",error)}
-        if(serial===noteSerial)await fallbackToTarget(contents,anchor,renderedSection);
-      })();
-    },{capture:true});
+      const handler=event=>activateNoteReference(contents,anchor,renderedSection,event);
+      anchor.__sgNoteHandler=handler;
+      // EPUB.js itself wires internal links through the element's onclick property. Replacing
+      // that property for explicit noterefs keeps WebKit's sandboxed srcdoc iframe on the
+      // current passage while leaving every ordinary internal link EPUB.js-owned.
+      anchor.onclick=handler;
+    });
   }
 
   function patchRendition(rendition){
@@ -214,8 +225,12 @@
     try{rendition.on?.("rendered",(section,view)=>{
       if(rendition!==activeRendition)return;
       const contents=view?.contents;
-      if(contents)setTimeout(()=>installNoteGuard(contents,section),0);
-      else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
+      if(contents){
+        installNoteGuard(contents,section);
+        // Run once after EPUB.js finishes the render turn as well, so its standard link
+        // handler cannot overwrite the explicit-noteref override on WebKit.
+        setTimeout(()=>installNoteGuard(contents,section),0);
+      }else setTimeout(()=>{try{rendition.getContents?.().forEach(contentsItem=>installNoteGuard(contentsItem))}catch{}},0);
     })}catch{}
     return rendition;
   }

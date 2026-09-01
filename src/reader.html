@@ -93,9 +93,11 @@
       </div>
       <div class="settings-panel">
         <label><span>Theme</span><select id="themeSelect"><option value="garden">Shadow Garden</option><option value="night">Night</option><option value="black">Black</option><option value="paper">Paper</option></select></label>
+        <label><span>Typography</span><select id="typographyPresetSelect"><option value="publication">Publication</option><option value="compact">Compact</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option><option value="custom" disabled>Custom</option></select></label>
         <label><span>Typeface</span><select id="fontSelect"><option value="book">Book serif</option><option value="system">System sans</option><option value="classic">Classic serif</option></select></label>
         <label><span>Font size <output id="fontSizeValue">100%</output></span><input id="fontSizeRange" type="range" min="75" max="160" step="5" value="100"></label>
         <label><span>Line height <output id="lineHeightValue">1.6</output></span><input id="lineHeightRange" type="range" min="1.25" max="2.1" step="0.05" value="1.6"></label>
+        <label><span>Paragraph spacing</span><select id="paragraphSpacingSelect"><option value="publication">Publication default</option><option value="tight">Tight</option><option value="comfortable">Comfortable</option><option value="spacious">Spacious</option></select></label>
         <label id="textWidthSetting" hidden><span>Text width <output id="widthValue">760px</output></span><input id="widthRange" type="range" min="560" max="1050" step="10" value="760"></label>
         <label><span>Reading flow</span><select id="flowSelect"><option value="paginated">Pages</option><option value="scrolled-doc">Continuous scroll</option></select></label>
         <label class="reader-toggle-setting"><span><b>Swipe page turns</b><small>Swipe left or right over the book in Pages mode.</small></span><input id="swipeTurnsToggle" type="checkbox" checked aria-label="Swipe page turns"></label>

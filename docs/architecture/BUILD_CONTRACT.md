@@ -4,7 +4,7 @@
 **Baseline application:** v1.15.14  
 **Current build contract:** v1.24.0
 
-This document defines which files are authored, which are generated, how local assets are versioned, and what tooling is intentionally pinned during the refactor. R1 established the boundary; R9 finalizes dependency locking, deterministic build metadata, CI installation, and preview ownership. See [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) for the R9 architecture and audit detail.
+This document defines which files are authored, which are generated, how local assets are versioned, and what tooling is intentionally pinned during the refactor. R1 established the boundary; R9 finalizes dependency locking, deterministic build metadata, CI installation, and preview ownership. See [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) for the R9 architecture and audit detail, and [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) for the active-deployment versus formal-release version split used during v2.8 development.
 
 ## Authored vs generated
 
@@ -48,7 +48,7 @@ Formatting/linting remains intentionally separate from architecture changes; a r
 
 R9 resolves the lockfile deferral from R1.
 
-`package-lock.json` is committed at lockfile version 3 and records the exact transitive dependency tree. CI installs with:
+`package-lock.json` is committed at lockfile version 3 and records the exact transitive dependency tree. Its root/workspace version stays synchronized with the formal `package.json#version`; the active `deploymentVersion` is deliberately not a dependency-lock version. CI installs with:
 
 ```bash
 npm ci --no-audit --no-fund --progress=false
@@ -66,12 +66,12 @@ Dependency changes require an explicit PR, synchronized manifest/lockfile, and t
 
 ## Asset cache-busting
 
-`package.json#version` is the single deploy-time cache-busting version for local JavaScript and CSS assets.
+`tools/lib/build-context.mjs#version` is the single deploy-time cache-busting version for local JavaScript and CSS assets. It resolves from `package.json#deploymentVersion` when present, otherwise falling back to the formal `package.json#version`.
 
 R10 removes historical local `?v=...` query strings from authored v2 source. `tools/build.mjs` remains the sole cache-busting owner: after copying `src/` to `dist/`, the shared asset-versioning helper stamps local `/assets/*.js` and `/assets/*.css` references to:
 
 ```text
-?v=<package.json version>
+?v=<active deployment version>
 ```
 
 This applies to direct HTML references and runtime-loaded/imported local JS/CSS references in copied text assets. It does not alter remote URLs, EPUB/media URLs, images, catalog URLs, or source files.
@@ -80,11 +80,11 @@ R9 deliberately retains this native/static strategy instead of adding hashed bun
 
 ## Deterministic build metadata
 
-`tools/lib/build-context.mjs` is the canonical version/commit/branch/timestamp owner for build output.
+`tools/lib/build-context.mjs` is the canonical deployment-version/commit/branch/timestamp owner for build output and also exposes the formal `releaseVersion` separately.
 
-It prefers Cloudflare/GitHub commit and branch metadata, falls back to Git, and resolves the build timestamp from `SOURCE_DATE_EPOCH` or the selected commit timestamp before using wall-clock time as a last-resort non-Git fallback.
+It resolves the active deployment version from `package.json#deploymentVersion` with `package.json#version` fallback, prefers Cloudflare/GitHub commit and branch metadata, falls back to Git, and resolves the build timestamp from `SOURCE_DATE_EPOCH` or the selected commit timestamp before using wall-clock time as a last-resort non-Git fallback.
 
-Both `tools/build.mjs` and `tools/write-source.mjs` consume this context. Local catalog `generatedAt` and `dist/data/version.json#builtAt` therefore share one timestamp rather than independently calling the clock.
+Both `tools/build.mjs` and `tools/write-source.mjs` consume this context. Local catalog `generatedAt` and `dist/data/version.json#builtAt` therefore share one timestamp rather than independently calling the clock, while `dist/data/version.json#version` reports the active deployment/product version shown by the site.
 
 ## Local preview
 

@@ -70,9 +70,9 @@ zip.file('OEBPS/styles.css', `html{font-family:serif} body{line-height:1.55;marg
 zip.file('OEBPS/chapter-1.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="en"><head><title>Chapter One</title><link rel="stylesheet" href="styles.css"/></head><body>
 <h1>Chapter One</h1>
-<figure><img src="images/illustration.svg" alt="A moonlit geometric garden used to test image focus"/><figcaption>Moonlit test illustration</figcaption></figure>
 <p id="note-fixtures">Reader note fixtures: <a id="same-note-ref" href="#same-note" epub:type="noteref">Same-page footnote</a>, <a id="cross-note-ref" href="notes.xhtml#endnote-one" role="doc-noteref">Cross-document endnote</a>, and <a id="ordinary-internal-link" href="chapter-2.xhtml#ordinary-target">Ordinary internal link</a>.</p>
 <aside id="same-note" class="fixture-note" epub:type="footnote" role="doc-footnote"><p><a href="#same-note-ref" epub:type="backlink" role="doc-backlink">1</a> Same-page note text remains beside the current passage while Shadow Garden shows the note in Reader chrome.</p><p>A second paragraph verifies that multi-paragraph footnotes remain readable.</p></aside>
+<figure><img src="images/illustration.svg" alt="A moonlit geometric garden used to test image focus"/><figcaption>Moonlit test illustration</figcaption></figure>
 ${paragraphs('First chapter')}
 </body></html>`);
 zip.file('OEBPS/chapter-2.xhtml', `<?xml version="1.0" encoding="UTF-8"?>

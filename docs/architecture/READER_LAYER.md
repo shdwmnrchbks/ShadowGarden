@@ -49,6 +49,14 @@ Read Again reset happens before EPUB.js opens. Finished + progress aliases are c
 - `reader/page-navigation-input.js` — Pages-only horizontal swipe and desktop wheel turns.
 - `reader/image-focus.js` — image selection, focused-image overlay, pinch/pan/close behavior.
 
+## v2.8 typography contract
+
+Reader typography remains browser-local and stays under the existing `reader/settings.js` + `reader/theme.js` ownership pair. Presets are convenience bundles, not a second style state: selecting a preset writes the same canonical font, size, line-height, paragraph-spacing, and Continuous text-width fields that manual controls use.
+
+The named profiles are **Publication**, **Compact**, **Comfortable**, and **Spacious**. A manual typography edit records the profile as **Custom** while retaining the individual canonical values. Older saved settings without a profile are inferred when they exactly match a named bundle; otherwise they migrate as Custom without discarding existing choices.
+
+**Publication** is the compatibility baseline. It emits no paragraph-margin override, so an EPUB keeps its own paragraph spacing unless the reader explicitly chooses Tight, Comfortable, or Spacious spacing. Typography changes reuse the existing application relayout and Page Map rebuild path; they do not become owners of progress, bookmarks, flow switching, or rendition navigation.
+
 ## R4.1 input ownership
 
 R4.1 removes the combined `reader/gestures.js` owner. Page navigation and image inspection have different gesture rules and no longer share a state machine.

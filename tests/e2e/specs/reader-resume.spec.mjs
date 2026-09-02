@@ -23,16 +23,29 @@ async function storedProgress(page) {
   }, READER_BOOK_ID);
 }
 
+function progressMoved(current, previous) {
+  if (!current || !previous) return false;
+  if (String(current.cfi || '') !== String(previous.cfi || '')) return true;
+  if (Number(current.page || 0) !== Number(previous.page || 0)) return true;
+  return Math.abs(Number(current.percentage || 0) - Number(previous.percentage || 0)) > 0.001;
+}
+
 async function waitForStoredChapter(page, chapter) {
   await expect.poll(async () => (await storedProgress(page))?.chapter || '', { timeout: 10_000 }).toBe(chapter);
+  return storedProgress(page);
+}
+
+async function waitForProgressMove(page, previous) {
+  await expect.poll(async () => progressMoved(await storedProgress(page), previous), { timeout: 10_000 }).toBe(true);
   return storedProgress(page);
 }
 
 test('v2.8 resume: reload restores the same canonical reading place', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
   await openChapter(page, 'Large Chapter');
+  const chapterStart = await waitForStoredChapter(page, 'Large Chapter');
   await page.locator('#nextPage').click();
-  const before = await waitForStoredChapter(page, 'Large Chapter');
+  const before = await waitForProgressMove(page, chapterStart);
   expect(before?.cfi).toBeTruthy();
 
   await page.reload();
@@ -52,8 +65,9 @@ test('v2.8 resume: mobile orientation change reanchors instead of resetting prog
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile orientation regression');
   await waitForReader(page);
   await openChapter(page, 'Large Chapter');
+  const chapterStart = await waitForStoredChapter(page, 'Large Chapter');
   await page.locator('#nextPage').click();
-  const before = await waitForStoredChapter(page, 'Large Chapter');
+  const before = await waitForProgressMove(page, chapterStart);
   expect(before?.cfi).toBeTruthy();
 
   const viewport = page.viewportSize();
@@ -78,6 +92,7 @@ test('v2.8 resume: Continuous pageshow keeps the saved section and fractional po
   await page.getByRole('button', { name: 'Close reading settings' }).click();
   await openChapter(page, 'Large Chapter');
 
+  const chapterStart = await waitForStoredChapter(page, 'Large Chapter');
   const scroller = page.locator('#viewer .epub-container');
   await expect(scroller).toBeVisible();
   await scroller.evaluate(node => {
@@ -85,11 +100,15 @@ test('v2.8 resume: Continuous pageshow keeps the saved section and fractional po
     node.scrollTop = Math.min(max, Math.max(120, Math.round(max * 0.32)));
     node.dispatchEvent(new Event('scroll'));
   });
-  await page.waitForTimeout(250);
-  const before = await waitForStoredChapter(page, 'Large Chapter');
+  const before = await waitForProgressMove(page, chapterStart);
   expect(before?.cfi).toBeTruthy();
 
-  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
+  await page.evaluate(() => {
+    const event = typeof PageTransitionEvent === 'function'
+      ? new PageTransitionEvent('pageshow', { persisted: true })
+      : new Event('pageshow');
+    window.dispatchEvent(event);
+  });
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
   await expect.poll(async () => {
     const current = await storedProgress(page);

@@ -1,10 +1,70 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { stabilizeContinuousScrollLifecycle } from "../../src/assets/js/reader/rendition.js";
+import {
+  captureContinuousScrollPosition,
+  restoreContinuousScrollPosition,
+  stabilizeContinuousScrollLifecycle
+} from "../../src/assets/js/reader/rendition.js";
 
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const clock=()=>globalThis.performance?.now?.()||Date.now();
+
+function continuousFixture({scrollTop=1000,contentTop=100}={}){
+  const container={
+    scrollTop,scrollLeft:0,clientHeight:600,clientWidth:800,scrollHeight:4000,scrollWidth:800,
+    getBoundingClientRect(){return{top:100,left:20,bottom:700,right:820,height:600,width:800}}
+  };
+  const geometry={contentTop};
+  const view={
+    id:"live-view-a",index:4,section:{index:4,href:"large.xhtml"},
+    element:{
+      getBoundingClientRect(){
+        const top=100+geometry.contentTop-container.scrollTop;
+        return{top,left:20,bottom:top+2200,right:820,height:2200,width:800};
+      }
+    }
+  };
+  let cancels=0;
+  const scrolled=()=>{};scrolled.cancel=()=>{cancels+=1};
+  const manager={container,settings:{fullsize:false},views:{all:()=>[view]},_scrolled:scrolled};
+  return{rendition:{manager},manager,container,geometry,view,cancels:()=>cancels};
+}
+
+test("Continuous resume anchors to a live EPUB view instead of absolute scrollTop",()=>{
+  const fixture=continuousFixture({scrollTop:1000,contentTop:100});
+  const snapshot=captureContinuousScrollPosition(fixture.rendition);
+  assert.deepEqual(snapshot,{index:4,href:"large.xhtml",id:"live-view-a",top:-900,left:0,fullsize:false});
+
+  /* Simulate Continuous trim removing 500px above the live view. EPUB.js compensates the
+     container from 1000 -> 500, so the same passage still sits at -900 relative to the
+     Reader. Then simulate browser resume anchoring drifting that viewport to -760. */
+  fixture.geometry.contentTop=-400;
+  fixture.container.scrollTop=360;
+  assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),true);
+  assert.equal(fixture.container.scrollTop,500,"restore must correct relative view drift, not replay the stale 1000px scrollTop");
+  assert.equal(fixture.manager.scrollTop,500);
+  assert.equal(fixture.manager.prevScrollTop,500);
+  assert.ok(Number(fixture.manager.__sgSuppressScrollUntil)>0);
+  assert.equal(fixture.cancels(),1,"pending Continuous manager work is cancelled before corrective scrolling");
+});
+
+test("Continuous resume resolves a recreated live view by section identity",()=>{
+  const fixture=continuousFixture();
+  const snapshot=captureContinuousScrollPosition(fixture.rendition);
+  const replacement={...fixture.view,id:"replacement-view",element:fixture.view.element};
+  fixture.manager.views.all=()=>[replacement];
+  fixture.container.scrollTop=940;
+  assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),true);
+  assert.equal(fixture.container.scrollTop,1000,"section index keeps the anchor resolvable even when EPUB.js recreates the view object");
+});
+
+test("Continuous resume reports an expired transient view so semantic CFI can take over",()=>{
+  const fixture=continuousFixture();
+  const snapshot=captureContinuousScrollPosition(fixture.rendition);
+  fixture.manager.views.all=()=>[];
+  assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),false);
+});
 
 test("Continuous lifecycle suppresses manager maintenance during native resume restoration",async()=>{
   let calls=0,cancels=0;

@@ -31,10 +31,42 @@ function continuousFixture({scrollTop=1000,contentTop=100}={}){
   return{rendition:{manager},manager,container,geometry,view,cancels:()=>cancels};
 }
 
+function contentRangeFixture(){
+  const fixture=continuousFixture({scrollTop:1000,contentTop:0});
+  const geometry={rangeTop:1180};
+  const textNode={nodeType:3,nodeValue:"Large chapter paragraph 46"};
+  const makeRange=()=>({
+    setStart(){},collapse(){},
+    getBoundingClientRect(){return{top:geometry.rangeTop,left:140,bottom:geometry.rangeTop+20,right:360,height:20,width:220}}
+  });
+  const document={
+    createRange:makeRange,
+    caretPositionFromPoint(){return{offsetNode:textNode,offset:5}}
+  };
+  const frame={
+    clientWidth:800,clientHeight:2200,contentDocument:document,
+    getBoundingClientRect(){return fixture.view.element.getBoundingClientRect()}
+  };
+  fixture.view.iframe=frame;
+  fixture.view.document=document;
+  fixture.view.section={
+    index:4,href:"large.xhtml",
+    cfiFromRange(){return"epubcfi(/6/18!/4/92/1:5)"}
+  };
+  fixture.view.contents={
+    document,
+    range(cfi){
+      assert.equal(cfi,"epubcfi(/6/18!/4/92/1:5)");
+      return makeRange();
+    }
+  };
+  return{...fixture,contentGeometry:geometry};
+}
+
 test("Continuous resume anchors to a live EPUB view instead of absolute scrollTop",()=>{
   const fixture=continuousFixture({scrollTop:1000,contentTop:100});
   const snapshot=captureContinuousScrollPosition(fixture.rendition);
-  assert.deepEqual(snapshot,{index:4,href:"large.xhtml",id:"live-view-a",top:-900,left:0,fullsize:false});
+  assert.deepEqual(snapshot,{index:4,href:"large.xhtml",id:"live-view-a",contentCfi:"",top:-900,left:0,fullsize:false});
 
   /* Simulate Continuous trim removing 500px above the live view. EPUB.js compensates the
      container from 1000 -> 500, so the same passage still sits at -900 relative to the
@@ -47,6 +79,21 @@ test("Continuous resume anchors to a live EPUB view instead of absolute scrollTo
   assert.equal(fixture.manager.prevScrollTop,500);
   assert.ok(Number(fixture.manager.__sgSuppressScrollUntil)>0);
   assert.equal(fixture.cancels(),1,"pending Continuous manager work is cancelled before corrective scrolling");
+});
+
+test("Continuous resume preserves the exact content point when a long iframe reflows internally",()=>{
+  const fixture=contentRangeFixture();
+  const snapshot=captureContinuousScrollPosition(fixture.rendition);
+  assert.equal(snapshot.contentCfi,"epubcfi(/6/18!/4/92/1:5)");
+  assert.equal(snapshot.top,180,"the visible paragraph point is captured at the Reader tracking line");
+
+  /* The section wrapper can remain at the same outer coordinate while Firefox refreshes
+     iframe content geometry. A section-only anchor sees no movement; the CFI range does. */
+  fixture.contentGeometry.rangeTop=350;
+  assert.equal(fixture.view.element.getBoundingClientRect().top,-900);
+  assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),true);
+  assert.equal(fixture.container.scrollTop,170,"the content CFI, not the giant chapter frame, must drive the correction");
+  assert.equal(fixture.manager.scrollTop,170);
 });
 
 test("Continuous resume resolves a recreated live view by section identity",()=>{

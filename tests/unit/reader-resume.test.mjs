@@ -46,17 +46,39 @@ test("resume waits for access renewal and holds navigation until the live semant
   assert.equal(spreadCalls,1);
 });
 
-test("Continuous resume captures the visible passage and settles twice at that CFI",async t=>{
+test("Continuous unchanged-layout resume preserves the browser's native scroll position",async t=>{
   installAnimationFrame(t);
   const displays=[];
-  let captures=0,pageMapTargets=0;
+  let captures=0,resizeCalls=0,spreadCalls=0,pageMapTargets=0;
   const rendition={async display(target){displays.push(target)}};
   const controller=createReaderResumeController({
     getRendition:()=>rendition,getFlow:()=>"scrolled-doc",
     getPageMap:()=>({async targetForPosition(){pageMapTargets+=1;return "stale-page-target"}}),
     getPosition:()=>({page:9,totalPages:30,pageFraction:.4,cfi:"epubcfi(/6/18)"}),getCfi:()=>"epubcfi(/6/18)",
     capturePosition:async()=>{captures+=1;return{page:9,totalPages:30,pageFraction:.4,cfi:"epubcfi(/6/18!/4/12)"}},
-    layoutChanged:()=>false
+    resizeRendition:()=>{resizeCalls+=1},configureRendition:()=>{spreadCalls+=1},layoutChanged:()=>false
+  });
+
+  controller.remember();
+  assert.equal(await controller.restore(),true);
+  assert.deepEqual(displays,[],"unchanged Continuous resume must not call display() and reset native scroll");
+  assert.ok(captures>=1);
+  assert.equal(resizeCalls,0);
+  assert.equal(spreadCalls,0);
+  assert.equal(pageMapTargets,0);
+});
+
+test("Continuous layout-changing resume captures the visible passage and settles twice at that CFI",async t=>{
+  installAnimationFrame(t);
+  const displays=[];
+  let captures=0,pageMapTargets=0,refreshes=0;
+  const rendition={async display(target){displays.push(target)}};
+  const controller=createReaderResumeController({
+    getRendition:()=>rendition,getFlow:()=>"scrolled-doc",
+    getPageMap:()=>({async targetForPosition(){pageMapTargets+=1;return "stale-page-target"}}),
+    getPosition:()=>({page:9,totalPages:30,pageFraction:.4,cfi:"epubcfi(/6/18)"}),getCfi:()=>"epubcfi(/6/18)",
+    capturePosition:async()=>{captures+=1;return{page:9,totalPages:30,pageFraction:.4,cfi:"epubcfi(/6/18!/4/12)"}},
+    layoutChanged:()=>true,onLayoutChanged:()=>{refreshes+=1}
   });
 
   controller.remember();
@@ -64,6 +86,7 @@ test("Continuous resume captures the visible passage and settles twice at that C
   assert.deepEqual(displays,["epubcfi(/6/18!/4/12)","epubcfi(/6/18!/4/12)"]);
   assert.ok(captures>=1);
   assert.equal(pageMapTargets,0);
+  assert.equal(refreshes,1);
 });
 
 test("resume falls back to Page Map only when no semantic CFI exists",async t=>{

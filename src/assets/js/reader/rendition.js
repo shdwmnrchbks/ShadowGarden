@@ -207,29 +207,75 @@ function contentAnchorGeometry(view,range,frameRect=viewFrame(view)?.getBounding
   };
 }
 
-function contentNodeGeometry(view,node,frameRect=viewFrame(view)?.getBoundingClientRect?.()){
-  if(!node?.getBoundingClientRect||!frameRect)return null;
+function contentNodeLocalGeometry(view,node){
+  if(!node?.getBoundingClientRect)return null;
   const doc=viewDocument(view);
   try{
     if(node.isConnected===false)return null;
     if(node.ownerDocument&&doc&&node.ownerDocument!==doc)return null;
     const rect=node.getBoundingClientRect();
-    const top=Number(rect?.top),left=Number(rect?.left);
+    const top=Number(rect?.top),left=Number(rect?.left),bottom=Number(rect?.bottom),right=Number(rect?.right);
     if(!Number.isFinite(top)||!Number.isFinite(left))return null;
-    return{top:(Number(frameRect.top)||0)+top,left:(Number(frameRect.left)||0)+left};
+    return{
+      top,left,
+      height:Number.isFinite(bottom)?Math.max(0,bottom-top):Math.max(0,Number(rect?.height)||0),
+      width:Number.isFinite(right)?Math.max(0,right-left):Math.max(0,Number(rect?.width)||0)
+    };
+  }catch{return null}
+}
+
+function contentNodeGeometry(view,node,frameRect=viewFrame(view)?.getBoundingClientRect?.()){
+  if(!frameRect)return null;
+  const local=contentNodeLocalGeometry(view,node);
+  return local?{
+    top:(Number(frameRect.top)||0)+local.top,
+    left:(Number(frameRect.left)||0)+local.left
+  }:null;
+}
+
+function semanticBlockIndex(view,node){
+  if(!node)return null;
+  const doc=viewDocument(view);
+  try{
+    const nodes=[...(doc?.querySelectorAll?.(continuousBlockSelector)||[])];
+    const index=nodes.indexOf(node);
+    return index>=0?index:null;
+  }catch{return null}
+}
+
+function semanticBlockGeometryByIndex(view,index){
+  if(!Number.isInteger(index)||index<0)return null;
+  const doc=viewDocument(view);
+  try{
+    const node=doc?.querySelectorAll?.(continuousBlockSelector)?.[index]||null;
+    if(!node)return null;
+    const rect=node.getBoundingClientRect?.();
+    const top=Number(rect?.top),left=Number(rect?.left),bottom=Number(rect?.bottom),right=Number(rect?.right);
+    if(!Number.isFinite(top)||!Number.isFinite(left))return null;
+    return{
+      top,left,
+      height:Number.isFinite(bottom)?Math.max(0,bottom-top):Math.max(0,Number(rect?.height)||0),
+      width:Number.isFinite(right)?Math.max(0,right-left):Math.max(0,Number(rect?.width)||0)
+    };
   }catch{return null}
 }
 
 function captureContentAnchor(view,point){
   const located=contentRangeAtPoint(view,point);
   if(!located)return null;
-  let cfi="";
-  try{cfi=String(view?.section?.cfiFromRange?.(located.range)||"")}catch{}
-  if(!cfi)return null;
+  const local=located.node?contentNodeLocalGeometry(view,located.node):null;
   const geometry=located.node
     ?contentNodeGeometry(view,located.node,located.frameRect)
     :contentAnchorGeometry(view,located.range,located.frameRect);
-  return geometry?{cfi,node:located.node||null,...geometry}:null;
+  if(!geometry)return null;
+  let cfi="";
+  try{cfi=String(view?.section?.cfiFromRange?.(located.range)||"")}catch{}
+  return{
+    cfi,node:located.node||null,...geometry,
+    blockIndex:located.node?semanticBlockIndex(view,located.node):null,
+    localTop:local?.top??null,localLeft:local?.left??null,
+    localHeight:local?.height??null,localWidth:local?.width??null
+  };
 }
 
 function resolveContentAnchor(view,cfi){
@@ -240,11 +286,80 @@ function resolveContentAnchor(view,cfi){
   }catch{return null}
 }
 
+function continuousScrollMetrics(manager,viewport){
+  if(viewport.fullsize){
+    if(typeof window==="undefined")return null;
+    const root=document?.documentElement,body=document?.body;
+    return{
+      top:Number(window.scrollY)||0,left:Number(window.scrollX)||0,
+      height:Math.max(Number(root?.scrollHeight)||0,Number(body?.scrollHeight)||0,viewport.height),
+      width:Math.max(Number(root?.scrollWidth)||0,Number(body?.scrollWidth)||0,viewport.width)
+    };
+  }
+  const container=manager?.container;
+  if(!container)return null;
+  return{
+    top:Number(container.scrollTop)||0,left:Number(container.scrollLeft)||0,
+    height:Math.max(Number(container.scrollHeight)||0,viewport.height),
+    width:Math.max(Number(container.scrollWidth)||0,viewport.width)
+  };
+}
+
+function rectDimension(rect,start,end,size){
+  const direct=Number(rect?.[size]);
+  if(Number.isFinite(direct))return Math.max(0,direct);
+  const first=Number(rect?.[start]),last=Number(rect?.[end]);
+  return Number.isFinite(first)&&Number.isFinite(last)?Math.max(0,last-first):0;
+}
+
+function captureNativeContinuousGeometry(manager,viewport,view,viewRect,content){
+  const scroll=continuousScrollMetrics(manager,viewport);
+  if(!scroll||!viewRect)return null;
+  return{
+    scrollTop:scroll.top,scrollLeft:scroll.left,scrollHeight:scroll.height,scrollWidth:scroll.width,
+    viewportHeight:viewport.height,viewportWidth:viewport.width,
+    viewTop:scroll.top+((Number(viewRect.top)||0)-viewport.top),
+    viewLeft:scroll.left+((Number(viewRect.left)||0)-viewport.left),
+    viewHeight:rectDimension(viewRect,"top","bottom","height"),
+    viewWidth:rectDimension(viewRect,"left","right","width"),
+    blockIndex:Number.isInteger(content?.blockIndex)?content.blockIndex:null,
+    blockTop:content?.localTop??null,blockLeft:content?.localLeft??null,
+    blockHeight:content?.localHeight??null,blockWidth:content?.localWidth??null
+  };
+}
+
+function nearlyEqual(left,right,tolerance=1){
+  const a=Number(left),b=Number(right);
+  return Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<=tolerance;
+}
+
+function nativeContinuousGeometryStable(manager,viewport,view,viewRect,native){
+  if(!native||!Number.isInteger(native.blockIndex)||native.blockIndex<0)return false;
+  const scroll=continuousScrollMetrics(manager,viewport);
+  const block=semanticBlockGeometryByIndex(view,native.blockIndex);
+  if(!scroll||!block)return false;
+  const currentViewTop=scroll.top+((Number(viewRect?.top)||0)-viewport.top);
+  const currentViewLeft=scroll.left+((Number(viewRect?.left)||0)-viewport.left);
+  return nearlyEqual(viewport.height,native.viewportHeight)
+    &&nearlyEqual(viewport.width,native.viewportWidth)
+    &&nearlyEqual(scroll.height,native.scrollHeight,2)
+    &&nearlyEqual(scroll.width,native.scrollWidth,2)
+    &&nearlyEqual(currentViewTop,native.viewTop,1)
+    &&nearlyEqual(currentViewLeft,native.viewLeft,1)
+    &&nearlyEqual(rectDimension(viewRect,"top","bottom","height"),native.viewHeight,1)
+    &&nearlyEqual(rectDimension(viewRect,"left","right","width"),native.viewWidth,1)
+    &&nearlyEqual(block.top,native.blockTop,1)
+    &&nearlyEqual(block.left,native.blockLeft,1)
+    &&nearlyEqual(block.height,native.blockHeight,1)
+    &&nearlyEqual(block.width,native.blockWidth,1);
+}
+
 /* Continuous buffering deliberately changes absolute scrollTop when views are prepended or
    trimmed. Anchor to the visible semantic content block at the Reader tracking line, plus
-   its transient viewport offset. Keep the live DOM node while the BFCache/background
-   lifecycle preserves the iframe; the transient CFI and section geometry remain fallbacks
-   for EPUB.js view recreation. Persistent Reader progress is still owned elsewhere. */
+   its transient viewport offset. Also retain a structural native-scroll fingerprint: if the
+   same view and semantic block geometry survive unchanged, exact scrollTop is safe and more
+   faithful than a browser-dependent CFI round-trip. Persistent Reader progress is still
+   owned elsewhere. */
 export function captureContinuousScrollPosition(rendition){
   const manager=rendition?.manager;
   const viewport=continuousViewport(manager);
@@ -253,6 +368,7 @@ export function captureContinuousScrollPosition(rendition){
   if(!anchor)return null;
   const identity=viewIdentity(anchor.view);
   const content=captureContentAnchor(anchor.view,anchor.point);
+  const native=captureNativeContinuousGeometry(manager,viewport,anchor.view,anchor.rect,content);
   if(content){
     return{
       ...identity,
@@ -260,7 +376,8 @@ export function captureContinuousScrollPosition(rendition){
       contentNode:content.node||null,
       top:content.top-viewport.top,
       left:content.left-viewport.left,
-      fullsize:viewport.fullsize
+      fullsize:viewport.fullsize,
+      native
     };
   }
   return{
@@ -269,7 +386,8 @@ export function captureContinuousScrollPosition(rendition){
     contentNode:null,
     top:(Number(anchor.rect.top)||0)-viewport.top,
     left:(Number(anchor.rect.left)||0)-viewport.left,
-    fullsize:viewport.fullsize
+    fullsize:viewport.fullsize,
+    native
   };
 }
 
@@ -281,17 +399,27 @@ export function restoreContinuousScrollPosition(rendition,snapshot){
   const element=view?.element;
   if(!view||!element?.getBoundingClientRect)return false;
 
-  /* The direct node is the most faithful unchanged-rendition anchor because it avoids a
-     CFI round-trip through browser-dependent range reconstruction. If EPUB.js recreated
-     the iframe or removed the node, resolve the transient CFI against the replacement. */
-  const content=contentNodeGeometry(view,snapshot.contentNode)
-    ||(snapshot.contentCfi?resolveContentAnchor(view,snapshot.contentCfi):null);
   const rect=element.getBoundingClientRect();
-  const currentTop=content?content.top-viewport.top:(Number(rect.top)||0)-viewport.top;
-  const currentLeft=content?content.left-viewport.left:(Number(rect.left)||0)-viewport.left;
   const horizontal=manager.settings?.axis==="horizontal";
-  const deltaTop=horizontal?0:currentTop-(Number(snapshot.top)||0);
-  const deltaLeft=horizontal?currentLeft-(Number(snapshot.left)||0):0;
+  const nativeStable=nativeContinuousGeometryStable(manager,viewport,view,rect,snapshot.native);
+  let deltaTop=0,deltaLeft=0;
+
+  if(nativeStable){
+    const scroll=continuousScrollMetrics(manager,viewport);
+    if(!scroll)return false;
+    deltaTop=horizontal?0:Number(snapshot.native.scrollTop)-scroll.top;
+    deltaLeft=horizontal?Number(snapshot.native.scrollLeft)-scroll.left:0;
+  }else{
+    /* Buffer trims and real iframe reflow invalidate the native fingerprint. Preserve the
+       semantic block instead; the direct node avoids CFI reconstruction when it survives,
+       while the transient CFI remains a replacement-view fallback. */
+    const content=contentNodeGeometry(view,snapshot.contentNode)
+      ||(snapshot.contentCfi?resolveContentAnchor(view,snapshot.contentCfi):null);
+    const currentTop=content?content.top-viewport.top:(Number(rect.top)||0)-viewport.top;
+    const currentLeft=content?content.left-viewport.left:(Number(rect.left)||0)-viewport.left;
+    deltaTop=horizontal?0:currentTop-(Number(snapshot.top)||0);
+    deltaLeft=horizontal?currentLeft-(Number(snapshot.left)||0):0;
+  }
   if(!Number.isFinite(deltaTop)||!Number.isFinite(deltaLeft))return false;
 
   const now=globalThis.performance?.now?.()||Date.now();

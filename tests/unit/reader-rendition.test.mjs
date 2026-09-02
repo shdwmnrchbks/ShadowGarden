@@ -90,7 +90,14 @@ function contentRangeFixture(){
 test("Continuous resume anchors to a live EPUB view instead of absolute scrollTop",()=>{
   const fixture=continuousFixture({scrollTop:1000,contentTop:100});
   const snapshot=captureContinuousScrollPosition(fixture.rendition);
-  assert.deepEqual(snapshot,{index:4,href:"large.xhtml",id:"live-view-a",contentCfi:"",contentNode:null,top:-900,left:0,fullsize:false});
+  assert.deepEqual(snapshot,{
+    index:4,href:"large.xhtml",id:"live-view-a",contentCfi:"",contentNode:null,top:-900,left:0,fullsize:false,
+    native:{
+      scrollTop:1000,scrollLeft:0,scrollHeight:4000,scrollWidth:800,viewportHeight:600,viewportWidth:800,
+      viewTop:100,viewLeft:0,viewHeight:2200,viewWidth:800,
+      blockIndex:null,blockTop:null,blockLeft:null,blockHeight:null,blockWidth:null
+    }
+  });
 
   /* Simulate Continuous trim removing 500px above the live view. EPUB.js compensates the
      container from 1000 -> 500, so the same passage still sits at -900 relative to the
@@ -113,11 +120,13 @@ test("Continuous resume preserves the nearest semantic block when Firefox hit-te
   assert.equal(snapshot.contentCfi,"epubcfi(/6/18!/4/92,/1:0,/1:240)");
   assert.equal(snapshot.contentNode,fixture.block,"nearest rendered paragraph must win over a later elementFromPoint result");
   assert.equal(snapshot.top,120,"the visible paragraph block top is captured relative to the Reader viewport");
+  assert.equal(snapshot.native.blockIndex,0);
+  assert.equal(snapshot.native.blockTop,1120);
   assert.equal(fixture.caretCalls(),0,"geometry-resolved semantic content must win before browser caret hit-testing");
 
   /* Keep the original block alive while making CFI range reconstruction deliberately point
-     elsewhere. Unchanged BFCache/background resume must use the surviving node geometry and
-     avoid the browser-dependent CFI round-trip. */
+     elsewhere. An actual local paragraph reflow invalidates the native fingerprint, so the
+     surviving node must still drive the semantic correction. */
   fixture.contentGeometry.blockTop=1290;
   fixture.contentGeometry.resolvedTop=1620;
   assert.equal(fixture.view.element.getBoundingClientRect().top,-900);
@@ -126,14 +135,29 @@ test("Continuous resume preserves the nearest semantic block when Firefox hit-te
   assert.equal(fixture.manager.scrollTop,1170);
 });
 
-test("Continuous resume falls back to transient content CFI after the live block detaches",()=>{
+test("Continuous resume keeps exact native offset when stable layout disagrees with transient CFI reconstruction",()=>{
+  const fixture=contentRangeFixture();
+  const snapshot=captureContinuousScrollPosition(fixture.rendition);
+
+  /* The failing real-browser trace kept every view, iframe dimension, and paragraph geometry
+     unchanged, yet a CFI round-trip would resolve 185px later. If direct-node identity is not
+     usable during pageshow, unchanged native geometry must prevent that synthetic jump. */
+  snapshot.contentNode=null;
+  fixture.contentGeometry.resolvedTop=1305;
+  assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),true);
+  assert.equal(fixture.container.scrollTop,1000,"stable Continuous structure must preserve the exact pre-suspend native offset");
+  assert.equal(fixture.manager.scrollTop,1000);
+});
+
+test("Continuous resume falls back to transient content CFI after the live block detaches and layout changes",()=>{
   const fixture=contentRangeFixture();
   const snapshot=captureContinuousScrollPosition(fixture.rendition);
   fixture.block.isConnected=false;
+  fixture.contentGeometry.blockTop=1260;
   fixture.contentGeometry.resolvedTop=1350;
 
   assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),true);
-  assert.equal(fixture.container.scrollTop,1230,"a recreated/detached view must resolve the transient CFI instead of using stale DOM geometry");
+  assert.equal(fixture.container.scrollTop,1230,"a changed/detached live block must resolve the transient CFI instead of replaying native pixels");
   assert.equal(fixture.manager.scrollTop,1230);
 });
 

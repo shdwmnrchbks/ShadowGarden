@@ -10,7 +10,14 @@ function installAnimationFrame(t){
   t.after(()=>{if(previous===undefined)delete globalThis.requestAnimationFrame;else globalThis.requestAnimationFrame=previous});
 }
 
-test("resume waits for access renewal and holds navigation until the live semantic CFI is restored",async t=>{
+function continuousRendition({top=0,left=0,height=600,scrollHeight=2400}={}){
+  const container={scrollTop:top,scrollLeft:left,clientHeight:height,scrollHeight,clientWidth:800,scrollWidth:800};
+  const displays=[];
+  const rendition={manager:{container,settings:{fullsize:false}},async display(target){displays.push(target)}};
+  return{rendition,container,displays};
+}
+
+test("resume waits for access renewal and holds navigation until the pre-suspend semantic CFI is restored",async t=>{
   installAnimationFrame(t);
   let releaseRenewal;
   const renewal=new Promise(resolve=>{releaseRenewal=resolve});
@@ -29,6 +36,7 @@ test("resume waits for access renewal and holds navigation until the live semant
   });
 
   controller.remember();
+  await controller.capture();
   const restore=controller.restore();
   const barrier=waitForRenditionNavigation(rendition);
   let barrierSettled=false;
@@ -46,11 +54,10 @@ test("resume waits for access renewal and holds navigation until the live semant
   assert.equal(spreadCalls,1);
 });
 
-test("Continuous unchanged-layout resume preserves the browser's native scroll position",async t=>{
+test("Continuous unchanged-layout resume restores the exact pre-suspend native scroll without display",async t=>{
   installAnimationFrame(t);
-  const displays=[];
+  const {rendition,container,displays}=continuousRendition({top:460});
   let captures=0,resizeCalls=0,spreadCalls=0,pageMapTargets=0;
-  const rendition={async display(target){displays.push(target)}};
   const controller=createReaderResumeController({
     getRendition:()=>rendition,getFlow:()=>"scrolled-doc",
     getPageMap:()=>({async targetForPosition(){pageMapTargets+=1;return "stale-page-target"}}),
@@ -60,19 +67,24 @@ test("Continuous unchanged-layout resume preserves the browser's native scroll p
   });
 
   controller.remember();
+  await controller.capture();
+  container.scrollTop=520; // Browser scroll anchoring drift during pageshow.
   assert.equal(await controller.restore(),true);
-  assert.deepEqual(displays,[],"unchanged Continuous resume must not call display() and reset native scroll");
+  assert.equal(container.scrollTop,460,"resume must reapply the exact pre-suspend Continuous viewport");
+  assert.equal(rendition.manager.scrollTop,460);
+  assert.equal(rendition.manager.prevScrollTop,460);
+  assert.ok(Number(rendition.manager.__sgSuppressScrollUntil)>0);
+  assert.deepEqual(displays,[],"unchanged Continuous resume must not call display() and reset the section");
   assert.ok(captures>=1);
   assert.equal(resizeCalls,0);
   assert.equal(spreadCalls,0);
   assert.equal(pageMapTargets,0);
 });
 
-test("Continuous layout-changing resume captures the visible passage and settles twice at that CFI",async t=>{
+test("Continuous layout-changing resume ignores native pixels and settles twice at the pre-change CFI",async t=>{
   installAnimationFrame(t);
-  const displays=[];
+  const {rendition,container,displays}=continuousRendition({top:460});
   let captures=0,pageMapTargets=0,refreshes=0;
-  const rendition={async display(target){displays.push(target)}};
   const controller=createReaderResumeController({
     getRendition:()=>rendition,getFlow:()=>"scrolled-doc",
     getPageMap:()=>({async targetForPosition(){pageMapTargets+=1;return "stale-page-target"}}),
@@ -82,8 +94,11 @@ test("Continuous layout-changing resume captures the visible passage and settles
   });
 
   controller.remember();
+  await controller.capture();
+  container.scrollTop=520; // New geometry invalidates the old pixel offset.
   assert.equal(await controller.restore(),true);
   assert.deepEqual(displays,["epubcfi(/6/18!/4/12)","epubcfi(/6/18!/4/12)"]);
+  assert.equal(container.scrollTop,520,"layout changes must not replay stale native pixels");
   assert.ok(captures>=1);
   assert.equal(pageMapTargets,0);
   assert.equal(refreshes,1);
@@ -101,12 +116,13 @@ test("resume falls back to Page Map only when no semantic CFI exists",async t=>{
     layoutChanged:()=>false
   });
 
+  await controller.capture();
   assert.equal(await controller.restore(),true);
   assert.deepEqual(displays,["page:5"]);
   assert.equal(pageMapTargets,1);
 });
 
-test("layout-changing resume keeps semantic CFI and requests a fresh Page Map",async t=>{
+test("layout-changing resume keeps the pre-change semantic CFI and requests a fresh Page Map",async t=>{
   installAnimationFrame(t);
   const displays=[];
   let pageMapTargets=0,refreshes=0;
@@ -120,6 +136,7 @@ test("layout-changing resume keeps semantic CFI and requests a fresh Page Map",a
   });
 
   controller.remember();
+  await controller.capture();
   assert.equal(await controller.restore(),true);
   assert.deepEqual(displays,["epubcfi(/6/24)"]);
   assert.equal(pageMapTargets,0,"an old layout Page Map must not reposition an orientation-changed rendition");

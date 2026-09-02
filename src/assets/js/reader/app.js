@@ -12,6 +12,7 @@ import { createImageFocusController } from "./image-focus.js";
 import { createCompletionController } from "./completion.js";
 import { createPaginatedController } from "./paginated.js";
 import { createContinuousController } from "./continuous.js";
+import { createReaderResumeController } from "./resume-controller.js";
 import { createRendition, captureRenditionPosition, configureSpread, destroyRendition, pageMapLayoutMetrics } from "./rendition.js";
 import { preferences, urls } from "../domain/index.js";
 
@@ -34,7 +35,7 @@ export async function startReader(session){
   const elements=readerElements();
   const storage=createReaderStorage({sourceIdentity:session.sourcePath,publicIdentity:session.publicBookId});
   const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};
-  let settingsController,progressController,bookmarksController,pageInputController,imageFocusController,paginatedController,continuousController,completionController;
+  let settingsController,progressController,bookmarksController,pageInputController,imageFocusController,paginatedController,continuousController,resumeController,completionController;
 
   const themeController=createThemeController({getSettings:()=>settingsController?.get?.()||{},isAdult:session.adult});
 
@@ -47,7 +48,9 @@ export async function startReader(session){
   function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}
 
   async function navigate(target){
-    if(!state.rendition||!target)return;
+    if(!target)return;
+    await resumeController?.wait?.();
+    if(!state.rendition)return;
     resetReaderInput();
     if(settingsController.get().flow==="scrolled-doc")await continuousController.display(target);
     else await state.rendition.display(target);
@@ -105,12 +108,20 @@ export async function startReader(session){
     shouldSuppressOpen:()=>pageInputController.shouldSuppressClick()
   });
   paginatedController=createPaginatedController({getRendition:()=>state.rendition,beforeTurn:resetReaderInput});
-  continuousController=createContinuousController({getRendition:()=>state.rendition,beforeNavigate:resetReaderInput});
+  continuousController=createContinuousController({getRendition:()=>state.rendition,getBook:()=>state.book,beforeNavigate:resetReaderInput});
+  resumeController=createReaderResumeController({
+    getRendition:()=>state.rendition,getFlow:()=>settingsController.get().flow,getPageMap:()=>state.pageMap,
+    getPosition:()=>progressController.currentPosition(),getCfi:()=>progressController.currentCfi(),
+    capturePosition:({rendition,flow,pageMap,fallback})=>captureRenditionPosition({rendition,flow,pageMap,fallback}),
+    renewAccess:()=>session.renewAccess?.(),resetInput:resetReaderInput,
+    resizeRendition:rendition=>rendition.resize?.("100%","100%"),configureRendition:(rendition,flow)=>configureSpread(rendition,flow),
+    layoutChanged:mapLayoutChangedSignificantly,onLayoutChanged:()=>schedulePageMapRefresh(900)
+  });
 
   function onRelocated(rendition,location){
     if(rendition!==state.rendition)return;
     state.currentChapter=tocController.chapterForLocation(location);if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;
-    progressController.save(location);tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);
+    progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);
   }
   function wireRendition(rendition){
     rendition.hooks.content.register(contents=>themeController.prepare(contents));
@@ -129,6 +140,7 @@ export async function startReader(session){
   }
 
   async function switchFlow(nextFlow){
+    await resumeController?.wait?.();
     const desired=nextFlow==="scrolled-doc"?"scrolled-doc":"paginated";
     if(state.switchingFlow){state.queuedFlow=desired;return}
     if(desired===state.renderedFlow&&state.rendition){settingsController.setFlow(desired);return}
@@ -143,7 +155,7 @@ export async function startReader(session){
     }catch(error){
       console.error("Reader flow switch failed",error);toast("Could not switch reading flow");try{state.rendition?.destroy?.()}catch{}if(elements.viewer)elements.viewer.innerHTML="";settingsController.setFlow(previousFlow);try{await openRendition(target)}catch(recoveryError){console.error("Reader flow recovery failed",recoveryError);elements.loading?.classList.remove("hidden");if(elements.loading)elements.loading.innerHTML="<p>Shadow Garden could not restore the reader.</p>"}
     }finally{
-      state.switchingFlow=false;const queued=state.queuedFlow;state.queuedFlow=null;if(queued&&queued!==state.renderedFlow)setTimeout(()=>void switchFlow(queued),0);
+      state.switchingFlow=false;resumeController?.remember();const queued=state.queuedFlow;state.queuedFlow=null;if(queued&&queued!==state.renderedFlow)setTimeout(()=>void switchFlow(queued),0);
     }
   }
 
@@ -175,14 +187,16 @@ export async function startReader(session){
       if(settingsController.get().flow!=="paginated"||imageFocusController.isFocused())return;
       if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1);
     });
-    window.addEventListener("resize",()=>{
-      clearTimeout(state.resizeTimer);state.resizeTimer=setTimeout(async()=>{
-        const rendition=state.rendition;if(!rendition||state.switchingFlow)return;resetReaderInput();const keepCfi=progressController.currentCfi();
-        try{rendition.resize?.("100%","100%")}catch{}configureSpread(rendition,settingsController.get().flow);
-        if(settingsController.get().flow==="paginated"&&keepCfi){try{await rendition.display(keepCfi)}catch{}}
-        if(mapLayoutChangedSignificantly())schedulePageMapRefresh(900);
+    const scheduleViewportRecovery=()=>{
+      if(!state.resizeTimer)void resumeController?.capture?.();
+      clearTimeout(state.resizeTimer);state.resizeTimer=setTimeout(()=>{
+        state.resizeTimer=0;
+        if(!state.rendition||state.switchingFlow)return;
+        void resumeController?.restore();
       },180);
-    });
+    };
+    window.addEventListener("resize",scheduleViewportRecovery);
+    window.addEventListener("orientationchange",scheduleViewportRecovery);
   }
 
   bindDrawers();bindNavigation();
@@ -198,14 +212,15 @@ export async function startReader(session){
     state.pageMap=createPageMapController({book:state.book,bookUrl:session.publicBookId||session.storageIdentity,getSettings:()=>settingsController.get(),getLayoutMetrics:mapMetrics,getViewer:()=>elements.viewer,getPaginatedTheme:()=>themeController.css({...settingsController.get(),flow:"paginated"}),onUpdate:onPageMapUpdate});
     const pageMapResult=await state.pageMap.ensure({anchorCfi:saved?.cfi||""});
     let initialTarget=saved?.cfi||undefined;
-    if(pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{initialTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"})||initialTarget}catch{}}
+    if(!initialTarget&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{initialTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"})||initialTarget}catch{}}
     progressController.startLocationGeneration();await openRendition(initialTarget);
-    if(pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{const canonicalTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"});if(canonicalTarget)await state.rendition.display(canonicalTarget)}catch{}}
+    if(!saved?.cfi&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{const canonicalTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"});if(canonicalTarget)await state.rendition.display(canonicalTarget)}catch{}}
+    resumeController.remember();resumeController.bind();
     completionController=await createCompletionController({session,elements,toast});
     elements.loading?.classList.add("hidden");
   }catch(error){
     console.error("Reader initialization failed",error);elements.loading?.classList.remove("hidden");if(elements.loading)elements.loading.innerHTML="<p>Shadow Garden could not open this EPUB.</p>";throw error;
   }
 
-  return{session,state,settings:settingsController,progress:progressController,bookmarks:bookmarksController,search:bookSearchController,pageInput:pageInputController,imageFocus:imageFocusController,completion:completionController};
+  return{session,state,settings:settingsController,progress:progressController,bookmarks:bookmarksController,search:bookSearchController,pageInput:pageInputController,imageFocus:imageFocusController,resume:resumeController,completion:completionController};
 }

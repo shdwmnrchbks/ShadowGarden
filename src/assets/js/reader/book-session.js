@@ -85,6 +85,10 @@ function installResumeRenewal(session,access){
     return task;
   };
 
+  // The application resume controller awaits the same in-flight renewal before it touches
+  // EPUB.js again. This keeps access recovery owned by the session boundary while preventing
+  // a long-suspended rendition from racing an expired media ticket on pageshow/foregrounding.
+  session.renewAccess=renew;
   document.addEventListener("visibilitychange",()=>{if(!document.hidden)void renew()});
   window.addEventListener("pageshow",()=>{void renew()});
 }

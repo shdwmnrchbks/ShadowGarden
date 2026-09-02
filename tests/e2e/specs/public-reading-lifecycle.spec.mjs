@@ -70,41 +70,21 @@ async function advanceBeyondBeginning(page) {
   throw new Error('Reader never advanced beyond the canonical beginning state');
 }
 
-function canonicalProgressKey(saved) {
-  if (!saved) return '';
-  return [
-    String(saved.cfi || ''),
-    Number(saved.page || 0),
-    Number(saved.localPage || 0),
-    Number(saved.sectionIndex ?? -1)
-  ].join('|');
-}
-
 async function showPaginatedEndPage(page) {
-  /* Completion lifecycle coverage should not depend on the asynchronous progress-seek path.
-     Navigate to the fixture's final chapter, then advance exactly one settled page at a time.
-     Each click must either persist a new canonical location or reveal the completion page
-     before another click is issued, so mobile runs cannot outrun the Reader turn queue. */
-  await page.locator('#tocToggle').click();
-  await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
-  await page.getByRole('button', { name: 'Large Chapter', exact: true }).click();
-  await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
-  await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
+  /* Completion lifecycle coverage should exercise the Reader's canonical seek/turn barrier,
+     not assume a fixed number of rendered pages. Mobile WebKit can paginate the same fixture
+     into more than 64 pages, so a turn-count cap makes the test fail before it reaches the end. */
+  const range = page.locator('#progressRange');
+  await range.evaluate(input => {
+    input.value = '1000';
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 
-  const bookId = new URL(page.url()).searchParams.get('book') || READER_BOOK_ID;
-  const endPage = page.locator('#volumeEndPage');
-  const next = page.locator('#nextBottom');
-  for (let attempt = 0; attempt < 64; attempt += 1) {
-    if (await endPage.isVisible()) return;
-    const beforeKey = canonicalProgressKey(await progressFor(page, bookId));
-    await next.click();
-    await expect.poll(async () => {
-      if (await endPage.isVisible()) return true;
-      const afterKey = canonicalProgressKey(await progressFor(page, bookId));
-      return Boolean(afterKey && afterKey !== beforeKey);
-    }, { timeout: 3_000 }).toBe(true);
-  }
-  await expect(endPage).toBeVisible();
+  /* The paginated turn controller waits for any in-flight exact seek before evaluating the
+     end boundary. One Next therefore means "next past the canonical final page" on every
+     engine instead of racing location generation or iterating device-dependent page counts. */
+  await page.locator('#nextBottom').click();
+  await expect(page.locator('#volumeEndPage')).toBeVisible({ timeout: 20_000 });
 }
 
 async function seedFinished(page, bookId) {

@@ -113,6 +113,33 @@ test("Continuous repeated suspend signals refresh the transient anchor while sem
   assert.equal(container.scrollTop,360,"the latest synchronous transient anchor must win");
 });
 
+test("layout-changing resume waits for an in-flight pre-suspend semantic capture",async t=>{
+  installAnimationFrame(t);
+  const {rendition,container,displays}=continuousRendition({top:460,viewTop:100});
+  let releaseCapture;
+  const pendingPosition=new Promise(resolve=>{releaseCapture=resolve});
+  const controller=createReaderResumeController({
+    getRendition:()=>rendition,getFlow:()=>"scrolled-doc",
+    getPosition:()=>({page:9,totalPages:30,pageFraction:.4,cfi:"epubcfi(/6/18)"}),getCfi:()=>"epubcfi(/6/18)",
+    capturePosition:()=>pendingPosition,layoutChanged:()=>true
+  });
+
+  controller.remember();
+  const capture=controller.capture();
+  container.scrollTop=520;
+  const restore=controller.restore();
+  let settled=false;
+  restore.then(()=>{settled=true});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(settled,false,"resume must not race past the pre-suspend semantic capture");
+  assert.deepEqual(displays,[]);
+
+  releaseCapture({page:9,totalPages:30,pageFraction:.4,cfi:"epubcfi(/6/18!/4/12)"});
+  await capture;
+  assert.equal(await restore,true);
+  assert.deepEqual(displays,["epubcfi(/6/18!/4/12)","epubcfi(/6/18!/4/12)"],"layout recovery must use the resolved pre-change semantic CFI");
+});
+
 test("Continuous expired transient anchor falls back to the frozen semantic CFI",async t=>{
   installAnimationFrame(t);
   const {rendition,displays}=continuousRendition({top:300,viewTop:0});

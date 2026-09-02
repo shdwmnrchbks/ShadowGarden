@@ -40,6 +40,17 @@ function onFinalSpineItem(rendition){
   return Boolean(last.href&&hrefMatches(end.href||start.href,last.href));
 }
 
+function onFinalDisplayedPage(rendition){
+  if(!onFinalSpineItem(rendition))return false;
+  const location=rendition?.location||{};
+  if(location.atEnd===true)return true;
+  for(const displayed of[location.end?.displayed,location.start?.displayed]){
+    const page=Number(displayed?.page),total=Number(displayed?.total);
+    if(Number.isFinite(page)&&Number.isFinite(total)&&total>0&&page>=total)return true;
+  }
+  return false;
+}
+
 function locationKey(rendition){
   const location=rendition?.location||{},start=location.start||{},end=location.end||{};
   const manager=rendition?.manager,current=currentSection(rendition);
@@ -73,11 +84,14 @@ export function createPaginatedController({getRendition,beforeTurn}={}){
     if(direction<0){await rendition.prev?.();return true}
     if(endPageVisible())return true;
 
-    /* A seek may still be refining its target while a user presses Next. The shared navigation
-       barrier above makes the seek authoritative first, and the queue keeps rapid taps ordered.
-       Once navigation is settled, a forward no-op from the final linear spine item is the stable
-       cross-browser definition of "next past the last page". */
-    const wasFinalSpine=onFinalSpineItem(rendition),before=locationKey(rendition);
+    /* EPUB.js can still adjust manager scroll coordinates on WebKit when next() is called from
+       the last displayed page, so an exact post-turn location-key comparison is not a reliable
+       primary end signal. Detect the last displayed page before navigation and hand ownership
+       to the Reader completion page immediately. Keep the no-op comparison below as a fallback
+       for EPUBs that do not expose displayed page metadata. */
+    const wasFinalSpine=onFinalSpineItem(rendition);
+    if(wasFinalSpine&&onFinalDisplayedPage(rendition)){showEndPage();return true}
+    const before=locationKey(rendition);
     await rendition.next?.();
     await paint();
     if(wasFinalSpine&&before&&locationKey(rendition)===before)showEndPage();

@@ -142,8 +142,11 @@ test('v2.8 resume: Continuous pageshow keeps the visible Large Chapter passage',
   const positioned = await scrollIntoLargeChapter(page);
   expect(positioned).not.toBeNull();
   expect(Number(positioned?.scrollTop || 0)).toBeGreaterThan(0);
-  await page.waitForTimeout(500);
 
+  /* A scroll schedules another bounded buffer/trim pass. The trim idle window is 1.4s;
+     wait beyond it before freezing the lifecycle marker so trim cannot masquerade as a
+     pageshow jump in Chromium. */
+  await page.waitForTimeout(1_800);
   const beforeMarker = await visibleLargeChapterMarker(page);
   expect(beforeMarker.length).toBeGreaterThan(8);
   expect(fixtureParagraphNumber(beforeMarker)).toBeGreaterThan(10);

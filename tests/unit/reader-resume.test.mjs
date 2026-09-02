@@ -62,7 +62,7 @@ test("resume waits for access renewal and holds navigation until the pre-suspend
   assert.equal(spreadCalls,1);
 });
 
-test("Continuous unchanged-layout resume restores the pre-suspend view-relative anchor without display",async t=>{
+test("Continuous unchanged-layout resume restores the pre-suspend transient anchor without display",async t=>{
   installAnimationFrame(t);
   const {rendition,container,geometry,displays}=continuousRendition({top:460,viewTop:100});
   let captures=0,resizeCalls=0,spreadCalls=0,pageMapTargets=0;
@@ -78,7 +78,7 @@ test("Continuous unchanged-layout resume restores the pre-suspend view-relative 
   await controller.capture();
   container.scrollTop=520; // Browser scroll anchoring drift during pageshow.
   assert.equal(await controller.restore(),true);
-  assert.equal(container.scrollTop,460,"resume must return the live EPUB view to its pre-suspend viewport offset");
+  assert.equal(container.scrollTop,460,"resume must return the transient EPUB anchor to its pre-suspend viewport offset");
   assert.equal(rendition.manager.scrollTop,460);
   assert.equal(rendition.manager.prevScrollTop,460);
   assert.ok(Number(rendition.manager.__sgSuppressScrollUntil)>0);
@@ -90,7 +90,7 @@ test("Continuous unchanged-layout resume restores the pre-suspend view-relative 
   assert.equal(geometry.viewTop,100);
 });
 
-test("Continuous repeated suspend signals refresh the live-view anchor while semantic capture is in flight",async t=>{
+test("Continuous repeated suspend signals refresh the transient anchor while semantic capture is in flight",async t=>{
   installAnimationFrame(t);
   const {rendition,container}=continuousRendition({top:300,viewTop:0});
   let releaseCapture;
@@ -110,10 +110,10 @@ test("Continuous repeated suspend signals refresh the live-view anchor while sem
 
   container.scrollTop=410; // Drift after the last suspend signal.
   assert.equal(await controller.restore(),true);
-  assert.equal(container.scrollTop,360,"the latest synchronous live-view anchor must win");
+  assert.equal(container.scrollTop,360,"the latest synchronous transient anchor must win");
 });
 
-test("Continuous expired live-view anchor falls back to the frozen semantic CFI",async t=>{
+test("Continuous expired transient anchor falls back to the frozen semantic CFI",async t=>{
   installAnimationFrame(t);
   const {rendition,displays}=continuousRendition({top:300,viewTop:0});
   const controller=createReaderResumeController({

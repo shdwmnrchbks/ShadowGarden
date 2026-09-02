@@ -73,7 +73,7 @@ export function restoreContinuousScrollPosition(rendition,snapshot){
 
   manager.scrollTop=top;manager.scrollLeft=left;
   manager.prevScrollTop=top;manager.prevScrollLeft=left;
-  manager.scrollDeltaVert=0;manager.scrollDeltaHorz=0;manager.didScroll=false;manager.ignore=false;
+  manager.scrollDeltaVert=0;manager.scrollDeltaHorz=0;manager.didScroll=false;
   return true;
 }
 
@@ -87,11 +87,14 @@ export function stabilizeContinuousScrollLifecycle(rendition){
   const current=manager._scrolled;
   if(typeof current!=="function")return false;
   let timer=0;
+  const clock=()=>globalThis.performance?.now?.()||Date.now();
+  const suppressed=()=>Number(manager.__sgSuppressScrollUntil||0)>clock();
   const safe=(...args)=>{
-    clearTimeout(timer);
+    clearTimeout(timer);timer=0;
+    if(suppressed())return;
     timer=setTimeout(()=>{
       timer=0;
-      if(manager.__sgDestroyed)return;
+      if(manager.__sgDestroyed||suppressed())return;
       const scrolled=manager.scrolled;
       if(typeof scrolled==="function")scrolled.apply(manager,args);
     },30);

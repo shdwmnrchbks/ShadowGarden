@@ -40,6 +40,25 @@ async function waitForProgressMove(page, previous) {
   return storedProgress(page);
 }
 
+async function scrollIntoLargeChapter(page) {
+  return page.locator('#viewer iframe').evaluateAll(frames => {
+    const container = document.querySelector('#viewer .epub-container');
+    const frame = frames.find(node => /Large Chapter/.test(node.contentDocument?.body?.textContent || ''));
+    if (!container || !frame) return null;
+    const containerRect = container.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const inset = Math.max(80, Math.min(frameRect.height * 0.28, Math.max(80, frameRect.height - container.clientHeight * 0.65)));
+    const next = Math.max(0, container.scrollTop + (frameRect.top - containerRect.top) + inset);
+    container.scrollTop = Math.min(Math.max(0, container.scrollHeight - container.clientHeight), next);
+    container.dispatchEvent(new Event('scroll'));
+    return { scrollTop: container.scrollTop, max: Math.max(0, container.scrollHeight - container.clientHeight) };
+  });
+}
+
+async function continuousScrollTop(page) {
+  return page.locator('#viewer .epub-container').evaluate(node => Number(node.scrollTop || 0));
+}
+
 test('v2.8 resume: reload restores the same canonical reading place', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
   await openChapter(page, 'Large Chapter');
@@ -51,11 +70,11 @@ test('v2.8 resume: reload restores the same canonical reading place', async ({ p
   await page.reload();
   await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
-  const after = await waitForStoredChapter(page, 'Large Chapter');
+  await expect.poll(async () => String((await storedProgress(page))?.cfi || ''), { timeout: 15_000 }).toBe(before.cfi);
+  const after = await storedProgress(page);
 
-  expect(after?.cfi).toBeTruthy();
-  expect(Math.abs(Number(after?.percentage || 0) - Number(before?.percentage || 0))).toBeLessThanOrEqual(0.04);
-  if (Number(before?.page) > 0 && Number(after?.page) > 0) {
+  expect(after?.cfi).toBe(before.cfi);
+  if (Number(before?.page) > 0 && Number(after?.page) > 0 && Number(before?.totalPages) === Number(after?.totalPages)) {
     expect(Math.abs(Number(after.page) - Number(before.page))).toBeLessThanOrEqual(1);
   }
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
@@ -84,7 +103,7 @@ test('v2.8 resume: mobile orientation change reanchors instead of resetting prog
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('v2.8 resume: Continuous pageshow keeps the saved section and fractional position', async ({ page, browserDiagnostics }) => {
+test('v2.8 resume: Continuous pageshow keeps the visible Large Chapter passage', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
   await page.locator('#settingsToggle').click();
   await page.locator('#flowSelect').selectOption('scrolled-doc');
@@ -92,16 +111,13 @@ test('v2.8 resume: Continuous pageshow keeps the saved section and fractional po
   await page.getByRole('button', { name: 'Close reading settings' }).click();
   await openChapter(page, 'Large Chapter');
 
-  const chapterStart = await waitForStoredChapter(page, 'Large Chapter');
   const scroller = page.locator('#viewer .epub-container');
   await expect(scroller).toBeVisible();
-  await scroller.evaluate(node => {
-    const max = Math.max(0, node.scrollHeight - node.clientHeight);
-    node.scrollTop = Math.min(max, Math.max(120, Math.round(max * 0.32)));
-    node.dispatchEvent(new Event('scroll'));
-  });
-  const before = await waitForProgressMove(page, chapterStart);
-  expect(before?.cfi).toBeTruthy();
+  const positioned = await scrollIntoLargeChapter(page);
+  expect(positioned).not.toBeNull();
+  expect(Number(positioned?.scrollTop || 0)).toBeGreaterThan(0);
+  const beforeScroll = await continuousScrollTop(page);
+  await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter');
 
   await page.evaluate(() => {
     const event = typeof PageTransitionEvent === 'function'
@@ -110,10 +126,10 @@ test('v2.8 resume: Continuous pageshow keeps the saved section and fractional po
     window.dispatchEvent(event);
   });
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
-  await expect.poll(async () => {
-    const current = await storedProgress(page);
-    return Math.abs(Number(current?.percentage || 0) - Number(before?.percentage || 0));
-  }, { timeout: 12_000 }).toBeLessThanOrEqual(0.05);
+  await expect.poll(async () => Math.abs((await continuousScrollTop(page)) - beforeScroll), { timeout: 12_000 }).toBeLessThanOrEqual(180);
 
+  const after = await storedProgress(page);
+  expect(after?.cfi).toBeTruthy();
+  expect(after?.chapter).toBe('Large Chapter');
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

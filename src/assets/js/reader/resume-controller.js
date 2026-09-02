@@ -26,14 +26,16 @@ export function createReaderResumeController({
     return position;
   }
 
-  function capture(){
+  function capture({semantic=true}={}){
     const rendition=getRendition?.();
     if(!rendition)return Promise.resolve(remember());
     const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
-    /* Snapshot transient Continuous geometry synchronously on every lifecycle signal, even
-       when a slower semantic capture is already in flight. The snapshot is tied to the live
-       EPUB content point rather than absolute scrollTop, which Continuous buffering may rewrite. */
+    /* Continuous lifecycle signals must snapshot transient geometry synchronously without
+       asking EPUB.js for currentLocation(). EPUB.js currentLocation() calls updateLayout(),
+       which is a mutating operation that can reframe a long Continuous iframe. Semantic
+       capture is reserved for explicit layout-changing recovery such as resize/orientation. */
     if(flow==="scrolled-doc")rememberNativeScroll(rendition);else state.scroll=null;
+    if(!semantic)return Promise.resolve(remember());
     if(state.capturing)return state.capturing;
     const fallback=state.anchor||getPosition?.()||null;
     const task=Promise.resolve(capturePosition?.({rendition,flow,pageMap:getPageMap?.(),fallback})||fallback)
@@ -130,7 +132,13 @@ export function createReaderResumeController({
         state.queued=false;
         queueMicrotask(()=>void restore());
       }else{
-        queueMicrotask(()=>void capture());
+        /* Do not immediately call EPUB.js currentLocation() after a Continuous restore.
+           Refresh only the mutation-free transient snapshot; relocated events already own
+           the canonical semantic CFI. Paginated mode can keep its semantic refresh. */
+        queueMicrotask(()=>{
+          if(getFlow?.()==="scrolled-doc")void capture({semantic:false});
+          else void capture();
+        });
       }
     });
     state.running=tracked;
@@ -143,8 +151,9 @@ export function createReaderResumeController({
   function bind(){
     if(state.bound)return cleanup||(()=>{});
     state.bound=true;
-    const onVisibility=()=>{if(document.hidden)void capture();else void restore()};
-    const onPageHide=()=>void capture();
+    const captureLifecycle=()=>capture({semantic:getFlow?.()!=="scrolled-doc"});
+    const onVisibility=()=>{if(document.hidden)void captureLifecycle();else void restore()};
+    const onPageHide=()=>void captureLifecycle();
     const onPageShow=()=>void restore();
     document.addEventListener("visibilitychange",onVisibility);
     window.addEventListener("pagehide",onPageHide);

@@ -53,7 +53,7 @@ function continuousRendition({top=460,viewTop=100}={}){
   return{rendition,container};
 }
 
-test("Continuous pagehide/pageshow never calls mutating semantic capture",async t=>{
+test("Continuous pagehide/pageshow ignores stale Page Map layout and never calls mutating semantic capture",async t=>{
   const {windowTarget}=installLifecycleGlobals(t);
   const {rendition,container}=continuousRendition();
   let semanticCaptures=0;
@@ -66,7 +66,9 @@ test("Continuous pagehide/pageshow never calls mutating semantic capture",async 
       semanticCaptures+=1;
       return{page:9,totalPages:30,cfi:"epubcfi(/6/18!/4/12)"};
     },
-    layoutChanged:()=>false
+    /* Simulate the stale Page Map geometry that previously sent Firefox pageshow through
+       rendition.display(cfi). A transient-only lifecycle capture must ignore this signal. */
+    layoutChanged:()=>true
   });
 
   controller.remember();

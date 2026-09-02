@@ -109,13 +109,14 @@ function viewDocument(view){
 const continuousBlockSelector="p,li,dd,dt,blockquote,pre,h1,h2,h3,h4,h5,h6,figcaption,figure,td,th";
 
 function semanticBlockAtPoint(doc,x,y){
-  let hit=null;
-  try{hit=doc?.elementFromPoint?.(x,y)||null}catch{}
-  try{
-    const block=hit?.closest?.(continuousBlockSelector);
-    if(block)return block;
-  }catch{}
+  let hitBlock=null;
+  try{hitBlock=doc?.elementFromPoint?.(x,y)?.closest?.(continuousBlockSelector)||null}catch{}
 
+  /* The Reader's visible-passage contract is geometry-based. Firefox can return a later
+     semantic element from elementFromPoint() at iframe paragraph boundaries even when the
+     nearest rendered block at the tracking line is the preceding paragraph. Use the same
+     nearest-block geometry as progress/visibility tracking, and keep hit-testing only as a
+     tie-breaker/fallback for overlapping or unusual markup. */
   let best=null;
   try{
     for(const node of doc?.querySelectorAll?.(continuousBlockSelector)||[]){
@@ -126,7 +127,20 @@ function semanticBlockAtPoint(doc,x,y){
       if(!best||distance<best.distance)best={node,distance};
     }
   }catch{}
-  return best?.node||null;
+  if(best?.node){
+    if(hitBlock){
+      try{
+        const rect=hitBlock.getBoundingClientRect?.();
+        const top=Number(rect?.top),bottom=Number(rect?.bottom);
+        if(Number.isFinite(top)&&Number.isFinite(bottom)&&bottom>top){
+          const hitDistance=y<top?top-y:y>bottom?y-bottom:0;
+          if(hitDistance<=best.distance+.5)return hitBlock;
+        }
+      }catch{}
+    }
+    return best.node;
+  }
+  return hitBlock;
 }
 
 function boundedOffset(node,offset){

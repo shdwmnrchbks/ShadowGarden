@@ -33,13 +33,18 @@ function continuousFixture({scrollTop=1000,contentTop=100}={}){
 
 function contentRangeFixture(){
   const fixture=continuousFixture({scrollTop:1000,contentTop:0});
-  const geometry={blockTop:1120,caretTop:1410,resolvedTop:1410};
+  const geometry={blockTop:1120,hitTop:1410,caretTop:1410,resolvedTop:1410};
   let caretCalls=0;
   const textNode={nodeType:3,nodeValue:"Large chapter paragraph 48"};
   const block={
     nodeType:1,isConnected:true,ownerDocument:null,
     closest(selector){return selector.includes("p")?this:null},
     getBoundingClientRect(){return{top:geometry.blockTop,left:120,bottom:geometry.blockTop+120,right:700,height:120,width:580}}
+  };
+  const hitBlock={
+    nodeType:1,isConnected:true,ownerDocument:null,
+    closest(selector){return selector.includes("p")?this:null},
+    getBoundingClientRect(){return{top:geometry.hitTop,left:120,bottom:geometry.hitTop+120,right:700,height:120,width:580}}
   };
   const makeRange=(kind="resolved")=>({
     kind,
@@ -53,11 +58,12 @@ function contentRangeFixture(){
   });
   const document={
     createRange(){return makeRange()},
-    elementFromPoint(){return block},
-    querySelectorAll(){return[block]},
+    elementFromPoint(){return hitBlock},
+    querySelectorAll(){return[block,hitBlock]},
     caretPositionFromPoint(){caretCalls+=1;return{offsetNode:textNode,offset:5}}
   };
   block.ownerDocument=document;
+  hitBlock.ownerDocument=document;
   const frame={
     clientWidth:800,clientHeight:2200,contentDocument:document,
     getBoundingClientRect(){return fixture.view.element.getBoundingClientRect()}
@@ -67,7 +73,7 @@ function contentRangeFixture(){
   fixture.view.section={
     index:4,href:"large.xhtml",
     cfiFromRange(range){
-      assert.equal(range.kind,"block","transient CFI must describe the visible semantic block, not a browser caret boundary");
+      assert.equal(range.kind,"block","transient CFI must describe the visible semantic block, not a browser hit-test/caret boundary");
       return"epubcfi(/6/18!/4/92,/1:0,/1:240)";
     }
   };
@@ -78,7 +84,7 @@ function contentRangeFixture(){
       return makeRange("resolved");
     }
   };
-  return{...fixture,contentGeometry:geometry,block,document,caretCalls:()=>caretCalls};
+  return{...fixture,contentGeometry:geometry,block,hitBlock,document,caretCalls:()=>caretCalls};
 }
 
 test("Continuous resume anchors to a live EPUB view instead of absolute scrollTop",()=>{
@@ -101,13 +107,13 @@ test("Continuous resume anchors to a live EPUB view instead of absolute scrollTo
   assert.equal(fixture.cancels(),1,"pending Continuous manager work is cancelled before corrective scrolling");
 });
 
-test("Continuous resume preserves the surviving semantic DOM block before falling back to CFI",()=>{
+test("Continuous resume preserves the nearest semantic block when Firefox hit-testing reports a later paragraph",()=>{
   const fixture=contentRangeFixture();
   const snapshot=captureContinuousScrollPosition(fixture.rendition);
   assert.equal(snapshot.contentCfi,"epubcfi(/6/18!/4/92,/1:0,/1:240)");
-  assert.equal(snapshot.contentNode,fixture.block);
+  assert.equal(snapshot.contentNode,fixture.block,"nearest rendered paragraph must win over a later elementFromPoint result");
   assert.equal(snapshot.top,120,"the visible paragraph block top is captured relative to the Reader viewport");
-  assert.equal(fixture.caretCalls(),0,"a semantic paragraph at the tracking line must win before browser caret hit-testing");
+  assert.equal(fixture.caretCalls(),0,"geometry-resolved semantic content must win before browser caret hit-testing");
 
   /* Keep the original block alive while making CFI range reconstruction deliberately point
      elsewhere. Unchanged BFCache/background resume must use the surviving node geometry and

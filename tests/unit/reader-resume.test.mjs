@@ -81,6 +81,29 @@ test("Continuous unchanged-layout resume restores the exact pre-suspend native s
   assert.equal(pageMapTargets,0);
 });
 
+test("Continuous repeated suspend signals refresh native scroll while semantic capture is in flight",async t=>{
+  installAnimationFrame(t);
+  const {rendition,container}=continuousRendition({top:300});
+  let releaseCapture;
+  const pendingPosition=new Promise(resolve=>{releaseCapture=()=>resolve({page:8,totalPages:30,cfi:"epubcfi(/6/16!/4/10)"})});
+  const controller=createReaderResumeController({
+    getRendition:()=>rendition,getFlow:()=>"scrolled-doc",
+    getPosition:()=>({page:8,totalPages:30,cfi:"epubcfi(/6/16)"}),getCfi:()=>"epubcfi(/6/16)",
+    capturePosition:()=>pendingPosition,layoutChanged:()=>false
+  });
+
+  const first=controller.capture();
+  container.scrollTop=360;
+  const second=controller.capture();
+  assert.equal(second,first,"semantic capture remains deduplicated");
+  releaseCapture();
+  await first;
+
+  container.scrollTop=410; // Drift after the last suspend signal.
+  assert.equal(await controller.restore(),true);
+  assert.equal(container.scrollTop,360,"the latest synchronous suspend offset must win");
+});
+
 test("Continuous layout-changing resume ignores native pixels and settles twice at the pre-change CFI",async t=>{
   installAnimationFrame(t);
   const {rendition,container,displays}=continuousRendition({top:460});

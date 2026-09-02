@@ -27,13 +27,14 @@ export function createReaderResumeController({
   }
 
   function capture(){
-    if(state.capturing)return state.capturing;
     const rendition=getRendition?.();
     if(!rendition)return Promise.resolve(remember());
     const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
-    /* Snapshot native Continuous geometry synchronously before currentLocation/Page Map work.
-       Browser lifecycle events can adjust scroll anchoring while those async calls settle. */
+    /* Snapshot native Continuous geometry synchronously on every lifecycle signal, even
+       when a slower semantic capture is already in flight. Browser scroll anchoring can
+       move between visibility/pagehide events while currentLocation/Page Map settles. */
     if(flow==="scrolled-doc")rememberNativeScroll(rendition);else state.scroll=null;
+    if(state.capturing)return state.capturing;
     const fallback=state.anchor||getPosition?.()||null;
     const task=Promise.resolve(capturePosition?.({rendition,flow,pageMap:getPageMap?.(),fallback})||fallback)
       .then(position=>remember(position||fallback))

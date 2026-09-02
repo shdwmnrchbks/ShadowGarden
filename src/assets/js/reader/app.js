@@ -111,7 +111,9 @@ export async function startReader(session){
   continuousController=createContinuousController({getRendition:()=>state.rendition,getBook:()=>state.book,beforeNavigate:resetReaderInput});
   resumeController=createReaderResumeController({
     getRendition:()=>state.rendition,getFlow:()=>settingsController.get().flow,getPageMap:()=>state.pageMap,
-    getPosition:()=>progressController.currentPosition(),getCfi:()=>progressController.currentCfi(),renewAccess:()=>session.renewAccess?.(),resetInput:resetReaderInput,
+    getPosition:()=>progressController.currentPosition(),getCfi:()=>progressController.currentCfi(),
+    capturePosition:({rendition,flow,pageMap,fallback})=>captureRenditionPosition({rendition,flow,pageMap,fallback}),
+    renewAccess:()=>session.renewAccess?.(),resetInput:resetReaderInput,
     resizeRendition:rendition=>rendition.resize?.("100%","100%"),configureRendition:(rendition,flow)=>configureSpread(rendition,flow),
     layoutChanged:mapLayoutChangedSignificantly,onLayoutChanged:()=>schedulePageMapRefresh(900)
   });
@@ -186,7 +188,7 @@ export async function startReader(session){
       if(event.key==="ArrowRight")turn(1);if(event.key==="ArrowLeft")turn(-1);
     });
     const scheduleViewportRecovery=()=>{
-      if(!state.resizeTimer)resumeController?.remember();
+      if(!state.resizeTimer)void resumeController?.capture?.();
       clearTimeout(state.resizeTimer);state.resizeTimer=setTimeout(()=>{
         state.resizeTimer=0;
         if(!state.rendition||state.switchingFlow)return;
@@ -210,9 +212,9 @@ export async function startReader(session){
     state.pageMap=createPageMapController({book:state.book,bookUrl:session.publicBookId||session.storageIdentity,getSettings:()=>settingsController.get(),getLayoutMetrics:mapMetrics,getViewer:()=>elements.viewer,getPaginatedTheme:()=>themeController.css({...settingsController.get(),flow:"paginated"}),onUpdate:onPageMapUpdate});
     const pageMapResult=await state.pageMap.ensure({anchorCfi:saved?.cfi||""});
     let initialTarget=saved?.cfi||undefined;
-    if(pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{initialTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"})||initialTarget}catch{}}
+    if(!initialTarget&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{initialTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"})||initialTarget}catch{}}
     progressController.startLocationGeneration();await openRendition(initialTarget);
-    if(pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{const canonicalTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"});if(canonicalTarget)await state.rendition.display(canonicalTarget)}catch{}}
+    if(!saved?.cfi&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{const canonicalTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"});if(canonicalTarget)await state.rendition.display(canonicalTarget)}catch{}}
     resumeController.remember();resumeController.bind();
     completionController=await createCompletionController({session,elements,toast});
     elements.loading?.classList.add("hidden");

@@ -55,8 +55,26 @@ async function scrollIntoLargeChapter(page) {
   });
 }
 
-async function continuousScrollTop(page) {
-  return page.locator('#viewer .epub-container').evaluate(node => Number(node.scrollTop || 0));
+async function visibleLargeChapterMarker(page) {
+  return page.locator('#viewer iframe').evaluateAll(frames => {
+    const container = document.querySelector('#viewer .epub-container');
+    const frame = frames.find(node => /Large Chapter/.test(node.contentDocument?.body?.textContent || ''));
+    if (!container || !frame?.contentDocument) return '';
+    const containerRect = container.getBoundingClientRect();
+    const frameRect = frame.getBoundingClientRect();
+    const targetY = containerRect.top + Math.min(container.clientHeight * 0.3, Math.max(1, container.clientHeight - 1));
+    const candidates = [...frame.contentDocument.querySelectorAll('p')]
+      .map(node => {
+        const rect = node.getBoundingClientRect();
+        const top = frameRect.top + rect.top;
+        const bottom = frameRect.top + rect.bottom;
+        const distance = targetY < top ? top - targetY : targetY > bottom ? targetY - bottom : 0;
+        return { node, distance };
+      })
+      .filter(entry => String(entry.node.textContent || '').trim())
+      .sort((a, b) => a.distance - b.distance);
+    return String(candidates[0]?.node?.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  });
 }
 
 test('v2.8 resume: reload restores the same canonical reading place', async ({ page, browserDiagnostics }) => {
@@ -80,7 +98,7 @@ test('v2.8 resume: reload restores the same canonical reading place', async ({ p
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
-test('v2.8 resume: mobile orientation change reanchors instead of resetting progress', async ({ page, browserDiagnostics }, testInfo) => {
+test('v2.8 resume: mobile orientation change keeps the same semantic anchor', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(!testInfo.project.name.includes('mobile'), 'mobile orientation regression');
   await waitForReader(page);
   await openChapter(page, 'Large Chapter');
@@ -93,13 +111,11 @@ test('v2.8 resume: mobile orientation change reanchors instead of resetting prog
   expect(viewport).not.toBeNull();
   await page.setViewportSize({ width: viewport.height, height: viewport.width });
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
-  await expect.poll(async () => {
-    const current = await storedProgress(page);
-    return Math.abs(Number(current?.percentage || 0) - Number(before?.percentage || 0));
-  }, { timeout: 12_000 }).toBeLessThanOrEqual(0.05);
+  await expect.poll(async () => String((await storedProgress(page))?.cfi || ''), { timeout: 12_000 }).toBe(before.cfi);
 
   const after = await storedProgress(page);
-  expect(after?.cfi).toBeTruthy();
+  expect(after?.cfi).toBe(before.cfi);
+  expect(after?.chapter).toBe('Large Chapter');
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 
@@ -116,7 +132,8 @@ test('v2.8 resume: Continuous pageshow keeps the visible Large Chapter passage',
   const positioned = await scrollIntoLargeChapter(page);
   expect(positioned).not.toBeNull();
   expect(Number(positioned?.scrollTop || 0)).toBeGreaterThan(0);
-  const beforeScroll = await continuousScrollTop(page);
+  const beforeMarker = await visibleLargeChapterMarker(page);
+  expect(beforeMarker.length).toBeGreaterThan(8);
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter');
 
   await page.evaluate(() => {
@@ -126,7 +143,7 @@ test('v2.8 resume: Continuous pageshow keeps the visible Large Chapter passage',
     window.dispatchEvent(event);
   });
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
-  await expect.poll(async () => Math.abs((await continuousScrollTop(page)) - beforeScroll), { timeout: 12_000 }).toBeLessThanOrEqual(180);
+  await expect.poll(() => visibleLargeChapterMarker(page), { timeout: 12_000 }).toBe(beforeMarker);
 
   const after = await storedProgress(page);
   expect(after?.cfi).toBeTruthy();

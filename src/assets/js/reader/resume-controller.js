@@ -31,8 +31,8 @@ export function createReaderResumeController({
     if(!rendition)return Promise.resolve(remember());
     const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
     /* Snapshot transient Continuous geometry synchronously on every lifecycle signal, even
-       when a slower semantic capture is already in flight. The snapshot is tied to a live
-       EPUB view rather than absolute scrollTop, which Continuous buffering may rewrite. */
+       when a slower semantic capture is already in flight. The snapshot is tied to the live
+       EPUB content point rather than absolute scrollTop, which Continuous buffering may rewrite. */
     if(flow==="scrolled-doc")rememberNativeScroll(rendition);else state.scroll=null;
     if(state.capturing)return state.capturing;
     const fallback=state.anchor||getPosition?.()||null;
@@ -56,9 +56,9 @@ export function createReaderResumeController({
     const changed=layoutChanged?.()===true;
     resetInput?.();
 
-    /* Unchanged Continuous resumes first restore the pre-suspend live EPUB view relative
-       to the Reader viewport. This survives prepend/trim scrollTop compensation. If that
-       transient view was removed entirely, fall through to the frozen semantic CFI. */
+    /* Unchanged Continuous resumes first restore the pre-suspend content CFI/range relative
+       to the Reader viewport. This survives prepend/trim compensation and iframe reflow. If
+       that transient view was removed entirely, fall through to the frozen semantic CFI. */
     let continuousAnchorExpired=false;
     if(flow==="scrolled-doc"&&!changed){
       if(!nativeScroll)return rendition===getRendition?.();
@@ -72,7 +72,7 @@ export function createReaderResumeController({
     }
 
     /* Paginated recovery still refreshes rendition geometry. Continuous only reaches this
-       path when layout changed or its transient live-view anchor no longer exists. */
+       path when layout changed or its transient live-content anchor no longer exists. */
     if(flow!=="scrolled-doc"||changed){
       try{resizeRendition?.(rendition)}catch(error){console.warn("Reader resume resize skipped",error)}
       try{configureRendition?.(rendition,flow)}catch(error){console.warn("Reader resume spread update skipped",error)}
@@ -107,7 +107,7 @@ export function createReaderResumeController({
     if(!rendition)return Promise.resolve(false);
 
     /* Suspension/resize handlers capture before the viewport can move. Reuse that frozen
-       semantic/native anchor here instead of sampling again after pageshow/reflow. */
+       semantic/transient content anchor here instead of sampling again after pageshow/reflow. */
     const position=state.anchor||getPosition?.()||null;
     const cfi=position?.cfi||state.cfi||getCfi?.()||"";
     const nativeScroll=state.scroll?.rendition===rendition?{...state.scroll.position}:null;

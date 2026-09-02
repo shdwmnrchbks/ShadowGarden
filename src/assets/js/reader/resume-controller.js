@@ -40,14 +40,22 @@ export function createReaderResumeController({
     try{await renewAccess?.()}catch(error){console.warn("Reader access resume renewal delayed",error)}
     if(rendition!==getRendition?.())return false;
 
+    const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
+    const changed=layoutChanged?.()===true;
     resetInput?.();
+
+    /* A BFCache/pageshow or foreground resume with an unchanged Continuous viewport
+       already has the browser's exact native scroll position. EPUB.js ContinuousManager
+       can reset that position toward the section start when resize()/display(cfi) is
+       invoked unnecessarily, especially in Chromium. Only reflow/reanchor Continuous
+       when the viewport layout actually changed. */
+    if(flow==="scrolled-doc"&&!changed)return rendition===getRendition?.();
+
     try{resizeRendition?.(rendition)}catch(error){console.warn("Reader resume resize skipped",error)}
-    try{configureRendition?.(rendition,getFlow?.())}catch(error){console.warn("Reader resume spread update skipped",error)}
+    try{configureRendition?.(rendition,flow)}catch(error){console.warn("Reader resume spread update skipped",error)}
     await nextPaint();
     if(rendition!==getRendition?.())return false;
 
-    const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
-    const changed=layoutChanged?.()===true;
     let target=cfi||position?.cfi||"";
     if(!target&&!changed&&position){
       try{

@@ -8,7 +8,7 @@ export function createReaderResumeController({
   getRendition,getFlow,getPageMap,getPosition,getCfi,capturePosition,renewAccess,resetInput,
   resizeRendition,configureRendition,layoutChanged,onLayoutChanged
 }={}){
-  const state={anchor:null,cfi:"",scroll:null,running:null,capturing:null,queued:false,bound:false};
+  const state={anchor:null,cfi:"",scroll:null,running:null,capturing:null,queued:false,bound:false,layoutProbe:false};
   let cleanup=null;
 
   function remember(position=getPosition?.()){
@@ -30,6 +30,11 @@ export function createReaderResumeController({
     const rendition=getRendition?.();
     if(!rendition)return Promise.resolve(remember());
     const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
+    /* A semantic capture is the explicit signal used by resize/orientation recovery. Ordinary
+       Continuous lifecycle snapshots are mutation-free and must not inherit Page Map layout
+       mismatch as proof that the live viewport changed. Keep a pending probe until restore
+       consumes it so repeated lifecycle signals cannot erase an already-detected resize. */
+    if(semantic)state.layoutProbe=true;
     /* Continuous lifecycle signals must snapshot transient geometry synchronously without
        asking EPUB.js for currentLocation(). EPUB.js currentLocation() calls updateLayout(),
        which is a mutating operation that can reframe a long Continuous iframe. Semantic
@@ -50,12 +55,16 @@ export function createReaderResumeController({
     return tracked;
   }
 
-  async function restoreOnce(rendition,position,cfi,nativeScroll){
+  async function restoreOnce(rendition,position,cfi,nativeScroll,layoutProbe){
     try{await renewAccess?.()}catch(error){console.warn("Reader access resume renewal delayed",error)}
     if(rendition!==getRendition?.())return false;
 
     const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
-    const changed=layoutChanged?.()===true;
+    /* Page Map geometry is only meaningful here when the preceding capture intentionally
+       sampled semantic location for a resize/orientation recovery. A pagehide/pageshow
+       snapshot in Continuous mode is transient-only, so stale Page Map dimensions must not
+       trigger rendition.display(cfi) and replace the exact live viewport. */
+    const changed=layoutProbe&&layoutChanged?.()===true;
     resetInput?.();
 
     /* Unchanged Continuous resumes first restore the pre-suspend content CFI/range relative
@@ -113,6 +122,8 @@ export function createReaderResumeController({
        capture so layout-changing recovery cannot fall back to an older remembered CFI. */
     const pendingCapture=state.capturing;
     const nativeScroll=state.scroll?.rendition===rendition?{...state.scroll.position}:null;
+    const layoutProbe=state.layoutProbe;
+    state.layoutProbe=false;
     const task=(async()=>{
       if(pendingCapture){
         try{await pendingCapture}catch{}
@@ -120,7 +131,7 @@ export function createReaderResumeController({
       }
       const position=state.anchor||getPosition?.()||null;
       const cfi=position?.cfi||state.cfi||getCfi?.()||"";
-      return restoreOnce(rendition,position,cfi,nativeScroll);
+      return restoreOnce(rendition,position,cfi,nativeScroll,layoutProbe);
     })().catch(error=>{
       console.warn("Reader resume recovery skipped",error);
       return false;

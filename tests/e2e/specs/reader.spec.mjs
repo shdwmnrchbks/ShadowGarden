@@ -44,11 +44,35 @@ function intersectBoxes(box, shellBox) {
   return { left, top, right, bottom };
 }
 
+async function renderedFragmentBoxes(page, locator) {
+  const [rects, frameBox] = await Promise.all([
+    locator.evaluate(element => Array.from(element.getClientRects(), rect => ({
+      x: rect.left,
+      y: rect.top,
+      width: rect.width,
+      height: rect.height
+    }))),
+    page.locator('#viewer iframe').boundingBox()
+  ]);
+  if (!frameBox || !Array.isArray(rects) || !rects.length) return [];
+  return rects.map(rect => ({
+    x: frameBox.x + Number(rect.x || 0),
+    y: frameBox.y + Number(rect.y || 0),
+    width: Number(rect.width || 0),
+    height: Number(rect.height || 0)
+  }));
+}
+
 async function revealAndClickRenderedCenter(page, locator) {
   const shell = page.locator('#viewerShell');
   for (let attempt = 0; attempt < 6; attempt += 1) {
-    const [box, shellBox] = await Promise.all([locator.boundingBox(), shell.boundingBox()]);
-    const visible = intersectBoxes(box, shellBox);
+    const [fragments, box, shellBox] = await Promise.all([
+      renderedFragmentBoxes(page, locator),
+      locator.boundingBox(),
+      shell.boundingBox()
+    ]);
+    const candidates = fragments.length ? fragments : (box ? [box] : []);
+    const visible = candidates.map(fragment => intersectBoxes(fragment, shellBox)).find(Boolean);
     if (visible) {
       await page.mouse.click((visible.left + visible.right) / 2, (visible.top + visible.bottom) / 2);
       return;
@@ -179,10 +203,10 @@ test('flow switching, image focus, and resize preserve a usable Reader location'
   const iframe = page.frameLocator('#viewer iframe');
   const illustration = iframe.getByRole('img', { name: 'A moonlit geometric garden used to test image focus' });
   await expect(illustration).toBeVisible();
-  // EPUB.js lays paginated chapters out in a horizontally wide iframe. An image can therefore
-  // be "visible" to Playwright inside the iframe while still being clipped off the Reader's
-  // current page. Turn pages until the image intersects #viewerShell, then use a native
-  // top-level pointer click. WebKit's sandbox-safe parent hit target receives that same click.
+  // EPUB.js can fragment an image across WebKit pagination columns. Click the center of
+  // an actually painted fragment rather than the union bounding box, whose center may
+  // be empty space between fragments. Keep the native top-level pointer path so the
+  // sandbox-safe WebKit parent hit target is exercised.
   await revealAndClickRenderedCenter(page, illustration);
   await expect(page.locator('#imageFocus')).not.toHaveClass(/hidden/);
   await expect(page.locator('#imageFocus')).toHaveAttribute('aria-hidden', 'false');

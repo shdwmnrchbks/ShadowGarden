@@ -124,9 +124,20 @@ export function createImageFocusController({
     state.returnFocus=null;return true;
   }
 
+  function createParentHit(sourceImage,doc){
+    const hit=document.createElement("span");
+    hit.className="reader-image-focus-hit";hit.setAttribute("aria-hidden","true");hit.dataset.sgReaderImageHit="1";hit.hidden=true;
+    hit.addEventListener("click",event=>{
+      event.preventDefault();event.stopPropagation();
+      if(state.active||shouldSuppressOpen?.())return;
+      openImageFocus(sourceImage,doc);
+    });
+    document.body.appendChild(hit);return hit;
+  }
+  function removeHitList(hitList){hitList?.forEach?.(hit=>hit.remove())}
   function removeParentHits(doc){
     const entry=parentHits.get(doc);if(!entry)return;
-    entry.hits.forEach(hit=>hit.remove());parentHits.delete(doc);
+    entry.hits.forEach(removeHitList);parentHits.delete(doc);
   }
   function refreshParentHits(){
     parentHitFrame=0;
@@ -134,13 +145,23 @@ export function createImageFocusController({
       const frame=doc?.defaultView?.frameElement;
       if(!frame?.isConnected){removeParentHits(doc);return}
       const frameRect=frame.getBoundingClientRect(),shellRect=frame.closest?.("#viewerShell")?.getBoundingClientRect?.()||frameRect;
-      entry.hits.forEach((hit,sourceImage)=>{
-        if(!sourceImage?.isConnected){hit.remove();entry.hits.delete(sourceImage);return}
-        const rect=sourceImage.getBoundingClientRect();
-        const mapped={left:frameRect.left+rect.left,top:frameRect.top+rect.top,right:frameRect.left+rect.right,bottom:frameRect.top+rect.bottom};
-        const visible=intersectRect(mapped,shellRect);
-        if(visible.width<2||visible.height<2){hit.hidden=true;return}
-        hit.hidden=false;hit.style.left=`${visible.left}px`;hit.style.top=`${visible.top}px`;hit.style.width=`${visible.width}px`;hit.style.height=`${visible.height}px`;
+      entry.hits.forEach((hitList,sourceImage)=>{
+        if(!sourceImage?.isConnected){removeHitList(hitList);entry.hits.delete(sourceImage);return}
+        // In WebKit multicol pagination, getBoundingClientRect() can return the union
+        // of disjoint image fragments. That union can span unrelated text/links.
+        // Mirror each fragment instead so the parent hit surface matches painted pixels.
+        const rects=Array.from(sourceImage.getClientRects?.()||[]);
+        const candidates=rects.length?rects:[sourceImage.getBoundingClientRect()];
+        const visibleRects=candidates.map(rect=>{
+          const mapped={left:frameRect.left+rect.left,top:frameRect.top+rect.top,right:frameRect.left+rect.right,bottom:frameRect.top+rect.bottom};
+          return intersectRect(mapped,shellRect);
+        }).filter(rect=>rect.width>=2&&rect.height>=2);
+        while(hitList.length<visibleRects.length)hitList.push(createParentHit(sourceImage,doc));
+        hitList.forEach((hit,index)=>{
+          const visible=visibleRects[index];
+          if(!visible){hit.hidden=true;return}
+          hit.hidden=false;hit.style.left=`${visible.left}px`;hit.style.top=`${visible.top}px`;hit.style.width=`${visible.width}px`;hit.style.height=`${visible.height}px`;
+        });
       });
     });
   }
@@ -148,15 +169,12 @@ export function createImageFocusController({
   function installParentHits(doc){
     if(!needsParentHitTargets(doc)||parentHits.has(doc))return;
     const hits=new Map();parentHits.set(doc,{hits});
+    // WebKit parent-owned hit targets use fixed parent coordinates. Any scroll
+    // inside the EPUB iframe invalidates those coordinates until they are remapped.
+    doc.addEventListener?.("scroll",scheduleParentHitRefresh,true);
+    doc.defaultView?.addEventListener?.("scroll",scheduleParentHitRefresh,{passive:true});
     doc.querySelectorAll?.("img").forEach(sourceImage=>{
-      const hit=document.createElement("span");
-      hit.className="reader-image-focus-hit";hit.setAttribute("aria-hidden","true");hit.dataset.sgReaderImageHit="1";
-      hit.addEventListener("click",event=>{
-        event.preventDefault();event.stopPropagation();
-        if(state.active||shouldSuppressOpen?.())return;
-        openImageFocus(sourceImage,doc);
-      });
-      document.body.appendChild(hit);hits.set(sourceImage,hit);
+      hits.set(sourceImage,[createParentHit(sourceImage,doc)]);
       sourceImage.addEventListener?.("load",scheduleParentHitRefresh,{once:false});
     });
     scheduleParentHitRefresh();

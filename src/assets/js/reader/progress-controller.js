@@ -1,4 +1,6 @@
 /* Shadow Garden R4 — Reader-facing progress adapter over the canonical R2 service. */
+import { holdRenditionNavigation } from "./navigation-state.js";
+
 const clamp01=value=>Math.min(1,Math.max(0,Number(value)||0));
 const nextPaint=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 
@@ -16,7 +18,28 @@ export function formatReaderProgress({percentage=0,position=null,chapter=""}={})
 }
 
 export function createProgressController({storage,elements,getBook,getRendition,getPageMap,getFlow,getChapter,toast,onPositionChange}={}){
-  const state={currentCfi:"",currentPosition:null,locationsReady:false,locationsFailed:false,pendingSeek:null,seekTimer:0};
+  const state={currentCfi:"",currentPosition:null,locationsReady:false,locationsFailed:false,pendingSeek:null,seekTimer:0,seekRevision:0,seekBarrier:null};
+
+  function supersedeSeek(){
+    clearTimeout(state.seekTimer);state.seekTimer=0;
+    state.pendingSeek?.finishInitial?.();state.pendingSeek=null;
+    const previous=state.seekBarrier;state.seekBarrier=null;previous?.resolve?.();
+  }
+  function beginSeekBarrier(rendition){
+    supersedeSeek();
+    const revision=++state.seekRevision;
+    let resolve=()=>{};
+    const promise=new Promise(done=>{resolve=done});
+    const barrier={revision,rendition,promise,resolve};
+    state.seekBarrier=barrier;
+    holdRenditionNavigation(rendition,promise);
+    return barrier;
+  }
+  function finishSeekBarrier(revision){
+    const barrier=state.seekBarrier;
+    if(!barrier||barrier.revision!==revision)return;
+    state.seekBarrier=null;barrier.resolve();
+  }
 
   function pageMapPositionFromPercentage(percentage){
     const map=getPageMap?.()?.map?.(),total=Number(map?.totalPages)||0;if(!total)return null;
@@ -97,18 +120,44 @@ export function createProgressController({storage,elements,getBook,getRendition,
   }
   function seekTo(percentage,immediate=false){
     const value=clamp01(percentage);setProgressUI(value,pageMapPositionFromPercentage(value));
-    if(!getPageMap?.()?.hasCompleteMap?.()&&!state.locationsReady&&!state.locationsFailed)state.pendingSeek={percentage:value,requestedAt:Date.now()};else state.pendingSeek=null;
-    clearTimeout(state.seekTimer);if(immediate)void navigateToPercentage(value);else state.seekTimer=setTimeout(()=>void navigateToPercentage(value),120);
+    const rendition=getRendition?.();if(!rendition)return Promise.resolve();
+    const barrier=beginSeekBarrier(rendition);
+    const needsRefinement=!getPageMap?.()?.hasCompleteMap?.()&&!state.locationsReady&&!state.locationsFailed;
+    let finishInitial=()=>{};
+    const initialDone=new Promise(resolve=>{finishInitial=resolve});
+    if(needsRefinement)state.pendingSeek={percentage:value,requestedAt:Date.now(),revision:barrier.revision,rendition,initialDone,finishInitial};
+
+    const run=async()=>{
+      try{await navigateToPercentage(value)}
+      finally{
+        finishInitial();
+        if(!needsRefinement)finishSeekBarrier(barrier.revision);
+      }
+    };
+    if(immediate)void run();else state.seekTimer=setTimeout(()=>{state.seekTimer=0;void run()},120);
+    return barrier.promise;
   }
   function startLocationGeneration(){
     const book=getBook?.();if(!book)return;
-    book.ready.then(()=>book.locations.generate(1200)).then(()=>{
+    book.ready.then(()=>book.locations.generate(1200)).then(async()=>{
       state.locationsReady=true;state.locationsFailed=false;
       const pending=state.pendingSeek;state.pendingSeek=null;
-      if(pending&&Date.now()-pending.requestedAt<10000){void navigateToPercentage(pending.percentage);return}
+      if(pending&&Date.now()-pending.requestedAt<10000){
+        try{
+          await pending.initialDone;
+          if(pending.revision===state.seekRevision&&pending.rendition===getRendition?.())await navigateToPercentage(pending.percentage);
+        }finally{finishSeekBarrier(pending.revision)}
+        return;
+      }
+      if(pending)finishSeekBarrier(pending.revision);
       const location=getRendition?.()?.location;if(location?.start){save(location);return}
       if(state.currentCfi){try{const exact=book.locations.percentageFromCfi(state.currentCfi);if(Number.isFinite(exact))setProgressUI(exact,state.currentPosition)}catch{}}
-    }).catch(error=>{state.locationsFailed=true;state.pendingSeek=null;console.warn("EPUB location generation failed",error)});
+    }).catch(error=>{
+      state.locationsFailed=true;
+      const pending=state.pendingSeek;state.pendingSeek=null;
+      if(pending){pending.finishInitial?.();finishSeekBarrier(pending.revision)}
+      console.warn("EPUB location generation failed",error);
+    });
   }
   function restoreSaved(){
     const saved=storage.loadProgress();

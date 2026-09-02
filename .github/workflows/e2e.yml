@@ -45,12 +45,12 @@ jobs:
         run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium firefox webkit
       - name: Install Playwright browsers (pull request subset)
         if: ${{ github.event_name == 'pull_request' }}
-        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium webkit
+        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium firefox webkit
       - name: Resolve real-browser projects
         id: projects
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "args=--project=chromium-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
+            echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
           else
             echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
           fi

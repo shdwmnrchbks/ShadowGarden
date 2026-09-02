@@ -45,6 +45,13 @@ function continuousViewport(manager){
   };
 }
 
+function continuousTrackingPoint(viewport){
+  return{
+    x:viewport.left+Math.min(viewport.width*.35,Math.max(1,viewport.width-1)),
+    y:viewport.top+Math.min(viewport.height*.3,Math.max(1,viewport.height-1))
+  };
+}
+
 function continuousViews(manager){
   try{
     const all=manager?.views?.all?.();
@@ -63,7 +70,7 @@ function viewIdentity(view){
 }
 
 function findContinuousAnchorView(manager,viewport){
-  const targetY=viewport.top+Math.min(viewport.height*.3,Math.max(1,viewport.height-1));
+  const point=continuousTrackingPoint(viewport);
   let best=null;
   for(const view of continuousViews(manager)){
     const element=view?.element;
@@ -71,8 +78,8 @@ function findContinuousAnchorView(manager,viewport){
     const rect=element.getBoundingClientRect();
     const top=Number(rect.top),bottom=Number(rect.bottom);
     if(!Number.isFinite(top)||!Number.isFinite(bottom)||bottom<=top)continue;
-    const distance=targetY<top?top-targetY:targetY>bottom?targetY-bottom:0;
-    if(!best||distance<best.distance)best={view,rect,distance};
+    const distance=point.y<top?top-point.y:point.y>bottom?point.y-bottom:0;
+    if(!best||distance<best.distance)best={view,rect,distance,point};
   }
   return best;
 }
@@ -91,9 +98,91 @@ function resolveContinuousAnchorView(manager,snapshot){
   return null;
 }
 
+function viewFrame(view){
+  return view?.iframe||view?.element?.querySelector?.("iframe")||null;
+}
+
+function boundedOffset(node,offset){
+  const max=node?.nodeType===3?String(node?.nodeValue||"").length:Number(node?.childNodes?.length)||0;
+  return Math.max(0,Math.min(max,Number(offset)||0));
+}
+
+function contentRangeAtPoint(view,point){
+  const frame=viewFrame(view),doc=view?.document||view?.contents?.document||frame?.contentDocument;
+  if(!frame?.getBoundingClientRect||!doc?.createRange)return null;
+  const frameRect=frame.getBoundingClientRect();
+  const width=Math.max(1,Number(frameRect.width)||Number(frame.clientWidth)||1);
+  const height=Math.max(1,Number(frameRect.height)||Number(frame.clientHeight)||1);
+  const x=Math.max(0,Math.min(width-1,Number(point?.x)-Number(frameRect.left)||0));
+  const y=Math.max(0,Math.min(height-1,Number(point?.y)-Number(frameRect.top)||0));
+  let range=null;
+  try{
+    const caret=doc.caretPositionFromPoint?.(x,y);
+    if(caret?.offsetNode){
+      range=doc.createRange();
+      range.setStart(caret.offsetNode,boundedOffset(caret.offsetNode,caret.offset));
+      range.collapse(true);
+    }
+  }catch{}
+  if(!range){
+    try{
+      const caret=doc.caretRangeFromPoint?.(x,y);
+      if(caret)range=caret.cloneRange?.()||caret;
+    }catch{}
+  }
+  if(!range){
+    try{
+      const element=doc.elementFromPoint?.(x,y);
+      if(element){
+        range=doc.createRange();
+        range.selectNodeContents(element);
+        range.collapse(true);
+      }
+    }catch{}
+  }
+  return range?{range,frameRect}:null;
+}
+
+function rangeRect(range){
+  try{
+    const rect=range?.getBoundingClientRect?.();
+    if(rect&&Number.isFinite(Number(rect.top))&&Number.isFinite(Number(rect.left)))return rect;
+    const first=range?.getClientRects?.()?.[0];
+    return first&&Number.isFinite(Number(first.top))&&Number.isFinite(Number(first.left))?first:null;
+  }catch{return null}
+}
+
+function contentAnchorGeometry(view,range,frameRect=viewFrame(view)?.getBoundingClientRect?.()){
+  const rect=rangeRect(range);
+  if(!rect||!frameRect)return null;
+  return{
+    top:(Number(frameRect.top)||0)+(Number(rect.top)||0),
+    left:(Number(frameRect.left)||0)+(Number(rect.left)||0)
+  };
+}
+
+function captureContentAnchor(view,point){
+  const located=contentRangeAtPoint(view,point);
+  if(!located)return null;
+  let cfi="";
+  try{cfi=String(view?.section?.cfiFromRange?.(located.range)||"")}catch{}
+  if(!cfi)return null;
+  const geometry=contentAnchorGeometry(view,located.range,located.frameRect);
+  return geometry?{cfi,...geometry}:null;
+}
+
+function resolveContentAnchor(view,cfi){
+  if(!cfi)return null;
+  try{
+    const range=view?.contents?.range?.(cfi);
+    return range?contentAnchorGeometry(view,range):null;
+  }catch{return null}
+}
+
 /* Continuous buffering deliberately changes absolute scrollTop when views are prepended or
-   trimmed. Capture the visible EPUB view relative to the Reader viewport instead; that
-   content-relative geometry survives those manager mutations while remaining transient. */
+   trimmed. Anchor to a concrete content CFI at the Reader tracking line, plus its transient
+   viewport offset. The section-level geometry remains only a fallback for publications or
+   view implementations that cannot resolve a live content range. */
 export function captureContinuousScrollPosition(rendition){
   const manager=rendition?.manager;
   const viewport=continuousViewport(manager);
@@ -101,8 +190,19 @@ export function captureContinuousScrollPosition(rendition){
   const anchor=findContinuousAnchorView(manager,viewport);
   if(!anchor)return null;
   const identity=viewIdentity(anchor.view);
+  const content=captureContentAnchor(anchor.view,anchor.point);
+  if(content){
+    return{
+      ...identity,
+      contentCfi:content.cfi,
+      top:content.top-viewport.top,
+      left:content.left-viewport.left,
+      fullsize:viewport.fullsize
+    };
+  }
   return{
     ...identity,
+    contentCfi:"",
     top:(Number(anchor.rect.top)||0)-viewport.top,
     left:(Number(anchor.rect.left)||0)-viewport.left,
     fullsize:viewport.fullsize
@@ -115,12 +215,15 @@ export function restoreContinuousScrollPosition(rendition,snapshot){
   if(!manager||!snapshot||!viewport||Boolean(snapshot.fullsize)!==viewport.fullsize)return false;
   const view=resolveContinuousAnchorView(manager,snapshot);
   const element=view?.element;
-  if(!element?.getBoundingClientRect)return false;
+  if(!view||!element?.getBoundingClientRect)return false;
+
+  const content=snapshot.contentCfi?resolveContentAnchor(view,snapshot.contentCfi):null;
   const rect=element.getBoundingClientRect();
-  const currentTop=(Number(rect.top)||0)-viewport.top;
-  const currentLeft=(Number(rect.left)||0)-viewport.left;
-  const deltaTop=currentTop-(Number(snapshot.top)||0);
-  const deltaLeft=currentLeft-(Number(snapshot.left)||0);
+  const currentTop=content?content.top-viewport.top:(Number(rect.top)||0)-viewport.top;
+  const currentLeft=content?content.left-viewport.left:(Number(rect.left)||0)-viewport.left;
+  const horizontal=manager.settings?.axis==="horizontal";
+  const deltaTop=horizontal?0:currentTop-(Number(snapshot.top)||0);
+  const deltaLeft=horizontal?currentLeft-(Number(snapshot.left)||0):0;
   if(!Number.isFinite(deltaTop)||!Number.isFinite(deltaLeft))return false;
 
   const now=globalThis.performance?.now?.()||Date.now();

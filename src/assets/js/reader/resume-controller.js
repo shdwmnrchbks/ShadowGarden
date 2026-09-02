@@ -48,8 +48,8 @@ export function createReaderResumeController({
     return rendition===getRendition?.();
   }
 
-  function restore(){
-    if(state.running){state.queued=true;return state.running}
+  function restore({queue=false}={}){
+    if(state.running){if(queue)state.queued=true;return state.running}
     const rendition=getRendition?.();
     if(!rendition)return Promise.resolve(false);
     const position=state.anchor||getPosition?.()||null;

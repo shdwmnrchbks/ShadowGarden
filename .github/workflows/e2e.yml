@@ -50,7 +50,7 @@ jobs:
         id: projects
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "args=--project=chromium-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
+            echo "args=--project=chromium-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
           else
             echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
           fi

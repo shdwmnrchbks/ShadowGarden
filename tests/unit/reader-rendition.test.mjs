@@ -33,15 +33,29 @@ function continuousFixture({scrollTop=1000,contentTop=100}={}){
 
 function contentRangeFixture(){
   const fixture=continuousFixture({scrollTop:1000,contentTop:0});
-  const geometry={rangeTop:1180};
-  const textNode={nodeType:3,nodeValue:"Large chapter paragraph 46"};
-  const makeRange=()=>({
-    setStart(){},collapse(){},
-    getBoundingClientRect(){return{top:geometry.rangeTop,left:140,bottom:geometry.rangeTop+20,right:360,height:20,width:220}}
+  const geometry={blockTop:1120,caretTop:1410};
+  let caretCalls=0;
+  const textNode={nodeType:3,nodeValue:"Large chapter paragraph 48"};
+  const block={
+    nodeType:1,
+    closest(selector){return selector.includes("p")?this:null},
+    getBoundingClientRect(){return{top:geometry.blockTop,left:120,bottom:geometry.blockTop+120,right:700,height:120,width:580}}
+  };
+  const makeRange=(kind="resolved")=>({
+    kind,
+    setStart(){this.kind="caret"},
+    collapse(){},
+    selectNodeContents(node){assert.equal(node,block);this.kind="block"},
+    getBoundingClientRect(){
+      const top=this.kind==="caret"?geometry.caretTop:geometry.blockTop;
+      return{top,left:140,bottom:top+20,right:360,height:20,width:220};
+    }
   });
   const document={
-    createRange:makeRange,
-    caretPositionFromPoint(){return{offsetNode:textNode,offset:5}}
+    createRange(){return makeRange()},
+    elementFromPoint(){return block},
+    querySelectorAll(){return[block]},
+    caretPositionFromPoint(){caretCalls+=1;return{offsetNode:textNode,offset:5}}
   };
   const frame={
     clientWidth:800,clientHeight:2200,contentDocument:document,
@@ -51,16 +65,19 @@ function contentRangeFixture(){
   fixture.view.document=document;
   fixture.view.section={
     index:4,href:"large.xhtml",
-    cfiFromRange(){return"epubcfi(/6/18!/4/92/1:5)"}
+    cfiFromRange(range){
+      assert.equal(range.kind,"block","transient CFI must describe the visible semantic block, not a browser caret boundary");
+      return"epubcfi(/6/18!/4/92,/1:0,/1:240)";
+    }
   };
   fixture.view.contents={
     document,
     range(cfi){
-      assert.equal(cfi,"epubcfi(/6/18!/4/92/1:5)");
-      return makeRange();
+      assert.equal(cfi,"epubcfi(/6/18!/4/92,/1:0,/1:240)");
+      return makeRange("resolved");
     }
   };
-  return{...fixture,contentGeometry:geometry};
+  return{...fixture,contentGeometry:geometry,caretCalls:()=>caretCalls};
 }
 
 test("Continuous resume anchors to a live EPUB view instead of absolute scrollTop",()=>{
@@ -81,19 +98,21 @@ test("Continuous resume anchors to a live EPUB view instead of absolute scrollTo
   assert.equal(fixture.cancels(),1,"pending Continuous manager work is cancelled before corrective scrolling");
 });
 
-test("Continuous resume preserves the exact content point when a long iframe reflows internally",()=>{
+test("Continuous resume preserves the visible semantic block across Firefox caret-boundary differences",()=>{
   const fixture=contentRangeFixture();
   const snapshot=captureContinuousScrollPosition(fixture.rendition);
-  assert.equal(snapshot.contentCfi,"epubcfi(/6/18!/4/92/1:5)");
-  assert.equal(snapshot.top,180,"the visible paragraph point is captured at the Reader tracking line");
+  assert.equal(snapshot.contentCfi,"epubcfi(/6/18!/4/92,/1:0,/1:240)");
+  assert.equal(snapshot.top,120,"the visible paragraph block top is captured relative to the Reader viewport");
+  assert.equal(fixture.caretCalls(),0,"a semantic paragraph at the tracking line must win before browser caret hit-testing");
 
-  /* The section wrapper can remain at the same outer coordinate while Firefox refreshes
-     iframe content geometry. A section-only anchor sees no movement; the CFI range does. */
-  fixture.contentGeometry.rangeTop=350;
+  /* Firefox can return a caret in later text even when the Reader's 30% tracking line still
+     visually belongs to the earlier paragraph. Move only that paragraph's internal iframe
+     geometry; the outer chapter view remains stable, so block-CFI geometry must correct it. */
+  fixture.contentGeometry.blockTop=1290;
   assert.equal(fixture.view.element.getBoundingClientRect().top,-900);
   assert.equal(restoreContinuousScrollPosition(fixture.rendition,snapshot),true);
-  assert.equal(fixture.container.scrollTop,170,"the content CFI, not the giant chapter frame, must drive the correction");
-  assert.equal(fixture.manager.scrollTop,170);
+  assert.equal(fixture.container.scrollTop,1170,"the same visible paragraph block must be returned to its frozen viewport offset");
+  assert.equal(fixture.manager.scrollTop,1170);
 });
 
 test("Continuous resume resolves a recreated live view by section identity",()=>{

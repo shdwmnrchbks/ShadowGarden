@@ -102,6 +102,10 @@ function viewFrame(view){
   return view?.iframe||view?.element?.querySelector?.("iframe")||null;
 }
 
+function viewDocument(view){
+  return view?.document||view?.contents?.document||viewFrame(view)?.contentDocument||null;
+}
+
 const continuousBlockSelector="p,li,dd,dt,blockquote,pre,h1,h2,h3,h4,h5,h6,figcaption,figure,td,th";
 
 function semanticBlockAtPoint(doc,x,y){
@@ -131,7 +135,7 @@ function boundedOffset(node,offset){
 }
 
 function contentRangeAtPoint(view,point){
-  const frame=viewFrame(view),doc=view?.document||view?.contents?.document||frame?.contentDocument;
+  const frame=viewFrame(view),doc=viewDocument(view);
   if(!frame?.getBoundingClientRect||!doc?.createRange)return null;
   const frameRect=frame.getBoundingClientRect();
   const width=Math.max(1,Number(frameRect.width)||Number(frame.clientWidth)||1);
@@ -147,7 +151,7 @@ function contentRangeAtPoint(view,point){
     try{
       const range=doc.createRange();
       range.selectNodeContents(block);
-      return{range,frameRect};
+      return{range,frameRect,node:block};
     }catch{}
   }
 
@@ -168,7 +172,7 @@ function contentRangeAtPoint(view,point){
       if(caret)range=caret.cloneRange?.()||caret;
     }catch{}
   }
-  return range?{range,frameRect}:null;
+  return range?{range,frameRect,node:null}:null;
 }
 
 function rangeRect(range){
@@ -189,14 +193,29 @@ function contentAnchorGeometry(view,range,frameRect=viewFrame(view)?.getBounding
   };
 }
 
+function contentNodeGeometry(view,node,frameRect=viewFrame(view)?.getBoundingClientRect?.()){
+  if(!node?.getBoundingClientRect||!frameRect)return null;
+  const doc=viewDocument(view);
+  try{
+    if(node.isConnected===false)return null;
+    if(node.ownerDocument&&doc&&node.ownerDocument!==doc)return null;
+    const rect=node.getBoundingClientRect();
+    const top=Number(rect?.top),left=Number(rect?.left);
+    if(!Number.isFinite(top)||!Number.isFinite(left))return null;
+    return{top:(Number(frameRect.top)||0)+top,left:(Number(frameRect.left)||0)+left};
+  }catch{return null}
+}
+
 function captureContentAnchor(view,point){
   const located=contentRangeAtPoint(view,point);
   if(!located)return null;
   let cfi="";
   try{cfi=String(view?.section?.cfiFromRange?.(located.range)||"")}catch{}
   if(!cfi)return null;
-  const geometry=contentAnchorGeometry(view,located.range,located.frameRect);
-  return geometry?{cfi,...geometry}:null;
+  const geometry=located.node
+    ?contentNodeGeometry(view,located.node,located.frameRect)
+    :contentAnchorGeometry(view,located.range,located.frameRect);
+  return geometry?{cfi,node:located.node||null,...geometry}:null;
 }
 
 function resolveContentAnchor(view,cfi){
@@ -209,8 +228,9 @@ function resolveContentAnchor(view,cfi){
 
 /* Continuous buffering deliberately changes absolute scrollTop when views are prepended or
    trimmed. Anchor to the visible semantic content block at the Reader tracking line, plus
-   its transient viewport offset. The section-level geometry remains only a compatibility
-   fallback for publications or view implementations that cannot resolve a live range. */
+   its transient viewport offset. Keep the live DOM node while the BFCache/background
+   lifecycle preserves the iframe; the transient CFI and section geometry remain fallbacks
+   for EPUB.js view recreation. Persistent Reader progress is still owned elsewhere. */
 export function captureContinuousScrollPosition(rendition){
   const manager=rendition?.manager;
   const viewport=continuousViewport(manager);
@@ -223,6 +243,7 @@ export function captureContinuousScrollPosition(rendition){
     return{
       ...identity,
       contentCfi:content.cfi,
+      contentNode:content.node||null,
       top:content.top-viewport.top,
       left:content.left-viewport.left,
       fullsize:viewport.fullsize
@@ -231,6 +252,7 @@ export function captureContinuousScrollPosition(rendition){
   return{
     ...identity,
     contentCfi:"",
+    contentNode:null,
     top:(Number(anchor.rect.top)||0)-viewport.top,
     left:(Number(anchor.rect.left)||0)-viewport.left,
     fullsize:viewport.fullsize
@@ -245,7 +267,11 @@ export function restoreContinuousScrollPosition(rendition,snapshot){
   const element=view?.element;
   if(!view||!element?.getBoundingClientRect)return false;
 
-  const content=snapshot.contentCfi?resolveContentAnchor(view,snapshot.contentCfi):null;
+  /* The direct node is the most faithful unchanged-rendition anchor because it avoids a
+     CFI round-trip through browser-dependent range reconstruction. If EPUB.js recreated
+     the iframe or removed the node, resolve the transient CFI against the replacement. */
+  const content=contentNodeGeometry(view,snapshot.contentNode)
+    ||(snapshot.contentCfi?resolveContentAnchor(view,snapshot.contentCfi):null);
   const rect=element.getBoundingClientRect();
   const currentTop=content?content.top-viewport.top:(Number(rect.top)||0)-viewport.top;
   const currentLeft=content?content.left-viewport.left:(Number(rect.left)||0)-viewport.left;
@@ -257,6 +283,7 @@ export function restoreContinuousScrollPosition(rendition,snapshot){
   const now=globalThis.performance?.now?.()||Date.now();
   manager.__sgSuppressScrollUntil=now+320;
   try{manager._scrolled?.cancel?.()}catch{}
+  try{clearTimeout(manager.trimTimeout);manager.trimTimeout=0}catch{}
 
   if(Math.abs(deltaTop)>=.5||Math.abs(deltaLeft)>=.5){
     if(viewport.fullsize){
@@ -283,7 +310,9 @@ export function restoreContinuousScrollPosition(rendition,snapshot){
 /* EPUB.js versions differ in whether ContinuousManager keeps `scrolled` callable after
    internal lifecycle work. Shadow Garden's Continuous core deliberately routes scroll
    events through manager._scrolled, so keep that debounce defensive at the rendition
-   boundary instead of allowing a late callback to throw after a flow switch/relayout. */
+   boundary instead of allowing a late callback to throw after a flow switch/relayout.
+   EPUB.js also schedules trim() separately after update(); guard that same short correction
+   window so stale pre-suspend maintenance cannot undo the restored viewport. */
 export function stabilizeContinuousScrollLifecycle(rendition){
   const manager=rendition?.manager;
   if(!manager||manager.__sgSafeScrollLifecycle)return Boolean(manager?.__sgSafeScrollLifecycle);
@@ -305,6 +334,15 @@ export function stabilizeContinuousScrollLifecycle(rendition){
   safe.cancel=()=>{clearTimeout(timer);timer=0;try{current.cancel?.()}catch{}};
   try{current.cancel?.()}catch{}
   manager._scrolled=safe;
+
+  const currentTrim=typeof manager.trim==="function"?manager.trim:null;
+  if(currentTrim){
+    manager.trim=function(...args){
+      if(manager.__sgDestroyed||suppressed())return Promise.resolve();
+      try{return currentTrim.apply(manager,args)}catch(error){return Promise.reject(error)}
+    };
+  }
+
   manager.__sgSafeScrollLifecycle=true;
   return true;
 }

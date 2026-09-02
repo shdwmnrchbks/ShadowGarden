@@ -77,6 +77,11 @@ async function visibleLargeChapterMarker(page) {
   });
 }
 
+function fixtureParagraphNumber(marker) {
+  const match = String(marker || '').match(/Large chapter paragraph\s+(\d+)/i);
+  return Number(match?.[1] || 0);
+}
+
 test('v2.8 resume: reload restores the same canonical reading place', async ({ page, browserDiagnostics }) => {
   await waitForReader(page);
   await openChapter(page, 'Large Chapter');
@@ -129,18 +134,31 @@ test('v2.8 resume: Continuous pageshow keeps the visible Large Chapter passage',
 
   const scroller = page.locator('#viewer .epub-container');
   await expect(scroller).toBeVisible();
+
+  /* Continuous buffering can prepend/repair neighboring views after navigation. Let that
+     settle before choosing the lifecycle anchor so this test measures pageshow recovery,
+     not the independent background-buffer anchor repair. */
+  await page.waitForTimeout(1_800);
   const positioned = await scrollIntoLargeChapter(page);
   expect(positioned).not.toBeNull();
   expect(Number(positioned?.scrollTop || 0)).toBeGreaterThan(0);
+  await page.waitForTimeout(500);
+
   const beforeMarker = await visibleLargeChapterMarker(page);
   expect(beforeMarker.length).toBeGreaterThan(8);
+  expect(fixtureParagraphNumber(beforeMarker)).toBeGreaterThan(10);
+  await page.waitForTimeout(350);
+  expect(await visibleLargeChapterMarker(page)).toBe(beforeMarker);
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter');
 
+  /* A persisted pageshow is paired with a persisted pagehide in the real BFCache lifecycle.
+     pagehide also gives the resume controller a final semantic capture before suspension. */
   await page.evaluate(() => {
-    const event = typeof PageTransitionEvent === 'function'
-      ? new PageTransitionEvent('pageshow', { persisted: true })
-      : new Event('pageshow');
-    window.dispatchEvent(event);
+    const transition = type => typeof PageTransitionEvent === 'function'
+      ? new PageTransitionEvent(type, { persisted: true })
+      : new Event(type);
+    window.dispatchEvent(transition('pagehide'));
+    window.dispatchEvent(transition('pageshow'));
   });
   await expect(page.locator('#chapterTitle')).toHaveText('Large Chapter', { timeout: 10_000 });
   await expect.poll(() => visibleLargeChapterMarker(page), { timeout: 12_000 }).toBe(beforeMarker);

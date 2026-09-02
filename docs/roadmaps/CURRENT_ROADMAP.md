@@ -3,7 +3,7 @@
 > **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
 > **Starting baseline:** v2.6.x — Reliability & Reader hardening  
 > **Active release:** v2.8.0 — Reader Experience  
-> **Updated:** 2026-09-01
+> **Updated:** 2026-09-02
 
 Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, and the v2.6 real-browser reliability milestone, followed by targeted v2.6.x Reader fixes. The next substantial product milestone is Reader Experience. Performance work is intentionally limited to realistic personal-library scale and should not displace Reader work unless measurements expose a real bottleneck.
 
@@ -194,7 +194,7 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 
 ## Candidate follow-up scope
 
-- [ ] Audit footnote/endnote/pop-up behavior across common EPUB patterns.
+- [x] Audit footnote/endnote/pop-up behavior across common EPUB patterns; explicit noterefs now open sanitized Reader-owned popups without moving the live passage, including same-document footnotes and cross-document endnotes.
 - [ ] Improve resume behavior after orientation changes, reloads, backgrounding, and long idle periods.
 - [ ] Expand malformed/common-EPUB compatibility fixtures and graceful error presentation.
 - [ ] Evaluate reader-history conveniences such as recently read/completion date only if they remain browser-local.

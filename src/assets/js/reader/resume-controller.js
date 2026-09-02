@@ -30,9 +30,9 @@ export function createReaderResumeController({
     const rendition=getRendition?.();
     if(!rendition)return Promise.resolve(remember());
     const flow=getFlow?.()==="scrolled-doc"?"scrolled-doc":"paginated";
-    /* Snapshot native Continuous geometry synchronously on every lifecycle signal, even
-       when a slower semantic capture is already in flight. Browser scroll anchoring can
-       move between visibility/pagehide events while currentLocation/Page Map settles. */
+    /* Snapshot transient Continuous geometry synchronously on every lifecycle signal, even
+       when a slower semantic capture is already in flight. The snapshot is tied to a live
+       EPUB view rather than absolute scrollTop, which Continuous buffering may rewrite. */
     if(flow==="scrolled-doc")rememberNativeScroll(rendition);else state.scroll=null;
     if(state.capturing)return state.capturing;
     const fallback=state.anchor||getPosition?.()||null;
@@ -56,24 +56,27 @@ export function createReaderResumeController({
     const changed=layoutChanged?.()===true;
     resetInput?.();
 
-    /* A foreground/BFCache resume with unchanged Continuous geometry should preserve the
-       exact native viewport, not reinterpret it through a CFI or device Page Map. Chromium
-       and Firefox can move that viewport by a few lines during pageshow even when EPUB.js
-       itself does no resize. Reapply the pre-suspend offset across paint while suppressing
-       the Continuous manager's synthetic scroll handling. This snapshot is transient only;
-       persistent progress remains CFI/Page Map owned. */
+    /* Unchanged Continuous resumes first restore the pre-suspend live EPUB view relative
+       to the Reader viewport. This survives prepend/trim scrollTop compensation. If that
+       transient view was removed entirely, fall through to the frozen semantic CFI. */
+    let continuousAnchorExpired=false;
     if(flow==="scrolled-doc"&&!changed){
-      if(nativeScroll){
-        restoreContinuousScrollPosition(rendition,nativeScroll);
+      if(!nativeScroll)return rendition===getRendition?.();
+      const first=restoreContinuousScrollPosition(rendition,nativeScroll);
+      if(first){
         await nextPaint();
         if(rendition!==getRendition?.())return false;
-        restoreContinuousScrollPosition(rendition,nativeScroll);
+        if(restoreContinuousScrollPosition(rendition,nativeScroll))return true;
       }
-      return rendition===getRendition?.();
+      continuousAnchorExpired=true;
     }
 
-    try{resizeRendition?.(rendition)}catch(error){console.warn("Reader resume resize skipped",error)}
-    try{configureRendition?.(rendition,flow)}catch(error){console.warn("Reader resume spread update skipped",error)}
+    /* Paginated recovery still refreshes rendition geometry. Continuous only reaches this
+       path when layout changed or its transient live-view anchor no longer exists. */
+    if(flow!=="scrolled-doc"||changed){
+      try{resizeRendition?.(rendition)}catch(error){console.warn("Reader resume resize skipped",error)}
+      try{configureRendition?.(rendition,flow)}catch(error){console.warn("Reader resume spread update skipped",error)}
+    }
     await nextPaint();
     if(rendition!==getRendition?.())return false;
 
@@ -91,6 +94,8 @@ export function createReaderResumeController({
         await nextPaint();
         if(rendition===getRendition?.())await rendition.display(target);
       }
+    }else if(continuousAnchorExpired){
+      console.warn("Reader Continuous resume anchor expired without a semantic fallback");
     }
     if(changed)onLayoutChanged?.();
     return rendition===getRendition?.();

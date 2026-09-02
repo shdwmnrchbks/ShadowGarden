@@ -102,6 +102,29 @@ function viewFrame(view){
   return view?.iframe||view?.element?.querySelector?.("iframe")||null;
 }
 
+const continuousBlockSelector="p,li,dd,dt,blockquote,pre,h1,h2,h3,h4,h5,h6,figcaption,figure,td,th";
+
+function semanticBlockAtPoint(doc,x,y){
+  let hit=null;
+  try{hit=doc?.elementFromPoint?.(x,y)||null}catch{}
+  try{
+    const block=hit?.closest?.(continuousBlockSelector);
+    if(block)return block;
+  }catch{}
+
+  let best=null;
+  try{
+    for(const node of doc?.querySelectorAll?.(continuousBlockSelector)||[]){
+      const rect=node?.getBoundingClientRect?.();
+      const top=Number(rect?.top),bottom=Number(rect?.bottom);
+      if(!Number.isFinite(top)||!Number.isFinite(bottom)||bottom<=top)continue;
+      const distance=y<top?top-y:y>bottom?y-bottom:0;
+      if(!best||distance<best.distance)best={node,distance};
+    }
+  }catch{}
+  return best?.node||null;
+}
+
 function boundedOffset(node,offset){
   const max=node?.nodeType===3?String(node?.nodeValue||"").length:Number(node?.childNodes?.length)||0;
   return Math.max(0,Math.min(max,Number(offset)||0));
@@ -113,8 +136,23 @@ function contentRangeAtPoint(view,point){
   const frameRect=frame.getBoundingClientRect();
   const width=Math.max(1,Number(frameRect.width)||Number(frame.clientWidth)||1);
   const height=Math.max(1,Number(frameRect.height)||Number(frame.clientHeight)||1);
-  const x=Math.max(0,Math.min(width-1,Number(point?.x)-Number(frameRect.left)||0));
-  const y=Math.max(0,Math.min(height-1,Number(point?.y)-Number(frameRect.top)||0));
+  const x=Math.max(0,Math.min(width-1,(Number(point?.x)-Number(frameRect.left))||0));
+  const y=Math.max(0,Math.min(height-1,(Number(point?.y)-Number(frameRect.top))||0));
+
+  /* Reader progress is visually block-based. Prefer the semantic block nearest the same
+     tracking line used by the viewport marker so browser-specific caret placement at a
+     line boundary cannot move the lifecycle anchor to the next paragraph. */
+  const block=semanticBlockAtPoint(doc,x,y);
+  if(block){
+    try{
+      const range=doc.createRange();
+      range.selectNodeContents(block);
+      return{range,frameRect};
+    }catch{}
+  }
+
+  /* Unusual publications can contain meaningful text without semantic block wrappers.
+     Keep a caret-based compatibility fallback for those documents. */
   let range=null;
   try{
     const caret=doc.caretPositionFromPoint?.(x,y);
@@ -128,16 +166,6 @@ function contentRangeAtPoint(view,point){
     try{
       const caret=doc.caretRangeFromPoint?.(x,y);
       if(caret)range=caret.cloneRange?.()||caret;
-    }catch{}
-  }
-  if(!range){
-    try{
-      const element=doc.elementFromPoint?.(x,y);
-      if(element){
-        range=doc.createRange();
-        range.selectNodeContents(element);
-        range.collapse(true);
-      }
     }catch{}
   }
   return range?{range,frameRect}:null;
@@ -180,9 +208,9 @@ function resolveContentAnchor(view,cfi){
 }
 
 /* Continuous buffering deliberately changes absolute scrollTop when views are prepended or
-   trimmed. Anchor to a concrete content CFI at the Reader tracking line, plus its transient
-   viewport offset. The section-level geometry remains only a fallback for publications or
-   view implementations that cannot resolve a live content range. */
+   trimmed. Anchor to the visible semantic content block at the Reader tracking line, plus
+   its transient viewport offset. The section-level geometry remains only a compatibility
+   fallback for publications or view implementations that cannot resolve a live range. */
 export function captureContinuousScrollPosition(rendition){
   const manager=rendition?.manager;
   const viewport=continuousViewport(manager);

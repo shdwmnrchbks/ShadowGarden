@@ -106,12 +106,20 @@ export function createReaderResumeController({
     const rendition=getRendition?.();
     if(!rendition)return Promise.resolve(false);
 
-    /* Suspension/resize handlers capture before the viewport can move. Reuse that frozen
-       semantic/transient content anchor here instead of sampling again after pageshow/reflow. */
-    const position=state.anchor||getPosition?.()||null;
-    const cfi=position?.cfi||state.cfi||getCfi?.()||"";
+    /* Suspension/resize handlers capture before the viewport can move. Never start a fresh
+       semantic capture after pageshow/reflow, but do wait for an already-running pre-suspend
+       capture so layout-changing recovery cannot fall back to an older remembered CFI. */
+    const pendingCapture=state.capturing;
     const nativeScroll=state.scroll?.rendition===rendition?{...state.scroll.position}:null;
-    const task=restoreOnce(rendition,position,cfi,nativeScroll).catch(error=>{
+    const task=(async()=>{
+      if(pendingCapture){
+        try{await pendingCapture}catch{}
+        if(rendition!==getRendition?.())return false;
+      }
+      const position=state.anchor||getPosition?.()||null;
+      const cfi=position?.cfi||state.cfi||getCfi?.()||"";
+      return restoreOnce(rendition,position,cfi,nativeScroll);
+    })().catch(error=>{
       console.warn("Reader resume recovery skipped",error);
       return false;
     });

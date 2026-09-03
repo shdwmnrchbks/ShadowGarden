@@ -204,7 +204,7 @@ export async function startReader(session){
 
   try{
     state.book=window.ePub(session.sourcePath);
-    const metadataPromise=state.book.loaded.metadata.catch(()=>({})),navigationPromise=state.book.loaded.navigation.catch(error=>{console.warn("EPUB navigation unavailable",error);return{toc:[]}});
+    const metadataPromise=state.book.loaded.metadata,navigationPromise=state.book.loaded.navigation.catch(error=>{console.warn("EPUB navigation unavailable",error);return{toc:[]}});
     const[metadata,navigation]=await Promise.all([metadataPromise,navigationPromise]);state.navigation=navigation;
     const title=metadata?.title||"Untitled EPUB";if(elements.bookTitle)elements.bookTitle.textContent=title;document.title=`${title} — Shadow Garden`;tocController.render(navigation?.toc||[]);
 

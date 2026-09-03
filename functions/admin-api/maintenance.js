@@ -1,5 +1,6 @@
-/* Shadow Garden R6 route adapters — Garden Maintenance lives in services/catalog.js + validation.js. */
-import { handleMaintenanceGet, handleMaintenancePost } from "../services/catalog.js";
+/* Shadow Garden v2.9 route adapters — Maintenance mutations remain catalog-owned behind recovery safety checks. */
+import { handleMaintenanceGet } from "../services/catalog.js";
+import { handleGuardedMaintenancePost } from "../services/recovery.js";
 
 export async function onRequestGet(context) { return handleMaintenanceGet(context); }
-export async function onRequestPost(context) { return handleMaintenancePost(context); }
+export async function onRequestPost(context) { return handleGuardedMaintenancePost(context); }

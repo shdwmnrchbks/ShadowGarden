@@ -29,5 +29,7 @@ jobs:
         run: npm ci --no-audit --no-fund --progress=false
       - name: Check repository
         run: npm run check
+      - name: Run Reader resume unit tests
+        run: node --test tests/unit/reader-continuous.test.mjs tests/unit/reader-rendition.test.mjs tests/unit/reader-resume.test.mjs tests/unit/reader-resume-lifecycle.test.mjs
       - name: Build production output
         run: npm run build

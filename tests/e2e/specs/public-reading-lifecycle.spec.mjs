@@ -70,21 +70,42 @@ async function advanceBeyondBeginning(page) {
   throw new Error('Reader never advanced beyond the canonical beginning state');
 }
 
+function canonicalProgressKey(saved) {
+  if (!saved) return '';
+  return [
+    String(saved.cfi || ''),
+    Number(saved.page || 0),
+    Number(saved.localPage || 0),
+    Number(saved.sectionIndex ?? -1)
+  ].join('|');
+}
+
 async function showPaginatedEndPage(page) {
+  /* Jump to EPUB.js's final generated location first. That location is intentionally only a
+     near-end anchor: in the fixture it can settle below 100% (for example 89%) because the
+     generated CFI marks the start of the last location chunk, not the last rendered page. */
   const range = page.locator('#progressRange');
   await range.evaluate(input => {
     input.value = '1000';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
+  /* From that anchor, advance one settled Reader turn at a time until completion owns the UI.
+     There is deliberately no rendered-page cap: each turn must either reveal completion or
+     persist a different canonical location, so the test is bounded by semantic progress rather
+     than desktop/mobile pagination density. */
+  const bookId = new URL(page.url()).searchParams.get('book') || READER_BOOK_ID;
   const endPage = page.locator('#volumeEndPage');
-  for (let attempt = 0; attempt < 8; attempt += 1) {
-    if (await endPage.isVisible()) return;
-    await page.locator('#nextBottom').click();
-    await page.waitForTimeout(180);
+  const next = page.locator('#nextBottom');
+  while (!(await endPage.isVisible())) {
+    const beforeKey = canonicalProgressKey(await progressFor(page, bookId));
+    await next.click();
+    await expect.poll(async () => {
+      if (await endPage.isVisible()) return true;
+      const afterKey = canonicalProgressKey(await progressFor(page, bookId));
+      return Boolean(afterKey && afterKey !== beforeKey);
+    }, { timeout: 3_000 }).toBe(true);
   }
-  await expect(endPage).toBeVisible();
 }
 
 async function seedFinished(page, bookId) {

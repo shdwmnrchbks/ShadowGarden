@@ -23,11 +23,12 @@ async function storedProgress(page) {
   }, READER_BOOK_ID);
 }
 
-function progressMoved(current, previous) {
+function canonicalProgressMoved(current, previous) {
   if (!current || !previous) return false;
   if (String(current.cfi || '') !== String(previous.cfi || '')) return true;
   if (Number(current.page || 0) !== Number(previous.page || 0)) return true;
-  return Math.abs(Number(current.percentage || 0) - Number(previous.percentage || 0)) > 0.001;
+  if (Number(current.localPage || 0) !== Number(previous.localPage || 0)) return true;
+  return Number(current.sectionIndex ?? -1) !== Number(previous.sectionIndex ?? -1);
 }
 
 async function waitForStoredChapter(page, chapter) {
@@ -35,8 +36,11 @@ async function waitForStoredChapter(page, chapter) {
   return storedProgress(page);
 }
 
-async function waitForProgressMove(page, previous) {
-  await expect.poll(async () => progressMoved(await storedProgress(page), previous), { timeout: 10_000 }).toBe(true);
+async function waitForCanonicalProgressMove(page, previous) {
+  /* Location/page-map generation can refine percentage without moving the live rendition.
+     Recovery tests click Next to establish a new persisted reading anchor, so wait for
+     canonical CFI/page identity rather than accepting an unrelated percentage-only update. */
+  await expect.poll(async () => canonicalProgressMoved(await storedProgress(page), previous), { timeout: 10_000 }).toBe(true);
   return storedProgress(page);
 }
 
@@ -87,7 +91,7 @@ test('v2.8 resume: reload restores the same canonical reading place', async ({ p
   await openChapter(page, 'Large Chapter');
   const chapterStart = await waitForStoredChapter(page, 'Large Chapter');
   await page.locator('#nextPage').click();
-  const before = await waitForProgressMove(page, chapterStart);
+  const before = await waitForCanonicalProgressMove(page, chapterStart);
   expect(before?.cfi).toBeTruthy();
 
   await page.reload();
@@ -109,7 +113,7 @@ test('v2.8 resume: mobile orientation change keeps the same semantic anchor', as
   await openChapter(page, 'Large Chapter');
   const chapterStart = await waitForStoredChapter(page, 'Large Chapter');
   await page.locator('#nextPage').click();
-  const before = await waitForProgressMove(page, chapterStart);
+  const before = await waitForCanonicalProgressMove(page, chapterStart);
   expect(before?.cfi).toBeTruthy();
 
   const viewport = page.viewportSize();

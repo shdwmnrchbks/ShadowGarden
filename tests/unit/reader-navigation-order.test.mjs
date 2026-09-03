@@ -13,7 +13,7 @@ function classList(initial=[]){
   };
 }
 
-test("paginated Next waits for an exact progress seek before testing the end boundary", async t => {
+test("paginated Next waits for an exact progress seek before handing the final page to completion", async t => {
   const previousDocument=globalThis.document,previousAnimationFrame=globalThis.requestAnimationFrame;
   const endClasses=classList(["hidden"]);
   const endPage={classList:endClasses,querySelector(){return null}};
@@ -80,7 +80,7 @@ test("paginated Next waits for an exact progress seek before testing the end bou
   await Promise.all([seek,turn]);
 
   assert.equal(displayed.at(-1),"epubcfi(/6/2!/4/200)");
-  assert.equal(nextCalls,1);
+  assert.equal(nextCalls,0,"Next from the final displayed page should hand off without an extra rendition turn");
   assert.equal(endClasses.contains("hidden"),false);
   assert.equal(endClasses.contains("active"),true);
 });

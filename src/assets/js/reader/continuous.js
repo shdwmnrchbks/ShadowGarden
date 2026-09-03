@@ -28,7 +28,18 @@ export function createContinuousController({getRendition,getBook,beforeNavigate}
     beforeNavigate?.();
     const exact=resolve?await resolveHrefTarget(getBook?.(),target):target;
     await rendition.display(exact);
-    if(settle){await nextPaint();if(rendition===getRendition?.())await rendition.display(exact)}
+    if(settle){
+      await nextPaint();
+      if(rendition===getRendition?.()){
+        await rendition.display(exact);
+        /* EPUB.js schedules reportLocation() from display before WebKit has always committed
+           the final Continuous view geometry. Give the second display one more paint, then
+           request an authoritative location report so Reader chapter/progress chrome cannot
+           remain on the immediately preceding section while the requested content is visible. */
+        await nextPaint();
+        if(rendition===getRendition?.())rendition.reportLocation?.();
+      }
+    }
     return true;
   }
   return{display,resolveTarget:target=>resolveHrefTarget(getBook?.(),target)};

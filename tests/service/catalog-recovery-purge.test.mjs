@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  MAIN_KEY,
   saveCatalogPair,
   saveTrash,
   snapshotCatalogs
@@ -123,4 +124,19 @@ test('purge that would delete no storage objects does not require a recovery anc
   assert.equal(guard.status, 'no-object-deletes');
   assert.equal(guard.selected, 1);
   assert.equal(guard.candidateDeletes, 0);
+});
+
+test('Trash purge is blocked whenever a canonical live catalog requires recovery', async () => {
+  const aws = new MemoryAws();
+  await saveCatalogPair(aws, emptyCatalog(), emptyCatalog());
+  await saveTrash(aws, { items: [trashItem('trash-one')] });
+  aws.objects.delete(MAIN_KEY);
+
+  const guard = await catalogTrashPurgeGuard(aws, ['trash-one']);
+  assert.equal(guard.allowed, false);
+  assert.equal(guard.status, 'live-catalog-recovery-required');
+  assert.equal(guard.current.status, 'recovery-required');
+  assert.equal(guard.current.entries.find(entry => entry.scope === 'main')?.status, 'missing');
+  assert.equal(guard.candidateDeletes, 0);
+  assert.match(guard.detail, /Recover the canonical catalogs/i);
 });

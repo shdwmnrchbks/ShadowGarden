@@ -19,3 +19,17 @@ test('recovery route exposes the service-owned emergency restore contract', asyn
   assert.match(service, /preRestoreSnapshot: "skipped-unrecoverable-current-state"/);
   assert.match(service, /await invalidateCatalogCache\(request\)/);
 });
+
+test('backup deletion remains catalog-owned behind the recovery-anchor guard', async () => {
+  const [route, service] = await Promise.all([
+    read('functions/admin-api/backup.js'),
+    read('functions/services/recovery.js')
+  ]);
+
+  assert.match(route, /handleGuardedBackupPost/);
+  assert.match(route, /onRequestPost\(context\).*handleGuardedBackupPost\(context\)/s);
+  assert.match(service, /status: "last-recoverable-backup"/);
+  assert.match(service, /status: "recovery-audit-uncertain"/);
+  assert.match(service, /if \(!guard\.allowed\).*409/s);
+  assert.match(service, /return handleBackupPost\(\{ request, env \}\)/);
+});

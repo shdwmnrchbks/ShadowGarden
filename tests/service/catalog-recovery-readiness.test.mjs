@@ -7,7 +7,7 @@ import {
   snapshotCatalogs
 } from '../../functions/services/catalog.js';
 import { buildRecoveryReadinessReport } from '../../functions/services/recovery-readiness.js';
-import { B2_BUCKET, putObject } from '../../functions/services/storage.js';
+import { BACKUP_SHA256_HEADER, B2_BUCKET, putObject } from '../../functions/services/storage.js';
 
 class MemoryAws {
   constructor() { this.objects = new Map(); this.failHead = new Set(); }
@@ -51,7 +51,7 @@ function firstMediaKey(value) {
   return '';
 }
 
-test('readiness is READY only with readable live catalogs and an object-complete anchor', async () => {
+test('readiness is READY only with readable live catalogs and a verified object-complete anchor', async () => {
   const aws = new MemoryAws(), main = catalog('ready-series'), adult = emptyCatalog();
   await seedMedia(aws, main);await saveCatalogPair(aws, main, adult);
   const snapshot = await snapshotCatalogs(aws, main, adult, 'ready-anchor');
@@ -65,6 +65,26 @@ test('readiness is READY only with readable live catalogs and an object-complete
   assert.ok(report.readiness.anchor.objectCount >= 1);
   assert.equal(report.readiness.staleSnapshots, 0);
   assert.equal(report.readiness.uncertainSnapshots, 0);
+});
+
+test('object-complete legacy snapshot is useful recovery material but does not report READY', async () => {
+  const aws = new MemoryAws(), main = catalog('legacy-series'), adult = emptyCatalog();
+  await seedMedia(aws, main);await saveCatalogPair(aws, main, adult);
+  const snapshot = await snapshotCatalogs(aws, main, adult, 'legacy-anchor');
+  const stored = aws.objects.get(snapshot.key);
+  assert.ok(stored, 'fixture snapshot must exist');
+  stored.headers.delete(BACKUP_SHA256_HEADER);
+
+  const report = await buildRecoveryReadinessReport(aws);
+  assert.equal(report.live.readable, true);
+  assert.equal(report.readiness.status, 'not-ready');
+  assert.equal(report.readiness.ready, false);
+  assert.equal(report.readiness.anchor.id, snapshot.id);
+  assert.equal(report.readiness.anchor.status, 'legacy-unverified');
+  assert.equal(report.readiness.anchor.verified, false);
+  assert.ok(report.readiness.anchor.objectCount >= 1);
+  assert.match(report.readiness.detail, /legacy snapshot/i);
+  assert.match(report.readiness.detail, /not checksum-verified/i);
 });
 
 test('readable snapshot JSON with missing media reports NOT READY rather than a false anchor', async () => {

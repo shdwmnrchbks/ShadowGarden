@@ -17,6 +17,7 @@
       "/assets/js/admin/library-workflow.js",
       "/assets/js/admin/translation-workflow.js",
       "/assets/js/admin/bulk-edit-workflow.js",
+      "/assets/js/admin/bulk-artwork-workflow.js",
       "/assets/js/admin/maintenance-workflow.js",
       "/assets/js/admin/history-workflow.js",
       "/assets/js/admin/trash-workflow.js",
@@ -24,9 +25,9 @@
       "/assets/js/admin/version.js"
     ])await loadScript(src);
 
-    /* Upload remains a composed workflow internally: engine -> safety -> editor -> stateful
-       presentation. These pieces are isolated to Upload and never replace the shared API,
-       authentication, Library/Series, Maintenance, History, Trash, or Abuse owners. */
+    /* Upload remains a composed workflow internally: engine -> similarity warning -> safety ->
+       editor -> stateful presentation. These pieces are isolated to Upload and never replace the
+       shared API, authentication, Library/Series, Maintenance, History, Trash, or Abuse owners. */
     for(const src of [
       "/assets/js/admin-batch.js",
       "/assets/js/admin/upload-similar-volume.js",
@@ -43,7 +44,7 @@
     await loadScript("/assets/js/admin/motion.js");
     await Promise.all([loadScript("/assets/js/site-flavor.js"),loadScript("/assets/js/ui-direction-triangles.js")]);
 
-    for(const name of ["version","session","library","translations","bulkEdit","maintenance","history","trash","abuse","shell","motion"])await keeper.initializeWorkflow(name);
+    for(const name of ["version","session","library","translations","bulkEdit","bulkArtwork","maintenance","history","trash","abuse","shell","motion"])await keeper.initializeWorkflow(name);
 
     keeper.events.addEventListener("library:invalidate",()=>{
       const workflow=keeper.workflows.get("library")?.instance;if(workflow&&keeper.client.isAuthorized())void workflow.refresh();

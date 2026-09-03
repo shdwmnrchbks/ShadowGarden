@@ -1,0 +1,39 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Asia/Manila
+    open-pull-requests-limit: 5
+    rebase-strategy: auto
+    versioning-strategy: increase-if-necessary
+    allow:
+      - dependency-name: "@aws-sdk/client-s3"
+        dependency-type: direct
+      - dependency-name: aws4fetch
+        dependency-type: direct
+      - dependency-name: epubjs
+        dependency-type: direct
+      - dependency-name: fast-xml-parser
+        dependency-type: direct
+      - dependency-name: jszip
+        dependency-type: direct
+    commit-message:
+      prefix: deps
+      include: scope
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:20"
+      timezone: Asia/Manila
+    open-pull-requests-limit: 5
+    rebase-strategy: auto
+    commit-message:
+      prefix: ci
+      include: scope

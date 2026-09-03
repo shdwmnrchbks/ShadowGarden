@@ -8,7 +8,7 @@ Shadow Garden treats catalog snapshots as operational recovery material, not as 
 - Automatic snapshots are created before high-impact catalog mutations. Garden Keeper can also create a manual snapshot.
 - Snapshot creation is ordered defensively: write the new snapshot payload first, then write the backup index containing it, then delete payloads that fell beyond the 30-snapshot limit.
 - Failure to delete an old pruned payload is non-fatal because the index has already stopped treating it as retained recovery material. The orphan can be cleaned later; deleting recovery material is never required to complete the live catalog mutation.
-- Retention pruning is different from a Keeper-requested manual deletion. Protection against manually deleting the last recoverable state is a separate v2.9 recovery-readiness requirement and must not be inferred from the 30-snapshot pruning rule.
+- Retention pruning is different from a Keeper-requested manual deletion. Manual deletion is preflighted against recovery readiness before the canonical catalog backup handler is allowed to remove the indexed snapshot.
 
 ## Snapshot integrity
 
@@ -34,6 +34,35 @@ Authenticated Garden Keeper tooling can issue `GET /admin-api/recovery` for an o
 - `check-failed` — storage verification itself could not be completed reliably.
 
 The audit intentionally runs on demand rather than on every Maintenance view load because it reads up to 30 private snapshot objects. A later Keeper recovery-readiness surface may present this report without changing its service ownership.
+
+## Recovery-anchor protection
+
+Destructive cleanup is preflighted by the recovery service, while the existing catalog service remains the owner of the actual backup deletion and Trash purge mutations.
+
+### Manual backup deletion
+
+Before `/admin-api/backup` delegates a delete request to the catalog handler:
+
+- If the target is the **last confirmed recoverable snapshot**, deletion is blocked with `last-recoverable-backup`.
+- If the target could not be verified (`check-failed`) and there is no other confirmed recoverable snapshot, deletion is blocked with `recovery-audit-uncertain`.
+- A known-bad snapshot such as a checksum-mismatched object may be removed because it is not counted as a recoverable anchor.
+- Deletion is allowed when at least one other confirmed recoverable snapshot will remain.
+
+The safety wrapper does not delete the object itself. When deletion is safe, it delegates to the canonical `handleBackupPost()` implementation, preserving the existing index-update/delete/rollback behavior.
+
+### Trash purge
+
+Trash purge can permanently remove EPUB/cover objects. Its preflight therefore mirrors the canonical purge calculation and checks those candidate deletions against a recovery anchor.
+
+- Purge is blocked immediately if either live canonical catalog is missing, invalid JSON, structurally incomplete, or unreadable. A damaged live catalog must be recovered before any Trash material is permanently discarded.
+- The guard calculates which selected Trash object keys would actually be deleted after accounting for the current live catalogs and unselected Trash entries.
+- If no storage object would be deleted, the purge is allowed without requiring a snapshot.
+- If physical object deletion would occur and no recoverable snapshot exists, purge is blocked with `no-recoverable-backup`.
+- The preferred recovery anchor is the newest **verified** retained snapshot. If no verified snapshot exists, the newest structurally recoverable legacy snapshot is used.
+- If any candidate object deletion is still referenced by that anchor, purge is blocked with `purge-would-break-recovery-anchor`.
+- After a delete-to-Trash operation, create and verify a fresh snapshot of the post-delete catalogs. That advances the recovery anchor so media no longer referenced by the fresh snapshot can be purged safely.
+
+As with backup deletion, the recovery service performs only the safety preflight. Safe purge requests are delegated to the canonical `handleMaintenancePost()` implementation.
 
 ## Restore rules
 
@@ -71,6 +100,8 @@ The drill performs these scenarios:
 6. Repeat with both live catalog objects missing.
 7. Confirm emergency recovery refuses to run when both live catalogs are healthy.
 8. Tamper with a checksummed snapshot and confirm the recovery service refuses it without overwriting the already-damaged live catalog.
+
+The recovery-anchor tests additionally prove that the final confirmed snapshot cannot be manually deleted, uncertain recovery material fails closed when it is the only possible anchor, and Trash purge cannot delete media required by the preferred recovery anchor.
 
 This drill proves the recovery algorithm and storage contracts. It does not claim B2-region disaster recovery, credential recovery, or an atomic two-object transaction; those remain infrastructure/operational concerns outside the catalog recovery contract.
 

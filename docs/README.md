@@ -4,8 +4,10 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## 🚧 Current work in progress
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.6.0 Reliability & Real-Browser Testing is complete; v2.6.1 through v2.6.7 are focused Continuous Reader fixes; **v2.7.0 Performance Sanity is deferred/optional**, and the active feature release is **v2.8.0 Reader Experience**, followed by Keeper recovery/productivity and maintenance/supply-chain work.
-- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — **active version ownership**. The live deployment/product line is v2.8.0 while v2.6.7 remains the latest completed formal release until the v2.8 milestone is cut.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.8.0 Reader Experience and v2.9.0 Keeper Productivity & Recovery are complete; **v2.7.0 Performance Sanity remains deferred/optional**, and the active development milestone is **v2.10.0 Maintenance & Supply Chain**.
+- **Active deployment/product line:** v2.10.0 — Maintenance & Supply Chain.
+- **Latest formal release:** v2.9.0 — Keeper Productivity & Recovery.
+- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — **active version ownership**. The development deployment may advance ahead of the latest formal release while the release publisher continues to use the formal package version.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
@@ -37,7 +39,7 @@ Completed or superseded plans must not remain marked as current. Historical road
 
 ## Releases
 
-Release notes remain in `docs/releases/`; this list records completed formal releases. Active v2.8 slice work is tracked by the roadmap rather than by premature final release notes.
+Release notes remain in `docs/releases/`; this list records completed formal releases. v2.10 maintenance work is tracked by the current roadmap until the next formal release cut.
 
 - [`releases/v2.0.0.md`](./releases/v2.0.0.md) — v2 architecture baseline release.
 - [`releases/v2.4.0.md`](./releases/v2.4.0.md) — Interaction & UX Polish release.
@@ -50,13 +52,15 @@ Release notes remain in `docs/releases/`; this list records completed formal rel
 - [`releases/v2.6.5.md`](./releases/v2.6.5.md) — Continuous full-bleed canvas: artwork bleeds to the rail boundary while prose keeps readable insets (reopened #160 item 2).
 - [`releases/v2.6.6.md`](./releases/v2.6.6.md) — Continuous vertical frame reconciliation for tall artwork plus pointer-aware image focus controls and fading hints.
 - [`releases/v2.6.7.md`](./releases/v2.6.7.md) — Continuous media width independence: artwork is no longer shaped by the text-width setting, and full-page image plates are immune to the prose column (desktop clipping fixes).
+- [`releases/v2.8.0.md`](./releases/v2.8.0.md) — Reader Experience release.
+- [`releases/v2.9.0.md`](./releases/v2.9.0.md) — Keeper Productivity & Recovery release.
 
 ## Verification layers
 
 The permanent release baseline now combines deterministic checks with real browsers:
 
 - `npm test` — unit, service, DOM, and deterministic browser-contract layers;
-- `npm run check` — architecture/security guards plus the deterministic behavioral suite;
+- `npm run check` — architecture/security, dependency/runtime policy, documentation freshness, and deterministic repository guards;
 - `npm run build` — repeats the full check through `prebuild` before generating production output;
 - `npm run test:e2e` — Playwright against generated production output across Chromium/Firefox/WebKit desktop and Chromium/WebKit mobile;
 - `.github/workflows/verify.yml` — complete repository checks and production build;

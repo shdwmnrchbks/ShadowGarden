@@ -1,8 +1,17 @@
-/* Shadow Garden v2.9 — read-only catalog recovery readiness service. */
-import { BACKUP_LIMIT, BACKUP_PREFIX, listBackups } from "./catalog.js";
+/* Shadow Garden v2.9 — catalog recovery readiness and emergency restore service. */
+import {
+  ADULT_KEY,
+  BACKUP_LIMIT,
+  BACKUP_PREFIX,
+  MAIN_KEY,
+  invalidateCatalogCache,
+  listBackups,
+  loadBackup,
+  saveCatalogPair
+} from "./catalog.js";
 import { requireAdmin } from "./auth.js";
-import { json } from "./http.js";
-import { getTextObjectWithIntegrity, validObjectKey, writeClient } from "./storage.js";
+import { json, parseJson } from "./http.js";
+import { getTextObject, getTextObjectWithIntegrity, validObjectKey, writeClient } from "./storage.js";
 
 function structuralProblem(payload, meta) {
   if (!payload || typeof payload !== "object") return "Backup payload is not an object.";
@@ -68,8 +77,84 @@ export async function auditCatalogBackups(aws) {
   };
 }
 
+function inspectLiveCatalogText(text, key) {
+  if (text === null) return { key, status: "missing", readable: false, detail: "Live catalog object is missing." };
+  let payload;
+  try { payload = JSON.parse(text); }
+  catch { return { key, status: "invalid-json", readable: false, detail: "Live catalog object is not valid JSON." }; }
+  if (!payload || typeof payload !== "object" || !Array.isArray(payload.series)) return { key, status: "incomplete", readable: false, detail: "Live catalog object is missing its series array." };
+  return { key, status: "readable", readable: true, detail: "Live catalog JSON and series structure are readable.", series: payload.series.length };
+}
+
+export async function inspectLiveCatalogState(aws) {
+  const entries = [];
+  for (const [scope, key] of [["main", MAIN_KEY], ["adult", ADULT_KEY]]) {
+    try { entries.push({ scope, ...inspectLiveCatalogText(await getTextObject(aws, key), key) }); }
+    catch (error) { entries.push({ scope, key, status: "read-failed", readable: false, detail: String(error?.message || error) }); }
+  }
+  const readable = entries.every(entry => entry.readable);
+  return { status: readable ? "readable" : "recovery-required", readable, entries };
+}
+
+export async function emergencyRestoreCatalogBackup(aws, id) {
+  const backupId = String(id || "").trim();
+  const current = await inspectLiveCatalogState(aws);
+  if (current.readable) return {
+    ok: false,
+    status: "current-readable",
+    current,
+    detail: "Both live catalogs are readable. Use the normal Maintenance restore so a pre-restore safety snapshot is preserved."
+  };
+
+  const meta = (await listBackups(aws)).find(item => String(item?.id || "") === backupId);
+  if (!meta) return { ok: false, status: "backup-not-found", current, detail: "Requested recovery snapshot is not indexed." };
+  const inspection = await inspectCatalogBackup(aws, meta);
+  if (!inspection.recoverable) return {
+    ok: false,
+    status: "backup-unrecoverable",
+    current,
+    backup: inspection,
+    detail: "Requested recovery snapshot failed integrity or structural verification."
+  };
+
+  const backup = await loadBackup(aws, backupId);
+  if (!backup) return { ok: false, status: "backup-not-found", current, detail: "Requested recovery snapshot disappeared before restore." };
+  await saveCatalogPair(aws, backup.main, backup.adult);
+
+  const after = await inspectLiveCatalogState(aws);
+  if (!after.readable) throw new Error("Emergency catalog restore wrote data but post-restore validation failed.");
+  return {
+    ok: true,
+    status: "restored",
+    restoredBackup: backupId,
+    backup: { id: inspection.id, status: inspection.status, verified: inspection.verified },
+    currentBefore: current,
+    currentAfter: after,
+    preRestoreSnapshot: "skipped-unrecoverable-current-state"
+  };
+}
+
 export async function handleRecoveryGet({ request, env }) {
   if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
   try { return json(await auditCatalogBackups(writeClient(env))); }
   catch (error) { console.error("Recovery readiness audit failed", error); return json({ ok: false, error: "Could not verify catalog backups", detail: String(error?.message || error) }, 502); }
+}
+
+export async function handleRecoveryPost({ request, env }) {
+  if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
+  const body = await parseJson(request); if (!body.ok) return json({ ok: false, error: "Invalid JSON body" }, 400);
+  const action = String(body.value?.action || "").trim(), id = String(body.value?.id || "").trim();
+  if (action !== "restore-known-good") return json({ ok: false, error: "Unknown recovery action" }, 400);
+  if (!id) return json({ ok: false, error: "Backup id is required" }, 400);
+  try {
+    const result = await emergencyRestoreCatalogBackup(writeClient(env), id);
+    if (result.status === "current-readable") return json(result, 409);
+    if (result.status === "backup-not-found") return json(result, 404);
+    if (result.status === "backup-unrecoverable") return json(result, 409);
+    await invalidateCatalogCache(request);
+    return json(result);
+  } catch (error) {
+    console.error("Emergency catalog recovery failed", error);
+    return json({ ok: false, error: "Emergency catalog recovery failed", detail: String(error?.message || error) }, 502);
+  }
 }

@@ -124,6 +124,16 @@ function catalogObjectKeys(data) {
 
 export async function catalogTrashPurgeGuard(aws, ids = []) {
   const requested = Array.isArray(ids) ? ids.map(value => String(value || "").trim()).filter(Boolean) : [];
+  const live = await inspectLiveCatalogState(aws);
+  if (!live.readable) return {
+    allowed: false,
+    status: "live-catalog-recovery-required",
+    selected: 0,
+    candidateDeletes: 0,
+    protectedDeletes: 0,
+    current: live,
+    detail: "Trash purge is blocked while a live catalog is missing, unreadable, or incomplete. Recover the canonical catalogs before permanently deleting Trash material."
+  };
   const [data, trash] = await Promise.all([loadCatalogPair(aws), loadTrash(aws)]);
   const items = Array.isArray(trash?.items) ? trash.items : [], selected = requested.length ? items.filter(item => requested.includes(String(item?.id || ""))) : items;
   if (!selected.length) return { allowed: true, status: "nothing-to-purge", selected: 0, candidateDeletes: 0, protectedDeletes: 0 };

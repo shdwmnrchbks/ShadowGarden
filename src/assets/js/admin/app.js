@@ -29,6 +29,7 @@
        authentication, Library/Series, Maintenance, History, Trash, or Abuse owners. */
     for(const src of [
       "/assets/js/admin-batch.js",
+      "/assets/js/admin/upload-similar-volume.js",
       "/assets/js/admin/upload-safety.js",
       "/assets/js/admin-batch-editor.js",
       "/assets/js/admin-upload-workflow.js",

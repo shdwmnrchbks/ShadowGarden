@@ -33,12 +33,29 @@ Updates touching EPUB.js, AWS/B2 request or storage behavior (`@aws-sdk/client-s
 
 Both npm and GitHub Actions streams are capped at five open Dependabot pull requests and run weekly. npm checks begin at 08:00 and GitHub Actions checks at 08:20 Asia/Manila so update streams stay visible without creating continuous churn.
 
+## Dependency audit reporting
+
+`.github/workflows/dependency-audit.yml` runs every Monday at 09:00 Asia/Manila and can also be started manually. It installs the lockfile-defined production tree without install-time audit noise, collects `npm audit --omit=dev --json`, and passes that JSON through `tools/dependency-audit-report.mjs`.
+
+The audit workflow is intentionally separate from normal pull-request/push Verify. Registry availability is external and must not make deterministic product verification flaky. A scheduled audit that cannot obtain or parse a supported npm audit report fails visibly as an **observability failure**; it is not treated as a clean security result.
+
+Findings are classified by repository policy:
+
+- **Action required:** any high or critical finding in the production dependency tree. The scheduled audit job fails so the finding stays visible. “Action required” means promptly triage runtime relevance and establish a safe remediation or mitigation; it does not authorize an automatic dependency change.
+- **Review required:** a moderate finding on a direct dependency, or a moderate transitive finding for which npm reports a fix. The scheduled job remains successful but the finding stays visible in the report for human review.
+- **Monitor only:** lower-severity findings and moderate transitive findings with no npm-reported fix. Reassess them on the next weekly cycle or when the dependency graph changes.
+
+`npm audit` metadata is useful triage evidence but does not prove Shadow Garden can reach or exploit the vulnerable path. Review the advisory against actual runtime ownership, affected code paths, deployment exposure, and the proposed lockfile diff. High-impact EPUB.js, AWS/B2, authentication/security, and workflow changes still require their owner-specific review and the complete verification matrix even if an audit report suggests a simple version bump.
+
+The reporter writes a human-readable GitHub job summary and can be run against previously captured JSON with `npm run audit:report`. It never modifies package metadata or the lockfile.
+
 ## What this automation does not do
 
 - It does not auto-merge.
 - It does not update arbitrary transitive dependencies independently.
 - It does not weaken or skip the five-browser matrix for dependency/configuration changes.
-- It does not treat `npm audit` severity alone as a production incident; audit findings are evaluated separately based on reachability, affected runtime surface, and available remediation.
+- It does not treat `npm audit` severity alone as proof of a production exploit.
+- It never runs `npm audit fix` automatically.
 - It does not rewrite lockfile integrity or transitive metadata by hand.
 
-`tools/check-dependency-maintenance.mjs` enforces the allow-list, cadence, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests.
+`tools/check-dependency-maintenance.mjs` enforces the dependency allow-list, cadence, scheduled audit contract, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests.

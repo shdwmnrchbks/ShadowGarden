@@ -50,6 +50,11 @@ function firstMediaKey(value) {
   for (const series of value.series || []) for (const key of seriesObjectKeys(series)) return key;
   return '';
 }
+function stripSnapshotChecksum(aws, snapshot) {
+  const stored = aws.objects.get(snapshot.key);
+  assert.ok(stored, 'fixture snapshot must exist');
+  stored.headers.delete(BACKUP_SHA256_HEADER);
+}
 
 test('readiness is READY only with readable live catalogs and a verified object-complete anchor', async () => {
   const aws = new MemoryAws(), main = catalog('ready-series'), adult = emptyCatalog();
@@ -71,9 +76,7 @@ test('object-complete legacy snapshot is useful recovery material but does not r
   const aws = new MemoryAws(), main = catalog('legacy-series'), adult = emptyCatalog();
   await seedMedia(aws, main);await saveCatalogPair(aws, main, adult);
   const snapshot = await snapshotCatalogs(aws, main, adult, 'legacy-anchor');
-  const stored = aws.objects.get(snapshot.key);
-  assert.ok(stored, 'fixture snapshot must exist');
-  stored.headers.delete(BACKUP_SHA256_HEADER);
+  stripSnapshotChecksum(aws, snapshot);
 
   const report = await buildRecoveryReadinessReport(aws);
   assert.equal(report.live.readable, true);
@@ -85,6 +88,21 @@ test('object-complete legacy snapshot is useful recovery material but does not r
   assert.ok(report.readiness.anchor.objectCount >= 1);
   assert.match(report.readiness.detail, /legacy snapshot/i);
   assert.match(report.readiness.detail, /not checksum-verified/i);
+});
+
+test('newer legacy anchor does not hide an older verified object-complete anchor', async () => {
+  const aws = new MemoryAws(), main = catalog('mixed-anchor-series'), adult = emptyCatalog();
+  await seedMedia(aws, main);await saveCatalogPair(aws, main, adult);
+  const verified = await snapshotCatalogs(aws, main, adult, 'verified-anchor');
+  const legacy = await snapshotCatalogs(aws, main, adult, 'legacy-newer-anchor');
+  stripSnapshotChecksum(aws, legacy);
+
+  const report = await buildRecoveryReadinessReport(aws);
+  assert.equal(report.readiness.status, 'ready');
+  assert.equal(report.readiness.ready, true);
+  assert.equal(report.readiness.anchor.id, verified.id);
+  assert.equal(report.readiness.anchor.verified, true);
+  assert.equal(report.readiness.checkedSnapshots, 2);
 });
 
 test('readable snapshot JSON with missing media reports NOT READY rather than a false anchor', async () => {

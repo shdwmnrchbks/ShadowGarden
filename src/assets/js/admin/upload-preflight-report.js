@@ -18,7 +18,7 @@
 
     function recommendation(message,severity){
       const text=String(message||"").toLowerCase();
-      if(severity==="blocked")return"Upload is blocked. Open validation details and replace or repair the EPUB before retrying.";
+      if(severity==="blocked")return"Upload is blocked. Locate this queue row and replace or repair the EPUB before retrying.";
       if(text.includes("title metadata"))return"Review the detected title and series metadata; the filename fallback is currently being used.";
       if(text.includes("language metadata"))return"Confirm the book language; add language metadata to the source EPUB when practical.";
       if(text.includes("navigation document"))return"Upload is allowed. Verify Contents/chapter navigation after import.";
@@ -82,13 +82,19 @@
 
     review.addEventListener("click",event=>{
       const button=event.target.closest("[data-import-review]");if(!button)return;
-      const id=button.dataset.importReview,edit=list.querySelector(`[data-batch-edit="${CSS.escape(id)}"]`);if(!edit||edit.disabled)return;
-      edit.click();
-      requestAnimationFrame(()=>{
-        const toggle=preflight?.querySelector(".preflight-collapse-toggle");if(toggle?.getAttribute("aria-expanded")==="false")toggle.click();
-        preflight?.scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
-        toggle?.focus({preventScroll:true});
-      });
+      const id=button.dataset.importReview,article=list.querySelector(`[data-batch-id="${CSS.escape(id)}"]`),edit=article?.querySelector("[data-batch-edit]");
+      if(edit&&!edit.disabled){
+        edit.click();
+        requestAnimationFrame(()=>{
+          const toggle=preflight?.querySelector(".preflight-collapse-toggle");if(toggle?.getAttribute("aria-expanded")==="false")toggle.click();
+          preflight?.scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+          toggle?.focus({preventScroll:true});
+        });
+        return;
+      }
+      if(article){
+        article.tabIndex=-1;article.scrollIntoView({block:"nearest",behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});article.focus({preventScroll:true});
+      }
     });
 
     new MutationObserver(()=>queueMicrotask(decorate)).observe(review,{childList:true,subtree:false});

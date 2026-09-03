@@ -38,16 +38,33 @@ function requireWeeklyManila(block, ecosystem, expectedTime) {
   if (!/open-pull-requests-limit:\s*5\b/.test(block)) fail(`${ecosystem} Dependabot updates must cap open PRs at 5`);
 }
 
+function requireAuditWorkflow(audit) {
+  if (!/workflow_dispatch:\s*(?:\n|$)/.test(audit)) fail("Dependency audit workflow must support manual dispatch");
+  if (!/schedule:\s*(?:\n|$)/.test(audit) || !/cron:\s*["']0 1 \* \* 1["']/.test(audit)) {
+    fail("Dependency audit workflow must run Monday at 09:00 Asia/Manila (01:00 UTC)");
+  }
+  if (/\n\s*pull_request:|\n\s*push:/.test(audit)) fail("Dependency audit workflow must stay separate from pull-request/push Verify gates");
+  if (!/npm ci --omit=dev --no-audit/.test(audit)) fail("Dependency audit workflow must install the production tree without install-time audit noise");
+  if (!/npm audit --omit=dev --json/.test(audit)) fail("Dependency audit workflow must collect production-only npm audit JSON");
+  if (!/dependency-audit-report\.mjs[^\n]*--fail-on-action/.test(audit)) fail("Dependency audit workflow must classify findings with the repository reporter");
+  if (!/GITHUB_STEP_SUMMARY/.test(audit)) fail("Dependency audit workflow must publish a human-readable job summary");
+  if (/npm\s+audit\s+fix\b/.test(audit)) fail("Dependency audit workflow must never run npm audit fix");
+}
+
 async function main() {
-  const [packageSource, dependabot, e2e] = await Promise.all([
+  const [packageSource, dependabot, e2e, audit] = await Promise.all([
     read("package.json"),
     read(".github/dependabot.yml"),
-    read(".github/workflows/e2e.yml")
+    read(".github/workflows/e2e.yml"),
+    read(".github/workflows/dependency-audit.yml")
   ]);
   const pkg = JSON.parse(packageSource);
   const direct = sorted(Object.keys(pkg.dependencies || {}));
   if (!sameList(direct, EXPECTED_DIRECT)) {
     fail(`package.json direct dependency set changed; update the controlled allow-list (${direct.join(", ")})`);
+  }
+  if (pkg.scripts?.["audit:report"] !== "node tools/dependency-audit-report.mjs --input npm-audit.json") {
+    fail("package.json must expose the non-mutating audit:report command");
   }
 
   if (!/^version:\s*2\s*$/m.test(dependabot)) fail("Dependabot config must use version 2");
@@ -73,6 +90,8 @@ async function main() {
     fail("Real Browser E2E must not ignore package metadata or .github workflow/config changes");
   }
 
+  requireAuditWorkflow(audit);
+
   const workflowDir = path.join(ROOT, ".github", "workflows");
   const workflowNames = (await fs.readdir(workflowDir)).filter(name => /\.ya?ml$/i.test(name)).sort();
   for (const name of workflowNames) {
@@ -96,7 +115,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log(`Dependency maintenance check passed: ${EXPECTED_DIRECT.length} allow-listed npm dependencies and ${workflowNames.length} pinned workflow files.`);
+  console.log(`Dependency maintenance check passed: ${EXPECTED_DIRECT.length} allow-listed npm dependencies, scheduled audit policy, and ${workflowNames.length} pinned workflow files.`);
 }
 
 await main();

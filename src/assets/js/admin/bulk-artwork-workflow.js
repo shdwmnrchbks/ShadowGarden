@@ -155,9 +155,9 @@
 
     async function save(){
       if(saving)return;setBusy(true);
-      const progress=$("#bulkArtworkProgress");progress.classList.remove("hidden");
+      const progress=$("#bulkArtworkProgress");progress.classList.remove("hidden");let committed=false,result=null,changed=[];
       try{
-        const current=plans(),errors=current.flatMap(item=>item.errors),changed=current.filter(item=>item.changed);if(errors.length)throw new Error(errors[0]);if(!changed.length)return;
+        const current=plans(),errors=current.flatMap(item=>item.errors);changed=current.filter(item=>item.changed);if(errors.length)throw new Error(errors[0]);if(!changed.length)return;
         const coverPlans=changed.filter(item=>item.coverChanged),uploaded=new Map();
         for(let index=0;index<coverPlans.length;index++)uploaded.set(coverPlans[index].entry.series.id,await uploadReplacement(coverPlans[index],index,coverPlans.length));
         const updates=changed.map(item=>{
@@ -167,11 +167,15 @@
           return update;
         });
         progress.textContent=`Validating and committing artwork for ${changed.length} series…`;
-        const result=await client.request("/admin-api/artwork",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({updates})});
-        state.management=null;keeper.events.dispatchEvent(new Event("history:changed"));keeper.events.dispatchEvent(new Event("library:invalidate"));closeEditor();keeper.ui.toast(`Updated artwork for ${result.updatedArtwork?.series||changed.length} series.`);
+        result=await client.request("/admin-api/artwork",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({updates})});committed=true;
+        state.management=null;keeper.events.dispatchEvent(new Event("history:changed"));keeper.events.dispatchEvent(new Event("library:invalidate"));
       }catch(error){
         progress.textContent=`Artwork update stopped: ${error.message}`;alert(`Batch artwork update stopped. Live catalog references were not changed unless the final catalog commit completed.\n\n${error.message}`);
-      }finally{setBusy(false);if(dialog.open)renderPreview()}
+      }finally{
+        setBusy(false);
+        if(committed){closeEditor();keeper.ui.toast(`Updated artwork for ${result?.updatedArtwork?.series||changed.length} series.`)}
+        else if(dialog.open)renderPreview();
+      }
     }
 
     async function openEditor(){

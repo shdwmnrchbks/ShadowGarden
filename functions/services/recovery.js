@@ -4,6 +4,7 @@ import {
   BACKUP_LIMIT,
   BACKUP_PREFIX,
   MAIN_KEY,
+  handleBackupPost,
   invalidateCatalogCache,
   listBackups,
   loadBackup,
@@ -77,6 +78,39 @@ export async function auditCatalogBackups(aws) {
   };
 }
 
+export async function catalogBackupDeletionGuard(aws, id) {
+  const backupId = String(id || "").trim(), report = await auditCatalogBackups(aws);
+  const target = report.items.find(item => item.id === backupId);
+  if (!target) return { allowed: true, status: "backup-not-found", backupId, recoverableBefore: report.summary.recoverable, remainingRecoverable: report.summary.recoverable };
+  const remaining = report.items.filter(item => item.id !== backupId && item.recoverable);
+  if (target.status === "check-failed" && !remaining.length) return {
+    allowed: false,
+    status: "recovery-audit-uncertain",
+    backupId,
+    targetStatus: target.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: 0,
+    detail: "This snapshot could not be verified and no other confirmed recoverable snapshot remains. Deletion is blocked until recovery readiness can be proven."
+  };
+  if (target.recoverable && !remaining.length) return {
+    allowed: false,
+    status: "last-recoverable-backup",
+    backupId,
+    targetStatus: target.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: 0,
+    detail: "Deletion would remove the last confirmed recoverable catalog snapshot. Create and verify another snapshot first."
+  };
+  return {
+    allowed: true,
+    status: "safe-to-delete",
+    backupId,
+    targetStatus: target.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: remaining.length
+  };
+}
+
 function inspectLiveCatalogText(text, key) {
   if (text === null) return { key, status: "missing", readable: false, detail: "Live catalog object is missing." };
   let payload;
@@ -132,6 +166,23 @@ export async function emergencyRestoreCatalogBackup(aws, id) {
     currentAfter: after,
     preRestoreSnapshot: "skipped-unrecoverable-current-state"
   };
+}
+
+export async function handleGuardedBackupPost({ request, env }) {
+  if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
+  const preview = await parseJson(request.clone());
+  if (!preview.ok) return json({ ok: false, error: "Invalid JSON body" }, 400);
+  const action = String(preview.value?.action || "").trim(), id = String(preview.value?.id || "").trim();
+  if (action === "delete" && id) {
+    try {
+      const guard = await catalogBackupDeletionGuard(writeClient(env), id);
+      if (!guard.allowed) return json({ ok: false, error: "Catalog backup deletion blocked", ...guard }, 409);
+    } catch (error) {
+      console.error("Catalog backup deletion safety check failed", error);
+      return json({ ok: false, error: "Could not prove backup deletion is safe", detail: String(error?.message || error) }, 502);
+    }
+  }
+  return handleBackupPost({ request, env });
 }
 
 export async function handleRecoveryGet({ request, env }) {

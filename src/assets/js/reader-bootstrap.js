@@ -1,14 +1,17 @@
 /* Shadow Garden R4 — protected Reader startup. */
 import { createAuthorizedBookSession, finalizeBookSession } from "./reader/book-session.js";
 import { startReader } from "./reader/app.js";
+import { showReaderFailure } from "./reader/error-presentation.js";
 import { installReaderInteractionController } from "./reader/interaction-controller.js";
+import { urls } from "./domain/index.js";
 import "./reader/image-focus-touch-compat.js";
 
 const interactions=installReaderInteractionController();
 
 (async()=>{
+  let session=null;
   try{
-    const session=await createAuthorizedBookSession();
+    session=await createAuthorizedBookSession();
     if(!session)return;
     interactions.stage("Opening the EPUB…","epub");
     await startReader(session);
@@ -16,9 +19,7 @@ const interactions=installReaderInteractionController();
   }catch(error){
     console.error("Reader book authorization/startup failed",error);
     const loading=document.getElementById("readerLoading");
-    if(loading){
-      loading.classList.remove("hidden");
-      loading.innerHTML=`<p>${String(error?.message||"Shadow Garden could not authorize this EPUB.").replace(/[&<>]/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[char]))}</p>`;
-    }
+    const returnHref=session?.seriesId?urls.seriesUrl(session.seriesId):urls.libraryUrl(session?.adult===true);
+    showReaderFailure({container:loading,error,phase:session?"open":"authorization",returnHref});
   }
 })();

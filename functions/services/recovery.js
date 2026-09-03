@@ -19,6 +19,8 @@ import { requireAdmin } from "./auth.js";
 import { json, parseJson } from "./http.js";
 import { getTextObject, getTextObjectWithIntegrity, headObject, validObjectKey, writeClient } from "./storage.js";
 
+const RECOVERY_HEAD_BATCH = 20;
+
 function structuralProblem(payload, meta) {
   if (!payload || typeof payload !== "object") return "Backup payload is not an object.";
   if (payload.version !== 1) return "Backup payload version is unsupported.";
@@ -89,14 +91,23 @@ function catalogObjectKeys(data) {
   return keys;
 }
 
+async function missingRecoveryObjectKeys(aws, keys) {
+  const missing = [];
+  for (let index = 0; index < keys.length; index += RECOVERY_HEAD_BATCH) {
+    const batch = keys.slice(index, index + RECOVERY_HEAD_BATCH);
+    const results = await Promise.all(batch.map(async key => ({ key, present: await headObject(aws, key) })));
+    for (const result of results) if (!result.present) missing.push(result.key);
+  }
+  return missing;
+}
+
 export async function inspectRecoveryAnchorObjects(aws, item) {
   const base = { id: String(item?.id || ""), snapshotStatus: String(item?.status || ""), complete: false, uncertain: false, objectCount: 0, missing: [] };
   if (!item?.recoverable) return { ...base, status: item?.status === "check-failed" ? "object-check-uncertain" : "snapshot-unrecoverable", uncertain: item?.status === "check-failed" };
   try {
     const backup = await loadBackup(aws, base.id);
     if (!backup) return { ...base, status: "snapshot-missing" };
-    const keys = [...catalogObjectKeys(backup)], missing = [];
-    for (const key of keys) if (!(await headObject(aws, key))) missing.push(key);
+    const keys = [...catalogObjectKeys(backup)], missing = await missingRecoveryObjectKeys(aws, keys);
     return {
       ...base,
       status: missing.length ? "missing-media" : "complete",
@@ -113,6 +124,7 @@ export async function inspectRecoveryAnchorObjects(aws, item) {
 async function firstCompleteRecoveryAnchor(aws, items = []) {
   let uncertain = 0, stale = 0, checked = 0;
   for (const item of items) {
+    if (item?.status === "check-failed") { uncertain += 1; continue; }
     if (!item?.recoverable) continue;
     const availability = await inspectRecoveryAnchorObjects(aws, item); checked += 1;
     if (availability.complete) return { anchor: item, availability, checked, uncertain, stale };
@@ -136,6 +148,16 @@ export async function catalogBackupDeletionGuard(aws, id) {
     remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
     remainingRecoveryAnchors: 1,
     recoveryAnchor: { id: alternatives.anchor.id, status: alternatives.anchor.status, verified: alternatives.anchor.verified, objectCount: alternatives.availability.objectCount }
+  };
+
+  if (!target.recoverable && target.status !== "check-failed") return {
+    allowed: true,
+    status: "unrecoverable-backup-safe-to-delete",
+    backupId,
+    targetStatus: target.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
+    remainingRecoveryAnchors: 0
   };
 
   const targetAvailability = await inspectRecoveryAnchorObjects(aws, target);
@@ -206,7 +228,7 @@ export async function catalogTrashPurgeGuard(aws, ids = []) {
     staleSnapshots: resolved.stale,
     uncertainSnapshots: resolved.uncertain,
     detail: resolved.uncertain
-      ? "Trash purge would permanently delete storage objects, but no object-complete recovery anchor could be proven because snapshot media verification was uncertain."
+      ? "Trash purge would permanently delete storage objects, but no object-complete recovery anchor could be proven because snapshot or media verification was uncertain."
       : "Trash purge would permanently delete storage objects, but no object-complete recoverable catalog snapshot is available. Create and verify a fresh snapshot first."
   };
 

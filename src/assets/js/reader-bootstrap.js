@@ -19,7 +19,8 @@ const interactions=installReaderInteractionController();
   }catch(error){
     console.error("Reader book authorization/startup failed",error);
     const loading=document.getElementById("readerLoading");
-    const returnHref=session?.seriesId?urls.seriesUrl(session.seriesId):urls.libraryUrl(session?.adult===true);
-    showReaderFailure({container:loading,error,phase:session?"open":"authorization",returnHref});
+    const hasSeries=Boolean(session?.seriesId);
+    const returnHref=hasSeries?urls.seriesUrl(session.seriesId):urls.libraryUrl(session?.adult===true);
+    showReaderFailure({container:loading,error,phase:session?"open":"authorization",returnHref,returnLabel:hasSeries?"Return to series":"Return to library"});
   }
 })();

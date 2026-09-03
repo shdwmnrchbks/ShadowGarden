@@ -7,12 +7,20 @@ import { urls } from "./domain/index.js";
 import "./reader/image-focus-touch-compat.js";
 
 const interactions=installReaderInteractionController();
+const invalidPackagePreparation=/central directory|is this a zip file|missing container\.xml|missing package document|corrupt|unexpected end|end of data/i;
+
+function visualPreparationFailure(){
+  const message=String(window.__sgVisualPageCache?.summary?.()?.error||"");
+  return invalidPackagePreparation.test(message)?new Error("Invalid EPUB archive"):null;
+}
 
 (async()=>{
   let session=null;
   try{
     session=await createAuthorizedBookSession();
     if(!session)return;
+    const preparationFailure=visualPreparationFailure();
+    if(preparationFailure)throw preparationFailure;
     interactions.stage("Opening the EPUB…","epub");
     await startReader(session);
     finalizeBookSession(session);

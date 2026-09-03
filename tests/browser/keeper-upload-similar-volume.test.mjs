@@ -23,7 +23,7 @@ test('v2.9 Keeper similar-volume warnings stay non-blocking and separate from ex
     'MAX_SIZE_DELTA=.02',
     'if(!item?.metaReady||item.duplicate)return null',
     'remoteSimilar(item)||batchSimilar(item)',
-    "badge.textContent='SIMILAR'",
+    "next.textContent='SIMILAR'",
     'Upload remains allowed.',
     'item.similarVolume=match',
     "[data-similar-volume-warning]",

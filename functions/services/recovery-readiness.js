@@ -6,7 +6,7 @@ import {
   inspectLiveCatalogState,
   inspectRecoveryAnchorObjects
 } from "./recovery.js";
-import { writeClient } from "./storage.js";
+import { readClient } from "./storage.js";
 
 export async function buildRecoveryReadinessReport(aws) {
   const [backups, live] = await Promise.all([
@@ -71,7 +71,7 @@ export async function buildRecoveryReadinessReport(aws) {
 
 export async function handleRecoveryReadinessGet({ request, env }) {
   if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
-  try { return json(await buildRecoveryReadinessReport(writeClient(env))); }
+  try { return json(await buildRecoveryReadinessReport(readClient(env))); }
   catch (error) {
     console.error("Recovery readiness report failed", error);
     return json({ ok: false, error: "Could not compute recovery readiness", detail: String(error?.message || error) }, 502);

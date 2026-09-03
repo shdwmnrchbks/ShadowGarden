@@ -33,9 +33,19 @@ Updates touching EPUB.js, AWS/B2 request or storage behavior (`@aws-sdk/client-s
 
 Both npm and GitHub Actions streams are capped at five open Dependabot pull requests and run weekly. npm checks begin at 08:00 and GitHub Actions checks at 08:20 Asia/Manila so update streams stay visible without creating continuous churn.
 
+## Runtime and lockfile policy
+
+Shadow Garden supports the Node 22 LTS family through `engines.node = "22.x"` in both the root and E2E manifests. Reproducible CI uses the reviewed patch line in `.nvmrc` and every `actions/setup-node` workflow; the current v2.10 pin is Node `22.23.2`. Both manifests also declare `packageManager: "npm@10.9.8"`, matching the npm release bundled with that reviewed Node patch.
+
+The exact CI patch pin is intentionally narrower than the supported engine family. Local/runtime consumers may use a compatible Node 22 patch, while repository gates run one known toolchain. Node 22 patch updates are reviewed maintenance changes and must pass the normal Verify plus five-browser matrix. A future Node major migration is an explicit maintenance slice, not a silent workflow edit.
+
+Both committed npm lockfiles use lockfile format 3. `tools/check-runtime-lockfiles.mjs` verifies manifest/root-lock name, version, engine, and direct-dependency metadata; requires all registry-backed package entries to resolve from `https://registry.npmjs.org/` with SHA-512 integrity; and ensures Verify, E2E, and dependency-audit workflows use the reviewed Node patch pin.
+
+Do not hand-edit `resolved`, `integrity`, or transitive dependency fields. The weekly dependency-audit workflow runs `npm ci` against the root production lockfile and separately against `tests/e2e/package-lock.json` with E2E install scripts disabled. Those registry-backed installs complement the deterministic source check by exercising the committed package URLs/checksums on a regular cadence.
+
 ## Dependency audit reporting
 
-`.github/workflows/dependency-audit.yml` runs every Monday at 09:00 Asia/Manila and can also be started manually. It installs the lockfile-defined production tree without install-time audit noise, collects `npm audit --omit=dev --json`, and passes that JSON through `tools/dependency-audit-report.mjs`.
+`.github/workflows/dependency-audit.yml` runs every Monday at 09:00 Asia/Manila and can also be started manually. It installs the lockfile-defined production tree without install-time audit noise, verifies the runtime/lockfile policy plus the E2E lockfile install, collects `npm audit --omit=dev --json`, and passes that JSON through `tools/dependency-audit-report.mjs`.
 
 The audit workflow is intentionally separate from normal pull-request/push Verify. Registry availability is external and must not make deterministic product verification flaky. A scheduled audit that cannot obtain or parse a supported npm audit report fails visibly as an **observability failure**; it is not treated as a clean security result.
 
@@ -58,4 +68,4 @@ The reporter writes a human-readable GitHub job summary and can be run against p
 - It never runs `npm audit fix` automatically.
 - It does not rewrite lockfile integrity or transitive metadata by hand.
 
-`tools/check-dependency-maintenance.mjs` enforces the dependency allow-list, cadence, scheduled audit contract, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests.
+`tools/check-dependency-maintenance.mjs` enforces the dependency allow-list, cadence, scheduled audit contract, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests. `tools/check-runtime-lockfiles.mjs` separately enforces the reviewed Node/npm toolchain and committed lockfile invariants.

@@ -81,27 +81,36 @@
     const label=match.batch?(match.item?.title||match.item?.file?.name||`Volume ${match.volume?.number}`):`${match.series?.title||'Existing series'} · ${match.volume?.title||`Volume ${match.volume?.number}`}`;
     return `Possible similar volume: ${label} · ${match.reasons.join(' · ')}. Review the volume number and title before upload. Upload remains allowed.`;
   }
+  function syncCard(item,match){
+    const card=list.querySelector(`[data-batch-id="${CSS.escape(String(item.id))}"]`);if(!card)return;
+    const badge=card.querySelector('[data-similar-volume-badge]'),note=card.querySelector('[data-similar-volume-warning]');
+    if(!match){badge?.remove();note?.remove();return}
+    if(!badge){
+      const next=document.createElement('span');next.className='batch-badge warning';next.dataset.similarVolumeBadge='1';next.textContent='SIMILAR';card.querySelector('.batch-badges')?.appendChild(next);
+    }
+    const text=warningText(match);
+    if(note){if(note.textContent!==text)note.textContent=text}
+    else{
+      const next=document.createElement('p');next.dataset.similarVolumeWarning='1';next.textContent=text;card.querySelector('.batch-duplicate')?.appendChild(next);
+    }
+  }
   function decorate(){
     if(decorating)return;decorating=true;
     try{
       const items=arr(state.batch?.items),warnings=[];
       for(const item of items){
-        const match=similarFor(item);item.similarVolume=match;
-        if(!match)continue;warnings.push(item);
-        const card=list.querySelector(`[data-batch-id="${CSS.escape(String(item.id))}"]`);if(!card)continue;
-        const badges=card.querySelector('.batch-badges');
-        if(badges&&!badges.querySelector('[data-similar-volume-badge]')){
-          const badge=document.createElement('span');badge.className='batch-badge warning';badge.dataset.similarVolumeBadge='1';badge.textContent='SIMILAR';badges.appendChild(badge);
-        }
-        const detail=card.querySelector('.batch-duplicate');
-        if(detail&&!detail.querySelector('[data-similar-volume-warning]')){
-          const note=document.createElement('p');note.dataset.similarVolumeWarning='1';note.textContent=warningText(match);detail.appendChild(note);
-        }
+        const match=similarFor(item);item.similarVolume=match;syncCard(item,match);if(match)warnings.push(item);
+      }
+      const liveIds=new Set(items.map(item=>String(item.id)));
+      for(const card of list.querySelectorAll('[data-batch-id]')){
+        if(liveIds.has(String(card.dataset.batchId)))continue;
+        card.querySelector('[data-similar-volume-badge]')?.remove();card.querySelector('[data-similar-volume-warning]')?.remove();
       }
       const summary=document.querySelector('#batchSummary');
       if(summary){
         const base=summary.textContent.replace(/ · \d+ similar warning(?:s)?$/,'');
-        summary.textContent=warnings.length?`${base} · ${warnings.length} similar warning${warnings.length===1?'':'s'}`:base;
+        const next=warnings.length?`${base} · ${warnings.length} similar warning${warnings.length===1?'':'s'}`:base;
+        if(summary.textContent!==next)summary.textContent=next;
       }
     }finally{decorating=false}
   }

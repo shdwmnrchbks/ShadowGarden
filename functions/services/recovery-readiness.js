@@ -8,31 +8,38 @@ import {
 } from "./recovery.js";
 import { readClient } from "./storage.js";
 
+function readinessAnchor(item, availability) {
+  return {
+    id: item.id,
+    createdAt: item.createdAt,
+    reason: item.reason,
+    status: item.status,
+    verified: Boolean(item.verified),
+    objectCount: availability.objectCount
+  };
+}
+
 export async function buildRecoveryReadinessReport(aws) {
   const [backups, live] = await Promise.all([
     auditCatalogBackups(aws),
     inspectLiveCatalogState(aws)
   ]);
 
-  let anchor = null, checked = 0, stale = 0, uncertain = 0;
+  let anchor = null, legacyAnchor = null, checked = 0, stale = 0, uncertain = 0;
   for (const item of backups.items || []) {
     if (item?.status === "check-failed") { uncertain += 1; continue; }
     if (!item?.recoverable) continue;
     const availability = await inspectRecoveryAnchorObjects(aws, item); checked += 1;
     if (availability.complete) {
-      anchor = {
-        id: item.id,
-        createdAt: item.createdAt,
-        reason: item.reason,
-        status: item.status,
-        verified: Boolean(item.verified),
-        objectCount: availability.objectCount
-      };
-      break;
+      const candidate = readinessAnchor(item, availability);
+      if (candidate.verified) { anchor = candidate; break; }
+      if (!legacyAnchor) legacyAnchor = candidate;
+      continue;
     }
     if (availability.uncertain) uncertain += 1;
     else stale += 1;
   }
+  if (!anchor) anchor = legacyAnchor;
 
   const status = !live.readable
     ? "recovery-required"

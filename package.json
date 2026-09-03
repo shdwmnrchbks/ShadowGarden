@@ -4,6 +4,7 @@
   "deploymentVersion": "2.10.0",
   "private": true,
   "type": "module",
+  "packageManager": "npm@10.9.8",
   "engines": {
     "node": "22.x"
   },
@@ -11,7 +12,7 @@
     "build": "npm run build:dist",
     "build:dist": "node tools/build.mjs && node tools/write-source.mjs",
     "preview": "node tools/preview.mjs",
-    "check": "node tools/check.mjs && node tools/check-dependency-maintenance.mjs",
+    "check": "node tools/check.mjs && node tools/check-dependency-maintenance.mjs && node tools/check-runtime-lockfiles.mjs",
     "prebuild": "npm run check",
     "test": "node tools/run-tests.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",
@@ -25,6 +26,7 @@
     "check:reading-status": "node tools/check-reading-status.mjs",
     "check:security": "node tools/check-security.mjs",
     "check:dependencies": "node tools/check-dependency-maintenance.mjs",
+    "check:runtime": "node tools/check-runtime-lockfiles.mjs",
     "audit:report": "node tools/dependency-audit-report.mjs --input npm-audit.json",
     "check:v2.6": "node tools/check-v2-6.mjs",
     "b2:setup": "node tools/b2-setup.mjs",

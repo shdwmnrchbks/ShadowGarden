@@ -21,6 +21,9 @@ test('Recovery Readiness is a read-only on-demand report over existing recovery 
   assert.match(service, /auditCatalogBackups/);
   assert.match(service, /inspectLiveCatalogState/);
   assert.match(service, /inspectRecoveryAnchorObjects/);
+  assert.match(service, /legacyAnchor/);
+  assert.match(service, /if \(candidate\.verified\) \{ anchor = candidate; break; \}/);
+  assert.match(service, /if \(!anchor\) anchor = legacyAnchor/);
   assert.match(service, /anchor\?\.verified/);
   assert.match(service, /checksum-verified, object-complete recovery anchor/);
   assert.match(service, /object-complete legacy snapshot/);

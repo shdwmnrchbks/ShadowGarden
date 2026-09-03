@@ -17,6 +17,7 @@
       "/assets/js/admin/library-workflow.js",
       "/assets/js/admin/translation-workflow.js",
       "/assets/js/admin/bulk-edit-workflow.js",
+      "/assets/js/admin/bulk-edit-fixes.js",
       "/assets/js/admin/bulk-artwork-workflow.js",
       "/assets/js/admin/maintenance-workflow.js",
       "/assets/js/admin/history-workflow.js",

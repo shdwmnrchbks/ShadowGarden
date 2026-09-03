@@ -1,7 +1,7 @@
 # Shadow Garden Versioning Contract
 
 **Status:** Active contract  
-**Active deployment/product version:** v2.9.0 — Keeper Productivity & Recovery  
+**Active deployment/product version:** v2.10.0 — Maintenance & Supply Chain  
 **Formal release source version:** v2.9.0
 
 Shadow Garden intentionally separates the version shown by a live development deployment from the version eligible for a formal GitHub release.
@@ -13,7 +13,7 @@ Shadow Garden intentionally separates the version shown by a live development de
 - `version` — the latest **formal release** version. This remains synchronized with `package-lock.json` and is the version consumed by `.github/workflows/release-v2.yml`.
 - `deploymentVersion` — the **active deployed product line**. This is the version exposed by generated deployment metadata and shown by the public Library and Garden Keeper.
 
-During an in-progress milestone, these values may intentionally differ. At the v2.9.0 release cut they converge:
+At a formal release cut these values converge. The completed v2.9.0 release used:
 
 ```json
 {
@@ -22,7 +22,16 @@ During an in-progress milestone, these values may intentionally differ. At the v
 }
 ```
 
-The release commit therefore identifies both the formal release and the deployed product line as v2.9.0. A later milestone may advance `deploymentVersion` again while `version` remains on the latest completed formal release.
+During the next in-progress milestone they intentionally diverge again. v2.10 development uses:
+
+```json
+{
+  "version": "2.9.0",
+  "deploymentVersion": "2.10.0"
+}
+```
+
+The formal release source therefore remains v2.9.0 until a future release cut explicitly advances it, while current development/deployment metadata identifies the v2.10.0 product line.
 
 ## Deployment metadata
 
@@ -56,6 +65,8 @@ The active `deploymentVersion` does **not** by itself make a milestone release-e
 
 ## v2.9.0 release state
 
-The v2.9.0 release commit aligns `package.json#version`, `package-lock.json`, and `deploymentVersion` at `2.9.0`, includes `docs/releases/v2.9.0.md` plus the matching changelog entry, and records the completed Keeper Productivity & Recovery acceptance criteria. The permanent Verify and Real Browser E2E gates remain authoritative. After merge, the existing publisher must still match the exact production deployment version/commit and pass public production smoke checks before creating the GitHub release.
+The v2.9.0 release commit aligns `package.json#version`, `package-lock.json`, and `deploymentVersion` at `2.9.0`, includes `docs/releases/v2.9.0.md` plus the matching changelog entry, and records the completed Keeper Productivity & Recovery acceptance criteria. The permanent Verify and Real Browser E2E gates remain authoritative. The publisher matched the exact production deployment version/commit and passed public production smoke before creating GitHub release `v2.9.0`.
 
-Future development may advance `deploymentVersion` for the next active milestone while `version` remains on the latest completed formal release. Never hand-edit dependency integrity or transitive dependency fields in `package-lock.json` merely to synchronize a version label.
+## v2.10.0 development state
+
+v2.10 development advances only `deploymentVersion` to `2.10.0`; `package.json#version` and the root/workspace version in `package-lock.json` remain `2.9.0` until the next formal release cut. Maintenance automation must never hand-edit dependency integrity or transitive dependency fields merely to synchronize a version label.

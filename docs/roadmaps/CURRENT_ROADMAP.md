@@ -87,7 +87,6 @@ The release also closes the late mobile Reader reports tracked in #154 and #157:
 - [x] Verify motion remains observer-only and does not become an API/workflow owner.
 
 ## 2.6E — Accessibility verification
-
 - [x] Add automated accessibility scans on Library, Series, Reader chrome, and Garden Keeper surfaces.
 - [x] Add keyboard-only critical-flow tests and explicit focus restoration assertions.
 - [x] Verify 200% and 400% zoom/reflow on public and Keeper surfaces where applicable.
@@ -221,7 +220,7 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [x] Add clear metadata diff/preview before high-impact bulk saves.
 - [x] Add duplicate/similar-volume detection and upload warnings.
 - [x] Improve bulk cover/banner replacement workflows.
-- [ ] Produce a concise import/preflight report with actionable validation warnings.
+- [x] Produce a concise import/preflight report with actionable validation warnings.
 - [ ] Add one-click fixes only where the transformation is deterministic and reversible.
 - [ ] Evaluate an operation queue for long maintenance tasks so UI state remains explicit.
 
@@ -277,7 +276,6 @@ These are useful ideas, but they should be pulled into a release only when the a
 - Revisit deeper performance engineering only if realistic fixtures or production use expose an actual bottleneck.
 
 ## Explicit non-goals for this roadmap
-
 - Another full-codebase refactor.
 - A framework rewrite without measured benefit.
 - Server-side Reader accounts/history.

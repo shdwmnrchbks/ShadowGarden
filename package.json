@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "node tools/build.mjs && node tools/write-source.mjs",
+    "build:dist": "node tools/build.mjs && node tools/write-source.mjs",
     "preview": "node tools/preview.mjs",
     "check": "node tools/check.mjs",
     "prebuild": "npm run check",

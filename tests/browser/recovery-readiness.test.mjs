@@ -21,6 +21,11 @@ test('Recovery Readiness is a read-only on-demand report over existing recovery 
   assert.match(service, /auditCatalogBackups/);
   assert.match(service, /inspectLiveCatalogState/);
   assert.match(service, /inspectRecoveryAnchorObjects/);
+  assert.match(service, /anchor\?\.verified/);
+  assert.match(service, /checksum-verified, object-complete recovery anchor/);
+  assert.match(service, /object-complete legacy snapshot/);
+  assert.match(service, /buildRecoveryReadinessReport\(readClient\(env\)\)/);
+  assert.doesNotMatch(service, /writeClient/);
   assert.match(service, /status === "ready"/);
   assert.match(service, /"recovery-required"/);
   assert.match(service, /"check-required"/);
@@ -31,10 +36,16 @@ test('Recovery Readiness is a read-only on-demand report over existing recovery 
   assert.match(workflow, /client\.request\("\/admin-api\/recovery-readiness",\{method:"GET"\}\)/);
   assert.doesNotMatch(workflow, /\/admin-api\/recovery-readiness[^\n]*POST/);
   assert.match(workflow, /if\(loading\)return/);
+  assert.match(workflow, /checkSequence/);
+  assert.match(workflow, /if\(sequence!==checkSequence\)return/);
+  assert.match(workflow, /function invalidate\(\)\{checkSequence\+=1;loading=false;report=null;idle\(\)\}/);
   assert.match(workflow, /maintenance:opened/);
   assert.match(workflow, /history:changed/);
   assert.match(workflow, /trash:changed/);
   assert.match(workflow, /library:invalidate/);
+  assert.match(workflow, /session:locked/);
+  assert.match(workflow, /checksum-verified, object-complete retained snapshot/);
+  assert.match(workflow, /verified\?"AVAILABLE":"LEGACY"/);
   assert.match(workflow, /status==="ready".*"READY"/s);
   assert.match(workflow, /status==="recovery-required".*"RECOVER NOW"/s);
 });

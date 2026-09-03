@@ -2,10 +2,10 @@
 
 > **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
 > **Starting baseline:** v2.6.x — Reliability & Reader hardening  
-> **Active release:** v2.8.0 — Reader Experience  
-> **Updated:** 2026-09-02
+> **Active release:** v2.9.0 — Keeper Productivity & Recovery  
+> **Updated:** 2026-09-03
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, and the v2.6 real-browser reliability milestone, followed by targeted v2.6.x Reader fixes. The next substantial product milestone is Reader Experience. Performance work is intentionally limited to realistic personal-library scale and should not displace Reader work unless measurements expose a real bottleneck.
+Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, and the v2.8 Reader Experience milestone. The next substantial product milestone is Keeper Productivity & Recovery. Performance work remains intentionally limited to realistic personal-library scale and should not displace active operational work unless measurements expose a real bottleneck.
 
 Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
 
@@ -34,8 +34,8 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | --- | --- | --- |
 | **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
-| **v2.8.0 — Reader Experience** | 🟨 In progress | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
-| **v2.9.0 — Keeper Productivity & Recovery** | ⬜ Planned | Make library administration faster and prove recovery from catalog/storage failures |
+| **v2.8.0 — Reader Experience** | ✅ Done | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
+| **v2.9.0 — Keeper Productivity & Recovery** | 🟨 In progress | Make library administration faster and prove recovery from catalog/storage failures |
 | **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
 
 ---
@@ -152,7 +152,9 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 
 # v2.8.0 — Reader Experience
 
-**Status:** 🟨 In progress  
+**Status:** ✅ Done  
+**Completed:** 2026-09-03  
+**Release record:** [`../releases/v2.8.0.md`](../releases/v2.8.0.md)  
 **Goal:** improve the surface used for hours at a time without destabilizing the Reader architecture.
 
 ## Slice 1 — Focused typeface choices
@@ -195,22 +197,22 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 ## Candidate follow-up scope
 
 - [x] Audit footnote/endnote/pop-up behavior across common EPUB patterns; explicit noterefs now open sanitized Reader-owned popups without moving the live passage, including same-document footnotes and cross-document endnotes.
-- [ ] Improve resume behavior after orientation changes, reloads, backgrounding, and long idle periods.
-- [ ] Expand malformed/common-EPUB compatibility fixtures and graceful error presentation.
-- [ ] Evaluate reader-history conveniences such as recently read/completion date only if they remain browser-local.
+- [x] Improve resume behavior after orientation changes, reloads, backgrounding, and long idle periods.
+- [x] Expand malformed/common-EPUB compatibility fixtures and graceful error presentation.
+- [ ] Evaluate reader-history conveniences such as recently read/completion date only if they remain browser-local. Deferred to the cross-release backlog; this is not a v2.8 release blocker.
 
 ## v2.8.0 acceptance
 
-- [ ] Every new Reader interaction has Chromium/Firefox/WebKit coverage where technically meaningful.
-- [ ] Pages and Continuous retain their separate input ownership.
-- [ ] Page Map/progress/bookmarks remain canonical and backward-compatible.
-- [ ] No live EPUB viewport pinch/pan or Continuous touch interception is reintroduced.
+- [x] Every new Reader interaction has Chromium/Firefox/WebKit coverage where technically meaningful.
+- [x] Pages and Continuous retain their separate input ownership.
+- [x] Page Map/progress/bookmarks remain canonical and backward-compatible.
+- [x] No live EPUB viewport pinch/pan or Continuous touch interception is reintroduced.
 
 ---
 
 # v2.9.0 — Keeper Productivity & Recovery
 
-**Status:** ⬜ Planned  
+**Status:** 🟨 In progress  
 **Goal:** reduce repetitive administration and prove the library can recover from operational mistakes or damaged state.
 
 ## 2.9A — Keeper productivity

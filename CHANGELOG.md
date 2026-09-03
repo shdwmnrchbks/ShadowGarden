@@ -1,5 +1,15 @@
 # Shadow Garden Changelog
 
+## 2.8.0 — Reader Experience
+- Added focused Reader typeface choices: publication-owned Default plus PT Sans, Literata, and Inter, with safe migration of legacy browser-local font preferences.
+- Unified location presentation around the canonical Page Map owner so Pages and Continuous expose device page, volume percentage, and chapter context without creating a second progress calculation.
+- Upgraded long-book navigation with in-place Contents filtering, a Current action, and bounded whole-book CFI-backed text search through the existing EPUB.js spine and Reader navigation path.
+- Added sanitized Reader-owned footnote/endnote popups for explicit EPUB noterefs without moving the live reading passage.
+- Hardened resume recovery across reloads, orientation/layout changes, backgrounding, BFCache/pageshow, and long idle periods, including exact Continuous-mode viewport restoration where layout is unchanged.
+- Expanded EPUB resilience with malformed-but-readable fixtures, stale saved-CFI fallback to first readable content, and actionable sanitized failure chrome for corrupt or unreadable packages.
+- Kept Page Map, progress, bookmarks, protected-book access, Pages/Continuous input ownership, browser-local reading data, and Continuous native touch scrolling canonical and backward-compatible.
+- Verified the completed Reader Experience milestone through the permanent Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile release matrix.
+
 ## 2.6.7 — Continuous Media Width Independence
 - Fixed desktop Continuous full-page images being clipped by the text-width setting: synthetic full-page image plates now re-assert their one-canvas geometry above every theme rule, so landscape plates no longer overflow the text-width column and portrait plates no longer lose their bottom edge to theme padding inside the fixed-height plate body.
 - Made Continuous artwork independent of the text-width setting: the setting now shapes prose only, while figure/picture wrappers, media-only containers, and bare media expand to the full reading canvas with re-centered symmetric negative margins capped at the canvas edge.

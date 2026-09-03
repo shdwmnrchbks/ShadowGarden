@@ -1,0 +1,65 @@
+name: Dependency Audit Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * 1" # Monday 09:00 Asia/Manila (UTC+8)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install production dependencies
+        run: npm ci --omit=dev --no-audit --no-fund --progress=false
+      - name: Collect npm production audit JSON
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > npm-audit.json
+          audit_status=$?
+          set -e
+          echo "npm_audit_exit=$audit_status" >> "$GITHUB_ENV"
+          if [ ! -s npm-audit.json ]; then
+            printf '%s\n' '{"error":{"summary":"npm audit returned no JSON"}}' > npm-audit.json
+          fi
+      - name: Classify and publish audit report
+        shell: bash
+        run: |
+          set +e
+          node tools/dependency-audit-report.mjs --input npm-audit.json --output dependency-audit-report.md --fail-on-action
+          report_status=$?
+          set -e
+
+          if [ -s dependency-audit-report.md ]; then
+            cat dependency-audit-report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# Shadow Garden Dependency Audit Report"
+              echo
+              echo "The audit report could not be generated. npm audit exited with status ${npm_audit_exit}."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$report_status" -eq 2 ]; then
+            echo "::error::Action-required production dependency findings were reported. Review the job summary; do not run npm audit fix automatically."
+            exit 1
+          fi
+          if [ "$report_status" -ne 0 ]; then
+            echo "::error::Dependency audit reporting failed (npm audit exit ${npm_audit_exit}, reporter exit ${report_status}). Treat this as an observability failure, not a clean audit."
+            exit "$report_status"
+          fi

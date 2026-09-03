@@ -87,6 +87,7 @@ The release also closes the late mobile Reader reports tracked in #154 and #157:
 - [x] Verify motion remains observer-only and does not become an API/workflow owner.
 
 ## 2.6E — Accessibility verification
+
 - [x] Add automated accessibility scans on Library, Series, Reader chrome, and Garden Keeper surfaces.
 - [x] Add keyboard-only critical-flow tests and explicit focus restoration assertions.
 - [x] Verify 200% and 400% zoom/reflow on public and Keeper surfaces where applicable.
@@ -276,6 +277,7 @@ These are useful ideas, but they should be pulled into a release only when the a
 - Revisit deeper performance engineering only if realistic fixtures or production use expose an actual bottleneck.
 
 ## Explicit non-goals for this roadmap
+
 - Another full-codebase refactor.
 - A framework rewrite without measured benefit.
 - Server-side Reader accounts/history.

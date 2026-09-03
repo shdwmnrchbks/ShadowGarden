@@ -4,10 +4,11 @@ import {
   MAIN_KEY,
   saveCatalogPair,
   saveTrash,
+  seriesObjectKeys,
   snapshotCatalogs
 } from '../../functions/services/catalog.js';
 import { catalogTrashPurgeGuard } from '../../functions/services/recovery.js';
-import { B2_BUCKET } from '../../functions/services/storage.js';
+import { B2_BUCKET, putObject } from '../../functions/services/storage.js';
 
 class MemoryAws {
   constructor() { this.objects = new Map(); }
@@ -66,8 +67,18 @@ const trashItem = (id, series = removedSeries) => ({
   payload: { series }
 });
 
-test('Trash purge is blocked while its media is referenced by the current recovery anchor', async () => {
+async function seedSeriesMedia(aws, series = removedSeries) {
+  for (const key of seriesObjectKeys(series)) await putObject(aws, key, `fixture:${key}`);
+}
+
+function firstSeriesMediaKey(series = removedSeries) {
+  for (const key of seriesObjectKeys(series)) return key;
+  return '';
+}
+
+test('Trash purge is blocked while its media is referenced by the current object-complete recovery anchor', async () => {
   const aws = new MemoryAws(), beforeDelete = catalog([structuredClone(removedSeries)]), adult = emptyCatalog();
+  await seedSeriesMedia(aws);
   await saveCatalogPair(aws, beforeDelete, adult);
   const preDelete = await snapshotCatalogs(aws, beforeDelete, adult, 'pre-delete-anchor');
   await saveCatalogPair(aws, emptyCatalog(), emptyCatalog());
@@ -78,6 +89,7 @@ test('Trash purge is blocked while its media is referenced by the current recove
   assert.equal(blocked.status, 'purge-would-break-recovery-anchor');
   assert.equal(blocked.recoveryAnchor.id, preDelete.id);
   assert.equal(blocked.recoveryAnchor.verified, true);
+  assert.ok(blocked.recoveryAnchor.objectCount >= 1);
   assert.equal(blocked.selected, 1);
   assert.ok(blocked.candidateDeletes >= 1);
   assert.ok(blocked.protectedDeletes >= 1);
@@ -86,6 +98,7 @@ test('Trash purge is blocked while its media is referenced by the current recove
 
 test('a fresh post-delete snapshot moves the recovery anchor forward and allows purge', async () => {
   const aws = new MemoryAws(), beforeDelete = catalog([structuredClone(removedSeries)]), adult = emptyCatalog();
+  await seedSeriesMedia(aws);
   await saveCatalogPair(aws, beforeDelete, adult);
   const preDelete = await snapshotCatalogs(aws, beforeDelete, adult, 'pre-delete-anchor');
   const afterDelete = emptyCatalog();
@@ -98,11 +111,28 @@ test('a fresh post-delete snapshot moves the recovery anchor forward and allows 
   assert.equal(guard.status, 'safe-to-purge');
   assert.equal(guard.recoveryAnchor.id, postDelete.id);
   assert.notEqual(guard.recoveryAnchor.id, preDelete.id);
+  assert.equal(guard.recoveryAnchor.objectCount, 0);
   assert.equal(guard.protectedDeletes, 0);
   assert.ok(guard.candidateDeletes >= 1);
 });
 
-test('object-deleting purge is blocked when no recoverable snapshot exists', async () => {
+test('purge skips a newer stale snapshot and uses an older object-complete recovery anchor', async () => {
+  const aws = new MemoryAws(), beforeDelete = catalog([structuredClone(removedSeries)]), afterDelete = emptyCatalog();
+  await seedSeriesMedia(aws);
+  const complete = await snapshotCatalogs(aws, afterDelete, emptyCatalog(), 'post-delete-complete');
+  await snapshotCatalogs(aws, beforeDelete, emptyCatalog(), 'pre-delete-stale');
+  aws.objects.delete(firstSeriesMediaKey());
+  await saveCatalogPair(aws, afterDelete, emptyCatalog());
+  await saveTrash(aws, { items: [trashItem('trash-one')] });
+
+  const guard = await catalogTrashPurgeGuard(aws, ['trash-one']);
+  assert.equal(guard.allowed, true);
+  assert.equal(guard.status, 'safe-to-purge');
+  assert.equal(guard.recoveryAnchor.id, complete.id);
+  assert.equal(guard.recoveryAnchor.objectCount, 0);
+});
+
+test('object-deleting purge is blocked when no object-complete recoverable snapshot exists', async () => {
   const aws = new MemoryAws();
   await saveCatalogPair(aws, emptyCatalog(), emptyCatalog());
   await saveTrash(aws, { items: [trashItem('trash-one')] });
@@ -111,7 +141,7 @@ test('object-deleting purge is blocked when no recoverable snapshot exists', asy
   assert.equal(guard.allowed, false);
   assert.equal(guard.status, 'no-recoverable-backup');
   assert.ok(guard.candidateDeletes >= 1);
-  assert.match(guard.detail, /Create and verify a snapshot first/i);
+  assert.match(guard.detail, /object-complete recoverable catalog snapshot/i);
 });
 
 test('purge that would delete no storage objects does not require a recovery anchor', async () => {

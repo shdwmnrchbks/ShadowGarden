@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import { test, expect, READER_BOOK_ID, READER_SERIES_ID } from '../support/fixtures.mjs';
 
 const readerUrl = `/reader.html?book=${encodeURIComponent(READER_BOOK_ID)}&series=${encodeURIComponent(READER_SERIES_ID)}`;
+const progressKey = `sg-progress:${READER_BOOK_ID}`;
 const imperfectEpub = await fs.readFile(new URL('../.generated/reader-imperfect.epub', import.meta.url));
 const corruptEpub = await fs.readFile(new URL('../.generated/reader-corrupt.epub', import.meta.url));
 
@@ -55,6 +56,31 @@ test('Reader opens a common imperfect EPUB with missing title and navigation met
   await page.locator('#tocToggle').click();
   await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
   await expect(page.locator('#tocPanel .toc-link')).toHaveCount(0);
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('Reader discards one stale saved CFI and opens first readable content', async ({ page, browserDiagnostics }) => {
+  const staleCfi = 'epubcfi(/6/999!/4/999/2:999)';
+  await page.addInitScript(({ key, bookId, cfi }) => {
+    localStorage.setItem(key, JSON.stringify({
+      file: bookId,
+      cfi,
+      percentage: 0.61,
+      page: null,
+      totalPages: null,
+      pageMapFingerprint: null,
+      updatedAt: Date.now()
+    }));
+  }, { key: progressKey, bookId: READER_BOOK_ID, cfi: staleCfi });
+
+  await page.goto(readerUrl);
+  await expect(page.locator('#readerLoading')).toHaveClass(/hidden/, { timeout: 20_000 });
+  await expect(page.locator('#viewer iframe')).toHaveCount(1);
+  await expect(page.frameLocator('#viewer iframe').getByRole('heading', { name: 'Chapter One' })).toBeVisible();
+  await expect.poll(async () => page.evaluate(key => {
+    try { return JSON.parse(localStorage.getItem(key) || 'null')?.cfi || ''; }
+    catch { return ''; }
+  }, progressKey), { timeout: 12_000 }).not.toBe(staleCfi);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });
 

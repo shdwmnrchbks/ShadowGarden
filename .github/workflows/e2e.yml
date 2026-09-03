@@ -53,9 +53,9 @@ jobs:
         run: npm ci --prefix tests/e2e --no-audit --no-fund --progress=false
       - name: Build production output
         run: npm run build:dist
-      - name: Generate Reader EPUB fixture
+      - name: Generate Reader EPUB fixtures
         working-directory: tests/e2e
-        run: node support/build-reader-fixture.mjs
+        run: node support/build-reader-fixture.mjs && node support/build-reader-resilience-fixtures.mjs
       - name: Install Playwright browser
         run: npm exec --prefix tests/e2e -- playwright install --with-deps ${{ matrix.browser }}
       - name: Run real-browser suite

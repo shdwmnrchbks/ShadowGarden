@@ -489,6 +489,24 @@ export function stabilizeContinuousScrollLifecycle(rendition){
   return true;
 }
 
+export async function displayRenditionTarget(rendition,target){
+  if(!rendition?.display)throw new Error("EPUB rendition is unavailable");
+  if(!target){await rendition.display();return{fallback:false}}
+  try{
+    await rendition.display(target);
+    return{fallback:false};
+  }catch(error){
+    console.warn("Saved EPUB location unavailable; opening first readable content",error);
+    try{
+      await rendition.display();
+      return{fallback:true};
+    }catch(fallbackError){
+      try{if(fallbackError&&fallbackError.cause===undefined)fallbackError.cause=error}catch{}
+      throw fallbackError;
+    }
+  }
+}
+
 export function createRendition({book,target,viewerId="viewer",flow="paginated",wire,onCreate,themeCss}={}){
   if(!book)throw new Error("EPUB is not open");
   const scrolled=flow==="scrolled-doc",singlePage=!scrolled&&paginatedNeedsSinglePage();
@@ -500,7 +518,7 @@ export function createRendition({book,target,viewerId="viewer",flow="paginated",
   wire?.(rendition);
   try{if(themeCss)rendition.themes.default(themeCss)}catch{}
   configureSpread(rendition,flow);
-  return rendition.display(target||undefined).then(()=>{
+  return displayRenditionTarget(rendition,target).then(()=>{
     if(scrolled)stabilizeContinuousScrollLifecycle(rendition);
     return rendition;
   });

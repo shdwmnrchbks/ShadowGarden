@@ -48,7 +48,7 @@ class MemoryAws {
     }
     if (method === 'DELETE') {
       this.objects.delete(key);
-      return new Response('', { status: 204 });
+      return new Response(null, { status: 204 });
     }
     return new Response('', { status: 405 });
   }

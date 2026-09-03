@@ -4,14 +4,22 @@ import {
   BACKUP_LIMIT,
   BACKUP_PREFIX,
   MAIN_KEY,
+  handleBackupPost,
+  handleMaintenancePost,
   invalidateCatalogCache,
   listBackups,
   loadBackup,
-  saveCatalogPair
+  loadCatalogPair,
+  loadTrash,
+  saveCatalogPair,
+  seriesObjectKeys,
+  trashItemKeys
 } from "./catalog.js";
 import { requireAdmin } from "./auth.js";
 import { json, parseJson } from "./http.js";
-import { getTextObject, getTextObjectWithIntegrity, validObjectKey, writeClient } from "./storage.js";
+import { getTextObject, getTextObjectWithIntegrity, headObject, validObjectKey, writeClient } from "./storage.js";
+
+const RECOVERY_HEAD_BATCH = 20;
 
 function structuralProblem(payload, meta) {
   if (!payload || typeof payload !== "object") return "Backup payload is not an object.";
@@ -77,6 +85,173 @@ export async function auditCatalogBackups(aws) {
   };
 }
 
+function catalogObjectKeys(data) {
+  const keys = new Set();
+  for (const catalog of [data?.main, data?.adult]) for (const series of Array.isArray(catalog?.series) ? catalog.series : []) for (const key of seriesObjectKeys(series)) keys.add(key);
+  return keys;
+}
+
+async function missingRecoveryObjectKeys(aws, keys) {
+  const missing = [];
+  for (let index = 0; index < keys.length; index += RECOVERY_HEAD_BATCH) {
+    const batch = keys.slice(index, index + RECOVERY_HEAD_BATCH);
+    const results = await Promise.all(batch.map(async key => ({ key, present: await headObject(aws, key) })));
+    for (const result of results) if (!result.present) missing.push(result.key);
+  }
+  return missing;
+}
+
+export async function inspectRecoveryAnchorObjects(aws, item) {
+  const base = { id: String(item?.id || ""), snapshotStatus: String(item?.status || ""), complete: false, uncertain: false, objectCount: 0, missing: [] };
+  if (!item?.recoverable) return { ...base, status: item?.status === "check-failed" ? "object-check-uncertain" : "snapshot-unrecoverable", uncertain: item?.status === "check-failed" };
+  try {
+    const backup = await loadBackup(aws, base.id);
+    if (!backup) return { ...base, status: "snapshot-missing" };
+    const keys = [...catalogObjectKeys(backup)], missing = await missingRecoveryObjectKeys(aws, keys);
+    return {
+      ...base,
+      status: missing.length ? "missing-media" : "complete",
+      complete: missing.length === 0,
+      objectCount: keys.length,
+      missing,
+      keys
+    };
+  } catch (error) {
+    return { ...base, status: "object-check-uncertain", uncertain: true, detail: String(error?.message || error) };
+  }
+}
+
+async function firstCompleteRecoveryAnchor(aws, items = []) {
+  let uncertain = 0, stale = 0, checked = 0;
+  for (const item of items) {
+    if (item?.status === "check-failed") { uncertain += 1; continue; }
+    if (!item?.recoverable) continue;
+    const availability = await inspectRecoveryAnchorObjects(aws, item); checked += 1;
+    if (availability.complete) return { anchor: item, availability, checked, uncertain, stale };
+    if (availability.uncertain) uncertain += 1; else stale += 1;
+  }
+  return { anchor: null, availability: null, checked, uncertain, stale };
+}
+
+export async function catalogBackupDeletionGuard(aws, id) {
+  const backupId = String(id || "").trim(), report = await auditCatalogBackups(aws);
+  const target = report.items.find(item => item.id === backupId);
+  if (!target) return { allowed: true, status: "backup-not-found", backupId, recoverableBefore: report.summary.recoverable, remainingRecoverable: report.summary.recoverable, remainingRecoveryAnchors: 0 };
+
+  const alternatives = await firstCompleteRecoveryAnchor(aws, report.items.filter(item => item.id !== backupId));
+  if (alternatives.anchor) return {
+    allowed: true,
+    status: "safe-to-delete",
+    backupId,
+    targetStatus: target.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
+    remainingRecoveryAnchors: 1,
+    recoveryAnchor: { id: alternatives.anchor.id, status: alternatives.anchor.status, verified: alternatives.anchor.verified, objectCount: alternatives.availability.objectCount }
+  };
+
+  if (!target.recoverable && target.status !== "check-failed") return {
+    allowed: true,
+    status: "unrecoverable-backup-safe-to-delete",
+    backupId,
+    targetStatus: target.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
+    remainingRecoveryAnchors: 0
+  };
+
+  const targetAvailability = await inspectRecoveryAnchorObjects(aws, target);
+  if (target.status === "check-failed" || targetAvailability.uncertain) return {
+    allowed: false,
+    status: "recovery-audit-uncertain",
+    backupId,
+    targetStatus: target.status,
+    targetAvailability: targetAvailability.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
+    remainingRecoveryAnchors: 0,
+    detail: "This snapshot could not be proven disposable and no other object-complete recovery anchor remains. Deletion is blocked until recovery readiness can be proven."
+  };
+  if (targetAvailability.complete) return {
+    allowed: false,
+    status: "last-recoverable-backup",
+    backupId,
+    targetStatus: target.status,
+    targetAvailability: targetAvailability.status,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
+    remainingRecoveryAnchors: 0,
+    detail: "Deletion would remove the last object-complete recoverable catalog snapshot. Create and verify another snapshot first."
+  };
+  return {
+    allowed: true,
+    status: "stale-backup-safe-to-delete",
+    backupId,
+    targetStatus: target.status,
+    targetAvailability: targetAvailability.status,
+    missingMedia: targetAvailability.missing.length,
+    recoverableBefore: report.summary.recoverable,
+    remainingRecoverable: report.items.filter(item => item.id !== backupId && item.recoverable).length,
+    remainingRecoveryAnchors: 0
+  };
+}
+
+export async function catalogTrashPurgeGuard(aws, ids = []) {
+  const requested = Array.isArray(ids) ? ids.map(value => String(value || "").trim()).filter(Boolean) : [];
+  const live = await inspectLiveCatalogState(aws);
+  if (!live.readable) return {
+    allowed: false,
+    status: "live-catalog-recovery-required",
+    selected: 0,
+    candidateDeletes: 0,
+    protectedDeletes: 0,
+    current: live,
+    detail: "Trash purge is blocked while a live catalog is missing, unreadable, or incomplete. Recover the canonical catalogs before permanently deleting Trash material."
+  };
+  const [data, trash] = await Promise.all([loadCatalogPair(aws), loadTrash(aws)]);
+  const items = Array.isArray(trash?.items) ? trash.items : [], selected = requested.length ? items.filter(item => requested.includes(String(item?.id || ""))) : items;
+  if (!selected.length) return { allowed: true, status: "nothing-to-purge", selected: 0, candidateDeletes: 0, protectedDeletes: 0 };
+
+  const selectedIds = new Set(selected.map(item => item.id)), remaining = items.filter(item => !selectedIds.has(item.id)), keep = catalogObjectKeys(data);
+  for (const item of remaining) for (const key of trashItemKeys(item)) keep.add(key);
+  const candidates = new Set();
+  for (const item of selected) for (const key of trashItemKeys(item)) if (!keep.has(key)) candidates.add(key);
+  if (!candidates.size) return { allowed: true, status: "no-object-deletes", selected: selected.length, candidateDeletes: 0, protectedDeletes: 0 };
+
+  const report = await auditCatalogBackups(aws), resolved = await firstCompleteRecoveryAnchor(aws, report.items), anchor = resolved.anchor;
+  if (!anchor) return {
+    allowed: false,
+    status: resolved.uncertain ? "recovery-anchor-check-uncertain" : "no-recoverable-backup",
+    selected: selected.length,
+    candidateDeletes: candidates.size,
+    protectedDeletes: 0,
+    staleSnapshots: resolved.stale,
+    uncertainSnapshots: resolved.uncertain,
+    detail: resolved.uncertain
+      ? "Trash purge would permanently delete storage objects, but no object-complete recovery anchor could be proven because snapshot or media verification was uncertain."
+      : "Trash purge would permanently delete storage objects, but no object-complete recoverable catalog snapshot is available. Create and verify a fresh snapshot first."
+  };
+
+  const protectedKeys = new Set(resolved.availability.keys), protectedDeletes = [...candidates].filter(key => protectedKeys.has(key));
+  if (protectedDeletes.length) return {
+    allowed: false,
+    status: "purge-would-break-recovery-anchor",
+    selected: selected.length,
+    candidateDeletes: candidates.size,
+    protectedDeletes: protectedDeletes.length,
+    recoveryAnchor: { id: anchor.id, status: anchor.status, verified: anchor.verified, objectCount: resolved.availability.objectCount },
+    detail: "Trash purge would delete media referenced by the current object-complete recovery anchor. Create and verify a fresh snapshot after the Trash change, then purge again."
+  };
+  return {
+    allowed: true,
+    status: "safe-to-purge",
+    selected: selected.length,
+    candidateDeletes: candidates.size,
+    protectedDeletes: 0,
+    recoveryAnchor: { id: anchor.id, status: anchor.status, verified: anchor.verified, objectCount: resolved.availability.objectCount }
+  };
+}
+
 function inspectLiveCatalogText(text, key) {
   if (text === null) return { key, status: "missing", readable: false, detail: "Live catalog object is missing." };
   let payload;
@@ -132,6 +307,40 @@ export async function emergencyRestoreCatalogBackup(aws, id) {
     currentAfter: after,
     preRestoreSnapshot: "skipped-unrecoverable-current-state"
   };
+}
+
+export async function handleGuardedBackupPost({ request, env }) {
+  if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
+  const preview = await parseJson(request.clone());
+  if (!preview.ok) return json({ ok: false, error: "Invalid JSON body" }, 400);
+  const action = String(preview.value?.action || "").trim(), id = String(preview.value?.id || "").trim();
+  if (action === "delete" && id) {
+    try {
+      const guard = await catalogBackupDeletionGuard(writeClient(env), id);
+      if (!guard.allowed) return json({ ok: false, error: "Catalog backup deletion blocked", ...guard }, 409);
+    } catch (error) {
+      console.error("Catalog backup deletion safety check failed", error);
+      return json({ ok: false, error: "Could not prove backup deletion is safe", detail: String(error?.message || error) }, 502);
+    }
+  }
+  return handleBackupPost({ request, env });
+}
+
+export async function handleGuardedMaintenancePost({ request, env }) {
+  if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
+  const preview = await parseJson(request.clone());
+  if (!preview.ok) return json({ ok: false, error: "Invalid JSON body" }, 400);
+  const action = String(preview.value?.action || "").trim();
+  if (action === "purge-trash") {
+    try {
+      const guard = await catalogTrashPurgeGuard(writeClient(env), preview.value?.ids);
+      if (!guard.allowed) return json({ ok: false, error: "Trash purge blocked by recovery safety", ...guard }, 409);
+    } catch (error) {
+      console.error("Trash purge recovery safety check failed", error);
+      return json({ ok: false, error: "Could not prove Trash purge is recovery-safe", detail: String(error?.message || error) }, 502);
+    }
+  }
+  return handleMaintenancePost({ request, env });
 }
 
 export async function handleRecoveryGet({ request, env }) {

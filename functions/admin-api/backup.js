@@ -1,4 +1,4 @@
-/* Shadow Garden R6 route adapter — catalog backup deletion lives in services/catalog.js. */
-import { handleBackupPost } from "../services/catalog.js";
+/* Shadow Garden v2.9 route adapter — catalog backup deletion remains catalog-owned behind recovery safety checks. */
+import { handleGuardedBackupPost } from "../services/recovery.js";
 
-export async function onRequestPost(context) { return handleBackupPost(context); }
+export async function onRequestPost(context) { return handleGuardedBackupPost(context); }

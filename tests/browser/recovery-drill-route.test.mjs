@@ -33,3 +33,19 @@ test('backup deletion remains catalog-owned behind the recovery-anchor guard', a
   assert.match(service, /if \(!guard\.allowed\).*409/s);
   assert.match(service, /return handleBackupPost\(\{ request, env \}\)/);
 });
+
+test('Trash purge remains catalog-owned behind recovery-anchor media checks', async () => {
+  const [route, service] = await Promise.all([
+    read('functions/admin-api/maintenance.js'),
+    read('functions/services/recovery.js')
+  ]);
+
+  assert.match(route, /handleMaintenanceGet/);
+  assert.match(route, /handleGuardedMaintenancePost/);
+  assert.match(route, /onRequestPost\(context\).*handleGuardedMaintenancePost\(context\)/s);
+  assert.match(service, /status: "live-catalog-recovery-required"/);
+  assert.match(service, /status: "no-recoverable-backup"/);
+  assert.match(service, /status: "purge-would-break-recovery-anchor"/);
+  assert.match(service, /if \(!guard\.allowed\).*409/s);
+  assert.match(service, /return handleMaintenancePost\(\{ request, env \}\)/);
+});

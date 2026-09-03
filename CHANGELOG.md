@@ -1,5 +1,15 @@
 # Shadow Garden Changelog
 
+## 2.9.0 — Keeper Productivity & Recovery
+- Added safe multi-series metadata editing for taxonomy, series status, translation status, and translation credits with explicit Keep/Add/Replace/Clear semantics, per-series diff preview, canonical validation, and a safety backup before writes.
+- Hardened New Books review with exact-duplicate protection, non-blocking similar-volume warnings, concise import/preflight reporting, and deterministic one-click fixes only where changes are reversible and unambiguous.
+- Improved Keeper bulk artwork replacement and long-running maintenance presentation while preserving the existing catalog, storage, validation, and workflow owners rather than adding parallel mutation paths.
+- Defined and enforced catalog snapshot retention/recovery invariants, checksum verification, object-completeness checks, and last-recoverable-anchor protection across History, Trash, restore, and permanent purge behavior.
+- Added a documented, automated recovery drill that restores damaged or missing catalogs from deterministic local/mocked B2 fixtures without making destructive production recovery part of normal CI.
+- Added an on-demand, read-only Recovery Readiness report that distinguishes READY, RECOVER NOW, CHECK, and NOT READY states and requires readable live catalogs plus a checksum-verified, object-complete retained snapshot before reporting READY.
+- Kept legacy object-complete snapshots visible as recovery material without presenting them as verified readiness, preferred the newest verified complete anchor when newer legacy snapshots exist, and used least-privilege B2 read credentials for readiness auditing.
+- Verified Keeper productivity and recovery behavior through deterministic service/source coverage plus the permanent Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile release matrix.
+
 ## 2.8.0 — Reader Experience
 - Added focused Reader typeface choices: publication-owned Default plus PT Sans, Literata, and Inter, with safe migration of legacy browser-local font preferences.
 - Unified location presentation around the canonical Page Map owner so Pages and Continuous expose device page, volume percentage, and chapter context without creating a second progress calculation.

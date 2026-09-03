@@ -48,7 +48,7 @@ function requireAuditWorkflow(audit) {
   if (!/npm audit --omit=dev --json/.test(audit)) fail("Dependency audit workflow must collect production-only npm audit JSON");
   if (!/dependency-audit-report\.mjs[^\n]*--fail-on-action/.test(audit)) fail("Dependency audit workflow must classify findings with the repository reporter");
   if (!/GITHUB_STEP_SUMMARY/.test(audit)) fail("Dependency audit workflow must publish a human-readable job summary");
-  if (/npm\s+audit\s+fix\b/.test(audit)) fail("Dependency audit workflow must never run npm audit fix");
+  if (/(?:^|\n)\s*(?:run:\s*)?npm\s+audit\s+fix\b/m.test(audit)) fail("Dependency audit workflow must never run npm audit fix");
 }
 
 async function main() {

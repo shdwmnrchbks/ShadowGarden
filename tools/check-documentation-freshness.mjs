@@ -54,7 +54,7 @@ export function checkDocumentationFreshness({ packageJson = {}, currentRoadmap =
   );
   expectVersion(docsFormal, formalVersion, "docs index formal release", failures);
 
-  if (!/\[roadmaps\/CURRENT_ROADMAP\.md\]\(\.\/roadmaps\/CURRENT_ROADMAP\.md\)/.test(String(docsIndex))) {
+  if (!String(docsIndex).includes("(./roadmaps/CURRENT_ROADMAP.md)")) {
     failures.push("docs index must link to ./roadmaps/CURRENT_ROADMAP.md as the current roadmap");
   }
 

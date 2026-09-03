@@ -1,4 +1,4 @@
-/* Shadow Garden v2.9 — atomic Keeper cover + banner catalog updates. */
+/* Shadow Garden v2.9 — validated Keeper cover + banner catalog updates. */
 import { volumeBookId } from "../_lib/book-id.js";
 import { requireAdmin } from "./auth.js";
 import {

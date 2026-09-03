@@ -177,7 +177,7 @@
 - Normalized directional UI affordances to filled triangle glyphs across the current site surfaces.
 
 ## 1.7.4 — Catalog History Card Rebuild
-- Rebuilt Catalog History rows as a dedicated component instead of inheriting generic maintenance-item geometry.
+- Rebuilt Garden History rows as a dedicated component instead of inheriting generic maintenance-item geometry.
 - Preserved the v1.7.3 preflight behavior and the uploaded-series cover chooser while correcting mobile backup layout.
 
 ## 1.7.3 — Local Preflight Recovery
@@ -326,7 +326,7 @@
 - Stop destroying offscreen spine iframes during active scrolling; hide them while moving, then trim only after the reader is idle while retaining a bounded three-section neighborhood around the viewport.
 - Delay Continuous `scrolled` location reports until the queued manager check has settled, preventing stale geometry from pushing the reader forward or leaving the viewport blank during repeated upward traversal.
 - Normalize visual-only XHTML sections before EPUB.js measures them, including `<figure><img>`, standalone image pages, and SVG cover wrappers that use percentage sizing or `100vh`.
-- Keep visual pages at least one reader viewport tall, remeasure after normal images, SVG image resources, video metadata, and fonts settle.
+- Keep visual pages at least one reader viewport tall, remeasure after media and fonts settle, and preserve intrinsic SVG/image aspect ratios instead of forcing SVG-only sections to exactly one viewport.
 - Increased the Continuous preload window to roughly 2.25 viewports so prior spine items are prepared earlier without changing Paginated mode.
 
 ## 1.1.2 — Continuous Media & Reverse Scroll Stability

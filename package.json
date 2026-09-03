@@ -1,6 +1,6 @@
 {
   "name": "shadow-garden-library",
-  "version": "2.6.7",
+  "version": "2.8.0",
   "deploymentVersion": "2.8.0",
   "private": true,
   "type": "module",

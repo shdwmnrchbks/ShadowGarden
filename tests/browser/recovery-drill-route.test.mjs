@@ -20,7 +20,7 @@ test('recovery route exposes the service-owned emergency restore contract', asyn
   assert.match(service, /await invalidateCatalogCache\(request\)/);
 });
 
-test('backup deletion remains catalog-owned behind the recovery-anchor guard', async () => {
+test('backup deletion remains catalog-owned behind an object-complete recovery-anchor guard', async () => {
   const [route, service] = await Promise.all([
     read('functions/admin-api/backup.js'),
     read('functions/services/recovery.js')
@@ -28,13 +28,17 @@ test('backup deletion remains catalog-owned behind the recovery-anchor guard', a
 
   assert.match(route, /handleGuardedBackupPost/);
   assert.match(route, /onRequestPost\(context\).*handleGuardedBackupPost\(context\)/s);
+  assert.match(service, /inspectRecoveryAnchorObjects/);
+  assert.match(service, /await headObject\(aws, key\)/);
+  assert.match(service, /status: "missing-media"/);
+  assert.match(service, /remainingRecoveryAnchors/);
   assert.match(service, /status: "last-recoverable-backup"/);
   assert.match(service, /status: "recovery-audit-uncertain"/);
   assert.match(service, /if \(!guard\.allowed\).*409/s);
   assert.match(service, /return handleBackupPost\(\{ request, env \}\)/);
 });
 
-test('Trash purge remains catalog-owned behind recovery-anchor media checks', async () => {
+test('Trash purge remains catalog-owned behind object-complete recovery-anchor media checks', async () => {
   const [route, service] = await Promise.all([
     read('functions/admin-api/maintenance.js'),
     read('functions/services/recovery.js')
@@ -44,8 +48,11 @@ test('Trash purge remains catalog-owned behind recovery-anchor media checks', as
   assert.match(route, /handleGuardedMaintenancePost/);
   assert.match(route, /onRequestPost\(context\).*handleGuardedMaintenancePost\(context\)/s);
   assert.match(service, /status: "live-catalog-recovery-required"/);
+  assert.match(service, /firstCompleteRecoveryAnchor/);
+  assert.match(service, /status: "recovery-anchor-check-uncertain"/);
   assert.match(service, /status: "no-recoverable-backup"/);
   assert.match(service, /status: "purge-would-break-recovery-anchor"/);
+  assert.match(service, /current object-complete recovery anchor/);
   assert.match(service, /if \(!guard\.allowed\).*409/s);
   assert.match(service, /return handleMaintenancePost\(\{ request, env \}\)/);
 });

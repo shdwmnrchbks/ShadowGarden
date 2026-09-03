@@ -8,7 +8,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "build": "node tools/build.mjs && node tools/write-source.mjs",
+    "build": "npm run build:dist",
     "build:dist": "node tools/build.mjs && node tools/write-source.mjs",
     "preview": "node tools/preview.mjs",
     "check": "node tools/check.mjs",
@@ -20,7 +20,7 @@
     "test:browser": "node --test tests/browser/*.test.mjs",
     "test:e2e": "npm --prefix tests/e2e exec playwright test",
     "test:e2e:install": "npm --prefix tests/e2e exec playwright install --with-deps chromium firefox webkit",
-    "test:e2e:chromium": "npm --prefix tests/e2e exec playwright test -- --project=chromium",
+    "test:e2e:chromium": "npm --prefix tests/e2e exec playwright test -- --project=chromium-desktop",
     "check:flavor": "node tools/check-flavor.mjs",
     "check:reading-status": "node tools/check-reading-status.mjs",
     "check:security": "node tools/check-security.mjs",

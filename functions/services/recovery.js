@@ -5,10 +5,15 @@ import {
   BACKUP_PREFIX,
   MAIN_KEY,
   handleBackupPost,
+  handleMaintenancePost,
   invalidateCatalogCache,
   listBackups,
   loadBackup,
-  saveCatalogPair
+  loadCatalogPair,
+  loadTrash,
+  saveCatalogPair,
+  seriesObjectKeys,
+  trashItemKeys
 } from "./catalog.js";
 import { requireAdmin } from "./auth.js";
 import { json, parseJson } from "./http.js";
@@ -111,6 +116,56 @@ export async function catalogBackupDeletionGuard(aws, id) {
   };
 }
 
+function catalogObjectKeys(data) {
+  const keys = new Set();
+  for (const catalog of [data?.main, data?.adult]) for (const series of Array.isArray(catalog?.series) ? catalog.series : []) for (const key of seriesObjectKeys(series)) keys.add(key);
+  return keys;
+}
+
+export async function catalogTrashPurgeGuard(aws, ids = []) {
+  const requested = Array.isArray(ids) ? ids.map(value => String(value || "").trim()).filter(Boolean) : [];
+  const [data, trash] = await Promise.all([loadCatalogPair(aws), loadTrash(aws)]);
+  const items = Array.isArray(trash?.items) ? trash.items : [], selected = requested.length ? items.filter(item => requested.includes(String(item?.id || ""))) : items;
+  if (!selected.length) return { allowed: true, status: "nothing-to-purge", selected: 0, candidateDeletes: 0, protectedDeletes: 0 };
+
+  const selectedIds = new Set(selected.map(item => item.id)), remaining = items.filter(item => !selectedIds.has(item.id)), keep = catalogObjectKeys(data);
+  for (const item of remaining) for (const key of trashItemKeys(item)) keep.add(key);
+  const candidates = new Set();
+  for (const item of selected) for (const key of trashItemKeys(item)) if (!keep.has(key)) candidates.add(key);
+  if (!candidates.size) return { allowed: true, status: "no-object-deletes", selected: selected.length, candidateDeletes: 0, protectedDeletes: 0 };
+
+  const report = await auditCatalogBackups(aws), anchor = report.items.find(item => item.verified) || report.items.find(item => item.recoverable);
+  if (!anchor) return {
+    allowed: false,
+    status: "no-recoverable-backup",
+    selected: selected.length,
+    candidateDeletes: candidates.size,
+    protectedDeletes: 0,
+    detail: "Trash purge would permanently delete storage objects, but no confirmed recoverable catalog snapshot is available. Create and verify a snapshot first."
+  };
+
+  const backup = await loadBackup(aws, anchor.id);
+  if (!backup) throw new Error("Recovery anchor disappeared before Trash purge safety verification.");
+  const protectedKeys = catalogObjectKeys(backup), protectedDeletes = [...candidates].filter(key => protectedKeys.has(key));
+  if (protectedDeletes.length) return {
+    allowed: false,
+    status: "purge-would-break-recovery-anchor",
+    selected: selected.length,
+    candidateDeletes: candidates.size,
+    protectedDeletes: protectedDeletes.length,
+    recoveryAnchor: { id: anchor.id, status: anchor.status, verified: anchor.verified },
+    detail: "Trash purge would delete media referenced by the current recovery anchor. Create and verify a fresh snapshot after the Trash change, then purge again."
+  };
+  return {
+    allowed: true,
+    status: "safe-to-purge",
+    selected: selected.length,
+    candidateDeletes: candidates.size,
+    protectedDeletes: 0,
+    recoveryAnchor: { id: anchor.id, status: anchor.status, verified: anchor.verified }
+  };
+}
+
 function inspectLiveCatalogText(text, key) {
   if (text === null) return { key, status: "missing", readable: false, detail: "Live catalog object is missing." };
   let payload;
@@ -183,6 +238,23 @@ export async function handleGuardedBackupPost({ request, env }) {
     }
   }
   return handleBackupPost({ request, env });
+}
+
+export async function handleGuardedMaintenancePost({ request, env }) {
+  if (!(await requireAdmin(request, env))) return json({ ok: false, error: "Unauthorized" }, 401);
+  const preview = await parseJson(request.clone());
+  if (!preview.ok) return json({ ok: false, error: "Invalid JSON body" }, 400);
+  const action = String(preview.value?.action || "").trim();
+  if (action === "purge-trash") {
+    try {
+      const guard = await catalogTrashPurgeGuard(writeClient(env), preview.value?.ids);
+      if (!guard.allowed) return json({ ok: false, error: "Trash purge blocked by recovery safety", ...guard }, 409);
+    } catch (error) {
+      console.error("Trash purge recovery safety check failed", error);
+      return json({ ok: false, error: "Could not prove Trash purge is recovery-safe", detail: String(error?.message || error) }, 502);
+    }
+  }
+  return handleMaintenancePost({ request, env });
 }
 
 export async function handleRecoveryGet({ request, env }) {

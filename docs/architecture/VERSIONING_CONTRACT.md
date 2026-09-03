@@ -1,8 +1,8 @@
 # Shadow Garden Versioning Contract
 
 **Status:** Active contract  
-**Active deployment/product version:** v2.8.0 — Reader Experience (in progress)  
-**Latest formal release:** v2.6.7
+**Active deployment/product version:** v2.8.0 — Reader Experience  
+**Formal release source version:** v2.8.0
 
 Shadow Garden intentionally separates the version shown by a live development deployment from the version eligible for a formal GitHub release.
 
@@ -13,16 +13,16 @@ Shadow Garden intentionally separates the version shown by a live development de
 - `version` — the latest **formal release** version. This remains synchronized with `package-lock.json` and is the version consumed by `.github/workflows/release-v2.yml`.
 - `deploymentVersion` — the **active deployed product line**. This is the version exposed by generated deployment metadata and shown by the public Library and Garden Keeper.
 
-During an in-progress milestone, these values may intentionally differ. For the current v2.8 work:
+During an in-progress milestone, these values may intentionally differ. At the v2.8.0 release cut they converge:
 
 ```json
 {
-  "version": "2.6.7",
+  "version": "2.8.0",
   "deploymentVersion": "2.8.0"
 }
 ```
 
-This means the live application identifies itself as v2.8.0 while v2.6.7 remains the latest completed release record until the v2.8 milestone is formally cut.
+The release commit therefore identifies both the formal release and the deployed product line as v2.8.0. A later milestone may advance `deploymentVersion` again while `version` remains on the latest completed formal release.
 
 ## Deployment metadata
 
@@ -54,15 +54,8 @@ No public surface should hard-code the current product version.
 
 The active `deploymentVersion` does **not** by itself make a milestone release-eligible.
 
-## Cutting the final v2.8.0 release
+## v2.8.0 release state
 
-When v2.8.0 Reader Experience is actually complete:
+The v2.8.0 release commit aligns `package.json#version`, `package-lock.json`, and `deploymentVersion` at `2.8.0`, includes `docs/releases/v2.8.0.md` plus the matching changelog entry, and records the completed Reader Experience acceptance criteria. The permanent Verify and Real Browser E2E gates remain authoritative. After merge, the existing publisher must still match the exact production deployment version/commit and pass public production smoke checks before creating the GitHub release.
 
-1. add/finalize `docs/releases/v2.8.0.md` and the v2.8 changelog entry;
-2. set `package.json#version` to `2.8.0`;
-3. regenerate `package-lock.json` with npm so its root/workspace version becomes `2.8.0` without hand-editing generated dependency metadata;
-4. keep `deploymentVersion` at `2.8.0` or remove it once the fallback produces the same value;
-5. run the permanent Verify and Real Browser E2E gates;
-6. let the existing release publisher verify production and create the GitHub release.
-
-Never hand-edit dependency integrity or transitive dependency fields in `package-lock.json` merely to synchronize a version label.
+Future development may advance `deploymentVersion` for the next active milestone while `version` remains on the latest completed formal release. Never hand-edit dependency integrity or transitive dependency fields in `package-lock.json` merely to synchronize a version label.

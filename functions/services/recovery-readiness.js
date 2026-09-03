@@ -36,19 +36,23 @@ export async function buildRecoveryReadinessReport(aws) {
 
   const status = !live.readable
     ? "recovery-required"
-    : anchor
+    : anchor?.verified
       ? "ready"
-      : uncertain
-        ? "check-required"
-        : "not-ready";
+      : anchor
+        ? "not-ready"
+        : uncertain
+          ? "check-required"
+          : "not-ready";
 
   const detail = status === "ready"
-    ? "Live catalogs are readable and an object-complete recovery anchor is available."
+    ? "Live catalogs are readable and a checksum-verified, object-complete recovery anchor is available."
     : status === "recovery-required"
       ? "At least one live catalog requires recovery before destructive maintenance can be considered safe."
       : status === "check-required"
         ? "No object-complete recovery anchor could be proven because snapshot or media verification was uncertain."
-        : "No object-complete recovery anchor is available. Create and verify a fresh catalog snapshot.";
+        : anchor
+          ? "An object-complete legacy snapshot is available, but it is not checksum-verified. Create and verify a fresh catalog snapshot before treating recovery as ready."
+          : "No object-complete recovery anchor is available. Create and verify a fresh catalog snapshot.";
 
   return {
     ...backups,

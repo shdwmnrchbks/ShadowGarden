@@ -61,6 +61,8 @@ No public surface should hard-code the current product version.
 - matching Cloudflare production deployment metadata;
 - successful production smoke checks.
 
+Normal `npm run check` includes `check:release`, which deterministically verifies the formal package/lockfile version, newest changelog release, matching release-note heading, v2 publisher ownership, and build-context version ownership before a change reaches those network-backed release gates. Build-context unit coverage derives its expectations from `package.json` rather than hard-coding an old milestone version.
+
 The active `deploymentVersion` does **not** by itself make a milestone release-eligible.
 
 ## v2.9.0 release state

@@ -1,6 +1,9 @@
 name: Real Browser E2E
 
 on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 1 * *' # 10:00 Asia/Manila on the first day of each month
   pull_request:
     paths-ignore:
       - '**/*.md'

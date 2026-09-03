@@ -222,7 +222,7 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [x] Add duplicate/similar-volume detection and upload warnings.
 - [x] Improve bulk cover/banner replacement workflows.
 - [x] Produce a concise import/preflight report with actionable validation warnings.
-- [ ] Add one-click fixes only where the transformation is deterministic and reversible.
+- [x] Add one-click fixes only where the transformation is deterministic and reversible.
 - [ ] Evaluate an operation queue for long maintenance tasks so UI state remains explicit.
 
 ## 2.9B — Recovery readiness

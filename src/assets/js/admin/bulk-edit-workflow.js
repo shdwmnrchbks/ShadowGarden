@@ -199,7 +199,7 @@
       syncCreditFields();
       const result=await plans(),changed=result.items.filter(item=>item.changes.length),validation=$("#bulkSeriesValidation"),saveButton=$("#saveBulkSeriesEdit");
       $("#bulkSeriesCount").textContent=`${result.items.length} series selected`;
-      $("#bulkChangedCount").textContent=`${changed.length} ${changed.length===1?"series":"series"} changing`;
+      $("#bulkChangedCount").textContent=`${changed.length} series changing`;
       validation.className=`bulk-edit-validation${result.validation.errors.length?" error":result.validation.warnings.length?" warning":""}`;
       validation.textContent=result.validation.errors[0]||result.validation.warnings.join(" ")||"Only the previewed fields will change. Unlisted metadata is preserved.";
       $("#bulkSeriesPreview").innerHTML=changed.length?changed.map(item=>`<article class="bulk-edit-preview-item"><strong>${esc(item.entry.series.title||"Untitled")}</strong>${item.changes.map(change=>`<span><b>${esc(labels[change.key]||change.key)}</b>${esc(printable(change.key,change.before))} → ${esc(printable(change.key,change.after))}</span>`).join("")}</article>`).join(""):'<div class="bulk-edit-empty">No metadata changes are currently staged.</div>';
@@ -210,14 +210,17 @@
       saving=value;
       for(const control of dialog?.querySelectorAll("[data-bulk-editor-control]")||[])control.disabled=value;
       syncCreditFields();syncButton();
+      if(!value&&$("#saveBulkSeriesEdit"))$("#saveBulkSeriesEdit").disabled=true;
     }
 
     async function save(){
       if(saving)return;
-      const result=await plans(),changed=result.items.filter(item=>item.changes.length);
-      if(result.validation.errors.length||!changed.length)return void renderPreview();
-      setBusy(true);const progress=$("#bulkSeriesProgress");progress.classList.remove("hidden");let completed=0,backupCreated=false;
+      setBusy(true);
+      const progress=$("#bulkSeriesProgress");let completed=0,backupCreated=false,changed=[];
       try{
+        const result=await plans();changed=result.items.filter(item=>item.changes.length);
+        if(result.validation.errors.length||!changed.length)return;
+        progress.classList.remove("hidden");
         progress.textContent=`Creating safety backup before ${changed.length} series update${changed.length===1?"":"s"}…`;
         await client.request("/admin-api/maintenance",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"create-backup",reason:"before-bulk-series-metadata"})});
         backupCreated=true;keeper.events.dispatchEvent(new Event("history:changed"));
@@ -228,7 +231,7 @@
         state.management=null;selected.clear();keeper.events.dispatchEvent(new Event("library:invalidate"));dialog.close();keeper.ui.toast(`Updated metadata for ${completed} series.`);
       }catch(error){
         state.management=null;keeper.events.dispatchEvent(new Event("library:invalidate"));
-        progress.textContent=`Stopped after ${completed} of ${changed.length} series: ${error.message}`;
+        progress.classList.remove("hidden");progress.textContent=`Stopped after ${completed} of ${changed.length} series: ${error.message}`;
         alert(`Batch edit stopped after ${completed} of ${changed.length} series. No further series were changed.${backupCreated?" A safety backup was created before the batch began.":""}\n\n${error.message}`);
       }finally{setBusy(false);if(dialog.open)void renderPreview()}
     }

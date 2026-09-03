@@ -64,7 +64,7 @@ function readinessReport(mode) {
     },
     readiness: {
       status: 'ready', ready: true,
-      detail: 'Live catalogs are readable and an object-complete recovery anchor is available.',
+      detail: 'Live catalogs are readable and a checksum-verified, object-complete recovery anchor is available.',
       anchor, checkedSnapshots: 1, staleSnapshots: 0, uncertainSnapshots: 0
     },
     items: []
@@ -112,7 +112,7 @@ async function unlockKeeper(page) {
   await expect(page.locator('#authState')).toHaveText('UNLOCKED');
 }
 
-test('Recovery Readiness stays on-demand, single-submit, and never reports READY for damaged live catalogs', async ({ page, browserDiagnostics }) => {
+test('Recovery Readiness stays on-demand, single-submit, invalidation-safe, and never reports READY for damaged live catalogs', async ({ page, browserDiagnostics }) => {
   const state = { requests: [], readinessGets: 0, mode: 'ready', gate: deferred() };
   await installRoutes(page, state);
   await unlockKeeper(page);
@@ -133,7 +133,7 @@ test('Recovery Readiness stays on-demand, single-submit, and never reports READY
   state.gate.resolve();
 
   await expect(page.locator('#recoveryReadinessState')).toHaveText('READY');
-  await expect(page.locator('#recoveryReadinessDetail')).toContainText('object-complete recovery anchor');
+  await expect(page.locator('#recoveryReadinessDetail')).toContainText('checksum-verified, object-complete recovery anchor');
   await expect(page.locator('#recoveryReadinessMetrics')).toContainText('3');
   await expect(page.locator('#recoveryReadinessList')).toContainText('Object-complete recovery anchor');
   await expect(page.locator('#recoveryReadinessList')).toContainText('SHA-256 verified');
@@ -149,6 +149,15 @@ test('Recovery Readiness stays on-demand, single-submit, and never reports READY
   state.gate = deferred();
   await check.click();
   await expect.poll(() => state.readinessGets).toBe(2);
+  await expect(page.locator('#recoveryReadinessState')).toHaveText('CHECKING');
+  await page.evaluate(() => window.ShadowGardenKeeper.events.dispatchEvent(new Event('history:changed')));
+  await expect(page.locator('#recoveryReadinessState')).toHaveText('NOT CHECKED');
+  state.gate.resolve();
+  await expect(page.locator('#recoveryReadinessState')).toHaveText('NOT CHECKED');
+
+  state.gate = deferred();
+  await check.click();
+  await expect.poll(() => state.readinessGets).toBe(3);
   state.gate.resolve();
   await expect(page.locator('#recoveryReadinessState')).toHaveText('RECOVER NOW');
   await expect(page.locator('#recoveryReadinessDetail')).toContainText('requires recovery');
@@ -156,7 +165,7 @@ test('Recovery Readiness stays on-demand, single-submit, and never reports READY
   await expect(page.locator('#recoveryReadinessList')).toContainText('CHECK');
 
   const recoveryRequests = state.requests.filter(item => item.path === '/admin-api/recovery-readiness');
-  expect(recoveryRequests).toHaveLength(2);
+  expect(recoveryRequests).toHaveLength(3);
   expect(recoveryRequests.every(item => item.method === 'GET')).toBe(true);
-  expect(browserDiagnostics.errors).toEqual([]);
+  expect(browserDiagnostics).toEqual([]);
 });

@@ -26,8 +26,9 @@
     ])await loadScript(src);
 
     /* Upload remains a composed workflow internally: engine -> similarity warning -> safety ->
-       editor -> stateful presentation. These pieces are isolated to Upload and never replace the
-       shared API, authentication, Library/Series, Maintenance, History, Trash, or Abuse owners. */
+       editor -> stateful presentation -> aggregate preflight report. These pieces are isolated to
+       Upload and never replace the shared API, authentication, Library/Series, Maintenance,
+       History, Trash, or Abuse owners. */
     for(const src of [
       "/assets/js/admin-batch.js",
       "/assets/js/admin/upload-similar-volume.js",
@@ -37,7 +38,8 @@
       "/assets/js/admin-upload-completion.js",
       "/assets/js/admin-upload-presentation.js",
       "/assets/js/admin/upload-events.js",
-      "/assets/js/admin/editor-interactions.js"
+      "/assets/js/admin/editor-interactions.js",
+      "/assets/js/admin/upload-preflight-report.js"
     ])await loadScript(src);
 
     await loadScript("/assets/js/admin/shell.js");

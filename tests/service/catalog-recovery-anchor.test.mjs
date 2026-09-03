@@ -8,7 +8,7 @@ import { catalogBackupDeletionGuard } from '../../functions/services/recovery.js
 import { B2_BUCKET, putObject } from '../../functions/services/storage.js';
 
 class MemoryAws {
-  constructor() { this.objects = new Map(); this.failGet = new Set(); }
+  constructor() { this.objects = new Map(); this.failGet = new Set(); this.failHead = new Set(); }
 
   keyFor(url) {
     const path = new URL(url).pathname;
@@ -31,6 +31,7 @@ class MemoryAws {
       return new Response(entry.body, { status: 200, headers: entry.headers });
     }
     if (method === 'HEAD') {
+      if (this.failHead.has(key)) throw new Error(`fixture HEAD failure for ${key}`);
       const entry = this.objects.get(key);
       if (!entry) return new Response('', { status: 404 });
       return new Response(null, { status: 200, headers: entry.headers });
@@ -126,7 +127,7 @@ test('known-bad recovery material may be deleted because it is not a recovery an
 
   const guard = await catalogBackupDeletionGuard(aws, damaged.id);
   assert.equal(guard.allowed, true);
-  assert.equal(guard.status, 'stale-backup-safe-to-delete');
+  assert.equal(guard.status, 'unrecoverable-backup-safe-to-delete');
   assert.equal(guard.targetStatus, 'checksum-mismatch');
   assert.equal(guard.recoverableBefore, 0);
   assert.equal(guard.remainingRecoverable, 0);
@@ -143,6 +144,21 @@ test('uncertain snapshot verification blocks deletion when no confirmed anchor r
   assert.equal(guard.status, 'recovery-audit-uncertain');
   assert.equal(guard.targetStatus, 'check-failed');
   assert.equal(guard.remainingRecoverable, 0);
+  assert.equal(guard.remainingRecoveryAnchors, 0);
+  assert.match(guard.detail, /could not be proven disposable/i);
+});
+
+test('media verification failure blocks deletion of the only possible recovery anchor', async () => {
+  const aws = new MemoryAws(), value = catalog('head-uncertain-anchor');
+  await seedCatalogMedia(aws, value);
+  const snapshot = await snapshotCatalogs(aws, value, emptyCatalog(), 'head-uncertain-anchor');
+  aws.failHead.add(firstMediaKey(value));
+
+  const guard = await catalogBackupDeletionGuard(aws, snapshot.id);
+  assert.equal(guard.allowed, false);
+  assert.equal(guard.status, 'recovery-audit-uncertain');
+  assert.equal(guard.targetStatus, 'verified');
+  assert.equal(guard.targetAvailability, 'object-check-uncertain');
   assert.equal(guard.remainingRecoveryAnchors, 0);
   assert.match(guard.detail, /could not be proven disposable/i);
 });

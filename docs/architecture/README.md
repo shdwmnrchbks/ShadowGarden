@@ -2,7 +2,7 @@
 
 This directory records both the **R0 frozen v1.15.14 starting baseline** and the accepted **R10 v2.0.0 architecture baseline**, plus post-baseline contracts that remain authoritative for current v2 work.
 
-Shadow Garden's active product line is **v2.8.0 Reader Experience**, currently in progress. It builds on the v2.6 Reliability & Real-Browser Testing baseline and the completed v2.6.1–v2.6.7 Continuous Reader fixes without replacing the v2.0 ownership model.
+Shadow Garden's active product line is **v2.10.0 Maintenance & Supply Chain**. The latest formal release is **v2.9.0 Keeper Productivity & Recovery**. Current maintenance work builds on the completed v2.6 real-browser reliability baseline, v2.8 Reader Experience, and v2.9 recovery/productivity contracts without replacing the v2.0 ownership model.
 
 ## Baselines
 
@@ -45,6 +45,7 @@ Shadow Garden's active product line is **v2.8.0 Reader Experience**, currently i
 - [`KEEPER_LAYER.md`](./KEEPER_LAYER.md) — single AdminClient, composition root, signed-session boundary, isolated workflows and contained Upload internals introduced in v1.20.0 and finalized by R10.
 - v2 direct entrypoints are `admin/core.js` and `admin/app.js` only.
 - v2.6 real-browser coverage proves auth/session, dialog focus, Series/translation, upload, Maintenance, History, Trash and Abuse Watch behavior without introducing a second workflow/request owner.
+- v2.9 adds productivity and recovery-readiness behavior while preserving the same canonical admin/catalog/storage owners.
 
 ## R6 Pages Functions service layer
 
@@ -71,8 +72,8 @@ Shadow Garden's active product line is **v2.8.0 Reader Experience**, currently i
 ## R9 build and deployment layer
 
 - [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) — locked dependency/install contract, direct-dependency audit, deterministic build metadata, CI pins, dependency-free preview and explicit no-bundler decision introduced in v1.24.0.
-- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) — separates the active deployed product version from the latest formal release version, so in-progress v2.8 deployments can identify as v2.8.0 without prematurely publishing a GitHub release.
-- `package-lock.json` is committed at lockfile version 3; Verify CI uses `npm ci`, Node 22 and `contents: read`.
+- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) — separates the active deployed product version from the latest formal release version, so v2.10 development can identify as v2.10.0 while the formal release source remains v2.9.0 until an explicit release cut.
+- `package-lock.json` is committed at lockfile version 3; CI uses the reviewed Node 22.23.2 patch and npm 10.9.8 policy.
 - `tools/lib/build-context.mjs` owns deployment version/commit/branch/build-time context and exposes the formal release version separately.
 - The reusable v2 publisher continues to key formal releases from `package.json#version` and requires the exact main Real Browser E2E result before production smoke/release publication.
 
@@ -99,17 +100,33 @@ v2.6 makes real browser behavior authoritative for high-risk flows without weake
 
 - [`TEST_ARCHITECTURE.md`](./TEST_ARCHITECTURE.md) documents the isolated Playwright 1.62.1 workspace, generated EPUB, five browser projects, diagnostics/artifacts, capability-aware WebKit handling, and release ownership.
 - [`ACCESSIBILITY_TESTING.md`](./ACCESSIBILITY_TESTING.md) documents Library/Series/Reader/Keeper accessibility verification and the application-chrome versus publication-content boundary.
-- `.github/workflows/e2e.yml` runs Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile on pull requests and `main`.
+- `.github/workflows/e2e.yml` runs Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile on pull requests and `main`; v2.10 also schedules the same complete matrix monthly and permits manual baseline reruns.
 - `tools/check-v2-6.mjs` keeps the E2E structure, source ownership, completed v2.6 release metadata, and exact-main browser release gate from silently regressing.
 - Issues #154, #157, and #160 are represented by permanent Reader regressions rather than one-off patches.
 
 ## v2.8 Reader Experience
 
-v2.8 is the active in-progress product line. The canonical scope and slice status live in [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md).
+v2.8 is complete. Its release record is [`../releases/v2.8.0.md`](../releases/v2.8.0.md), and its Reader/session/persistence/security ownership contracts remain permanent.
 
-- Slice 1: focused Reader typeface choices with publication-owned Default behavior and explicit Sans / Serif / Sans-Serif choices.
-- Slice 2: clearer Reader progress presentation using the existing canonical Page Map/progress owner across Pages and Continuous.
-- Remaining slices stay governed by the existing Reader/session/persistence/security ownership contracts rather than introducing parallel state owners.
+- Focused Reader typeface choices preserve publication-owned Default behavior with explicit Sans / Serif / Sans-Serif choices.
+- Canonical Page Map/progress ownership drives clearer Pages and Continuous progress presentation.
+- Contents filtering/current-location recovery, whole-book search, footnotes, resume recovery, and EPUB resilience are covered by the permanent browser matrix.
+
+## v2.9 Keeper Productivity & Recovery
+
+v2.9 is the latest formal release. Its release record is [`../releases/v2.9.0.md`](../releases/v2.9.0.md).
+
+- High-impact Keeper batch operations preserve canonical validation/catalog/storage owners and provide previews and recovery history where appropriate.
+- Recovery readiness, object-complete recovery anchors, catalog integrity classification, and deterministic recovery drills make recoverability an explicit tested contract.
+
+## v2.10 Maintenance & Supply Chain
+
+v2.10 is the active deployment/product line. Canonical scope lives in [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md).
+
+- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) plus `tools/check-release-metadata.mjs` pin formal-release and deployment-version ownership.
+- `tools/check-dependency-maintenance.mjs`, `tools/dependency-audit-report.mjs`, and `tools/check-runtime-lockfiles.mjs` keep dependency changes reviewable, audit findings policy-driven, and runtime/lockfile drift explicit.
+- `tools/check-documentation-freshness.mjs` guards the canonical current-roadmap/docs/version markers against version drift.
+- [`MAINTENANCE_BASELINE.md`](./MAINTENANCE_BASELINE.md) defines the monthly deterministic/security/recovery/realistic-scale and complete real-browser/accessibility baseline without granting automation mutation authority.
 
 ## Permanent guardrails
 
@@ -125,6 +142,11 @@ v2.8 is the active in-progress product line. The canonical scope and slice statu
 - `tools/check-r9.mjs` — lockfile/build/deployment/no-bundler boundary.
 - `tools/check-r10.mjs` — v2 manifest, legacy tombstones, source cache-version cleanup, docs/release gate and final major-version baseline.
 - `tools/check-v2-6.mjs` — completed v2.6 real-browser harness, Reader/public/Keeper reliability source contracts, release/document synchronization, and exact-main E2E release gate.
+- `tools/check-dependency-maintenance.mjs` — controlled dependency streams, workflow pinning, and no-auto-merge maintenance policy.
+- `tools/check-runtime-lockfiles.mjs` — reviewed Node/npm runtime and lockfile-integrity policy.
+- `tools/check-documentation-freshness.mjs` — active/formal documentation version ownership.
+- `tools/check-release-metadata.mjs` — formal package/lockfile/changelog/release-note/publisher/build-context synchronization.
+- `tools/check-baseline-maintenance.mjs` — scheduled maintenance and realistic-scale baseline contract.
 
 Future work starts from [`V2_BASELINE.md`](./V2_BASELINE.md), the current post-baseline contracts above, and [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md). A historical implementation may only be restored when it is an intentional compatibility requirement with explicit ownership and regression coverage; obsolete duplicate owners must not return.
 

@@ -177,7 +177,7 @@
 - Normalized directional UI affordances to filled triangle glyphs across the current site surfaces.
 
 ## 1.7.4 — Catalog History Card Rebuild
-- Rebuilt Garden History rows as a dedicated component instead of inheriting generic maintenance-item geometry.
+- Rebuilt Catalog History rows as a dedicated component instead of inheriting generic maintenance-item geometry.
 - Preserved the v1.7.3 preflight behavior and the uploaded-series cover chooser while correcting mobile backup layout.
 
 ## 1.7.3 — Local Preflight Recovery

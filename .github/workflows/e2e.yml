@@ -18,8 +18,24 @@ concurrency:
 
 jobs:
   playwright:
+    name: playwright (${{ matrix.project }})
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        include:
+          - project: chromium-desktop
+            browser: chromium
+          - project: firefox-desktop
+            browser: firefox
+          - project: webkit-desktop
+            browser: webkit
+          - project: chromium-mobile
+            browser: chromium
+          - project: webkit-mobile
+            browser: webkit
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,32 +52,20 @@ jobs:
       - name: Install E2E dependencies
         run: npm ci --prefix tests/e2e --no-audit --no-fund --progress=false
       - name: Build production output
-        run: npm run build
+        run: npm run build:dist
       - name: Generate Reader EPUB fixture
         working-directory: tests/e2e
         run: node support/build-reader-fixture.mjs
-      - name: Install Playwright browsers (full release matrix)
-        if: ${{ github.event_name != 'pull_request' }}
-        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium firefox webkit
-      - name: Install Playwright browsers (pull request subset)
-        if: ${{ github.event_name == 'pull_request' }}
-        run: npm exec --prefix tests/e2e -- playwright install --with-deps chromium firefox webkit
-      - name: Resolve real-browser projects
-        id: projects
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
-          else
-            echo "args=--project=chromium-desktop --project=firefox-desktop --project=webkit-desktop --project=chromium-mobile --project=webkit-mobile" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Install Playwright browser
+        run: npm exec --prefix tests/e2e -- playwright install --with-deps ${{ matrix.browser }}
       - name: Run real-browser suite
         working-directory: tests/e2e
-        run: npx playwright test ${{ steps.projects.outputs.args }}
-      - name: Upload Playwright failure artifacts
+        run: npx playwright test --project=${{ matrix.project }}
+      - name: Upload Playwright artifacts
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: shadow-garden-playwright-${{ github.run_id }}
+          name: shadow-garden-playwright-${{ matrix.project }}-${{ github.run_id }}
           path: |
             tests/e2e/playwright-report/
             tests/e2e/test-results/

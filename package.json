@@ -12,7 +12,7 @@
     "build": "npm run build:dist",
     "build:dist": "node tools/build.mjs && node tools/write-source.mjs",
     "preview": "node tools/preview.mjs",
-    "check": "node tools/check.mjs && node tools/check-dependency-maintenance.mjs && node tools/check-runtime-lockfiles.mjs && node tools/check-documentation-freshness.mjs && node tools/check-release-metadata.mjs && node tools/check-baseline-maintenance.mjs",
+    "check": "node tools/check.mjs && node tools/check-dependency-maintenance.mjs && node tools/check-runtime-lockfiles.mjs && node tools/check-documentation-freshness.mjs && node tools/check-release-metadata.mjs && node tools/check-baseline-maintenance.mjs && node tools/performance-sanity.mjs",
     "prebuild": "npm run check",
     "test": "node tools/run-tests.mjs",
     "test:unit": "node --test tests/unit/*.test.mjs",

@@ -2,10 +2,10 @@
 
 > **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
 > **Starting baseline:** v2.6.x — Reliability & Reader hardening  
-> **Active release:** v2.9.0 — Keeper Productivity & Recovery  
+> **Active release:** v2.10.0 — Maintenance & Supply Chain  
 > **Updated:** 2026-09-03
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, and the v2.8 Reader Experience milestone. The next substantial product milestone is Keeper Productivity & Recovery. Performance work remains intentionally limited to realistic personal-library scale and should not displace active operational work unless measurements expose a real bottleneck.
+Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, the v2.8 Reader Experience milestone, and the v2.9 Keeper Productivity & Recovery milestone. The next substantial product milestone is Maintenance & Supply Chain. Performance work remains intentionally limited to realistic personal-library scale and should not displace active operational work unless measurements expose a real bottleneck.
 
 Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
 
@@ -35,8 +35,8 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
 | **v2.8.0 — Reader Experience** | ✅ Done | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
-| **v2.9.0 — Keeper Productivity & Recovery** | 🟨 In progress | Make library administration faster and prove recovery from catalog/storage failures |
-| **v2.10.0 — Maintenance & Supply Chain** | ⬜ Planned | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
+| **v2.9.0 — Keeper Productivity & Recovery** | ✅ Done | Make library administration faster and prove recovery from catalog/storage failures |
+| **v2.10.0 — Maintenance & Supply Chain** | 🟨 In progress | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
 
 ---
 
@@ -212,7 +212,9 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 
 # v2.9.0 — Keeper Productivity & Recovery
 
-**Status:** 🟨 In progress  
+**Status:** ✅ Done  
+**Completed:** 2026-09-03  
+**Release record:** [`../releases/v2.9.0.md`](../releases/v2.9.0.md)  
 **Goal:** reduce repetitive administration and prove the library can recover from operational mistakes or damaged state.
 
 ## 2.9A — Keeper productivity
@@ -223,28 +225,28 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [x] Improve bulk cover/banner replacement workflows.
 - [x] Produce a concise import/preflight report with actionable validation warnings.
 - [x] Add one-click fixes only where the transformation is deterministic and reversible.
-- [ ] Evaluate an operation queue for long maintenance tasks so UI state remains explicit.
+- [x] Evaluate an operation queue for long maintenance tasks so UI state remains explicit.
 
 ## 2.9B — Recovery readiness
 
-- [ ] Define catalog snapshot/backup retention policy.
-- [ ] Verify backup objects/checksums and detect unreadable/incomplete recovery material.
-- [ ] Document and automate a recovery drill from a damaged/missing catalog to a known-good snapshot.
-- [ ] Verify Trash/recovery/purge interactions cannot silently destroy the last recoverable catalog state.
-- [ ] Add a Keeper “recovery readiness” or equivalent maintenance report if it can be computed cheaply and reliably.
-- [ ] Exercise recovery against local/mocked B2 fixtures in CI; do not make destructive production recovery part of normal CI.
+- [x] Define catalog snapshot/backup retention policy.
+- [x] Verify backup objects/checksums and detect unreadable/incomplete recovery material.
+- [x] Document and automate a recovery drill from a damaged/missing catalog to a known-good snapshot.
+- [x] Verify Trash/recovery/purge interactions cannot silently destroy the last recoverable catalog state.
+- [x] Add a Keeper “recovery readiness” or equivalent maintenance report if it can be computed cheaply and reliably.
+- [x] Exercise recovery against local/mocked B2 fixtures in CI; do not make destructive production recovery part of normal CI.
 
 ## v2.9.0 acceptance
 
-- [ ] A documented recovery drill succeeds from deterministic fixtures.
-- [ ] High-impact Keeper changes provide preview/confirmation and recoverable history where appropriate.
-- [ ] Batch operations do not bypass canonical validation, catalog, storage, or admin service owners.
+- [x] A documented recovery drill succeeds from deterministic fixtures.
+- [x] High-impact Keeper changes provide preview/confirmation and recoverable history where appropriate.
+- [x] Batch operations do not bypass canonical validation, catalog, storage, or admin service owners.
 
 ---
 
 # v2.10.0 — Maintenance & Supply Chain
 
-**Status:** ⬜ Planned  
+**Status:** 🟨 In progress  
 **Goal:** keep the mature application healthy without turning maintenance automation into a source of unreviewed changes.
 
 ## Scope

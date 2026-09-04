@@ -29,6 +29,8 @@ jobs:
         run: npm ci --no-audit --no-fund --progress=false
       - name: Check repository
         run: npm run check
+      - name: Run storage/recovery integrity regression
+        run: node --test tests/service/catalog-backup-integrity.test.mjs
       - name: Run Reader resume unit tests
         run: node --test tests/unit/reader-continuous.test.mjs tests/unit/reader-rendition.test.mjs tests/unit/reader-resume.test.mjs tests/unit/reader-resume-lifecycle.test.mjs
       - name: Build production output

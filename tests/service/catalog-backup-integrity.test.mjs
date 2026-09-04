@@ -12,6 +12,8 @@ import {
   BACKUP_BYTES_HEADER,
   BACKUP_SHA256_HEADER,
   B2_BUCKET,
+  getTextObject,
+  getTextObjectWithIntegrity,
   putObject
 } from '../../functions/services/storage.js';
 
@@ -59,6 +61,29 @@ const catalog = (id = 'fixture-series') => ({
   series: [{ id, title: 'Recovery Fixture', volumes: [{ number: 1, title: 'Volume 1', file: '/media/shadow-garden/books/recovery.epub' }] }]
 });
 const emptyCatalog = () => ({ generatedAt: '2026-09-03T00:00:00.000Z', series: [] });
+
+test('text objects without backup byte metadata remain readable', async () => {
+  const aws = new MemoryAws();
+  const key = 'shadow-garden/data/adult-catalog.json';
+  const body = JSON.stringify(catalog('adult-fixture'));
+  aws.rawPut(key, body, { 'content-type': 'application/json; charset=utf-8' });
+
+  const inspected = await getTextObjectWithIntegrity(aws, key);
+  assert.equal(inspected.integrity.expectedBytes, null);
+  assert.equal(inspected.integrity.sizeMatches, null);
+  assert.equal(await getTextObject(aws, key), body);
+});
+
+test('an explicit zero byte metadata value is distinct from a missing header', async () => {
+  const aws = new MemoryAws();
+  const key = 'shadow-garden/backups/catalogs/zero-byte-metadata.json';
+  aws.rawPut(key, '{"not":"empty"}', { [BACKUP_BYTES_HEADER]: '0' });
+
+  const inspected = await getTextObjectWithIntegrity(aws, key);
+  assert.equal(inspected.integrity.expectedBytes, 0);
+  assert.equal(inspected.integrity.sizeMatches, false);
+  await assert.rejects(() => getTextObject(aws, key), /byte length mismatch/);
+});
 
 test('new catalog snapshots carry storage checksums and tampering blocks restore', async () => {
   const aws = new MemoryAws();

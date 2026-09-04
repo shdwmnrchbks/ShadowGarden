@@ -220,8 +220,8 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     seriesLongTasks: summarizeLongTasks(seriesLongTasks)
   }));
 
-  expect(catalogRequests.library).toBeLessThanOrEqual(2);
-  expect(catalogRequests.series).toBeLessThanOrEqual(2);
+  expect(catalogRequests.library).toBe(1);
+  expect(catalogRequests.series).toBe(1);
   expect(activePillCatalogInsertCalls).toBe(1);
   expect(hydrated.seriesCards).toBe(36);
   expect(afterInteractions.seriesCards).toBe(120);

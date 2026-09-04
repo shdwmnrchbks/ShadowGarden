@@ -13,6 +13,7 @@ This directory preserves completed or superseded Shadow Garden roadmaps, audits,
 
 ## Completed audit/planning records
 
+- [`READER_OWNERSHIP_AUDIT_V2_8.md`](./READER_OWNERSHIP_AUDIT_V2_8.md) — completed v2.8 Reader ownership audit; localized ownership drift was corrected while a broader Reader rewrite was explicitly rejected as unnecessary.
 - [`V2_8_FOOTNOTE_AUDIT.md`](./V2_8_FOOTNOTE_AUDIT.md) — completed Reader footnote/endnote compatibility audit that shipped in v2.8.0.
 
 ## Security milestone records
@@ -39,6 +40,7 @@ Actual release notes remain under [`../releases/`](../releases/) and active arch
 
 - `docs/roadmaps/CURRENT_ROADMAP.md` is the only active planning document.
 - Completed roadmap/audit planning moves here rather than remaining as duplicated current-path content.
+- Completed focused architecture audits move here after their findings are reconciled into active architecture contracts; historical audit snapshots do not remain in `docs/architecture/` as if they were current owners.
 - `docs/roadmaps/REFACTOR_ROADMAP.md` and `docs/roadmaps/SECURITY_ROADMAP.md` are Git symlinks to the canonical archived files solely so permanent historical guards and old links continue to resolve without duplicate content.
 - Historical release notes are not rewritten to describe later work.
 - The current audit/refactor/optimization phase is governed by [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) and [`../architecture/ENGINEERING_AUDIT.md`](../architecture/ENGINEERING_AUDIT.md).

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { contextualFilterOptions } from "../../src/assets/js/library-model.js";
+import { contextualFilterOptions, filterAndSort } from "../../src/assets/js/library-model.js";
 
 const items=[
   {id:"a",title:"A",author:"Author One",year:2025,genres:["Fantasy"],tags:["Academy"],volumes:[{title:"A1"},{title:"A2"}]},
@@ -23,4 +23,18 @@ test("tag counts answer what adding the tag would produce",()=>{
   const options=contextualFilterOptions(items,{...state,author:"",genre:"Fantasy",tags:new Set(["Magic"])});
   assert.equal(options.tagCounts.get("Magic"),1);
   assert.equal(options.tagCounts.get("Academy"),0);
+});
+
+test("reading-state ownership stays lazy until a reading-status filter is active",()=>{
+  let calls=0;
+  const seriesFinished=series=>{calls+=1;return series.id==="a"};
+  const dependencies={seriesFinished};
+
+  const unfiltered=filterAndSort(items,{...state,author:""},dependencies);
+  assert.equal(unfiltered.length,3);
+  assert.equal(calls,0,"blank reading status must not scan browser-local finished state");
+
+  const finished=filterAndSort(items,{...state,author:"",readingStatus:"finished"},dependencies);
+  assert.deepEqual(finished.map(series=>series.id),["a"]);
+  assert.equal(calls,3,"active reading status evaluates each otherwise-matching series once");
 });

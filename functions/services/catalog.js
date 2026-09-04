@@ -16,7 +16,7 @@ export const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
 export const TRASH_KEY = "shadow-garden/data/trash.json";
 export const BACKUP_INDEX_KEY = "shadow-garden/backups/catalog-index.json";
 export const BACKUP_PREFIX = "shadow-garden/backups/catalogs/";
-export const BACKUP_LIMIT = 30;
+export const BACKUP_LIMIT = 15;
 
 function normalizeCatalog(value) {
   const input = value && typeof value === "object" ? value : {};

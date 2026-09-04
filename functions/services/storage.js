@@ -32,9 +32,24 @@ export function readClient(env) {
   return client(env.B2_READ_KEY_ID, env.B2_READ_APPLICATION_KEY);
 }
 
-export function writeClient(env) {
+function writeOnlyClient(env) {
   if (!env.B2_WRITE_KEY_ID || !env.B2_WRITE_APPLICATION_KEY) throw new Error("B2 write credentials are not configured.");
   return client(env.B2_WRITE_KEY_ID, env.B2_WRITE_APPLICATION_KEY);
+}
+
+export function writeClient(env) {
+  let reader = null, writer = null;
+  return {
+    fetch(url, init = {}) {
+      const method = String(init?.method || "GET").toUpperCase();
+      if (method === "GET" || method === "HEAD") {
+        reader ||= readClient(env);
+        return reader.fetch(url, init);
+      }
+      writer ||= writeOnlyClient(env);
+      return writer.fetch(url, init);
+    }
+  };
 }
 
 function utf8Bytes(value) { return new TextEncoder().encode(String(value ?? "")); }

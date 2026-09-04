@@ -4,6 +4,7 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const FUNCTIONS_ROOT = path.join(ROOT, "functions");
+const SERVICES_ROOT = path.join(FUNCTIONS_ROOT, "services") + path.sep;
 const failures = [];
 
 function rel(file) {
@@ -33,23 +34,55 @@ function functionTarget(value, fromFile) {
   return target.startsWith(FUNCTIONS_ROOT) ? target : null;
 }
 
+function importSpecifiers(source) {
+  const values = [];
+  for (const match of source.matchAll(/\b(?:import|export)\s+(?:[^"'()]*?\s+from\s*)?["']([^"']+)["']/g)) values.push(match[1]);
+  for (const match of source.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) values.push(match[1]);
+  return values;
+}
+
 function collectImports(source, fromFile) {
   const targets = new Set();
-  const add = value => {
+  for (const value of importSpecifiers(source)) {
     const target = functionTarget(value, fromFile);
     if (target) targets.add(target);
-  };
-  for (const match of source.matchAll(/\b(?:import|export)\s+(?:[^"'()]*?\s+from\s*)?["']([^"']+)["']/g)) add(match[1]);
-  for (const match of source.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) add(match[1]);
+  }
   return [...targets];
+}
+
+function routeRemainder(source) {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "")
+    .replace(/^\s*import\s+[^;]+;\s*$/gm, "")
+    .replace(/^\s*export\s*\{[^}]+\};\s*$/gm, "")
+    .replace(/export\s+async\s+function\s+onRequest(?:Get|Post|Put|Patch|Delete|Head|Options)?\s*\(\s*context\s*\)\s*\{\s*return\s+[A-Za-z_$][\w$]*\s*\(\s*context\s*\)\s*;\s*\}/g, "")
+    .replace(/[\s;]/g, "");
 }
 
 const allFiles = await walk(FUNCTIONS_ROOT, file => file.endsWith(".js"));
 const allSet = new Set(allFiles);
-const internalRoots = [path.join(FUNCTIONS_ROOT, "_lib") + path.sep, path.join(FUNCTIONS_ROOT, "services") + path.sep];
+const internalRoots = [path.join(FUNCTIONS_ROOT, "_lib") + path.sep, SERVICES_ROOT];
 const routeRoots = allFiles.filter(file => !internalRoots.some(prefix => file.startsWith(prefix)));
 
 if (!routeRoots.length) failures.push("no Pages Function route entrypoints were discovered");
+
+for (const file of routeRoots) {
+  const source = await fs.readFile(file, "utf8");
+  const bytes = Buffer.byteLength(source, "utf8");
+  if (bytes > 1024) failures.push(`${rel(file)} is ${bytes} bytes; Pages Function routes must stay thin adapters`);
+
+  for (const specifier of importSpecifiers(source)) {
+    const target = functionTarget(specifier, file);
+    if (!target || !target.startsWith(SERVICES_ROOT)) {
+      failures.push(`${rel(file)} imports ${specifier}; route adapters may depend only on functions/services/`);
+    }
+  }
+
+  const wrappers = [...source.matchAll(/export\s+async\s+function\s+onRequest(?:Get|Post|Put|Patch|Delete|Head|Options)?\s*\(\s*context\s*\)\s*\{\s*return\s+[A-Za-z_$][\w$]*\s*\(\s*context\s*\)\s*;\s*\}/g)];
+  if (!wrappers.length) failures.push(`${rel(file)} has no direct onRequest → service-handler delegation`);
+  if (routeRemainder(source)) failures.push(`${rel(file)} contains route-owned executable logic outside direct service delegation`);
+}
 
 const reachable = new Set();
 const queue = [...routeRoots];
@@ -72,9 +105,9 @@ const unreachable = allFiles.filter(file => !reachable.has(file)).sort((a, b) =>
 for (const file of unreachable) failures.push(`Functions source is unreachable from a Pages Function route: ${rel(file)}`);
 
 if (failures.length) {
-  console.error(`Functions entrypoint reachability check failed with ${failures.length} problem${failures.length === 1 ? "" : "s"}:`);
+  console.error(`Functions entrypoint/route ownership check failed with ${failures.length} problem${failures.length === 1 ? "" : "s"}:`);
   failures.forEach(message => console.error(`- ${message}`));
   process.exitCode = 1;
 } else {
-  console.log(`Functions entrypoint reachability check passed: ${routeRoots.length} route roots reach all ${allFiles.length} Functions sources.`);
+  console.log(`Functions entrypoint/route ownership check passed: ${routeRoots.length} thin route roots reach all ${allFiles.length} Functions sources.`);
 }

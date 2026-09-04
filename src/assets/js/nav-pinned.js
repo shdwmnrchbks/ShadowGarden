@@ -32,7 +32,7 @@
   const requestedSeries=new URLSearchParams(location.search).get('id')||'';
   const currentAdult=document.body.dataset.libraryScope==='nsfw'||document.body.classList.contains('adult-library')||requestedSeries.startsWith('adult-');
   const currentScope=currentAdult?'adult':'main';
-  const catalogPromise=window.ShadowGardenData.loadCatalog(currentAdult,{reuse:true})
+  const catalogPromise=window.ShadowGardenData.loadCatalog(currentAdult,{reuse:true,shareNext:true})
     .catch(()=>({series:[]}))
     .then(catalog=>arr(catalog?.series).map(series=>({...series,__scope:currentScope})));
 

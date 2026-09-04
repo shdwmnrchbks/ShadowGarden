@@ -50,13 +50,15 @@ function collectImports(source, fromFile) {
   return [...targets];
 }
 
+const DIRECT_DELEGATION = /export\s+async\s+function\s+onRequest(?:Get|Post|Put|Patch|Delete|Head|Options)?\s*\(\s*context\s*\)\s*\{\s*return\s+[A-Za-z_$][\w$]*\s*\(\s*context\s*\)\s*;?\s*\}/g;
+
 function routeRemainder(source) {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "")
     .replace(/^\s*import\s+[^;]+;\s*$/gm, "")
     .replace(/^\s*export\s*\{[^}]+\};\s*$/gm, "")
-    .replace(/export\s+async\s+function\s+onRequest(?:Get|Post|Put|Patch|Delete|Head|Options)?\s*\(\s*context\s*\)\s*\{\s*return\s+[A-Za-z_$][\w$]*\s*\(\s*context\s*\)\s*;\s*\}/g, "")
+    .replace(DIRECT_DELEGATION, "")
     .replace(/[\s;]/g, "");
 }
 
@@ -79,7 +81,7 @@ for (const file of routeRoots) {
     }
   }
 
-  const wrappers = [...source.matchAll(/export\s+async\s+function\s+onRequest(?:Get|Post|Put|Patch|Delete|Head|Options)?\s*\(\s*context\s*\)\s*\{\s*return\s+[A-Za-z_$][\w$]*\s*\(\s*context\s*\)\s*;\s*\}/g)];
+  const wrappers = [...source.matchAll(DIRECT_DELEGATION)];
   if (!wrappers.length) failures.push(`${rel(file)} has no direct onRequest → service-handler delegation`);
   if (routeRemainder(source)) failures.push(`${rel(file)} contains route-owned executable logic outside direct service delegation`);
 }

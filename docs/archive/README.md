@@ -37,8 +37,8 @@ Actual release notes remain under [`../releases/`](../releases/) and active arch
 
 ## Archive policy
 
-- `docs/roadmaps/` contains only the single active roadmap and its index.
-- Completed roadmap/audit planning moves here instead of remaining as a current-path compatibility mirror.
+- `docs/roadmaps/CURRENT_ROADMAP.md` is the only active planning document.
+- Completed roadmap/audit planning moves here rather than remaining as duplicated current-path content.
+- `docs/roadmaps/REFACTOR_ROADMAP.md` and `docs/roadmaps/SECURITY_ROADMAP.md` are Git symlinks to the canonical archived files solely so permanent historical guards and old links continue to resolve without duplicate content.
 - Historical release notes are not rewritten to describe later work.
-- Old links should be corrected to the archive when current documentation is touched.
 - The current audit/refactor/optimization phase is governed by [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) and [`../architecture/ENGINEERING_AUDIT.md`](../architecture/ENGINEERING_AUDIT.md).

@@ -139,7 +139,7 @@ function requestCounts(requests) {
   }, {});
 }
 
-test('v2.11D audit: Keeper maintenance dialog request and resource ownership is measurable', async ({ page, browserDiagnostics }, testInfo) => {
+test('v2.11D audit: Keeper maintenance dialog has one canonical snapshot request owner', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium-desktop', 'Chromium desktop runtime audit');
 
   const requests = [];
@@ -189,5 +189,9 @@ test('v2.11D audit: Keeper maintenance dialog request and resource ownership is 
     afterReopen
   }));
 
+  expect(firstOpenRequests['GET /admin-api/maintenance']).toBe(1);
+  expect(reopenRequests['GET /admin-api/maintenance']).toBe(1);
+  expect(firstOpenRequests['GET /admin-api/abuse']).toBe(1);
+  expect(reopenRequests['GET /admin-api/abuse']).toBe(1);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

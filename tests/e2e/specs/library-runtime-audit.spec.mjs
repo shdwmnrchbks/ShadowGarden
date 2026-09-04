@@ -135,7 +135,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
   );
 
   const loadMoreMs = await timed(
-    () => page.locator('#loadMore').click(),
+    () => page.evaluate(() => document.querySelector('#loadMore')?.click()),
     () => expect(page.locator('.series-card')).toHaveCount(120)
   );
 

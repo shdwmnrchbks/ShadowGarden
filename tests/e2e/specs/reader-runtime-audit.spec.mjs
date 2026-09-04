@@ -110,13 +110,27 @@ async function openAuditChapter(page, chapter) {
 }
 
 async function readerShape(page) {
-  return page.evaluate(() => ({
-    iframes: document.querySelectorAll('#viewer iframe').length,
-    views: document.querySelectorAll('#viewer .epub-view').length,
-    flow: document.body.classList.contains('reader-flow-scrolled') ? 'scrolled-doc' : 'paginated',
-    pageMapPages: Number(window.__sgCanonicalPageMap?.totalPages || 0),
-    progressText: document.getElementById('progressText')?.textContent || ''
-  }));
+  return page.evaluate(() => {
+    const sandboxes = [...document.querySelectorAll('iframe[data-sg-page-map-sandbox]')];
+    let sandboxNestedIframes = 0;
+    let sandboxViews = 0;
+    for (const frame of sandboxes) {
+      try {
+        sandboxNestedIframes += frame.contentDocument?.querySelectorAll('iframe').length || 0;
+        sandboxViews += frame.contentDocument?.querySelectorAll('.epub-view').length || 0;
+      } catch {}
+    }
+    return {
+      iframes: document.querySelectorAll('#viewer iframe').length,
+      views: document.querySelectorAll('#viewer .epub-view').length,
+      pageMapSandboxes: sandboxes.length,
+      pageMapSandboxIframes: sandboxNestedIframes,
+      pageMapSandboxViews: sandboxViews,
+      flow: document.body.classList.contains('reader-flow-scrolled') ? 'scrolled-doc' : 'paginated',
+      pageMapPages: Number(window.__sgCanonicalPageMap?.totalPages || 0),
+      progressText: document.getElementById('progressText')?.textContent || ''
+    };
+  });
 }
 
 async function collectRuntimeMetrics(page, cdp) {
@@ -133,6 +147,19 @@ function numericDelta(after, before, key) {
   const right = Number(after?.[key]);
   const left = Number(before?.[key]);
   return Number.isFinite(right) && Number.isFinite(left) ? right - left : null;
+}
+
+function metricDelta(after, before) {
+  return {
+    JSHeapUsedSize: numericDelta(after, before, 'JSHeapUsedSize'),
+    Nodes: numericDelta(after, before, 'Nodes'),
+    Documents: numericDelta(after, before, 'Documents'),
+    JSEventListeners: numericDelta(after, before, 'JSEventListeners'),
+    LayoutCount: numericDelta(after, before, 'LayoutCount'),
+    RecalcStyleCount: numericDelta(after, before, 'RecalcStyleCount'),
+    TaskDuration: numericDelta(after, before, 'TaskDuration'),
+    ScriptDuration: numericDelta(after, before, 'ScriptDuration')
+  };
 }
 
 test('v2.11B audit: large EPUB startup and repeated Reader lifecycle remain bounded', async ({ page, context, browserDiagnostics }, testInfo) => {
@@ -210,7 +237,20 @@ test('v2.11B audit: large EPUB startup and repeated Reader lifecycle remain boun
   await expect(page.locator('#viewer iframe')).toHaveCount(1);
   await observePageMap();
 
-  const final = await collectRuntimeMetrics(page, cdp);
+  // This snapshot intentionally captures the Reader while background canonical Page Map work may
+  // still be live. The settled snapshot below distinguishes temporary mapping pressure from retained
+  // resources after the page-map sandbox has completed and its finally teardown has run.
+  const activeGeneration = await collectRuntimeMetrics(page, cdp);
+  const requestsAtActiveGeneration = { ...counters };
+  let pageMapSettled = false;
+  try {
+    await page.waitForFunction(() => Number(window.__sgCanonicalPageMap?.totalPages || 0) > 0, null, { timeout: 70_000 });
+    pageMapSettled = true;
+    await observePageMap();
+  } catch {}
+  await page.waitForTimeout(300);
+  const settled = await collectRuntimeMetrics(page, cdp);
+
   const longTasks = await page.evaluate(() => Array.isArray(window.__sgReaderAuditLongTasks) ? window.__sgReaderAuditLongTasks : []);
   const report = {
     fixture: {
@@ -220,20 +260,16 @@ test('v2.11B audit: large EPUB startup and repeated Reader lifecycle remain boun
     },
     firstReadableMs,
     pageMapReadyObservedMs,
+    pageMapSettled,
     cycles: chapters.length,
-    requests: { ...counters },
+    requestsAtActiveGeneration,
+    requestsAfterSettleWait: { ...counters },
     baseline,
-    final,
-    delta: {
-      JSHeapUsedSize: numericDelta(final, baseline, 'JSHeapUsedSize'),
-      Nodes: numericDelta(final, baseline, 'Nodes'),
-      Documents: numericDelta(final, baseline, 'Documents'),
-      JSEventListeners: numericDelta(final, baseline, 'JSEventListeners'),
-      LayoutCount: numericDelta(final, baseline, 'LayoutCount'),
-      RecalcStyleCount: numericDelta(final, baseline, 'RecalcStyleCount'),
-      TaskDuration: numericDelta(final, baseline, 'TaskDuration'),
-      ScriptDuration: numericDelta(final, baseline, 'ScriptDuration')
-    },
+    activeGeneration,
+    settled,
+    deltaWhileGenerating: metricDelta(activeGeneration, baseline),
+    deltaAfterSettle: metricDelta(settled, baseline),
+    reclaimedAfterSettle: metricDelta(settled, activeGeneration),
     longTasks: {
       count: longTasks.length,
       totalDurationMs: longTasks.reduce((sum, entry) => sum + Number(entry.duration || 0), 0),
@@ -247,9 +283,9 @@ test('v2.11B audit: large EPUB startup and repeated Reader lifecycle remain boun
     contentType: 'application/json'
   });
 
-  expect(final.flow).toBe('paginated');
-  expect(final.iframes).toBe(1);
-  expect(String(final.progressText)).toMatch(/%/);
+  expect(settled.flow).toBe('paginated');
+  expect(settled.iframes).toBe(1);
+  expect(String(settled.progressText)).toMatch(/%/);
   expect(counters.mediaRequests).toBeGreaterThan(0);
   expect(counters.mediaBytesServed).toBeGreaterThan(0);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);

@@ -1,7 +1,7 @@
 {
   "name": "shadow-garden-library",
   "version": "2.10.0",
-  "deploymentVersion": "2.10.0",
+  "deploymentVersion": "2.11.0",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.8",

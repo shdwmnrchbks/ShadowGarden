@@ -2,9 +2,9 @@
 
 **Status:** Active contract  
 **Active deployment/product version:** v2.10.0 — Maintenance & Supply Chain  
-**Formal release source version:** v2.9.0
+**Formal release source version:** v2.10.0
 
-Shadow Garden intentionally separates the version shown by a live development deployment from the version eligible for a formal GitHub release.
+Shadow Garden intentionally separates the version shown by a live development deployment from the version eligible for a formal GitHub release, while requiring those version owners to converge at a formal release cut.
 
 ## Two version owners
 
@@ -13,16 +13,7 @@ Shadow Garden intentionally separates the version shown by a live development de
 - `version` — the latest **formal release** version. This remains synchronized with `package-lock.json` and is the version consumed by `.github/workflows/release-v2.yml`.
 - `deploymentVersion` — the **active deployed product line**. This is the version exposed by generated deployment metadata and shown by the public Library and Garden Keeper.
 
-At a formal release cut these values converge. The completed v2.9.0 release used:
-
-```json
-{
-  "version": "2.9.0",
-  "deploymentVersion": "2.9.0"
-}
-```
-
-During the next in-progress milestone they intentionally diverge again. v2.10 development uses:
+During milestone development the deployment version may intentionally advance ahead of the formal release version. Immediately before the v2.10.0 release cut, development used:
 
 ```json
 {
@@ -31,7 +22,16 @@ During the next in-progress milestone they intentionally diverge again. v2.10 de
 }
 ```
 
-The formal release source therefore remains v2.9.0 until a future release cut explicitly advances it, while current development/deployment metadata identifies the v2.10.0 product line.
+At a formal release cut the values converge. v2.10.0 uses:
+
+```json
+{
+  "version": "2.10.0",
+  "deploymentVersion": "2.10.0"
+}
+```
+
+A later development milestone may intentionally diverge them again only through an explicit product-version change; dependency maintenance must not alter version ownership implicitly.
 
 ## Deployment metadata
 
@@ -67,8 +67,10 @@ The active `deploymentVersion` does **not** by itself make a milestone release-e
 
 ## v2.9.0 release state
 
-The v2.9.0 release commit aligns `package.json#version`, `package-lock.json`, and `deploymentVersion` at `2.9.0`, includes `docs/releases/v2.9.0.md` plus the matching changelog entry, and records the completed Keeper Productivity & Recovery acceptance criteria. The permanent Verify and Real Browser E2E gates remain authoritative. The publisher matched the exact production deployment version/commit and passed public production smoke before creating GitHub release `v2.9.0`.
+The v2.9.0 release aligned `package.json#version`, `package-lock.json`, and `deploymentVersion` at `2.9.0`, included `docs/releases/v2.9.0.md` plus the matching changelog entry, and recorded the completed Keeper Productivity & Recovery acceptance criteria. The permanent Verify and Real Browser E2E gates remained authoritative, and the publisher required matching production deployment metadata plus public production smoke before creating GitHub release `v2.9.0`.
 
-## v2.10.0 development state
+## v2.10.0 release state
 
-v2.10 development advances only `deploymentVersion` to `2.10.0`; `package.json#version` and the root/workspace version in `package-lock.json` remain `2.9.0` until the next formal release cut. Maintenance automation must never hand-edit dependency integrity or transitive dependency fields merely to synchronize a version label.
+The v2.10.0 release cut converges `package.json#version`, `package.json#deploymentVersion`, and the root/workspace package-lock version metadata at `2.10.0`, with `CHANGELOG.md` and `docs/releases/v2.10.0.md` as the matching formal release record. The cut does not rewrite dependency resolutions, integrity data, or transitive dependency metadata merely to synchronize a version label.
+
+The release remains publication-eligible only when the exact final `main` commit passes Verify and the complete Real Browser E2E matrix, Cloudflare production reports the same v2.10.0 version and commit, and the established public production smoke checks succeed. Scheduled v2.10 maintenance automation does not bypass or publish through this contract.

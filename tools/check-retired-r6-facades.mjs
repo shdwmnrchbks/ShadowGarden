@@ -8,7 +8,7 @@ const retiredFacades = [
   "functions/_lib/garden-maintenance.js"
 ];
 const retiredSet = new Set(retiredFacades);
-const scanRoots = ["functions", "tests", "tools"];
+const scanRoots = ["functions", "src", "tests", "tools"];
 const failures = [];
 
 function rel(file) {

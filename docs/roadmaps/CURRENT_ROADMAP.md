@@ -4,6 +4,7 @@
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
+> **First landed v2.11 slice:** `8c5145b490bda77b5db5527f957ad4bcfea0b113`  
 > **Updated:** 2026-09-04
 
 Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health cycle**, not a feature expansion roadmap.
@@ -76,11 +77,12 @@ The v2.11 audit begins after:
 - [x] Identify authored Reader local `?v=` cache-history imports as build-contract drift.
 - [x] Start the v2.11 deployment line at 2.11.0 while keeping formal release ownership at 2.10.0.
 - [x] Remove the three confirmed Reader cache-history imports and add a permanent authored-source cache-version guard.
-- [ ] Verify the new guard proves no other authored local cache-history references remain.
-- [ ] Finish current public/Reader/Keeper/Functions/tool entrypoint and ownership inventory.
-- [ ] Trace current consumers of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`).
+- [x] Verify the cache-version guard on exact PR head and exact main with Verify plus the complete five-project real-browser matrix; confirm exact-main Cloudflare deployment succeeds.
+- [x] Reconcile R0–R10 executable milestone checker ownership: classify the self-invalid historical snapshots for retirement and add an active absence guard while preserving modern verification owners.
+- [ ] Finish unresolved public/Reader/Keeper/Functions/tool entrypoint and ownership edges.
+- [ ] Finish current consumer tracing of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`).
 - [ ] Identify additional unreachable source, obsolete migration-only paths, unused exports, stale fixtures, and obsolete documentation references.
-- [ ] Classify every Audit A candidate as retain, cleanup/refactor, defer, or skip.
+- [ ] Classify every remaining Audit A candidate as retain, cleanup/refactor, defer, or skip.
 
 ### Decision gate
 
@@ -135,10 +137,11 @@ Do not restructure modules based on age, file count, or aesthetics. Audit A comp
 
 ## v2.11G — Build, dependencies, tests & tooling
 
-**Status:** ⬜ Planned
+**Status:** ⬜ Planned — R-series executable subset already reconciled during v2.11A
 
 - Revalidate Node/npm/lockfile, build context, deployment stamping, no-bundler decision, preview, and publisher ownership.
-- Audit historical R0–R10 checks against current behavior tests/modern checks; modernize/archive only with overlap evidence.
+- Treat R0–R10 executable milestone checkers as retired historical policy snapshots; current verification remains owned by modern checks/tests/Baseline Health/E2E.
+- Audit remaining M-series, `check-v2-6.mjs`, and other release-era standalone tools independently; do not infer redundancy from the R-series decision.
 - Measure check/test/build duration and remove duplicate cost only when confidence is preserved.
 - Keep dependency maintenance review-driven and non-destructive.
 

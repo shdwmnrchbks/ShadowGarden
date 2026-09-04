@@ -147,7 +147,7 @@ Completed planning is under [`docs/archive/`](./docs/archive/):
 - v2.5 motion milestone records
 - completed security milestone records
 
-`docs/roadmaps/` now contains only the active v2.11 roadmap and its index.
+`docs/roadmaps/CURRENT_ROADMAP.md` is the only active plan. The historical Refactor and Security roadmap filenames remain as Git symlinks into `docs/archive/` solely for permanent baseline guards and old links, so there is no duplicated roadmap content.
 
 ## Current architecture
 

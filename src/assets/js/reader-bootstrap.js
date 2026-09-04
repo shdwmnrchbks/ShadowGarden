@@ -2,10 +2,12 @@
 import { createAuthorizedBookSession, finalizeBookSession } from "./reader/book-session.js";
 import { startReader } from "./reader/app.js";
 import { showReaderFailure } from "./reader/error-presentation.js";
+import { installEpubLifecyclePatch } from "./reader/epub-lifecycle.js";
 import { installReaderInteractionController } from "./reader/interaction-controller.js";
 import { urls } from "./domain/index.js";
 import "./reader/image-focus-touch-compat.js";
 
+installEpubLifecyclePatch();
 const interactions=installReaderInteractionController();
 const invalidPackagePreparation=/central directory|is this a zip file|missing container\.xml|missing package document|corrupt|unexpected end|end of data/i;
 

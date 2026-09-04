@@ -1,6 +1,6 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** 🟨 **v2.11A AUDIT IN PROGRESS**  
+> **Status:** ✅ **v2.11A COMPLETE · v2.11B NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
@@ -67,7 +67,7 @@ The v2.11 audit begins after:
 
 ## v2.11A — Repository & ownership inventory
 
-**Status:** 🟨 In progress
+**Status:** ✅ Complete on current Audit-A closeout candidate
 
 ### Audit goals
 
@@ -79,18 +79,25 @@ The v2.11 audit begins after:
 - [x] Remove the three confirmed Reader cache-history imports and add a permanent authored-source cache-version guard.
 - [x] Verify the cache-version guard on exact PR head and exact main with Verify plus the complete five-project real-browser matrix; confirm exact-main Cloudflare deployment succeeds.
 - [x] Reconcile R0–R10 executable milestone checker ownership: classify the self-invalid historical snapshots for retirement and add an active absence guard while preserving modern verification owners.
-- [x] Finish current consumer tracing of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`): both are forwarding-only aliases with no current repository consumer after R6 checker retirement; retire them behind an active absence/import guard.
-- [ ] Finish unresolved public/Reader/Keeper/Functions/tool entrypoint and ownership edges.
-- [ ] Identify additional unreachable source, obsolete migration-only paths, unused exports, stale fixtures, and obsolete documentation references.
-- [ ] Classify every remaining Audit A candidate as retain, cleanup/refactor, defer, or skip.
+- [x] Finish current consumer tracing of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`): both were forwarding-only aliases with no current repository consumer after R6 checker retirement; retire them behind an active absence/import guard and reverify exact main.
+- [x] Finish current public/Reader/Keeper/Functions production entrypoint and composition tracing. Browser reachability follows HTML roots, ESM/dynamic imports, and Keeper absolute script-loader edges; Functions reachability follows Pages Function routes through service/helper imports.
+- [x] Identify and dispose of whole-file unreachable source at the inventory level. The first browser graph found one dead R2 `reading-status.js` compatibility facade plus its stale `_headers` rule; both are retired while canonical `domain/reading-state.js` and the live stylesheet remain.
+- [x] Classify remaining Audit-A candidates. Current deterministic tests are retained because the active runner discovers them; release-era standalone tooling is deferred to G; CSS/docs and deeper surface-specific export/behavior questions are assigned to B–H.
+
+### Audit A closeout evidence
+
+- Browser graph: **25 production HTML script roots → all 85 remaining authored browser scripts**.
+- Functions graph: **15 Pages Function route roots → all 38 Functions source files**.
+- Current deterministic test files remain live inputs to `npm test`; filename age alone is not stale-fixture evidence.
+- No inventory-level evidence justifies broader Reader, Library, Keeper, Functions, CSS, or tooling restructuring.
 
 ### Decision gate
 
-Do not restructure modules based on age, file count, or aesthetics. Audit A completes only when every candidate has evidence and a disposition.
+Audit A closes with evidence and explicit dispositions, not with speculative module cleanup. The permanent reachability checks become part of normal `npm run check`; deeper behavior/performance/export questions remain with Audits B–H.
 
 ## v2.11B — Reader architecture & long-session reliability
 
-**Status:** ⬜ Planned
+**Status:** ⬜ Planned — next audit after v2.11A lands on exact main
 
 - Revalidate Reader app/session, Pages, Continuous, Page Map/progress, Contents/search, bookmarks, image focus, input, resume, and ticket-renewal ownership.
 - Measure time-to-first-readable-page with a representative large EPUB.
@@ -119,10 +126,10 @@ Do not restructure modules based on age, file count, or aesthetics. Audit A comp
 
 ## v2.11E — Pages Functions, security & storage
 
-**Status:** ⬜ Planned — R6 forwarding-facade subset already reconciled during v2.11A
+**Status:** ⬜ Planned — inventory-level facade/reachability subsets already reconciled during v2.11A
 
 - Revalidate thin routes over auth, media, catalog, storage, validation, abuse, HTTP, and admin services.
-- Treat the retired R6 forwarding facades as an Audit-A ownership cleanup; independently audit remaining unused exports/routes without weakening security boundaries.
+- Treat retired R6 forwarding facades and whole-file reachability as completed Audit-A ownership cleanup; independently audit unused exports/routes and behavior without weakening security boundaries.
 - Re-run signed media, Keeper session, abuse, catalog-redaction, B2, and recovery invariants.
 - Treat storage/auth/media simplification as security-sensitive.
 
@@ -142,6 +149,7 @@ Do not restructure modules based on age, file count, or aesthetics. Audit A comp
 - Revalidate Node/npm/lockfile, build context, deployment stamping, no-bundler decision, preview, and publisher ownership.
 - Treat R0–R10 executable milestone checkers as retired historical policy snapshots; current verification remains owned by modern checks/tests/Baseline Health/E2E.
 - Audit remaining M-series, `check-v2-6.mjs`, and other release-era standalone tools independently; do not infer redundancy from the R-series decision.
+- Retain current deterministic `*.test.mjs` files unless Audit G produces evidence beyond historical naming; the active test runner and Baseline Health currently own them.
 - Measure check/test/build duration and remove duplicate cost only when confidence is preserved.
 - Keep dependency maintenance review-driven and non-destructive.
 

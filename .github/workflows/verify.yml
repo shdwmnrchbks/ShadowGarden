@@ -29,8 +29,10 @@ jobs:
         run: npm ci --no-audit --no-fund --progress=false
       - name: Check repository
         run: npm run check
-      - name: Run Functions storage/recovery regressions
-        run: node --test tests/service/catalog-backup-integrity.test.mjs tests/service/admin-read-storage-ownership.test.mjs
+      - name: Run Functions security contracts
+        run: npm run check:security
+      - name: Run Functions service regressions
+        run: npm run test:service
       - name: Run Reader lifecycle unit tests
         run: node --test tests/unit/reader-continuous.test.mjs tests/unit/reader-rendition.test.mjs tests/unit/reader-resume.test.mjs tests/unit/reader-resume-lifecycle.test.mjs tests/unit/reader-epub-lifecycle.test.mjs
       - name: Run Library audit unit tests

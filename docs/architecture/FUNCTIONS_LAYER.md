@@ -1,11 +1,11 @@
 # Pages Functions Service Layer
 
 **Refactor milestone:** R6 — Pages Functions service layer  
-**Release:** v1.21.0
+**Current audit:** v2.11E — Pages Functions, security & storage
 
-R6 turns Cloudflare Pages Function files into **Thin route adapters** over explicit backend services. Public URLs, response contracts, security policy, private Backblaze B2 namespaces, and the accepted Milestones 1–9 security baseline are preserved.
+Shadow Garden keeps Cloudflare Pages Function files as **thin route adapters** over explicit backend services. Public URLs, response contracts, signed-media policy, Keeper authentication, private Backblaze B2 namespaces, Range delivery, catalog redaction, abuse controls, and recovery invariants remain service-owned.
 
-> **Current v2.11 note:** R6's forwarding-only `_lib/b2.js` and `_lib/garden-maintenance.js` compatibility facades are retired after current repository consumer tracing found no remaining dependency. The underlying service ownership described here is unchanged. The historical `check-r6.mjs` executable was also retired with the R-series milestone policy snapshots; current repository/security/service/browser checks own the live contracts.
+> **v2.11E result:** the service split remains healthy. Audit E found one least-privilege storage defect, nine unowned service exports, and a verification gap. It did not justify a Functions rewrite. Read-only B2 operations now sign with read credentials even when called through a mutation-capable service client; mutation methods still require write credentials. Current repository checks also enforce route thinness, whole-Functions reachability, and retained service-export consumers.
 
 ## Dependency direction
 
@@ -14,167 +14,133 @@ Pages Function routes
         |
         v
 functions/services/
-  http · storage · auth · media
-  catalog · validation · abuse · admin
+  http · storage · auth · media · catalog · validation
+  abuse · admin · recovery · recovery-readiness · translations
         |
         v
 functions/_lib/
   signed-session/ticket primitives
-  throttles · crawler policy · book identity
+  throttles · crawler policy · book identity · taxonomy
         |
         v
 private Backblaze B2 / Cloudflare Cache
 ```
 
-Routes may select a service handler and return its response. They do not own authentication, validation, catalog persistence, B2 requests, cache invalidation, media-ticket verification, abuse policy, or response construction.
+Routes may select a service handler and return its response. They do not own authentication, validation, catalog persistence, B2 requests, cache invalidation, media-ticket verification, recovery policy, abuse policy, or response construction.
 
 ## Thin route adapters
 
-The following endpoints remain externally unchanged while becoming adapters:
+The current production graph has **15 Pages Function route roots**:
 
 - `/admin-access` → `services/auth.js#handleAdminAccess`
 - `/human-access` → `services/auth.js#handleHumanAccess`
 - `/book-access` → `services/media.js#handleBookAccess`
 - `/media/*` → `services/media.js#handleMediaRequest`
 - `/admin-api/status` and `/admin-api/upload` → `services/admin.js`
-- `/admin-api/library`, `/catalog`, `/maintenance`, `/series-banner`, `/backup` → `services/catalog.js`
+- `/admin-api/library` and `/admin-api/catalog` → `services/catalog.js`
+- `/admin-api/series-banner` → `services/catalog.js`
+- `/admin-api/maintenance` → catalog GET plus recovery-guarded POST ownership
+- `/admin-api/backup` → `services/recovery.js`
+- `/admin-api/recovery` → `services/recovery.js`
+- `/admin-api/recovery-readiness` → `services/recovery-readiness.js`
 - `/admin-api/abuse` → `services/abuse.js`
+- `/admin-api/translations` → `services/translations.js`
 
-At the R6 milestone, `tools/check-r6.mjs` guarded these route/service boundaries. v2.11 retired that release-era executable after current checks superseded its historical chaining assumptions; the live security and route-thinness contracts remain covered by current repository, security, service, and browser verification.
+`tools/check-functions-entrypoint-reachability.mjs` is now the live ownership guard. It discovers route roots dynamically, requires adapters to remain small direct `onRequest* → service` delegates, rejects route imports outside `functions/services/`, follows the complete Functions import graph, and rejects service exports without repository consumers. On the Audit-E measured code head it proves **15 thin route roots → all 38 Functions sources**, with **91 retained service exports having consumers**.
+
+The historical R6 executable checker and forwarding `_lib/b2.js` / `_lib/garden-maintenance.js` facades remain retired; v2.11 uses current repository/security/service/browser checks instead of preserving release-era policy scripts.
 
 ## Authentication service
 
-`functions/services/auth.js` owns the authentication/session application boundary.
-
-It owns:
+`functions/services/auth.js` owns the authentication/session application boundary:
 
 - constant-time Keeper bearer-token comparison;
 - bearer token + signed `sg_admin_session` verification for `/admin-api/*`;
 - Garden Keeper Turnstile challenge/session establishment;
-- server-authoritative Keeper failure cooldowns and significant-cooldown telemetry;
+- server-authoritative Keeper failure cooldowns and telemetry;
 - public human-verification session establishment;
 - same-origin and crawler-policy enforcement on authentication endpoints.
 
-Cryptographic token/session formats stay in the accepted `_lib/admin-session.js`, `_lib/human-session.js`, and `_lib/admin-throttle.js` primitives.
+Cryptographic formats remain in the accepted `_lib/admin-session.js`, `_lib/human-session.js`, and `_lib/admin-throttle.js` primitives.
 
 ## Media service
 
-`functions/services/media.js` owns both book acquisition authorization and private-media delivery.
+`functions/services/media.js` owns book acquisition authorization and private-media delivery.
 
-### Book acquisition
+`handleBookAccess()` preserves same-origin acquisition, crawler/script screening, M8 public abuse cooldown enforcement, human-session verification, opaque `bk_...` resolution, acquisition limits, and signed media ticket/cookie issuance.
 
-`handleBookAccess()` preserves:
+`handleMediaRequest()` preserves allowlisted public catalogs/covers/EPUBs, signed EPUB authorization, `Range` and conditional-request forwarding, same-origin protected-media headers, public catalog redaction through `publicCatalogShape()`, canonical EPUB cache keys, and bounded caching.
 
-- same-origin acquisition requests;
-- crawler/script screening before expensive human/catalog work;
-- M8 public abuse cooldown enforcement;
-- human-session verification;
-- opaque `bk_...` book resolution;
-- the 20-unique-books / 10-minute signed acquisition limiter;
-- signed media ticket and HttpOnly ticket-cookie issuance.
+The M8 cooldown remains deliberately outside `/media/*`. Invalid-ticket telemetry is still suppressed for stale Range retries so Reader recovery cannot activate the persistent network cooldown.
 
-### `/media/*`
-
-`handleMediaRequest()` preserves:
-
-- allowlisted public catalogs, opaque covers, and EPUB objects only;
-- signed query-ticket or cookie-ticket authorization for EPUBs;
-- `Range`, `If-Range`, `If-None-Match`, and `If-Modified-Since` forwarding;
-- same-origin `Cross-Origin-Resource-Policy` and protected-media anti-indexing headers;
-- public catalog redaction through `publicCatalogShape()`;
-- canonical EPUB cache keys that exclude ephemeral signatures;
-- immutable cover caching and bounded catalog/EPUB caching.
-
-The M8 cooldown is deliberately **not** checked in `/media/*`. A stale Reader Range request may legitimately arrive after its ticket expires; invalid-ticket telemetry is therefore recorded only when `!incomingRange`. This preserves Reader recovery without letting Range requests activate the persistent network cooldown.
+Audit E found no duplicated media owner and no reason to rewrite this service. Two previously exported media-only helpers were made private after repository-wide consumer tracing found no external owner.
 
 ## Storage service
 
 `functions/services/storage.js` is the single Backblaze B2 transport owner.
 
-It owns:
+It owns object-key encoding and traversal/prefix validation, AWS4 client construction, GET/HEAD/PUT/DELETE operations, backup integrity metadata, and storage configuration checks. The bucket remains private and direct B2 credentials/URLs are never a browser delivery contract.
 
-- bucket/endpoint/region constants;
-- read/write AWS4 clients;
-- object-key encoding and traversal/prefix validation;
-- B2 GET, HEAD, PUT, and DELETE operations;
-- storage configuration checks.
+### Least-privilege credential routing
 
-The bucket remains private. Direct B2 URLs and credentials are not exposed as public delivery contracts.
+Audit E measured four authenticated read-only handlers—Library GET, Series Banner GET, Maintenance GET, and Recovery GET—with valid Keeper auth plus B2 read credentials but no B2 write credentials. Before the fix they returned 502 because their call graphs instantiated `writeClient(env)` even though the storage operations were only GET/HEAD.
 
-R6 temporarily retained `functions/_lib/b2.js` as a forwarding compatibility alias for older internal imports/tests. v2.11 confirmed no current repository consumer remained and retired the facade; current code imports the actual storage/auth/http service owner directly.
+`writeClient(env)` is now method-routed and lazy:
 
-## Catalog service
+- GET and HEAD use the read credential pair;
+- PUT, DELETE, and any other mutation method use the write credential pair;
+- a missing write credential pair never falls back to read credentials and fails before a mutation request is sent.
 
-`functions/services/catalog.js` is the single server-side catalog persistence owner.
+This preserves existing service composition while restoring least privilege. Handlers that perform mixed read/write transactions can keep one transport abstraction without forcing write credentials onto read-only execution paths.
 
-It owns:
+Three storage-only implementation symbols (`B2_ENDPOINT`, `B2_REGION`, and `sha256Text`) were made private after the service-export audit found no repository consumer.
 
-- Main + Adult catalog loading/saving and public-cache invalidation;
-- upload catalog mutation and duplicate reject/replace/separate behavior;
-- stable `bookId` preservation during replacement;
-- Library/Series metadata, status, audio-folder and Main/18+ shelf changes;
-- Series banner selection;
-- backup snapshot creation, retention, restore, and deletion;
-- soft-delete Trash creation, recovery, and permanent purge;
-- cover optimization catalog commits;
-- Garden Maintenance payload orchestration.
+## Catalog, recovery, and validation
 
-R6 temporarily retained `functions/_lib/garden-maintenance.js` as a forwarding compatibility alias over catalog/validation services. v2.11 confirmed no current repository consumer remained and retired the facade; Garden Maintenance ownership stays in the current service layer.
+`functions/services/catalog.js` remains the canonical catalog persistence and Garden Maintenance read owner. It owns Main/Adult catalog mutation, stable book identity during replacement, Library/Series metadata, banners, snapshot creation, Trash state, cover-optimization commits, and maintenance payload shaping.
 
-## Validation service
+`functions/services/recovery.js` owns destructive/recovery-sensitive policy: backup deletion safety, emergency recovery, recovery-anchor protection, and guarded Maintenance mutations that can affect recovery guarantees. `functions/services/recovery-readiness.js` owns on-demand readiness inspection independently from destructive actions.
 
-`functions/services/validation.js` owns reusable backend validation and catalog-health inspection.
+Audit E kept this split. Four catalog-only exported implementation details (`TRASH_KEY`, `loadCatalog`, `managementShape`, `appendTrashItem`) were made private after no external consumer was found.
 
-It owns:
+`functions/services/validation.js` owns upload namespace/MIME/size validation, opaque `cv_...` cover policy, catalog input normalization, media-reference normalization, Garden Health inspection, and bounded object checks. Its allowed-upload prefixes, opaque-cover matcher, and SHA normalization remain exported intentionally as direct security regression seams and now have explicit service-test coverage.
 
-- the 50 MB upload limit;
-- allowed upload namespaces/content types;
-- server-enforced opaque `cv_...` cover object keys;
-- normalized catalog mutation inputs and external URL checks;
-- media-reference normalization;
-- static Garden Health inspection;
-- bounded/concurrent B2 object existence checking.
+## Abuse, HTTP, admin, and translations
 
-Browser EPUB preflight remains client-side Garden Keeper behavior; R6 does not move Reader-focused EPUB parsing to the server.
-
-## Abuse service
-
-`functions/services/abuse.js` owns abuse-response orchestration:
-
-- safe M8 cooldown lookup for acquisition endpoints;
-- standard cooldown responses;
-- deferred persistent abuse-signal recording;
-- authenticated Abuse Watch review and public-cooldown release.
-
-The underlying HMAC state and ledger format remain unchanged in `_lib/abuse-telemetry.js`. R6 changes its storage dependency only; it does not migrate security state or persist raw IP addresses.
-
-## HTTP and admin services
+`functions/services/abuse.js` owns cooldown lookup/response orchestration, deferred abuse-signal recording, Abuse Watch review, and public-cooldown release. HMAC identity/ledger primitives remain under `_lib/` and raw IP addresses are not persisted.
 
 `functions/services/http.js` centralizes no-store JSON responses, multi-cookie responses, same-origin checks, JSON parsing, method errors, and `waitUntil`-safe deferred work.
 
-`functions/services/admin.js` is intentionally small. It composes authentication, validation, and storage for Keeper status and raw object uploads without becoming another general service layer.
+`functions/services/admin.js` stays intentionally small: it composes authentication, validation, and storage for Keeper status and raw object uploads without becoming a second general service layer.
+
+`functions/services/translations.js` owns server-side translation metadata mutation/validation. Its route remains a forwarding adapter rather than duplicating catalog/auth rules.
+
+## Verification ownership
+
+Audit E closes a verification gap by running the full Functions security and service contracts in normal pull-request Verify, not only in the monthly Baseline Health workflow. Verify now includes:
+
+- `npm run check`, including route/source/export ownership;
+- `npm run check:security` for signed media, opaque IDs, human-session, protected-route, catalog-redaction, and Range/cooldown contracts;
+- `npm run test:service` for Keeper auth, B2 credential routing, recovery, catalog/storage integrity, translation metadata, media tickets, and validation;
+- the existing Reader/Library targeted regressions and production build.
+
+Baseline Health remains the periodic full deterministic/security/recovery/performance maintenance owner, and the five-project real-browser workflow remains the browser integration gate.
 
 ## Security invariants
 
-R6 must preserve all accepted security contracts:
+The following remain non-negotiable:
 
-- `/media/*` EPUB delivery requires a valid signed media ticket and preserves HTTP Range behavior.
+- EPUB delivery requires valid signed media authorization and preserves HTTP Range behavior.
 - M8 public cooldown enforcement stays outside `/media/*`.
-- `/admin-api/*` still requires both the Keeper bearer token and valid signed admin session.
-- Garden Keeper cooldown state remains server-authoritative across normal/Incognito sessions on one network.
-- HMAC-derived security identities remain opaque and raw IP addresses are never persisted.
-- public catalog payloads never expose private EPUB paths, SHA-256 values, or original filenames.
-- cover object names remain opaque `cv_...` keys enforced server-side.
-- Backblaze B2 credentials and direct private-object delivery remain server-only.
-- browser-local Reader progress, bookmarks, Finished state, and settings remain browser-local.
+- `/admin-api/*` requires both the Keeper bearer token and valid signed admin session.
+- Keeper cooldown state remains server-authoritative.
+- HMAC-derived identities remain opaque and raw IP addresses are never persisted.
+- Public catalog payloads do not expose private EPUB paths, SHA-256 values, or original filenames.
+- Cover object names remain opaque `cv_...` keys enforced server-side.
+- Backblaze B2 credentials and private objects remain server-only.
+- Recovery deletion/purge operations preserve a verified usable recovery anchor where required.
+- Browser-local Reader progress, bookmarks, Finished state, and settings remain browser-local.
 
-## R6 acceptance
+## v2.11E decision
 
-The following records the historical R6 acceptance state; v2.11 preserves the behavior while allowing superseded compatibility/tooling artifacts to retire.
-
-- Every Pages Function route is a thin adapter to `functions/services/`.
-- Authentication, Media, Catalog, Storage, Validation, Abuse, HTTP, and small Admin service owners are explicit.
-- Duplicate B2 and catalog persistence implementations are removed; forwarding compatibility facades were later retired in v2.11 after consumer tracing.
-- At R6, permanent M5–M9 and R0 checks asserted the same behavior at the new owners rather than route-file implementation details; v2.11's current verification stack supersedes the retired R-series executables.
-- At R6, `tools/check-r6.mjs` protected route thinness, service ownership, opaque upload validation, traversal rejection, signed-session ownership, and the Range/M8 boundary; current repository/security/service/browser checks now own those live contracts.
-- The complete repository check suite and production build were required before R6 merged.
+Audit E found **a bounded credential-ownership defect, stale export surface, and a CI coverage gap—not an architectural Functions problem**. Keep the current route/service/helper decomposition. The accepted changes are method-level least-privilege B2 routing, removal of nine unowned exports, explicit ownership tests for three security-policy exports, a permanent thin-route/export-consumer guard, and promotion of security/service regressions into normal Verify.

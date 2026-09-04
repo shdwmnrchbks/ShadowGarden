@@ -1,6 +1,6 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A–D COMPLETE · v2.11E NEXT**  
+> **Status:** ✅ **v2.11A–E COMPLETE · v2.11F NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
@@ -8,13 +8,14 @@
 > **Reader Audit-B measured code head:** `4c9e41fda640926c393dd72397058447d0af92bf`  
 > **Library/Series Audit-C measured code head:** `f64fa1ea4e74287146800687ca9d2e27efa6e9c3`  
 > **Keeper Audit-D measured code head:** `78ceaff278cfbb56a808ab91030eda182cc917b4`  
+> **Functions Audit-E measured code head:** `e9f9001ff50aa4f915ee397927fde0698309b805`  
 > **Updated:** 2026-09-05
 
 Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health cycle**, not a feature expansion roadmap.
 
 The audit asks whether the mature v2 codebase has demonstrated structural, reliability, maintainability, verification, or realistic-scale performance problems. Refactor and optimization work are conditional. If evidence shows an area is already healthy, its implementation step is **skipped / no change needed**.
 
-Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with Audit-C measurements in [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md), Audit-D measurements in [`../audits/V2_11_KEEPER_AUDIT.md`](../audits/V2_11_KEEPER_AUDIT.md), and current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
+Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with Audit-C measurements in [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md), Audit-D measurements in [`../audits/V2_11_KEEPER_AUDIT.md`](../audits/V2_11_KEEPER_AUDIT.md), Audit-E measurements in [`../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md), and current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
 
 ## Governing rule
 
@@ -156,12 +157,21 @@ Audit D found **two bounded request-ownership defects**, not a structural Keeper
 
 ## v2.11E — Pages Functions, security & storage
 
-**Status:** ⬜ Planned — inventory-level facade/reachability subsets already reconciled during v2.11A
+**Status:** ✅ Complete on measured code head `e9f9001ff50aa4f915ee397927fde0698309b805`  
+**Evidence:** [`../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md)
 
-- Revalidate thin routes over auth, media, catalog, storage, validation, abuse, HTTP, and admin services.
-- Treat retired R6 forwarding facades and whole-file reachability as completed Audit-A ownership cleanup; independently audit unused exports/routes and behavior without weakening security boundaries.
-- Re-run signed media, Keeper session, abuse, catalog-redaction, B2, and recovery invariants.
-- Treat storage/auth/media simplification as security-sensitive.
+### Audit goals and outcomes
+
+- [x] Revalidate thin routes independently from Audit-A whole-file reachability. **Outcome:** the live guard proves **15 thin route roots → all 38 Functions sources** and rejects route-owned logic/imports outside the service layer; no routing rewrite is justified.
+- [x] Measure read/write storage credential ownership. **Outcome:** Library, Series Banner, Maintenance, and Recovery read-only GETs previously failed without write credentials even though they only issued GET/HEAD. Storage transport now routes GET/HEAD through read credentials and mutation methods through write credentials lazily, preserving the existing service call graph and least privilege.
+- [x] Audit service export ownership. **Outcome:** nine implementation-only catalog/media/storage exports with no repository consumer are now private. Three validation-policy exports are retained deliberately and directly regression-tested. Final ownership guard: **91 retained service exports have consumers**.
+- [x] Re-run signed media, Keeper auth/session, opaque-ID/catalog redaction, Range/abuse, B2 integrity, recovery, translation, and upload-validation contracts. **Outcome:** normal Verify is green with **43/43 service tests**, the core security checker, targeted Reader/Library regressions, and production build.
+- [x] Close the verification gap. **Outcome:** `npm run check:security` and the complete service-test layer now run in normal pull-request Verify rather than only in periodic Baseline Health.
+- [x] Reconcile current Functions architecture ownership. **Outcome:** auth, media, catalog, recovery/readiness, storage, validation, abuse, HTTP, admin, and translations retain explicit owners; retired R6 facades remain absent.
+
+### Audit E decision gate
+
+Audit E found **one bounded least-privilege defect, stale export surface, and a normal-CI coverage gap**, not an architectural backend problem. Keep the current route/service/helper decomposition. The accepted changes are method-routed B2 credentials, a permanent thin-route/export-consumer guard, nine private implementation symbols, explicit tests for retained upload-policy seams, and full security/service regression coverage in Verify. Do not add a router framework, collapse auth/media/recovery ownership, or expose direct B2 access without new evidence.
 
 ## v2.11F — CSS, motion & accessibility
 

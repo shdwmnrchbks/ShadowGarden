@@ -1,11 +1,11 @@
 # Shadow Garden Current Roadmap — Reliability, Reader Experience & Operations
 
-> **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
+> **Status:** ✅ **CURRENT RELEASE COMPLETE**  
 > **Starting baseline:** v2.6.x — Reliability & Reader hardening  
 > **Active release:** v2.10.0 — Maintenance & Supply Chain  
 > **Updated:** 2026-09-04
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, the v2.8 Reader Experience milestone, and the v2.9 Keeper Productivity & Recovery milestone. The v2.10 Maintenance & Supply Chain implementation scope is now complete; the active line remains current until an explicit formal release cut or a successor roadmap takes ownership. Performance work remains intentionally limited to realistic personal-library scale and should not displace operational work unless measurements expose a real bottleneck.
+Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, the v2.8 Reader Experience milestone, v2.9 Keeper Productivity & Recovery, and v2.10 Maintenance & Supply Chain. This file remains the single current roadmap until a successor roadmap takes ownership. Performance work remains intentionally limited to realistic personal-library scale and should not displace operational work unless measurements expose a real bottleneck.
 
 Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
 
@@ -36,7 +36,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
 | **v2.8.0 — Reader Experience** | ✅ Done | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
 | **v2.9.0 — Keeper Productivity & Recovery** | ✅ Done | Make library administration faster and prove recovery from catalog/storage failures |
-| **v2.10.0 — Maintenance & Supply Chain** | 🟨 Release cut pending | Controlled dependency maintenance, audit visibility, documentation/version guards, and periodic operational baselines are implemented |
+| **v2.10.0 — Maintenance & Supply Chain** | ✅ Done | Controlled dependency maintenance, audit visibility, documentation/version guards, and periodic operational baselines |
 
 ---
 
@@ -246,8 +246,9 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 
 # v2.10.0 — Maintenance & Supply Chain
 
-**Status:** 🟨 Implementation complete; formal release cut pending  
-**Implementation completed:** 2026-09-04  
+**Status:** ✅ Done  
+**Completed:** 2026-09-04  
+**Release record:** [`../releases/v2.10.0.md`](../releases/v2.10.0.md)  
 **Goal:** keep the mature application healthy without turning maintenance automation into a source of unreviewed changes.
 
 ## Scope
@@ -266,7 +267,7 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 - [x] Current documentation no longer presents an archived roadmap as active work.
 - [x] Operational/security checks remain visible without adding fake client-side protection or unnecessary infrastructure.
 
-Implementation is complete across the controlled dependency-maintenance, policy-driven audit reporting, reviewed Node/npm and lockfile-integrity, documentation freshness, release-metadata synchronization, and periodic baseline slices. `package.json#version` remains v2.9.0 while `deploymentVersion` remains v2.10.0 until an explicit formal release cut aligns package/lockfile/release-note metadata and passes the permanent exact-main production publisher gates.
+v2.10.0 completes the controlled dependency-maintenance, policy-driven audit reporting, reviewed Node/npm and lockfile-integrity, documentation freshness, release-metadata synchronization, and periodic baseline slices. The formal package version, deployment version, lockfile metadata, changelog, and release record now converge at v2.10.0; the permanent exact-main Verify, real-browser, production-deployment, and smoke gates remain authoritative for publication.
 
 ---
 
@@ -293,4 +294,4 @@ These are useful ideas, but they should be pulled into a release only when the a
 
 ## Completion rule
 
-This roadmap remains **CURRENT WORK IN PROGRESS** until its active release and subsequent planned releases are either completed, intentionally deferred, or superseded by a new roadmap. When superseded, archive this file and create a new single active roadmap rather than accumulating multiple “current” plans.
+This roadmap is complete through v2.10.0. It remains the single current roadmap until superseded; when a successor takes ownership, archive this file and create one new active roadmap rather than accumulating multiple “current” plans.

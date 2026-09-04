@@ -1,5 +1,15 @@
 # Shadow Garden Changelog
 
+## 2.10.0 — Maintenance & Supply Chain
+- Added controlled dependency maintenance for the five direct npm dependencies and reviewed GitHub Actions pins, keeping EPUB.js, AWS/B2, authentication/security-sensitive, runtime, and workflow changes under explicit human review and the full release gates.
+- Added deterministic dependency/audit reporting with an explicit actionable-versus-inherited/non-actionable policy instead of auto-remediation.
+- Standardized the maintenance runtime on Node 22.23.2 and npm 10.9.8, with committed root/E2E lockfiles installed through `npm ci` and checked for runtime/lockfile integrity.
+- Added documentation freshness and release-metadata guards that synchronize the active roadmap/deployment version, formal package version, lockfile metadata, changelog, release notes, build metadata, and publisher ownership.
+- Added a monthly/manual Baseline Health workflow covering repository/security/recovery/deterministic checks, production build, and a deterministic 300-series Library performance sanity tripwire.
+- Extended the permanent Real Browser E2E workflow with monthly/manual baseline reruns across Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile, retaining accessibility and failure-artifact coverage.
+- Kept scheduled maintenance verification read-only with respect to production state: no automatic dependency fixes, catalog/storage mutation, destructive production recovery, or automatic release publication.
+- Kept the completed v2.10 maintenance baseline behind the same exact-main Verify, five-browser, deployment-match, and production-smoke release contract used by prior v2 releases.
+
 ## 2.9.0 — Keeper Productivity & Recovery
 - Added safe multi-series metadata editing for taxonomy, series status, translation status, and translation credits with explicit Keep/Add/Replace/Clear semantics, per-series diff preview, canonical validation, and a safety backup before writes.
 - Hardened New Books review with exact-duplicate protection, non-blocking similar-volume warnings, concise import/preflight reporting, and deterministic one-click fixes only where changes are reversible and unambiguous.

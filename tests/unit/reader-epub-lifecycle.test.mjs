@@ -15,7 +15,16 @@ function eventTarget(){
   };
 }
 
-test('EPUB.js lifecycle compatibility patch releases manager window listeners on destroy',()=>{
+function hookList(){
+  const hooks=[];
+  return{
+    register(...items){hooks.push(...items)},
+    deregister(item){const index=hooks.indexOf(item);if(index>=0)hooks.splice(index,1)},
+    list(){return hooks}
+  };
+}
+
+test('EPUB.js lifecycle compatibility patch releases manager listeners and rendition-owned spine hooks',()=>{
   const previousWindow=globalThis.window;
   const fakeWindow=eventTarget();
   globalThis.window=fakeWindow;
@@ -39,24 +48,41 @@ test('EPUB.js lifecycle compatibility patch releases manager window listeners on
     }
 
     class Rendition{
+      constructor(book){
+        this.book=book;
+        this.book.spine.hooks.content.register(this.injectIdentifier.bind(this));
+        const ManagerClass=this.requireManager('default');
+        this.manager=new ManagerClass();
+        this.manager.addEventListeners();
+        this.destroyed=false;
+      }
+      injectIdentifier(){}
       requireManager(){return Manager}
+      destroy(){this.manager.destroy();this.book=undefined;this.destroyed=true}
     }
-    const epub={Rendition};
+
+    class Book{
+      constructor(){this.spine={hooks:{content:hookList()}}}
+      renderTo(){this.rendition=new Rendition(this);return this.rendition}
+    }
+
+    const epub={VERSION:'0.3.93',Rendition,Book};
 
     assert.equal(installEpubLifecyclePatch(epub),true);
     assert.equal(installEpubLifecyclePatch(epub),true,'installation should be idempotent');
 
-    const PatchedManager=new Rendition().requireManager('default');
-    const manager=new PatchedManager();
-    manager.addEventListeners();
+    const book=new Book();
+    const rendition=book.renderTo('viewer');
 
+    assert.equal(book.spine.hooks.content.list().length,1,'Rendition constructor hook should be visible while live');
     assert.equal(fakeWindow.count('unload'),1);
     assert.equal(fakeWindow.count('orientationchange'),1);
     assert.equal(scroller.count('scroll'),1);
 
-    manager.destroy();
+    rendition.destroy();
 
-    assert.equal(manager.destroyed,true);
+    assert.equal(rendition.destroyed,true);
+    assert.equal(book.spine.hooks.content.list().length,0,'destroy should release the hook that roots the old Rendition');
     assert.equal(fakeWindow.count('unload'),0);
     assert.equal(fakeWindow.count('orientationchange'),0);
     assert.equal(scroller.count('scroll'),0);
@@ -64,4 +90,10 @@ test('EPUB.js lifecycle compatibility patch releases manager window listeners on
     if(previousWindow===undefined)delete globalThis.window;
     else globalThis.window=previousWindow;
   }
+});
+
+test('EPUB.js lifecycle compatibility patch is pinned to the affected dependency version',()=>{
+  class Rendition{requireManager(){return class Manager{}}}
+  class Book{renderTo(){return{}}}
+  assert.equal(installEpubLifecyclePatch({VERSION:'0.4.0',Rendition,Book}),false);
 });

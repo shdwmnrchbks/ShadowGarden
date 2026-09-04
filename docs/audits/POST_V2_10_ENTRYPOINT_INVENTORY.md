@@ -34,8 +34,9 @@ This working inventory compares current composition with the frozen v2.0 archite
 ### Pages Functions
 
 - Route files remain thin adapters into `functions/services/` ownership for auth, media, catalog, storage, validation, abuse, HTTP, and admin behavior.
-- Real `_lib` helpers remain implementation dependencies where current services use them.
-- `functions/_lib/b2.js` and `functions/_lib/garden-maintenance.js` are forwarding compatibility facades only. The retired R6 milestone checker was a known executable consumer; incomplete code-search indexing is not sufficient evidence to delete the facades yet. v2.11E must finish consumer/security evidence first.
+- Real `_lib` helpers remain implementation dependencies where current services use cryptographic/session, identity, throttling, crawler-policy, taxonomy, and other primitive behavior.
+- The old `functions/_lib/b2.js` and `functions/_lib/garden-maintenance.js` forwarding facades had no implementation of their own. Current repository tracing found no remaining route/service/test/tool import after the historical R6 checker was retired, so v2.11 removes both aliases and guards against their reintroduction.
+- `functions/services/storage.js` remains the single B2 transport owner; `functions/services/catalog.js` remains the single server-side catalog persistence/Garden Maintenance owner. Auth/HTTP/validation ownership remains in their existing services.
 
 ### Tooling and verification
 
@@ -44,6 +45,7 @@ This working inventory compares current composition with the frozen v2.0 archite
 - Real-browser ownership: the five-project Chromium/Firefox/WebKit desktop plus Chromium/WebKit mobile E2E matrix.
 - Formal publication ownership: the verified v2 release workflow; formal package/release version remains v2.10.0 during the audit line.
 - R0–R10 milestone checker executables were release-era executable policy snapshots. Every reviewed R-series checker encoded stale self-retention/test-chain assumptions that contradict the current verification split. They are retired in v2.11 and protected by `check-retired-milestone-checkers.mjs`.
+- The former R6 forwarding facades are separately protected by `check-retired-r6-facades.mjs`, which rejects both retired paths and any new JS/MJS/CJS import of them.
 - M-series checks, `check-v2-6.mjs`, and other release-era standalone tools are **not** implied redundant by the R-series decision; v2.11G must review them separately.
 
 ## Current decisions
@@ -54,12 +56,11 @@ This working inventory compares current composition with the frozen v2.0 archite
 - Build-time deployment stamping remains the sole local asset-cache version owner.
 - Batch Edit and Batch Artwork remain retired with no replacement.
 - The retained multi-EPUB upload queue remains separate from those retired features.
-- The two R6 forwarding facades remain for now; delete/retain is deferred until consumer evidence is complete.
+- The two forwarding-only R6 compatibility facades are retired; current code imports the actual service owner instead.
 - Historical R0–R10 executable milestone checkers are retired; historical architecture/release documentation and Git history remain the record of those milestones.
 
 ## v2.11A remaining inventory work
 
 - [ ] Finish any unresolved public, Reader, Keeper, Functions, and operational-tool ownership edges not captured above.
-- [ ] Finish consumer tracing of the two R6 compatibility facades.
 - [ ] Identify additional unreachable source, obsolete migration-only paths, unused exports, stale fixtures, and stale current documentation references.
 - [ ] Record retain / cleanup / refactor / defer / skip decisions for every remaining candidate.

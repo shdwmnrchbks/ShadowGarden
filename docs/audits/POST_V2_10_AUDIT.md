@@ -25,7 +25,7 @@ The execution baseline includes the v2.10 release plus subsequent maintenance th
 | ID | Area | Evidence | Impact | Risk | Decision | Verification |
 | --- | --- | --- | --- | --- | --- | --- |
 | A-001 | Frozen v2 manifest vs current runtime inventory | `docs/architecture/v2-entrypoints.json` is intentionally frozen at the v2.0/R10 cutover while later releases added legitimate modules. | A historical manifest can be mistaken for a moving current inventory. | Low | ⏭ Keep the frozen manifest immutable; maintain current inventory separately. | Compare current composition roots/direct entrypoints against the frozen manifest and record intentional additions. |
-| A-002 | R6 compatibility facades | `functions/_lib/b2.js` and `functions/_lib/garden-maintenance.js` are compatibility facades over current services rather than second implementations. The retired `check-r6.mjs` was a known executable consumer, but incomplete code-search indexing is not sufficient evidence that no other consumer exists. | Removing them blindly can break tests/tools/back-links; keeping unused facades also has maintenance cost. | Medium | 🔎 Keep for now; finish consumer tracing in the Functions/security audit before retain/remove decision. | Reference graph plus service/security regression coverage. |
+| A-002 | R6 compatibility facades | `functions/_lib/b2.js` and `functions/_lib/garden-maintenance.js` contain only re-exports from current service owners. The known historical executable consumer, `check-r6.mjs`, was retired with the R-series milestone checkers. Current routes, services, security checks, tests, and operational tooling use the service owners and retained real `_lib` primitives directly; current repository review found no remaining import of either facade. | Keeping unused compatibility files preserves obsolete ownership surface and invites new code to depend on historical aliases. | Low runtime risk; medium ownership-drift risk | 🧹 Retire both compatibility facades and guard their absence/import paths. | Active `npm run check` includes `check-retired-r6-facades.mjs`; Verify, security/service coverage, build, and five-project E2E must remain green. |
 | A-003 | Historical R0–R10 checker ownership | Every reviewed R-series milestone checker (`check-r0.mjs` through `check-r10.mjs`, including R4.1) asserted that itself and/or earlier milestone scripts must still be chained through `npm run check`. That is intentionally false in the current architecture: fast Verify owns current repository contracts/build, Baseline Health owns modern security/full deterministic tests/performance, and real-browser E2E owns the five-project browser matrix. Several R checks also encode frozen release-era file lists and exact historical test-chain assumptions. | Keeping self-invalid executables beside current checks makes obsolete policy look runnable and increases drift/maintenance risk. Re-enabling them would contradict the evolved verification split. | Low runtime risk; medium tooling-policy risk | 🧹 Retire the obsolete R-series executables and guard their absence. Preserve historical architecture/release records and current modern checks/tests. | Active `npm run check` includes `check-retired-milestone-checkers.mjs`; Verify/build and five-project E2E must remain green. Broader M-series and post-R historical tooling remain Audit G scope. |
 | A-004 | Authored Reader cache-version ownership | `src/assets/js/reader/app.js` carried `./toc.js?v=1.2.3`, `./page-map.js?v=1.2.0`, and `./book-search.js?v=2.8.1`, despite the R10/build contract assigning local cache versions to build-time deployment stamping. | Two cache-version owners can drift and preserve stale release-history strings in authored source. | Low runtime risk; medium maintainability/contract risk | 🧹 Implemented: remove the three authored query versions and add `tools/check-authored-cache-versions.mjs` to active `npm run check`. | Exact-head Verify and all five real-browser projects passed; exact-main Verify/E2E passed on `8c5145b...`; Cloudflare deployed that exact commit successfully. |
 | A-005 | Retired patch/dead-owner tombstones | Existing tombstones plus pre-v2.11 maintenance keep known patch-style owners and retired Batch Edit/Artwork source/backend paths absent. | Confirms prior duplicate/repair owners have not obviously returned. | Low | ⏭ No refactor from this evidence. | Active repository checks and current inventory. |
@@ -39,7 +39,7 @@ The execution baseline includes the v2.10 release plus subsequent maintenance th
 - [x] Fixed execution baseline at `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`.
 - [x] Preserved frozen v2.0 manifest as historical evidence rather than rewriting it into a moving manifest.
 - [x] Confirmed retired Batch Edit/Artwork owners are absent from current composition and protected by tombstones.
-- [x] Identified R6 compatibility facades as retain/remove candidates that require consumer evidence.
+- [x] Identified and traced the R6 compatibility facades: both are forwarding-only aliases with no current repository consumer; retirement is guarded against reintroduction/imports.
 - [x] Identified active-vs-historical checker drift for Audit G.
 - [x] Identified authored Reader `?v=` imports as a concrete build-contract drift.
 - [x] Removed the three confirmed authored query versions and added a permanent authored-source cache-version scan.
@@ -49,7 +49,6 @@ The execution baseline includes the v2.10 release plus subsequent maintenance th
 ### Remaining v2.11A work
 
 - [ ] Finish current direct/composed entrypoint inventory for public Library/Series, Reader, Keeper, Functions, and operational tools.
-- [ ] Finish runtime/test/tool consumer tracing for `functions/_lib/b2.js` and `functions/_lib/garden-maintenance.js`.
 - [ ] Identify any additional unreachable source, obsolete migration-only paths, unused exports, stale fixtures, or obsolete current documentation references.
 - [ ] Give every remaining Audit A candidate a retain / cleanup / refactor / defer / skip disposition before closing Audit A.
 
@@ -69,7 +68,7 @@ Pending v2.11D. Audit only retained workflows; Batch Edit and Batch Artwork are 
 
 ### Functions / storage / network
 
-Pending v2.11E. R6 facade retention is the current inventory question; no second B2/auth implementation has been established.
+The R6 forwarding-facade question is resolved at inventory level: current B2/auth/http/catalog/validation ownership lives in `functions/services/`, while retained `_lib` files are real primitives consumed by those services. Deleting the two forwarding aliases does not change storage/auth/media/catalog implementation; v2.11E still owns the deeper security/storage audit.
 
 ### Build / tests / tooling
 
@@ -77,7 +76,7 @@ R0–R10 executable milestone-checker ownership has been reconciled: they are hi
 
 ## Security and recovery notes
 
-No current v2.11A finding justifies changing storage/auth/media/recovery ownership. Any facade cleanup crossing storage/auth/http boundaries is security-sensitive and requires explicit service regression evidence.
+No current v2.11A finding justifies changing storage/auth/media/recovery implementation ownership. The R6 facade cleanup removes only forwarding aliases; current services and security primitives remain unchanged and require their existing service/security/browser regression evidence.
 
 Retiring the R-series milestone executables does not remove current security coverage: `tools/check.mjs` retains the per-change security baseline; `tools/check-security.mjs` remains the dedicated security contract and is exercised by Baseline Health; service tests and real-browser coverage remain unchanged.
 
@@ -108,14 +107,13 @@ The v2.11 start does not change catalog storage, B2 credentials, signed media fl
 ### I-002 — Retire obsolete R0–R10 executable milestone policy
 
 **Source finding:** A-003  
-**Status:** 🧹 Implemented in the current v2.11 cleanup candidate  
+**Status:** ✅ Landed on main `3a44c1c3cd0f1b1bea0bd694fc527d467b684d61`  
 **Scope:**
 
 - remove `tools/check-r0.mjs` through `tools/check-r10.mjs`, including `tools/check-r4-1.mjs`;
 - keep historical refactor roadmap, architecture baselines, release notes, and Git history unchanged;
 - add `tools/check-retired-milestone-checkers.mjs` and wire it into active `npm run check` so the obsolete executable snapshots cannot silently return;
-- leave current M-series, `check-v2-6.mjs`, current dependency/runtime/docs/release/baseline/cache checks, security checker, deterministic tests, and browser E2E unchanged;
-- leave R6 compatibility facades in place pending the dedicated Functions/security consumer audit.
+- leave current M-series, `check-v2-6.mjs`, current dependency/runtime/docs/release/baseline/cache checks, security checker, deterministic tests, and browser E2E unchanged.
 
 **Acceptance:**
 
@@ -124,12 +122,32 @@ The v2.11 start does not change catalog storage, B2 credentials, signed media fl
 - complete five-project real-browser E2E passes;
 - no package version/release metadata convergence occurs from this tooling-only cleanup.
 
+### I-003 — Retire unused R6 compatibility facades
+
+**Source finding:** A-002  
+**Status:** 🧹 Implemented in the current v2.11 cleanup candidate  
+**Scope:**
+
+- remove forwarding-only `functions/_lib/b2.js` and `functions/_lib/garden-maintenance.js`;
+- keep the actual B2/auth/http/catalog/validation owners unchanged under `functions/services/`;
+- add `tools/check-retired-r6-facades.mjs` to reject either retired path and any future JS/MJS/CJS import of it;
+- wire that guard into active `npm run check`;
+- reconcile current audit/inventory/Functions-layer documentation without rewriting frozen R6 release history.
+
+**Acceptance:**
+
+- the retired-facade guard passes with both files absent and no current import;
+- current security/service checks pass against the real service owners;
+- production build passes;
+- complete five-project real-browser E2E passes;
+- no route, dependency, lockfile, or formal release-version change is introduced.
+
 ## Deferred / skipped recommendations
 
 - Do **not** rewrite `v2-entrypoints.json` into a moving manifest.
 - Do **not** restore or replace retired Batch Edit/Artwork functionality.
 - Do **not** restructure Reader modules from age/file-count alone.
-- Do **not** delete R6 facades until consumer evidence exists.
+- Do **not** restore the retired R6 forwarding facades unless a concrete compatibility contract is re-established; current code must import the real service owner.
 - Do **not** restore historical R0–R10 milestone executables as current policy; the active absence guard owns that decision.
 - Do **not** assume M-series or later release-era standalone checks are redundant because the R-series was retired; Audit G must review them separately.
 - Do **not** optimize Library/Reader/Keeper without reproducible realistic-scale evidence.

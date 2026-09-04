@@ -1,297 +1,289 @@
-# Shadow Garden Current Roadmap — Reliability, Reader Experience & Operations
+# Shadow Garden Current Roadmap — Post-v2.10 Audit, Refactor & Optimization
 
-> **Status:** ✅ **CURRENT RELEASE COMPLETE**  
-> **Starting baseline:** v2.6.x — Reliability & Reader hardening  
+> **Status:** 🟨 **AUDIT IN PROGRESS**  
 > **Active release:** v2.10.0 — Maintenance & Supply Chain  
+> **Roadmap phase:** Audit first; refactor and optimization only when evidence justifies them  
 > **Updated:** 2026-09-04
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, the v2.8 Reader Experience milestone, v2.9 Keeper Productivity & Recovery, and v2.10 Maintenance & Supply Chain. This file remains the single current roadmap until a successor roadmap takes ownership. Performance work remains intentionally limited to realistic personal-library scale and should not displace operational work unless measurements expose a real bottleneck.
+Shadow Garden has enough product features for the current website. The next work cycle is intentionally **not a feature roadmap**. It is an audit of the mature v2 codebase to determine whether any structural refactor, simplification, performance optimization, test/tooling improvement, or operational cleanup is actually warranted.
 
-Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
+The completed v2.6–v2.10 roadmap is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Earlier completed refactor and security roadmaps remain archived under [`../archive/README.md`](../archive/README.md). Audit findings and evidence belong under [`../audits/`](../audits/).
 
-## Working rules
+## Governing rule
 
-1. **Reliability before new surface area.** A feature is not complete if it works only in source-contract tests or one browser configuration.
-2. **Reader stability remains the highest-risk product contract.** Pages, Continuous, Page Map, progress, bookmarks, image focus, ticket renewal, orientation changes, and navigation require regression coverage.
-3. **Measure realistic usage before optimizing.** Shadow Garden is a personal library; performance work should target the expected collection ceiling (roughly 250–300 series) plus representative large EPUBs, not speculative 1,000+ series workloads.
-4. **Optimize only demonstrated bottlenecks.** Do not add virtualization, framework/bundler changes, or architectural complexity without a measured problem at realistic scale.
-5. **Preserve v2 ownership.** Do not reintroduce duplicate state/UI owners, patch layers, or a framework rewrite without measured need.
-6. **Preserve security invariants.** Private B2, signed media tickets, opaque identities, Turnstile/Garden Pass, signed Keeper sessions, abuse controls, protected Range delivery, and public catalog redaction remain contracts.
-7. **Reading data stays browser-local.** No Reader accounts or server-side reading history are introduced by this roadmap.
-8. **Accessibility is a functional requirement.** Keyboard use, reduced motion, forced colors, increased contrast, zoom, focus restoration, and touch targets must be verified in a real browser.
-9. **Small release slices.** Each release must leave `main` deployable and pass the production release gate.
+**Audit before changing architecture.** Every proposed refactor or optimization must be backed by a concrete finding: duplicate ownership, unnecessary complexity, dead code, fragile coupling, repeated defects, measurable performance cost, excessive resource use, maintainability risk, or a gap in the permanent verification baseline.
+
+A clean audit is a successful outcome. If a subsystem is healthy, its refactor/optimization step is marked **Skipped / no change needed** rather than rewritten for aesthetics.
 
 ## Status legend
 
 - ⬜ Planned
 - 🟨 In progress
-- ✅ Done
-- ⏸ Deferred / optional
+- ✅ Complete
+- 🛠 Change justified
+- ⚡ Optimization justified
+- ⏸ Deferred / no demonstrated need
+- ⏭ Skipped / no change needed
 
-## Roadmap overview
+## Non-negotiable constraints
 
-| Release | Status | Primary outcome |
-| --- | --- | --- |
-| **v2.6.0 — Reliability & Real-Browser Testing** | ✅ Done | Real Chromium/Firefox/WebKit end-to-end and accessibility coverage is now a permanent release gate |
-| **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
-| **v2.8.0 — Reader Experience** | ✅ Done | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
-| **v2.9.0 — Keeper Productivity & Recovery** | ✅ Done | Make library administration faster and prove recovery from catalog/storage failures |
-| **v2.10.0 — Maintenance & Supply Chain** | ✅ Done | Controlled dependency maintenance, audit visibility, documentation/version guards, and periodic operational baselines |
-
----
-
-# v2.6.0 — Reliability & Real-Browser Testing
-
-**Status:** ✅ Done  
-**Completed:** 2026-08-26  
-**Release record:** [`../releases/v2.6.0.md`](../releases/v2.6.0.md)  
-**Goal:** make real browser behavior—not source regexes or DOM contracts—the final authority for high-risk user flows.
-
-## 2.6A — Real browser harness
-
-- [x] Add a pinned real-browser E2E runner, with Playwright as the default implementation unless repository constraints demonstrate a better option.
-- [x] Run Chromium, Firefox, and WebKit in CI for a bounded critical-path suite.
-- [x] Add desktop and mobile viewport projects, including touch-capable mobile emulation.
-- [x] Keep existing unit/service/DOM/browser-contract tests; real-browser tests supplement rather than replace deterministic lower layers.
-- [x] Create stable fixture/library startup so E2E tests do not depend on production B2 data.
-- [x] Capture useful failure artifacts such as trace, screenshot, console errors, and failed network requests without committing generated artifacts.
-
-## 2.6B — Critical public flows
-
-- [x] Main and Adult libraries hydrate from isolated fixture catalogs.
-- [x] Search, compact view, and Back navigation restore rendered Library state.
-- [x] Reading suggestion reroll advances and pinned series remain available in the navigation drawer.
-- [x] Verify **Read → Continue → Finished → Read Again** end to end, including bookmark preservation and page-1 restart.
-- [x] Verify mobile navigation open/close, independently scrollable drawer content, background scroll lock, sticky header behavior, and orientation/viewport changes.
-- [x] Verify reduced-motion paths perform the same functional transitions without optional choreography.
-
-## 2.6C — Reader reliability matrix
-
-- [x] Reader opens a valid EPUB and reaches first readable content without uncaught errors.
-- [x] Pages mode: next/previous controls, keyboard navigation, swipe recognition, desktop wheel turns, TOC seek, bookmarks, settings, and fullscreen.
-- [x] Continuous mode: native vertical touch/scroll remains uninterrupted; Reader owns no EPUB-document `touchmove` interception.
-- [x] Switching Pages ↔ Continuous preserves a sensible reading location and canonical Page Map/progress behavior.
-- [x] Image focus opens only from EPUB images; pinch/pan remains isolated to the overlay and closing it preserves live EPUB position.
-- [x] Resize/orientation changes do not corrupt Page Map, progress, focused-image state, or navigation controls.
-- [x] Reader survives sleep/resume-style page visibility changes and ticket renewal without losing the current location.
-- [x] Add fixtures for large chapters, visual-only pages, maps/illustrations, and common malformed-but-readable EPUB structures.
-
-The release also closes the late mobile Reader reports tracked in #154 and #157: Continuous artwork/chrome geometry, direction-aware auto-hide behavior, reliable one-tap image focus, paginated chrome clearance, full-height Continuous reading after auto-hide, and spine/nav-based chapter inheritance across split XHTML are all covered by the final browser matrix.
-
-## 2.6D — Garden Keeper real-browser coverage
-
-- [x] Verify locked → Turnstile/session-established → unlocked Keeper flow with mocked/local service boundaries.
-- [x] Verify dialogs trap/restore focus correctly and remain keyboard-operable.
-- [x] Verify Series editing, translation metadata, upload preflight/completion, maintenance, History, Trash, and Abuse Watch presentation flows.
-- [x] Verify busy/success/error states do not double-submit or leave controls permanently disabled.
-- [x] Verify motion remains observer-only and does not become an API/workflow owner.
-
-## 2.6E — Accessibility verification
-
-- [x] Add automated accessibility scans on Library, Series, Reader chrome, and Garden Keeper surfaces.
-- [x] Add keyboard-only critical-flow tests and explicit focus restoration assertions.
-- [x] Verify 200% and 400% zoom/reflow on public and Keeper surfaces where applicable.
-- [x] Verify `prefers-reduced-motion`, forced colors, increased contrast, and visible focus treatment.
-- [x] Audit touch target sizes and labels for mobile Reader/navigation controls.
-- [x] Document known EPUB-content accessibility limits separately from Shadow Garden chrome responsibilities.
-
-## v2.6.0 acceptance
-
-- [x] Critical E2E suite passes on Chromium, Firefox, and WebKit.
-- [x] Mobile Reader/navigation paths have real-browser regression coverage.
-- [x] Accessibility checks cover all four major surfaces: Library, Series, Reader, Garden Keeper.
-- [x] No security or browser-local persistence contract changes are required.
-- [x] `npm run check`, production build, real-browser suite, and production smoke all pass before release.
-
-The reusable v2 publisher now requires the exact `main` commit to pass both Verify and Real Browser E2E, then match Cloudflare production version/commit metadata and pass the public production smoke before creating the GitHub release. The regression matrix remains permanent after v2.6 rather than being treated as milestone-only scaffolding.
+1. **No feature expansion during the audit cycle.** New product ideas remain backlog material unless needed to fix a demonstrated defect.
+2. **Preserve v2 ownership.** Do not create duplicate state, rendering, persistence, request, workflow, storage, or Reader owners.
+3. **Preserve security invariants.** Private B2, signed media tickets, opaque identities, Turnstile/Garden Pass, signed Keeper sessions, abuse controls, protected Range delivery, and catalog redaction remain contracts.
+4. **Reading data stays browser-local.** No Reader accounts or server-side reading history are introduced.
+5. **Reader stability remains highest risk.** Pages, Continuous, Page Map, progress, bookmarks, image focus, ticket renewal, orientation changes, text search, and navigation require regression coverage around any change.
+6. **Measure before optimizing.** Performance decisions use realistic personal-library scale (roughly 250–300 series) and representative large EPUBs rather than hypothetical enterprise-scale targets.
+7. **No framework/bundler rewrite by default.** A platform/tooling change requires measured benefit that outweighs migration and ownership risk.
+8. **Small, reversible implementation slices.** If the audit produces work, each slice must leave `main` deployable and independently verifiable.
+9. **Permanent release gates stay authoritative.** `npm run check`, deterministic tests, production build, five-project real-browser E2E, deployment metadata, and production smoke remain the acceptance floor.
 
 ---
 
-# v2.7.0 — Performance Sanity
+# v2.10.0 — Audited baseline
 
-**Status:** ⏸ Deferred / optional  
-**Goal:** retain a small, realistic performance guard without spending a full development cycle on scale Shadow Garden is not expected to reach.
-
-This milestone is deliberately bounded. It may be completed as a small standalone release, folded into v2.8, or left deferred until profiling shows a real need. It must not block Reader Experience work merely to satisfy an arbitrary release number.
-
-## 2.7A — Realistic fixtures
-
-- [ ] Add one deterministic catalog stress fixture around the expected upper bound of **250–300 series** without committing real library metadata.
-- [ ] Add or identify one representative large EPUB fixture/profile for Reader startup and Continuous-mode sanity checks.
-- [ ] Keep fixtures deterministic, lightweight, and safe for CI.
-
-## 2.7B — Minimal measurement
-
-- [ ] Confirm Library load, search, filtering, sorting, and Series navigation remain subjectively responsive at the 250–300-series fixture.
-- [ ] Record a lightweight baseline for Reader time-to-first-readable-page on the large EPUB fixture.
-- [ ] Exercise an extended Continuous-mode session well enough to catch obvious runaway memory growth, severe layout instability, or long-task regressions.
-- [ ] Prefer broad regression thresholds or documented observations over brittle micro-benchmarks.
-
-## 2.7C — Optimization only when justified
-
-- [ ] Fix only bottlenecks that are reproduced at realistic scale.
-- [ ] Do **not** add Library virtualization/infinite rendering solely for hypothetical 1,000+ series collections.
-- [ ] Do **not** adopt a framework/bundler or split state ownership as a performance shortcut.
-- [ ] Preserve motion identity, accessibility, Reader behavior, and existing E2E coverage in any optimization that is actually required.
-
-## v2.7.0 acceptance
-
-- [ ] The Library remains healthy around the expected 250–300-series ceiling.
-- [ ] A representative large EPUB reaches readable content and survives extended Continuous reading without an obvious severe regression.
-- [ ] Any optimization included in the release is backed by a reproduced problem, not speculative scale planning.
-- [ ] No performance work weakens the existing real-browser release gate.
-
-### Explicitly dropped from the former v2.7 scope
-
-- 1,000+ and larger-series catalog targets.
-- A dedicated performance-budget infrastructure project.
-- Virtualization or incremental-rendering rewrites without measured need.
-- Broad long-session profiling work that is not tied to a reproducible Reader problem.
-
----
-
-# v2.8.0 — Reader Experience
-
-**Status:** ✅ Done  
-**Completed:** 2026-09-03  
-**Release record:** [`../releases/v2.8.0.md`](../releases/v2.8.0.md)  
-**Goal:** improve the surface used for hours at a time without destabilizing the Reader architecture.
-
-## Slice 1 — Focused typeface choices
-
-- [x] Replace the legacy Book/System/Classic menu with exactly four choices: **Default**, **Sans**, **Serif**, and **Sans-Serif**.
-- [x] Make **Default** publication-owned: Shadow Garden must not force a `font-family`, so the EPUB's own default font remains authoritative.
-- [x] Use **PT Sans** for Sans, **Literata** for Serif, and **Inter** for Sans-Serif.
-- [x] Migrate legacy browser-local font preferences safely (`book` → Default, `system` → Inter, `classic` → Literata).
-- [x] Keep font size, line height, text width, flow, and the rest of the existing Reader settings unchanged.
-
-## Slice 2 — Clear location and progress
-
-- [x] Present the canonical device page, volume percentage, and current chapter together in Pages mode without introducing a second progress calculation.
-- [x] Keep narrow/mobile chrome compact by prioritizing page and percentage visually while retaining full chapter context in the underlying label and accessibility text.
-- [x] Make the Continuous seek rail mirror the same canonical progress owner with a compact page label and a richer `aria-valuetext`/title.
-- [x] Preserve the existing browser-local progress payload and Page Map ownership; Slice 2 is a presentation change, not a persistence migration.
-- [x] Add deterministic formatter coverage and a real-browser regression spanning Pages and Continuous presentation.
-
-## Slice 3 — Long-book Contents navigation
-
-- [x] Add in-place Contents filtering without introducing a second navigation model.
-- [x] Keep the search tray collapsed behind a magnifying-glass action beside Bookmarks so the drawer stays compact by default.
-- [x] Add a `Current` action that clears filtering, expands the live chapter path, reveals it, and restores keyboard focus without moving the rendition.
-- [x] Preserve the existing TOC collapse state when filtering clears and keep Page Map/progress/bookmarks untouched.
-- [x] Cover desktop/mobile Contents filtering, Bookmarks handoff, focus, and the Reader Escape contract in the real-browser matrix.
-
-## Slice 4 — In-book text search
-
-- [x] Use the existing Contents search surface as the single Reader search entry point, with matching Contents entries listed before whole-book text results; `Ctrl/Cmd+F` opens and focuses the same unified search.
-- [x] Search the canonical EPUB spine sequentially through the existing EPUB.js `Book`/`Section` objects rather than creating a second rendition or loading the whole book into the live DOM.
-- [x] Generate CFI-backed results with chapter/context excerpts and open them through the existing Reader `navigate()` path.
-- [x] Bound expensive searches with a three-character minimum, cancellable sequential scanning, per-section unloading, and a 100-result cap.
-- [x] Preserve Page Map, progress, bookmark persistence, Pages/Continuous input ownership, and browser-local reading data.
-- [x] Add deterministic query coverage plus real-browser search, result navigation, keyboard shortcut, cap, focus, and Escape behavior.
-
-### Explicitly skipped from v2.8 scope
-
-- Expanded bookmark management beyond the existing save/open/remove behavior. Bookmark data is intentionally browser-local and can disappear when browser site data is cleared, so v2.8 will not add bookmark naming, notes, sorting, bulk management, or related persistence-heavy UI.
-
-## Candidate follow-up scope
-
-- [x] Audit footnote/endnote/pop-up behavior across common EPUB patterns; explicit noterefs now open sanitized Reader-owned popups without moving the live passage, including same-document footnotes and cross-document endnotes.
-- [x] Improve resume behavior after orientation changes, reloads, backgrounding, and long idle periods.
-- [x] Expand malformed/common-EPUB compatibility fixtures and graceful error presentation.
-- [ ] Evaluate reader-history conveniences such as recently read/completion date only if they remain browser-local. Deferred to the cross-release backlog; this is not a v2.8 release blocker.
-
-## v2.8.0 acceptance
-
-- [x] Every new Reader interaction has Chromium/Firefox/WebKit coverage where technically meaningful.
-- [x] Pages and Continuous retain their separate input ownership.
-- [x] Page Map/progress/bookmarks remain canonical and backward-compatible.
-- [x] No live EPUB viewport pinch/pan or Continuous touch interception is reintroduced.
-
----
-
-# v2.9.0 — Keeper Productivity & Recovery
-
-**Status:** ✅ Done  
-**Completed:** 2026-09-03  
-**Release record:** [`../releases/v2.9.0.md`](../releases/v2.9.0.md)  
-**Goal:** reduce repetitive administration and prove the library can recover from operational mistakes or damaged state.
-
-## 2.9A — Keeper productivity
-
-- [x] Expand safe batch editing for taxonomy/status/translation metadata.
-- [x] Add clear metadata diff/preview before high-impact bulk saves.
-- [x] Add duplicate/similar-volume detection and upload warnings.
-- [x] Improve bulk cover/banner replacement workflows.
-- [x] Produce a concise import/preflight report with actionable validation warnings.
-- [x] Add one-click fixes only where the transformation is deterministic and reversible.
-- [x] Evaluate an operation queue for long maintenance tasks so UI state remains explicit.
-
-## 2.9B — Recovery readiness
-
-- [x] Define catalog snapshot/backup retention policy.
-- [x] Verify backup objects/checksums and detect unreadable/incomplete recovery material.
-- [x] Document and automate a recovery drill from a damaged/missing catalog to a known-good snapshot.
-- [x] Verify Trash/recovery/purge interactions cannot silently destroy the last recoverable catalog state.
-- [x] Add a Keeper “recovery readiness” or equivalent maintenance report if it can be computed cheaply and reliably.
-- [x] Exercise recovery against local/mocked B2 fixtures in CI; do not make destructive production recovery part of normal CI.
-
-## v2.9.0 acceptance
-
-- [x] A documented recovery drill succeeds from deterministic fixtures.
-- [x] High-impact Keeper changes provide preview/confirmation and recoverable history where appropriate.
-- [x] Batch operations do not bypass canonical validation, catalog, storage, or admin service owners.
-
----
-
-# v2.10.0 — Maintenance & Supply Chain
-
-**Status:** ✅ Done  
-**Completed:** 2026-09-04  
+**Status:** ✅ Released and current baseline  
 **Release record:** [`../releases/v2.10.0.md`](../releases/v2.10.0.md)  
-**Goal:** keep the mature application healthy without turning maintenance automation into a source of unreviewed changes.
+**Purpose in this roadmap:** provide the fixed production baseline against which audit findings are measured.
 
-## Scope
-
-- [x] Add controlled dependency update automation for the five direct dependencies and GitHub Actions pins.
-- [x] Do not auto-merge EPUB.js, AWS/B2, authentication, or security-sensitive dependency changes without the complete verification matrix.
-- [x] Add dependency/audit reporting with an explicit policy for actionable vs non-actionable findings.
-- [x] Review Node/npm version policy and lockfile integrity on a regular cadence.
-- [x] Add a documentation freshness guard for current version/current roadmap links where practical.
-- [x] Keep release notes, package version, lockfile version metadata, and production version metadata synchronized.
-- [x] Periodically rerun the security, recovery, browser, accessibility, and realistic-scale performance matrices against the current baseline.
-
-## v2.10.0 acceptance
-
-- [x] Dependency changes are reproducible, reviewable, and covered by the same release gates as product changes.
-- [x] Current documentation no longer presents an archived roadmap as active work.
-- [x] Operational/security checks remain visible without adding fake client-side protection or unnecessary infrastructure.
-
-v2.10.0 completes the controlled dependency-maintenance, policy-driven audit reporting, reviewed Node/npm and lockfile-integrity, documentation freshness, release-metadata synchronization, and periodic baseline slices. The formal package version, deployment version, lockfile metadata, changelog, and release record now converge at v2.10.0; the permanent exact-main Verify, real-browser, production-deployment, and smoke gates remain authoritative for publication.
+The audit begins from the v2.10.0 ownership, security, maintenance, documentation, runtime, recovery, browser, accessibility, and realistic-scale verification contracts. Post-release dependency maintenance may advance `main`, but it does not change the formal baseline unless a later release is deliberately cut.
 
 ---
 
-# Cross-release backlog
+# Audit A — Repository and ownership inventory
 
-These are useful ideas, but they should be pulled into a release only when the active milestone has capacity and the change has a clear owner.
+**Status:** ⬜ Planned
 
-- Richer browser-local “Recently Read” and completion history.
-- Better multi-filter composition and saved Library views.
-- Additional metadata cleanup tools in Garden Keeper.
-- More EPUB compatibility fixtures from real-world failures.
-- Optional customer-owned Cloudflare-zone hardening if Shadow Garden ever leaves `pages.dev`.
-- Revisit deeper performance engineering only if realistic fixtures or production use expose an actual bottleneck.
+## A1. Source inventory
 
-## Explicit non-goals for this roadmap
+- [ ] Inventory authored runtime entrypoints under `src/`, `functions/`, and operational `tools/`.
+- [ ] Compare actual direct/runtime entrypoints with the frozen v2 architecture manifests and document intentional drift.
+- [ ] Identify files that are generated, compatibility-only, legacy mirrors, one-off migration helpers, or no longer reachable.
+- [ ] Identify dead code, unused exports, orphaned CSS selectors, unreachable routes, stale fixtures, and obsolete documentation references.
+- [ ] Record findings in the post-v2.10 audit report before deleting or moving anything.
 
-- Another full-codebase refactor.
-- A framework rewrite without measured benefit.
+## A2. Ownership map
+
+- [ ] Revalidate one-owner-per-responsibility across Library/Series, Reader, Keeper, Pages Functions, storage, catalog, auth, persistence, build/versioning, motion, and navigation.
+- [ ] Flag duplicate state derivation, duplicated formatting/business rules, parallel request paths, or post-render repair layers.
+- [ ] Check whether compatibility facades still earn their maintenance cost or can be retired safely.
+- [ ] Check for cross-layer imports that violate the documented module/dependency direction.
+
+## A decision gate
+
+For each finding, classify one outcome:
+
+- **⏭ No change needed** — ownership is clear and current structure is appropriate.
+- **🛠 Refactor justified** — duplicated/fragile ownership or maintainability risk is demonstrated.
+- **⏸ Deferred** — improvement is real but low-value or too risky relative to current use.
+
+No structural rewrite is authorized merely because a different arrangement would look cleaner.
+
+---
+
+# Audit B — Reader architecture and long-session reliability
+
+**Status:** ⬜ Planned
+
+The Reader remains the highest-risk subsystem and receives a dedicated audit even if no Reader refactor follows.
+
+## B1. Reader ownership review
+
+- [ ] Recheck orchestration boundaries between the Reader app, Pages adapter, Continuous adapter, Page Map/progress, Contents/search, bookmarks, image focus, and protected book-session renewal.
+- [ ] Look for duplicated position/progress calculations, mode-specific patches that could be consolidated, stale compatibility branches, or hidden global state.
+- [ ] Review EPUB.js integration boundaries and confirm publication DOM manipulation remains minimal and mode-appropriate.
+- [ ] Verify Pages-only gesture ownership and Continuous native-scroll ownership remain structurally obvious.
+
+## B2. Reader runtime behavior
+
+- [ ] Measure time-to-first-readable-page with a representative large EPUB fixture.
+- [ ] Exercise extended Continuous reading and watch for runaway memory growth, repeated layout churn, event-listener accumulation, or long-task regressions.
+- [ ] Exercise repeated Pages ↔ Continuous switching, Contents/search navigation, image focus, orientation changes, background/resume, and ticket renewal for state leaks.
+- [ ] Inspect console/network diagnostics for avoidable repeated work or request churn.
+
+## B decision gate
+
+- [ ] Refactor only if ownership duplication, recurrent compatibility patches, or measurable reliability cost is demonstrated.
+- [ ] Optimize only if large-EPUB/long-session measurements expose a meaningful bottleneck.
+- [ ] Otherwise mark Reader refactor/optimization **⏭ Skipped / no change needed** and preserve the current architecture.
+
+---
+
+# Audit C — Library, Series and browser-local domain
+
+**Status:** ⬜ Planned
+
+## C1. Domain and UI ownership
+
+- [ ] Revalidate canonical ownership for catalog normalization, filters/sort, reading state, progress, bookmarks, pinned state, preferences, URL state, and volume actions.
+- [ ] Look for duplicated model work between Library and Series render paths.
+- [ ] Identify repeated DOM repair, query recomputation, or state translation that should live in one domain helper.
+- [ ] Review browser-local schema/migration code for obsolete compatibility paths that can now be retired safely.
+
+## C2. Realistic-scale performance
+
+- [ ] Reuse the deterministic ~300-series synthetic catalog as the normal upper-bound sanity case.
+- [ ] Measure Library hydration, search, filtering, sorting, view changes, and Series navigation rather than relying only on the broad severe-regression ceiling.
+- [ ] Inspect repeated sorting/filtering, unnecessary full rerenders, excessive DOM churn, and avoidable serialization/history work.
+- [ ] Do not introduce virtualization or incremental rendering unless realistic measurements prove the current approach is inadequate.
+
+## C decision gate
+
+- [ ] If realistic-scale behavior is healthy and ownership is clear, mark Library/Series refactor and optimization **⏭ Skipped / no change needed**.
+- [ ] If a bottleneck is reproduced, isolate the smallest change that fixes it and define a regression measurement before implementation.
+
+---
+
+# Audit D — Garden Keeper and operational workflows
+
+**Status:** ⬜ Planned
+
+## D1. Workflow structure
+
+- [ ] Audit AdminClient, authentication/session, Library/Series, Upload, Maintenance, History, Trash, Abuse Watch, recovery readiness, and long-operation state ownership.
+- [ ] Identify repeated request/busy/error patterns that can be simplified without creating a generic abstraction that obscures workflow behavior.
+- [ ] Check high-impact mutation preview/confirmation/recovery paths for duplicated validation or divergent catalog/storage rules.
+- [ ] Review bulk-edit, artwork, upload, recovery, and purge code for dead compatibility paths left after v2.9.
+
+## D2. Operational cost
+
+- [ ] Inspect expensive Keeper operations for unnecessary repeated catalog reads/writes, repeated object checks, or avoidable sequential network work.
+- [ ] Verify any proposed batching/concurrency change respects B2/API limits, deterministic ordering, and recovery safety.
+
+## D decision gate
+
+- [ ] Skip Keeper refactor if current workflow ownership remains explicit and duplication is minor.
+- [ ] Optimize only operations with measured latency/resource cost and a safe correctness-preserving improvement.
+
+---
+
+# Audit E — Pages Functions, security and storage boundaries
+
+**Status:** ⬜ Planned
+
+## E1. Service ownership
+
+- [ ] Revalidate thin route adapters over auth, media, catalog, storage, validation, abuse, HTTP, and admin services.
+- [ ] Check for duplicated response/error/header construction that causes real inconsistency rather than merely repeated syntax.
+- [ ] Identify unused service exports, compatibility facades, obsolete routes, or redundant object-key/path normalization.
+- [ ] Review request parsing and validation for unnecessary repeated work on hot paths.
+
+## E2. Security/recovery invariants
+
+- [ ] Rerun and inspect the security baseline, signed media flow, Keeper session flow, abuse controls, catalog redaction, private B2 boundaries, and recovery drill.
+- [ ] Treat any simplification that weakens fail-closed behavior, signed authorization, Range delivery, object-key validation, or last-recoverable-state protection as invalid.
+- [ ] Do not add fake client-side restrictions or security theater during cleanup.
+
+## E decision gate
+
+- [ ] Security-sensitive refactors require a demonstrated maintainability/correctness benefit plus service and real-browser regression coverage.
+- [ ] If boundaries are already clear and reliable, mark the refactor **⏭ Skipped / no change needed**.
+
+---
+
+# Audit F — CSS, design system, motion and accessibility
+
+**Status:** ⬜ Planned
+
+- [ ] Inventory CSS ownership and identify genuinely unused selectors/tokens, duplicate component rules, specificity escalation, and obsolete compatibility classes.
+- [ ] Revalidate separation between public/Keeper foundations and Reader-scoped chrome/theme ownership.
+- [ ] Inspect responsive/mobile rules for repeated breakpoint patches that indicate a structural layout problem.
+- [ ] Confirm motion remains observer-only and reduced-motion paths do not require parallel logic ownership.
+- [ ] Rerun accessibility coverage and review keyboard/focus, forced colors, increased contrast, zoom/reflow, and touch targets for regressions introduced by accumulated styles.
+- [ ] Avoid large CSS rewrites unless the audit demonstrates a concrete ownership/specificity/maintenance problem.
+
+## F decision gate
+
+- [ ] Remove dead CSS only when usage is proven absent across source and real-browser fixtures.
+- [ ] Consolidate styling only when it reduces conflicting ownership or measurable maintenance risk.
+- [ ] Otherwise mark design-system refactor **⏭ Skipped / no change needed**.
+
+---
+
+# Audit G — Build, dependencies, tests and tooling
+
+**Status:** ⬜ Planned
+
+## G1. Build/runtime/tooling
+
+- [ ] Revalidate Node/npm pins, lockfile ownership, build-context/version stamping, no-bundler decision, preview server, and publisher workflow.
+- [ ] Measure build/check/test duration and identify duplicated expensive work that provides no additional confidence.
+- [ ] Review tools for overlapping responsibilities, stale migration scripts, brittle source-regex contracts, or checks that should become behavior tests.
+- [ ] Keep dependency updates review-driven; do not broaden automation authority as part of refactoring.
+
+## G2. Test architecture
+
+- [ ] Map critical behavior to unit/service/DOM/browser-contract/real-browser layers and identify meaningful gaps or redundant tests.
+- [ ] Prefer moving assertions to the lowest layer that can prove behavior without losing important browser truth.
+- [ ] Review E2E duration/artifacts and fixture setup for avoidable duplication while preserving Chromium/Firefox/WebKit desktop and mobile authority.
+- [ ] Inspect flaky or timing-sensitive tests before optimizing CI duration.
+
+## G decision gate
+
+- [ ] Tool/build/test refactors require either reduced fragility, lower duplicated cost, clearer ownership, or stronger coverage.
+- [ ] If current tooling is simple and reliable, keep it.
+
+---
+
+# Audit H — Documentation and repository hygiene
+
+**Status:** ⬜ Planned
+
+- [ ] Verify every documentation index points to the current audit roadmap and canonical archived history.
+- [ ] Remove stale statements that describe completed releases as active implementation work.
+- [ ] Keep formal release records immutable except for factual corrections.
+- [ ] Convert completed planning paths to archive links or clearly labeled compatibility mirrors where safe.
+- [ ] Confirm architecture docs describe current owners rather than historical migration mechanics when both are mixed together.
+- [ ] Identify documentation that can be merged or retired without losing operational/security knowledge.
+
+---
+
+# Findings triage and implementation gate
+
+**Status:** ⬜ Planned
+
+After Audits A–H, create one findings table in the audit record with these fields:
+
+| Finding | Evidence | Impact | Risk | Decision | Verification |
+| --- | --- | --- | --- | --- | --- |
+| Example | Reproduced duplication or measurement | Maintainability / correctness / latency / memory | Low / Medium / High | Refactor / Optimize / Defer / Skip | Tests or measurement that prove completion |
+
+Only findings classified **🛠 Refactor justified** or **⚡ Optimization justified** become implementation slices.
+
+### Implementation rules
+
+- [ ] Prefer deletion/simplification over new abstraction when both solve the same demonstrated problem.
+- [ ] Do not combine unrelated subsystem findings into one large PR.
+- [ ] Add regression coverage before or with each behavior-sensitive change.
+- [ ] Preserve public URLs, persistence schemas, security contracts, and release ownership unless the finding specifically proves a migration is necessary.
+- [ ] Re-measure optimized paths against the pre-change baseline.
+- [ ] Mark findings **⏸ Deferred** when benefit does not justify risk/cost.
+- [ ] Mark findings **⏭ Skipped** when audit evidence shows no refactor/optimization is needed.
+
+---
+
+# Audit-cycle completion criteria
+
+The audit/refactor cycle is complete when:
+
+- [ ] All major runtime/ownership surfaces have an evidence-backed audit outcome.
+- [ ] Dead/obsolete code and documentation found by the audit are either removed or explicitly retained with a reason.
+- [ ] Every proposed refactor has a demonstrated ownership/maintainability/correctness benefit, or is skipped/deferred.
+- [ ] Every proposed optimization has a reproducible realistic-scale bottleneck and before/after evidence, or is skipped/deferred.
+- [ ] Reader, Keeper, Functions, Library/Series, security, accessibility, build, and test contracts remain green.
+- [ ] `npm run check`, `npm test`, production build, and the full five-project real-browser matrix pass on the final exact `main` commit.
+- [ ] Architecture and audit documentation are reconciled with the final code state.
+
+## Versioning after the audit
+
+The audit itself does **not** require a new feature release number. If the audit produces only documentation/cleanup with no user-facing or runtime-significant change, v2.10.0 can remain the formal release baseline. If justified refactor/optimization work materially changes the shipped application, choose the next release version only after the implementation scope is known and verified.
+
+## Explicit non-goals
+
+- New feature expansion while the audit is open.
+- A full-codebase rewrite for consistency or aesthetics.
+- Framework adoption without measured need.
 - Server-side Reader accounts/history.
-- DRM-like client restrictions such as disabling right-click or DevTools.
-- Motion for its own sake.
-- Engineering for hypothetical 1,000+ series collections without evidence that Shadow Garden needs it.
-- Blocking Reader improvements on speculative performance infrastructure.
-
-## Completion rule
-
-This roadmap is complete through v2.10.0. It remains the single current roadmap until superseded; when a successor takes ownership, archive this file and create one new active roadmap rather than accumulating multiple “current” plans.
+- DRM-like browser restrictions.
+- Virtualization or enterprise-scale architecture for hypothetical 1,000+ series libraries.
+- Performance work without a reproduced realistic bottleneck.
+- Refactoring stable code merely because it is old.

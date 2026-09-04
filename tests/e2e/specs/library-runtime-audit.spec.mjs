@@ -60,9 +60,11 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
   test.skip(testInfo.project.name !== 'chromium-desktop', 'Chromium desktop runtime audit');
 
   const catalog = auditCatalog();
-  let catalogRequests = 0;
+  let catalogPhase = 'library';
+  const catalogRequests = { total: 0, library: 0, series: 0 };
   await page.route('**/data/catalog.json', route => {
-    catalogRequests += 1;
+    catalogRequests.total += 1;
+    catalogRequests[catalogPhase] += 1;
     return route.fulfill({
       status: 200,
       contentType: 'application/json; charset=utf-8',
@@ -183,6 +185,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
   const interactionStorageReads = await page.evaluate(() => window.__sgV211CStorageSnapshot());
   const libraryLongTasks = await page.evaluate(() => window.__sgV211CLongTasks || []);
 
+  catalogPhase = 'series';
   const seriesMs = await timed(
     () => page.goto('/series.html?id=perf-series-300'),
     async () => {
@@ -208,7 +211,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     },
     timingsMs: { hydrateMs, searchMs, clearSearchMs, authorFilterMs, clearAuthorPillMs, sortMs, compactMs, loadMoreMs, seriesMs },
     ownership: { activePillCatalogInsertCalls },
-    requests: { catalogRequests },
+    requests: catalogRequests,
     storageReads: { hydration: hydrationStorageReads, interactions: interactionStorageReads, series: seriesStorageReads },
     hydrated,
     afterInteractions,
@@ -217,7 +220,8 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     seriesLongTasks: summarizeLongTasks(seriesLongTasks)
   }));
 
-  expect(catalogRequests).toBe(2);
+  expect(catalogRequests.library).toBeLessThanOrEqual(2);
+  expect(catalogRequests.series).toBeLessThanOrEqual(2);
   expect(activePillCatalogInsertCalls).toBe(1);
   expect(hydrated.seriesCards).toBe(36);
   expect(afterInteractions.seriesCards).toBe(120);

@@ -24,6 +24,24 @@ function hookList(){
   };
 }
 
+function viewList(){
+  const views=[];
+  return{
+    add(view){views.push(view);return view},
+    remove(view){const index=views.indexOf(view);if(index>=0)views.splice(index,1)},
+    all(){return views},
+    clear(){views.splice(0)}
+  };
+}
+
+function section(name){
+  return{
+    name,
+    unloadCount:0,
+    unload(){this.unloadCount+=1}
+  };
+}
+
 test('EPUB.js lifecycle compatibility patch releases Default and Continuous manager ownership',()=>{
   const previousWindow=globalThis.window;
   const fakeWindow=eventTarget();
@@ -37,13 +55,14 @@ test('EPUB.js lifecycle compatibility patch releases Default and Continuous mana
         this.settings={fullsize:false,snap:false};
         this.container=scroller;
         this.stage={orientationChangeFunc:()=>{}};
+        this.views=viewList();
         fakeWindow.addEventListener('orientationchange',this.stage.orientationChangeFunc);
         this.destroyed=false;
       }
       onScroll(){}
       addEventListeners(){throw new Error('unpatched Default addEventListeners called')}
       removeEventListeners(){throw new Error('unpatched Default removeEventListeners called')}
-      destroy(){this.removeEventListeners();this.destroyed=true}
+      destroy(){this.views.clear();this.removeEventListeners();this.destroyed=true}
     }
 
     class ContinuousManager extends Manager{
@@ -60,6 +79,7 @@ test('EPUB.js lifecycle compatibility patch releases Default and Continuous mana
       }
       addEventListeners(){throw new Error('unpatched Continuous addEventListeners called')}
       removeEventListeners(){throw new Error('unpatched Continuous removeEventListeners called')}
+      erase(view){this.views.remove(view)}
     }
 
     class Rendition{
@@ -89,6 +109,8 @@ test('EPUB.js lifecycle compatibility patch releases Default and Continuous mana
 
     const book=new Book();
     const defaultRendition=book.renderTo('viewer',{manager:'default'});
+    const defaultSection=section('default');
+    defaultRendition.manager.views.add({section:defaultSection});
 
     assert.equal(book.spine.hooks.content.list().length,1,'Default rendition hook should be visible while live');
     assert.equal(fakeWindow.count('unload'),1);
@@ -98,6 +120,7 @@ test('EPUB.js lifecycle compatibility patch releases Default and Continuous mana
     defaultRendition.destroy();
 
     assert.equal(defaultRendition.destroyed,true);
+    assert.equal(defaultSection.unloadCount,1,'destroy should release source DOM cached by the destroyed Default view');
     assert.equal(book.spine.hooks.content.list().length,0,'Default destroy should release its book hook');
     assert.equal(fakeWindow.count('unload'),0);
     assert.equal(fakeWindow.count('orientationchange'),0);
@@ -114,9 +137,24 @@ test('EPUB.js lifecycle compatibility patch releases Default and Continuous mana
     assert.equal(fakeWindow.count('orientationchange'),1);
     assert.equal(scroller.count('scroll'),1);
 
+    const sharedSection=section('shared');
+    const firstView={section:sharedSection};
+    const secondView={section:sharedSection};
+    continuousRendition.manager.views.add(firstView);
+    continuousRendition.manager.views.add(secondView);
+
+    continuousRendition.manager.erase(firstView);
+    assert.equal(sharedSection.unloadCount,0,'trim must retain a section cache while another live view still uses it');
+    continuousRendition.manager.erase(secondView);
+    assert.equal(sharedSection.unloadCount,1,'trim should release a section cache after its final live view is removed');
+
+    const remainingSection=section('remaining');
+    continuousRendition.manager.views.add({section:remainingSection});
     continuousRendition.destroy();
 
     assert.equal(continuousRendition.destroyed,true);
+    assert.equal(remainingSection.unloadCount,1,'Continuous teardown should release remaining section source DOM through Default destroy');
+    assert.equal(sharedSection.unloadCount,1,'already-trimmed sections must not be unloaded twice by rendition teardown');
     assert.equal(book.spine.hooks.content.list().length,0,'Continuous destroy should release its book hook');
     assert.equal(fakeWindow.count('unload'),0);
     assert.equal(fakeWindow.count('orientationchange'),0);

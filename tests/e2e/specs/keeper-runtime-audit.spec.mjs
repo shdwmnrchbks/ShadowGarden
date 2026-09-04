@@ -9,7 +9,11 @@ async function fulfillJson(route, value, status = 200) {
   });
 }
 
-function maintenanceSnapshot() {
+function maintenanceSnapshot({ trash } = {}) {
+  const trashItems = trash || [
+    { id: 'keeper-audit-trash-series', type: 'series', scope: 'main', title: 'Audit Series', subtitle: '12 volumes', removedAt: '2026-09-04T00:10:00Z' },
+    { id: 'keeper-audit-trash-volume', type: 'volume', scope: 'main', title: 'Audit Volume', subtitle: 'Volume 4', removedAt: '2026-09-04T00:20:00Z' }
+  ];
   return {
     health: {
       status: 'healthy',
@@ -19,7 +23,7 @@ function maintenanceSnapshot() {
         missingCovers: 0,
         missingThumbs: 0,
         legacyIdentity: 0,
-        trashItems: 2
+        trashItems: trashItems.length
       },
       issues: [],
       objectKeys: [],
@@ -37,10 +41,7 @@ function maintenanceSnapshot() {
       createdAt: '2026-09-04T00:00:00Z',
       counts: { mainSeries: 300, adultSeries: 0, volumes: 1950 }
     }],
-    trash: [
-      { id: 'keeper-audit-trash-series', type: 'series', scope: 'main', title: 'Audit Series', subtitle: '12 volumes', removedAt: '2026-09-04T00:10:00Z' },
-      { id: 'keeper-audit-trash-volume', type: 'volume', scope: 'main', title: 'Audit Volume', subtitle: 'Volume 4', removedAt: '2026-09-04T00:20:00Z' }
-    ]
+    trash: trashItems
   };
 }
 
@@ -91,6 +92,16 @@ async function installKeeperAuditRoutes(page, requests) {
     });
     if (path === '/admin-api/translations' && method === 'GET') return fulfillJson(route, { series: {} });
     if (path === '/admin-api/maintenance' && method === 'GET') return fulfillJson(route, maintenanceSnapshot());
+    if (path === '/admin-api/maintenance' && method === 'POST') {
+      let body = {};
+      try { body = request.postDataJSON() || {}; } catch {}
+      if (body.action === 'restore-trash') {
+        return fulfillJson(route, maintenanceSnapshot({
+          trash: [{ id: 'keeper-audit-trash-volume', type: 'volume', scope: 'main', title: 'Audit Volume', subtitle: 'Volume 4', removedAt: '2026-09-04T00:20:00Z' }]
+        }));
+      }
+      return fulfillJson(route, maintenanceSnapshot());
+    }
     if (path === '/admin-api/abuse' && method === 'GET') return fulfillJson(route, abuseSnapshot());
     return fulfillJson(route, { ok: true });
   });
@@ -193,5 +204,31 @@ test('v2.11D audit: Keeper maintenance dialog has one canonical snapshot request
   expect(reopenRequests['GET /admin-api/maintenance']).toBe(1);
   expect(firstOpenRequests['GET /admin-api/abuse']).toBe(1);
   expect(reopenRequests['GET /admin-api/abuse']).toBe(1);
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('v2.11D audit: Trash reuses its own mutation snapshot but externally invalidated Trash reloads once', async ({ page, browserDiagnostics }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Chromium desktop runtime audit');
+
+  const requests = [];
+  await installKeeperAuditRoutes(page, requests);
+  await unlockKeeper(page);
+  await page.locator('#openMaintenance').click();
+  await expect(page.locator('#trashCount')).toHaveText('2');
+  await page.evaluate(() => { window.confirm = () => true; });
+
+  requests.length = 0;
+  await page.locator('[data-restore-trash="keeper-audit-trash-series"]').click();
+  await expect(page.locator('#trashCount')).toHaveText('1');
+  await expect(page.locator('.admin-toast', { hasText: 'Restored “Audit Series”.' })).toBeVisible();
+  const ownMutationRequests = requestCounts(requests);
+  expect(ownMutationRequests['POST /admin-api/maintenance']).toBe(1);
+  expect(ownMutationRequests['GET /admin-api/maintenance'] || 0).toBe(0);
+
+  requests.length = 0;
+  await page.evaluate(() => window.ShadowGardenKeeper.events.dispatchEvent(new Event('trash:changed')));
+  await expect.poll(() => requests.filter(request => request.path === '/admin-api/maintenance' && request.method === 'GET').length).toBe(1);
+  const externalInvalidationRequests = requestCounts(requests);
+  expect(externalInvalidationRequests['GET /admin-api/maintenance']).toBe(1);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

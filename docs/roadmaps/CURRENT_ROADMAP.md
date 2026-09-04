@@ -79,8 +79,8 @@ The v2.11 audit begins after:
 - [x] Remove the three confirmed Reader cache-history imports and add a permanent authored-source cache-version guard.
 - [x] Verify the cache-version guard on exact PR head and exact main with Verify plus the complete five-project real-browser matrix; confirm exact-main Cloudflare deployment succeeds.
 - [x] Reconcile R0–R10 executable milestone checker ownership: classify the self-invalid historical snapshots for retirement and add an active absence guard while preserving modern verification owners.
+- [x] Finish current consumer tracing of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`): both are forwarding-only aliases with no current repository consumer after R6 checker retirement; retire them behind an active absence/import guard.
 - [ ] Finish unresolved public/Reader/Keeper/Functions/tool entrypoint and ownership edges.
-- [ ] Finish current consumer tracing of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`).
 - [ ] Identify additional unreachable source, obsolete migration-only paths, unused exports, stale fixtures, and obsolete documentation references.
 - [ ] Classify every remaining Audit A candidate as retain, cleanup/refactor, defer, or skip.
 
@@ -119,10 +119,10 @@ Do not restructure modules based on age, file count, or aesthetics. Audit A comp
 
 ## v2.11E — Pages Functions, security & storage
 
-**Status:** ⬜ Planned
+**Status:** ⬜ Planned — R6 forwarding-facade subset already reconciled during v2.11A
 
 - Revalidate thin routes over auth, media, catalog, storage, validation, abuse, HTTP, and admin services.
-- Audit R6 compatibility facades and unused exports/routes without weakening security boundaries.
+- Treat the retired R6 forwarding facades as an Audit-A ownership cleanup; independently audit remaining unused exports/routes without weakening security boundaries.
 - Re-run signed media, Keeper session, abuse, catalog-redaction, B2, and recovery invariants.
 - Treat storage/auth/media simplification as security-sensitive.
 

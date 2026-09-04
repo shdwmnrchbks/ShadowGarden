@@ -102,6 +102,15 @@ async function switchFlow(page, flow) {
   await closeSettings(page);
 }
 
+async function openAuditChapter(page, chapter) {
+  const name = `Audit Chapter ${chapter}`;
+  await page.locator('#tocToggle').click();
+  await expect(page.locator('#tocDrawer')).toHaveClass(/open/);
+  await page.getByRole('button', { name, exact: true }).click();
+  await expect(page.locator('#tocDrawer')).not.toHaveClass(/open/);
+  await expect(page.locator('#chapterTitle')).toHaveText(name, { timeout: 15_000 });
+}
+
 async function readerShape(page) {
   return page.evaluate(() => ({
     iframes: document.querySelectorAll('#viewer iframe').length,
@@ -129,7 +138,7 @@ function delta(after, before) {
 
 test('v2.11B audit: isolate live-rendition churn from Page Map supersession retention', async ({ page, context, browserDiagnostics }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium-desktop', 'CDP ownership measurement is Chromium-desktop audit evidence');
-  test.setTimeout(120_000);
+  test.setTimeout(130_000);
 
   const counters = { accessRequests: 0, mediaRequests: 0, mediaBytesServed: 0 };
   await installAuditRoutes(page, counters);
@@ -142,8 +151,8 @@ test('v2.11B audit: isolate live-rendition churn from Page Map supersession rete
   const settledBaseline = await collectMetrics(page, cdp);
 
   // Phase 1: destroy/recreate the live rendition repeatedly while keeping canonical-map
-  // geometry fixed. This attributes detached documents/listeners to the Reader rendition
-  // lifecycle without intentionally superseding background Page Map work.
+  // geometry fixed. Capture both immediate churn pressure and retained resources after the
+  // Continuous buffer/debounce/trim lifecycle has had time to drain.
   for (let cycle = 0; cycle < 6; cycle += 1) {
     await switchFlow(page, 'scrolled-doc');
     const scroller = page.locator('#viewer .epub-container');
@@ -158,6 +167,8 @@ test('v2.11B audit: isolate live-rendition churn from Page Map supersession rete
   }
   await page.waitForTimeout(350);
   const afterFlowChurn = await collectMetrics(page, cdp);
+  await page.waitForTimeout(2200);
+  const afterFlowSettle = await collectMetrics(page, cdp);
 
   // Phase 2: stay in Pages mode and alternate viewport geometry slowly enough for each
   // debounced map refresh to begin, but faster than a full large-volume map completes.
@@ -183,9 +194,12 @@ test('v2.11B audit: isolate live-rendition churn from Page Map supersession rete
     requests: { ...counters },
     settledBaseline,
     afterFlowChurn,
+    afterFlowSettle,
     afterViewportChurn,
-    flowDelta: delta(afterFlowChurn, settledBaseline),
-    viewportDelta: delta(afterViewportChurn, afterFlowChurn),
+    flowPeakDelta: delta(afterFlowChurn, settledBaseline),
+    flowSettledDelta: delta(afterFlowSettle, settledBaseline),
+    reclaimedDuringFlowSettle: delta(afterFlowSettle, afterFlowChurn),
+    viewportDelta: delta(afterViewportChurn, afterFlowSettle),
     totalDelta: delta(afterViewportChurn, settledBaseline)
   };
 
@@ -199,5 +213,90 @@ test('v2.11B audit: isolate live-rendition churn from Page Map supersession rete
   expect(afterViewportChurn.iframes).toBe(1);
   expect(afterViewportChurn.pageMapSandboxes).toBe(0);
   expect(afterViewportChurn.pageMapPages).toBeGreaterThan(0);
+  expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
+});
+
+test('v2.11B audit: sustained Continuous traversal remains bounded after buffer trim', async ({ page, context, browserDiagnostics }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'CDP long-session measurement is Chromium-desktop audit evidence');
+  test.setTimeout(150_000);
+
+  const counters = { accessRequests: 0, mediaRequests: 0, mediaBytesServed: 0 };
+  await installAuditRoutes(page, counters);
+  await page.addInitScript(() => {
+    window.__sgReaderContinuousAuditLongTasks = [];
+    try {
+      if (PerformanceObserver.supportedEntryTypes?.includes('longtask')) {
+        const observer = new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) window.__sgReaderContinuousAuditLongTasks.push({ startTime: entry.startTime, duration: entry.duration });
+        });
+        observer.observe({ entryTypes: ['longtask'] });
+      }
+    } catch {}
+  });
+
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Performance.enable');
+  await page.goto(readerUrl);
+  await waitForReadable(page);
+  await waitForPageMap(page);
+  await switchFlow(page, 'scrolled-doc');
+
+  // Let the initial Continuous neighborhood and trim timers settle before measuring the
+  // traversal itself. This keeps one live rendition for the entire workload.
+  await page.waitForTimeout(2200);
+  const baseline = await collectMetrics(page, cdp);
+  const accessAtBaseline = counters.accessRequests;
+  let maxViews = baseline.views;
+  let maxIframes = baseline.iframes;
+
+  const chapters = [2, 4, 6, 8, 10, 12, 14, 16, 18];
+  for (const chapter of chapters) {
+    await openAuditChapter(page, chapter);
+    const scroller = page.locator('#viewer .epub-container');
+    await expect(scroller).toBeVisible();
+    await scroller.evaluate(node => {
+      const max = Math.max(0, node.scrollHeight - node.clientHeight);
+      node.scrollTop = Math.min(max, node.scrollTop + Math.max(260, node.clientHeight * 0.55));
+      node.dispatchEvent(new Event('scroll'));
+    });
+    await page.waitForTimeout(280);
+    const shape = await readerShape(page);
+    maxViews = Math.max(maxViews, Number(shape.views) || 0);
+    maxIframes = Math.max(maxIframes, Number(shape.iframes) || 0);
+  }
+
+  // Continuous owns a bounded neighbor buffer. Let its 1.4s idle trim and any queued view
+  // work complete, then force GC so the final snapshot measures retained session state.
+  await page.waitForTimeout(2200);
+  const settled = await collectMetrics(page, cdp);
+  const longTasks = await page.evaluate(() => Array.isArray(window.__sgReaderContinuousAuditLongTasks) ? window.__sgReaderContinuousAuditLongTasks : []);
+  const report = {
+    fixture: { bytes: auditEpub.length, chapters: 18, paragraphsPerChapter: 72 },
+    chaptersVisited: chapters,
+    requests: { ...counters },
+    baseline,
+    settled,
+    retainedDelta: delta(settled, baseline),
+    peakLiveShape: { views: maxViews, iframes: maxIframes },
+    longTasks: {
+      count: longTasks.length,
+      totalDurationMs: longTasks.reduce((sum, entry) => sum + Number(entry.duration || 0), 0),
+      maxDurationMs: longTasks.reduce((max, entry) => Math.max(max, Number(entry.duration || 0)), 0)
+    }
+  };
+
+  console.log(`READER_V2_11B_CONTINUOUS_AUDIT ${JSON.stringify(report)}`);
+  await testInfo.attach('reader-v2.11B-continuous-audit.json', {
+    body: Buffer.from(JSON.stringify(report, null, 2)),
+    contentType: 'application/json'
+  });
+
+  expect(counters.accessRequests).toBe(accessAtBaseline);
+  expect(settled.flow).toBe('scrolled-doc');
+  expect(settled.pageMapSandboxes).toBe(0);
+  expect(settled.pageMapPages).toBeGreaterThan(0);
+  expect(settled.views).toBeLessThanOrEqual(12);
+  expect(settled.iframes).toBeLessThanOrEqual(12);
+  expect(String(settled.progressText)).toMatch(/%/);
   expect(browserDiagnostics.filter(entry => entry.type === 'pageerror')).toEqual([]);
 });

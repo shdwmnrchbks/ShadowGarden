@@ -1,18 +1,19 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A–B COMPLETE · v2.11C NEXT**  
+> **Status:** ✅ **v2.11A–C COMPLETE · v2.11D NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
 > **First landed v2.11 slice:** `8c5145b490bda77b5db5527f957ad4bcfea0b113`  
 > **Reader Audit-B measured code head:** `4c9e41fda640926c393dd72397058447d0af92bf`  
+> **Library/Series Audit-C measured code head:** `f64fa1ea4e74287146800687ca9d2e27efa6e9c3`  
 > **Updated:** 2026-09-04
 
 Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health cycle**, not a feature expansion roadmap.
 
 The audit asks whether the mature v2 codebase has demonstrated structural, reliability, maintainability, verification, or realistic-scale performance problems. Refactor and optimization work are conditional. If evidence shows an area is already healthy, its implementation step is **skipped / no change needed**.
 
-Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
+Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with Audit-C measurements in [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md) and current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
 
 ## Governing rule
 
@@ -117,16 +118,25 @@ Audit B found **targeted lifecycle/source defects**, not evidence for architectu
 
 ## v2.11C — Library, Series & browser-local domain
 
-**Status:** ⬜ Planned — next audit
+**Status:** ✅ Complete on measured code head `f64fa1ea4e74287146800687ca9d2e27efa6e9c3`  
+**Evidence:** [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md)
 
-- Revalidate catalog normalization, filters/sort, reading state, progress, bookmarks, pinned state, preferences, URL state, and volume-action ownership.
-- Measure hydration/search/filter/sort/view/series-navigation behavior with the deterministic ~300-series fixture.
-- Inspect unnecessary full rerenders, repeated sorting/filtering, DOM churn, and history/serialization work.
-- Do not add virtualization unless realistic measurements prove it is needed.
+### Audit goals and outcomes
+
+- [x] Revalidate catalog normalization, filters/sort, reading state, progress, bookmarks, pinned state, preferences, URL state, and volume-action ownership. **Outcome:** canonical domain/controller boundaries remain valid; no Library/Series consolidation is justified.
+- [x] Measure hydration/search/filter/sort/view/series-navigation behavior with the deterministic 300-series / 1,950-volume fixture. **Outcome:** final measured hydration is ~441 ms; a 12-volume Series page is ~358 ms with zero long tasks; the Library uses one catalog request and Series uses one.
+- [x] Trace excessive browser-local state work. **Outcome:** remove unconditional Finished-state evaluation from blank reading-status filtering and reuse materialized volume state across cards/banner decisions; hydration localStorage reads fall from 121,905 to 14,211 (−88.3%) and the interaction workload from 314,387 to 11,645 (−96.3%).
+- [x] Trace duplicate render/request ownership. **Outcome:** active-filter and Recent “View all” actions now perform one canonical catalog render; pinned navigation and the page controller share one bounded startup catalog result while ordinary later loads remain fresh.
+- [x] Inspect DOM/listener growth at realistic scale. **Outcome:** Library stays at 2 Documents / 61 listeners from hydration through the measured interaction sequence while rendered cards intentionally grow from 36 to 120; no leak shape was demonstrated.
+- [x] Decide virtualization from evidence. **Outcome:** no virtualization, framework rewrite, or new persistence/cache architecture is justified for the intended ~300-series scale.
+
+### Audit C decision gate
+
+Audit C found **repeated state reads and duplicate action/network ownership**, not a structural Library/Series problem. Keep the current catalog/domain/controller split. The accepted changes are lazy reading-state evaluation, reuse of already-materialized volume state, one-shot public startup catalog sharing, and one canonical render per Library action. Do not add virtualization or a broad localStorage cache without new measurements.
 
 ## v2.11D — Garden Keeper & operational workflows
 
-**Status:** ⬜ Planned
+**Status:** ⬜ Planned — next audit
 
 - Audit only retained workflows: auth/session, Library/Series, Upload, Maintenance, History, Trash, Abuse Watch, Recovery Readiness, and multi-EPUB upload.
 - Confirm removed Batch Edit/Artwork code does not leave orphaned UI/network/state assumptions.
@@ -179,7 +189,7 @@ Audit B found **targeted lifecycle/source defects**, not evidence for architectu
 Every material finding must record:
 
 | Finding | Evidence | Impact | Risk | Decision | Verification |
-| --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- | --- |
 | ID/area | reproducible evidence | correctness / maintainability / latency / memory / build/test cost | Low / Medium / High | Skip / Cleanup / Refactor / Optimize / Defer | test or measurement proving completion |
 
 Only **Cleanup/Refactor justified** or **Optimization justified** findings become implementation slices.

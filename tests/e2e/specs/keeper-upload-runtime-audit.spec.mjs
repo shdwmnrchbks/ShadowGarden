@@ -71,7 +71,15 @@ async function unlockKeeper(page) {
   await expect.poll(() => page.evaluate(() => window.ShadowGardenKeeper?.state?.management !== null)).toBe(true);
 }
 
-test('v2.11D audit: Keeper upload preflight catalog request ownership is measurable', async ({ page, browserDiagnostics }, testInfo) => {
+async function preflightFixture(page) {
+  await page.locator('#openNewBooks').click();
+  await expect(page.locator('#addBooksDialog')).toBeVisible();
+  await page.locator('#epubFile').setInputFiles(epubPath);
+  await expect(page.locator('#fileState')).toHaveText('READY', { timeout: 15_000 });
+  await expect(page.locator('#metadataCard')).toBeVisible();
+}
+
+test('v2.11D audit: Keeper upload preflight reuses the unlocked Library snapshot', async ({ page, browserDiagnostics }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium-desktop', 'Chromium desktop request ownership audit');
 
   const requests = [];
@@ -81,11 +89,7 @@ test('v2.11D audit: Keeper upload preflight catalog request ownership is measura
   const afterUnlock = libraryGetCount(requests);
   expect(afterUnlock).toBe(1);
 
-  await page.locator('#openNewBooks').click();
-  await expect(page.locator('#addBooksDialog')).toBeVisible();
-  await page.locator('#epubFile').setInputFiles(epubPath);
-  await expect(page.locator('#fileState')).toHaveText('READY', { timeout: 15_000 });
-  await expect(page.locator('#metadataCard')).toBeVisible();
+  await preflightFixture(page);
 
   const afterPreflight = libraryGetCount(requests);
   console.log('KEEPER_V2_11D_UPLOAD_LIBRARY_AUDIT', JSON.stringify({
@@ -96,6 +100,35 @@ test('v2.11D audit: Keeper upload preflight catalog request ownership is measura
     }
   }));
 
-  expect(afterPreflight).toBe(2);
+  expect(afterPreflight).toBe(1);
+  expect(browserDiagnostics).toEqual([]);
+});
+
+test('v2.11D audit: Keeper upload preflight fetches once when no Library snapshot is available', async ({ page, browserDiagnostics }, testInfo) => {
+  test.skip(testInfo.project.name !== 'chromium-desktop', 'Chromium desktop request ownership audit');
+
+  const requests = [];
+  await installRoutes(page, requests);
+  await unlockKeeper(page);
+
+  const afterUnlock = libraryGetCount(requests);
+  expect(afterUnlock).toBe(1);
+  await page.evaluate(() => {
+    window.ShadowGardenKeeper.state.management = null;
+    window.ShadowGardenKeeper.state.batch.library = null;
+  });
+
+  await preflightFixture(page);
+
+  const afterFallback = libraryGetCount(requests);
+  console.log('KEEPER_V2_11D_UPLOAD_LIBRARY_FALLBACK_AUDIT', JSON.stringify({
+    libraryGets: {
+      afterUnlock,
+      afterFallback,
+      preflightDelta: afterFallback - afterUnlock
+    }
+  }));
+
+  expect(afterFallback).toBe(2);
   expect(browserDiagnostics).toEqual([]);
 });

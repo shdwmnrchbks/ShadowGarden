@@ -1,8 +1,10 @@
 /* Shadow Garden R4.1 — EPUB.js 0.3.93 lifecycle compatibility patch.
    Carries upstream listener cleanup (futurepress/epub.js#326238c) and closes the
-   long-lived Book.spine hook that otherwise roots every destroyed Rendition. */
+   long-lived Book.spine hook that otherwise roots every destroyed Rendition.
+   tools/build.mjs pins the exact npm package revision; the bundle itself exposes
+   only the coarse runtime API version below. */
 
-const PATCHED_VERSION="0.3.93";
+const PATCHED_RUNTIME_VERSION="0.3";
 const renditionPatchMarker=Symbol.for("shadow-garden.epubjs.rendition-lifecycle.v2");
 const managerPatchMarker=Symbol.for("shadow-garden.epubjs.manager-lifecycle.v2");
 const bookPatchMarker=Symbol.for("shadow-garden.epubjs.book-rendition-lifecycle.v2");
@@ -71,7 +73,7 @@ function patchBookRenderTo(Book){
 }
 
 export function installEpubLifecyclePatch(epub=globalThis.ePub){
-  if(String(epub?.VERSION||"")!==PATCHED_VERSION)return false;
+  if(String(epub?.VERSION||"")!==PATCHED_RUNTIME_VERSION)return false;
   const prototype=epub?.Rendition?.prototype;
   if(!prototype)return false;
 

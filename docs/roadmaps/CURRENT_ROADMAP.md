@@ -1,19 +1,20 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A–C COMPLETE · v2.11D NEXT**  
+> **Status:** ✅ **v2.11A–D COMPLETE · v2.11E NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
 > **First landed v2.11 slice:** `8c5145b490bda77b5db5527f957ad4bcfea0b113`  
 > **Reader Audit-B measured code head:** `4c9e41fda640926c393dd72397058447d0af92bf`  
 > **Library/Series Audit-C measured code head:** `f64fa1ea4e74287146800687ca9d2e27efa6e9c3`  
-> **Updated:** 2026-09-04
+> **Keeper Audit-D measured code head:** `78ceaff278cfbb56a808ab91030eda182cc917b4`  
+> **Updated:** 2026-09-05
 
 Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health cycle**, not a feature expansion roadmap.
 
 The audit asks whether the mature v2 codebase has demonstrated structural, reliability, maintainability, verification, or realistic-scale performance problems. Refactor and optimization work are conditional. If evidence shows an area is already healthy, its implementation step is **skipped / no change needed**.
 
-Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with Audit-C measurements in [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md) and current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
+Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with Audit-C measurements in [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md), Audit-D measurements in [`../audits/V2_11_KEEPER_AUDIT.md`](../audits/V2_11_KEEPER_AUDIT.md), and current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
 
 ## Governing rule
 
@@ -136,12 +137,22 @@ Audit C found **repeated state reads and duplicate action/network ownership**, n
 
 ## v2.11D — Garden Keeper & operational workflows
 
-**Status:** ⬜ Planned — next audit
+**Status:** ✅ Complete on measured Keeper code head `78ceaff278cfbb56a808ab91030eda182cc917b4`  
+**Evidence:** [`../audits/V2_11_KEEPER_AUDIT.md`](../audits/V2_11_KEEPER_AUDIT.md)
 
-- Audit only retained workflows: auth/session, Library/Series, Upload, Maintenance, History, Trash, Abuse Watch, Recovery Readiness, and multi-EPUB upload.
-- Confirm removed Batch Edit/Artwork code does not leave orphaned UI/network/state assumptions.
-- Inspect repeated catalog reads/writes, object checks, sequential network work, busy/error handling, and preview/recovery paths.
-- Optimize only measured expensive operations while preserving deterministic ordering and recovery safety.
+### Audit goals and outcomes
+
+- [x] Revalidate only retained workflows: auth/session, Library/Series, translations, Upload, Maintenance, History, Trash, Abuse Watch, Recovery Readiness, and multi-EPUB upload. **Outcome:** current decomposition and the single `AdminClient` boundary remain valid; no Keeper rewrite is justified.
+- [x] Confirm retired Batch Edit/Artwork owners have not returned. **Outcome:** no retired catalog-wide owner is composed; the surviving `admin-batch*` files belong only to the live New Books multi-EPUB queue.
+- [x] Measure duplicate Maintenance snapshot ownership. **Outcome:** Maintenance, History, and Trash previously issued 3 identical `GET /admin-api/maintenance` requests per dialog open; Maintenance now owns one canonical GET and publishes `maintenance:data` for History/Trash presentation.
+- [x] Preserve invalidation correctness around Trash. **Outcome:** Trash restore/purge reuses its returned maintenance snapshot with 0 follow-up GETs, while an external `trash:changed` invalidation still causes exactly 1 fresh load.
+- [x] Measure first-preflight Upload catalog ownership. **Outcome:** unlock already materializes `/admin-api/library`; first preflight previously added +1 GET. Upload now mirrors canonical `library:changed` data into its batch-local duplicate-detection snapshot, so the normal preflight delta is 0 while the deliberately missing-snapshot fallback remains exactly +1 GET.
+- [x] Inspect auth/session, translation, Abuse Watch, Recovery Readiness, sequential B2 checks, cover optimization, multi-EPUB queue ordering, busy/error behavior, and retry/recovery paths. **Outcome:** no second catalog/session/security owner or measured sequential-work bottleneck justified additional change.
+- [x] Preserve deterministic and recovery-sensitive ordering. **Outcome:** 25-object deep B2 batches, one-at-a-time cover optimization, and ordered multi-EPUB upload remain unchanged because Audit D found duplicate snapshot reads—not evidence for speculative parallelization.
+
+### Audit D decision gate
+
+Audit D found **two bounded request-ownership defects**, not a structural Keeper problem. Keep the existing workflow split, single `AdminClient`, auth/session security boundary, explicit invalidation events, and recovery-sensitive ordering. The accepted implementation is limited to one canonical Maintenance snapshot GET owner plus reuse of already-materialized Library state by Upload duplicate detection with a safe one-GET fallback.
 
 ## v2.11E — Pages Functions, security & storage
 
@@ -189,7 +200,7 @@ Audit C found **repeated state reads and duplicate action/network ownership**, n
 Every material finding must record:
 
 | Finding | Evidence | Impact | Risk | Decision | Verification |
-| --- | --- | --- | --- | --- | --- | --- |
+| --- | --- | --- | --- | --- | --- |
 | ID/area | reproducible evidence | correctness / maintainability / latency / memory / build/test cost | Low / Medium / High | Skip / Cleanup / Refactor / Optimize / Defer | test or measurement proving completion |
 
 Only **Cleanup/Refactor justified** or **Optimization justified** findings become implementation slices.

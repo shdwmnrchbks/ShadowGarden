@@ -33,5 +33,7 @@ jobs:
         run: node --test tests/service/catalog-backup-integrity.test.mjs
       - name: Run Reader lifecycle unit tests
         run: node --test tests/unit/reader-continuous.test.mjs tests/unit/reader-rendition.test.mjs tests/unit/reader-resume.test.mjs tests/unit/reader-resume-lifecycle.test.mjs tests/unit/reader-epub-lifecycle.test.mjs
+      - name: Run Library audit unit tests
+        run: node --test tests/unit/data-source-catalog-sharing.test.mjs tests/unit/library-contextual-filters.test.mjs tests/unit/library-reading-performance.test.mjs
       - name: Build production output
         run: npm run build

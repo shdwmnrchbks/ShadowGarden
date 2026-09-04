@@ -81,6 +81,29 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
       });
       observer.observe({ entryTypes: ['longtask'] });
     } catch {}
+
+    const emptyReads = () => ({ total: 0, finishedIndex: 0, finishedMarkers: 0, progress: 0, pinned: 0, otherShadowGarden: 0, other: 0 });
+    window.__sgV211CStorageReads = emptyReads();
+    window.__sgV211CStorageReset = () => { window.__sgV211CStorageReads = emptyReads(); };
+    window.__sgV211CStorageSnapshot = () => ({ ...window.__sgV211CStorageReads });
+    const originalGetItem = Storage.prototype.getItem;
+    Storage.prototype.getItem = function(key) {
+      const value = originalGetItem.call(this, key);
+      try {
+        if (this === localStorage) {
+          const name = String(key || '');
+          const reads = window.__sgV211CStorageReads;
+          reads.total += 1;
+          if (name === 'sg-finished-books') reads.finishedIndex += 1;
+          else if (name.startsWith('sg-finished:')) reads.finishedMarkers += 1;
+          else if (name.startsWith('sg-progress:')) reads.progress += 1;
+          else if (name === 'sg-pinned') reads.pinned += 1;
+          else if (name.startsWith('sg-')) reads.otherShadowGarden += 1;
+          else reads.other += 1;
+        }
+      } catch {}
+      return value;
+    };
   });
 
   const session = await page.context().newCDPSession(page);
@@ -91,6 +114,8 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     () => waitForLibrary(page)
   );
   const hydrated = await cdpSnapshot(page, session);
+  const hydrationStorageReads = await page.evaluate(() => window.__sgV211CStorageSnapshot());
+  await page.evaluate(() => window.__sgV211CStorageReset());
 
   const searchMs = await timed(
     () => page.locator('#searchInput').fill('Synthetic Series 250'),
@@ -155,6 +180,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
   );
 
   const afterInteractions = await cdpSnapshot(page, session);
+  const interactionStorageReads = await page.evaluate(() => window.__sgV211CStorageSnapshot());
   const libraryLongTasks = await page.evaluate(() => window.__sgV211CLongTasks || []);
 
   const seriesMs = await timed(
@@ -166,6 +192,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     }
   );
   const seriesSnapshot = await cdpSnapshot(page, session);
+  const seriesStorageReads = await page.evaluate(() => window.__sgV211CStorageSnapshot());
   const seriesLongTasks = await page.evaluate(() => window.__sgV211CLongTasks || []);
 
   const summarizeLongTasks = entries => ({
@@ -182,6 +209,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     timingsMs: { hydrateMs, searchMs, clearSearchMs, authorFilterMs, clearAuthorPillMs, sortMs, compactMs, loadMoreMs, seriesMs },
     ownership: { activePillCatalogInsertCalls },
     requests: { catalogRequests },
+    storageReads: { hydration: hydrationStorageReads, interactions: interactionStorageReads, series: seriesStorageReads },
     hydrated,
     afterInteractions,
     seriesSnapshot,
@@ -190,6 +218,7 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
   }));
 
   expect(catalogRequests).toBe(2);
+  expect(activePillCatalogInsertCalls).toBe(1);
   expect(hydrated.seriesCards).toBe(36);
   expect(afterInteractions.seriesCards).toBe(120);
   expect(seriesSnapshot.volumeCards).toBe(12);

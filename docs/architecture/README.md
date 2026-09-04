@@ -19,6 +19,10 @@ Shadow Garden's active development line is **v2.11.0 — Engineering Audit, Refa
 - [`PERSISTENCE_CONTRACTS.md`](./PERSISTENCE_CONTRACTS.md) — browser-local localStorage/IndexedDB contracts, cookies, and migration rules.
 - [`HTTP_STORAGE_CONTRACTS.md`](./HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and private B2 namespace contracts.
 
+## R10 final cutover and release gate
+
+R10 established the accepted v2.0.0 architecture baseline and removed the final known obsolete compatibility/patch ownership paths. The permanent R10 guard continues to verify the frozen v2 entrypoint manifest, retired-source tombstones, semantic source ownership, build/release contracts, and the archived completed R0–R10 roadmap. The canonical completed roadmap is [`../archive/REFACTOR_ROADMAP.md`](../archive/REFACTOR_ROADMAP.md); the historical `docs/roadmaps/REFACTOR_ROADMAP.md` path is only a Git symlink for permanent guard/back-link compatibility.
+
 ## Repository/tooling contracts
 
 - [`MODULE_CONVENTIONS.md`](./MODULE_CONVENTIONS.md) — naming, ownership, DOM/state, CSS, dependency direction, and placement conventions.
@@ -100,7 +104,7 @@ Completed planning is canonical under [`../archive/README.md`](../archive/README
 - [`../archive/ROADMAP_V2_6_TO_V2_10.md`](../archive/ROADMAP_V2_6_TO_V2_10.md) — v2.6 reliability through v2.10 maintenance.
 - [`../archive/V2_8_FOOTNOTE_AUDIT.md`](../archive/V2_8_FOOTNOTE_AUDIT.md) — completed Reader note-compatibility audit.
 
-`docs/roadmaps/` contains only active planning. Finished roadmap mirrors are intentionally removed so current documentation cannot accidentally treat historical plans as active work.
+`docs/roadmaps/CURRENT_ROADMAP.md` is the only active planning document. The old Security and Refactor roadmap paths remain only as Git symlinks into the archive so historical guardrails and back-links keep resolving without duplicate content.
 
 ## Permanent guardrails
 

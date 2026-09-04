@@ -153,16 +153,24 @@ export function preferredSeriesEntry(series) {
   return inProgress[0] || entries.find(entry => entry.state === STATES.UNREAD) || entries.find(entry => entry.state === STATES.FINISHED) || null;
 }
 
-export function latestActiveEntry(seriesList) {
+function entrySnapshots(seriesList) {
+  return (Array.isArray(seriesList) ? seriesList : []).map(series => ({ series, entries: volumeEntries(series) }));
+}
+
+function latestActiveFromSnapshots(snapshots) {
   const candidates = [];
-  for (const series of Array.isArray(seriesList) ? seriesList : []) {
-    for (const entry of volumeEntries(series)) {
+  for (const { series, entries } of snapshots) {
+    for (const entry of entries) {
       if (!entry.progress?.updatedAt || entry.state === STATES.FINISHED) continue;
       candidates.push({ series, ...entry, updatedAt: Number(entry.progress.updatedAt) || 0 });
     }
   }
   candidates.sort((a, b) => b.updatedAt - a.updatedAt);
   return candidates[0] || null;
+}
+
+export function latestActiveEntry(seriesList) {
+  return latestActiveFromSnapshots(entrySnapshots(seriesList));
 }
 
 function readableEntry(entry) {
@@ -180,10 +188,9 @@ function finishedAt(seriesId, entry, finishedState) {
   return latest;
 }
 
-export function nextStartedSeriesEntry(seriesList) {
-  const candidates = [], finishedState = load();
-  for (const series of Array.isArray(seriesList) ? seriesList : []) {
-    const entries = volumeEntries(series);
+function nextStartedFromSnapshots(snapshots, finishedState) {
+  const candidates = [];
+  for (const { series, entries } of snapshots) {
     if (!entries.length || entries.some(entry => entry.state === STATES.IN_PROGRESS)) continue;
     let lastFinished = -1, activityAt = 0;
     for (const entry of entries) {
@@ -200,16 +207,20 @@ export function nextStartedSeriesEntry(seriesList) {
   return candidates[0] || null;
 }
 
+export function nextStartedSeriesEntry(seriesList) {
+  return nextStartedFromSnapshots(entrySnapshots(seriesList), load());
+}
+
 function randomUnit(value) {
   const sampled = typeof value === "function" ? Number(value()) : Number(value);
   const fallback = Number.isFinite(sampled) ? sampled : Math.random();
   return Math.min(0.999999999, Math.max(0, fallback));
 }
 
-export function randomSeriesSuggestionEntry(seriesList, randomValue = Math.random) {
+function randomSuggestionFromSnapshots(snapshots, randomValue) {
   const candidates = [];
-  for (const series of Array.isArray(seriesList) ? seriesList : []) {
-    const entries = volumeEntries(series).filter(readableEntry);
+  for (const { series, entries: sourceEntries } of snapshots) {
+    const entries = sourceEntries.filter(readableEntry);
     if (!entries.length) continue;
     const entry = entries.find(item => item.state === STATES.IN_PROGRESS) || entries.find(item => item.state === STATES.UNREAD) || entries[0];
     if (entry) candidates.push({ series, ...entry, suggestion: "random" });
@@ -220,12 +231,17 @@ export function randomSeriesSuggestionEntry(seriesList, randomValue = Math.rando
   return pool[Math.floor(randomUnit(randomValue) * pool.length)] || pool[0] || null;
 }
 
+export function randomSeriesSuggestionEntry(seriesList, randomValue = Math.random) {
+  return randomSuggestionFromSnapshots(entrySnapshots(seriesList), randomValue);
+}
+
 export function libraryBannerEntry(seriesList, randomValue = Math.random) {
-  const current = latestActiveEntry(seriesList);
+  const snapshots = entrySnapshots(seriesList);
+  const current = latestActiveFromSnapshots(snapshots);
   if (current) return { ...current, mode: "continue" };
-  const next = nextStartedSeriesEntry(seriesList);
+  const next = nextStartedFromSnapshots(snapshots, load());
   if (next) return { ...next, mode: "suggestion" };
-  const suggestion = randomSeriesSuggestionEntry(seriesList, randomValue);
+  const suggestion = randomSuggestionFromSnapshots(snapshots, randomValue);
   return suggestion ? { ...suggestion, mode: "suggestion" } : null;
 }
 

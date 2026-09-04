@@ -8,7 +8,7 @@
     "node": "22.x"
   },
   "scripts": {
-    "pretest": "node support/build-reader-fixture.mjs && node support/build-reader-resilience-fixtures.mjs",
+    "pretest": "node support/build-reader-fixture.mjs && node support/build-reader-resilience-fixtures.mjs && node support/build-reader-audit-fixture.mjs",
     "test": "playwright test"
   },
   "devDependencies": {

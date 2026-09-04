@@ -3,6 +3,7 @@ window.ShadowGardenData=(()=>{
   let domainPromise;
   const catalogPromises=new Map();
   const catalogSnapshots=new Map();
+  const catalogShareNext=new Set();
   const statuses=['Complete','Ongoing','Hiatus','Dropped'];
   const statusAliases=new Map([
     ['complete','Complete'],['completed','Complete'],['finished','Complete'],
@@ -34,8 +35,12 @@ window.ShadowGardenData=(()=>{
     const domain=await loadDomain();
     return domain.catalog.normalizeCatalog(catalog);
   }
-  async function loadCatalog(adult=false,{reuse=false}={}){
+  async function loadCatalog(adult=false,{reuse=false,shareNext=false}={}){
     const key=adult?'adult':'main';
+    if(!reuse&&catalogShareNext.has(key)&&catalogSnapshots.has(key)){
+      catalogShareNext.delete(key);
+      return catalogSnapshots.get(key);
+    }
     if(reuse&&catalogSnapshots.has(key))return catalogSnapshots.get(key);
     const pending=catalogPromises.get(key);
     if(pending)return pending;
@@ -49,6 +54,7 @@ window.ShadowGardenData=(()=>{
     try{
       const catalog=await request;
       catalogSnapshots.set(key,catalog);
+      if(reuse&&shareNext)catalogShareNext.add(key);
       return catalog;
     }finally{if(catalogPromises.get(key)===request)catalogPromises.delete(key)}
   }

@@ -67,3 +67,35 @@ test("series cards derive Finished from their existing volume entries", () => {
   assert.match(html, /series-card is-finished/);
   assert.match(html, /✓ Finished/);
 });
+
+test("Library banner evaluates each volume entry once when choosing a suggestion", () => {
+  const env = installBrowserEnv();
+  try {
+    const series = [
+      {
+        id: "banner-one",
+        title: "Banner One",
+        volumes: [{ number: 1, bookId: "bk_1111111111111111111112", file: "bk_1111111111111111111112" }]
+      },
+      {
+        id: "banner-two",
+        title: "Banner Two",
+        volumes: [{ number: 1, bookId: "bk_2222222222222222222224", file: "bk_2222222222222222222224" }]
+      }
+    ];
+    const expectedProgressReads = series.reduce((sum, item) =>
+      sum + readingState.volumeAliases(item.id, item.volumes[0], 0).length, 0);
+    const originalGetItem = env.storage.getItem.bind(env.storage);
+    let progressReads = 0;
+    env.storage.getItem = key => {
+      if (String(key).startsWith("sg-progress:")) progressReads += 1;
+      return originalGetItem(key);
+    };
+
+    const banner = readingState.libraryBannerEntry(series, 0);
+    assert.equal(banner?.series.id, "banner-one");
+    assert.equal(banner?.mode, "suggestion");
+    assert.equal(progressReads, expectedProgressReads,
+      "continue/next/random banner selection should share one materialized volume-entry pass");
+  } finally { env.restore(); }
+});

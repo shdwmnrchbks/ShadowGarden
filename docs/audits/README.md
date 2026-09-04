@@ -2,6 +2,7 @@
 
 > **Status:** Active evidence workspace  
 > **Current audit:** [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md)  
+> **Current entrypoint inventory:** [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md)  
 > **Current roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)
 
 This directory holds evidence-based architecture, maintainability, performance, security, test/tooling, and repository audits.
@@ -27,6 +28,11 @@ Useful evidence includes:
 - documentation/implementation divergence.
 
 Preference or aesthetic consistency alone is not enough to justify a rewrite.
+
+## Active records
+
+- [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md) — findings register, decisions, measurements, implementation candidates, and skip/defer outcomes.
+- [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md) — Audit A comparison of the frozen v2.0 entrypoint baseline with current post-v2 Reader/Keeper/Functions/tooling ownership.
 
 ## Audit record format
 

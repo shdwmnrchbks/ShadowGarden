@@ -1,6 +1,7 @@
 window.ShadowGardenData=(()=>{
   let sourcePromise;
   let domainPromise;
+  const catalogPromises=new Map();
   const statuses=['Complete','Ongoing','Hiatus','Dropped'];
   const statusAliases=new Map([
     ['complete','Complete'],['completed','Complete'],['finished','Complete'],
@@ -33,10 +34,18 @@ window.ShadowGardenData=(()=>{
     return domain.catalog.normalizeCatalog(catalog);
   }
   async function loadCatalog(adult=false){
-    const url=await catalogUrl(adult);
-    const r=await fetch(url,{cache:'default',mode:'cors'});
-    if(!r.ok)throw new Error(`Catalog request failed: ${r.status}`);
-    return normalizeCatalog(await r.json());
+    const key=adult?'adult':'main';
+    const pending=catalogPromises.get(key);
+    if(pending)return pending;
+    const request=(async()=>{
+      const url=await catalogUrl(adult);
+      const r=await fetch(url,{cache:'default',mode:'cors'});
+      if(!r.ok)throw new Error(`Catalog request failed: ${r.status}`);
+      return normalizeCatalog(await r.json());
+    })();
+    catalogPromises.set(key,request);
+    try{return await request}
+    finally{if(catalogPromises.get(key)===request)catalogPromises.delete(key)}
   }
   return{getSource,catalogUrl,loadCatalog,normalizeCatalog,normalizeStatus,statuses};
 })();

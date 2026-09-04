@@ -3,12 +3,17 @@
 > **Status:** 🗄️ Archived history  
 > **Current roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)
 
-This directory preserves completed or superseded Shadow Garden roadmaps and milestone records. Archived files are historical/audit records only; they do not define current work.
+This directory preserves completed or superseded Shadow Garden roadmaps, audits, and milestone records. Archived files are historical/audit records only; they do not define current work.
 
 ## Completed roadmaps
 
-- [`REFACTOR_ROADMAP.md`](./REFACTOR_ROADMAP.md) — completed R0–R10 full-codebase refactor ending at the v2.0.0 baseline.
 - [`SECURITY_ROADMAP.md`](./SECURITY_ROADMAP.md) — completed Security & Anti-Abuse Milestones 1–9.
+- [`REFACTOR_ROADMAP.md`](./REFACTOR_ROADMAP.md) — completed R0–R10 full-codebase refactor ending at the v2.0.0 architecture baseline.
+- [`ROADMAP_V2_6_TO_V2_10.md`](./ROADMAP_V2_6_TO_V2_10.md) — completed Reliability, Reader Experience, Keeper Recovery, and Maintenance roadmap covering v2.6 through v2.10.
+
+## Completed audit/planning records
+
+- [`V2_8_FOOTNOTE_AUDIT.md`](./V2_8_FOOTNOTE_AUDIT.md) — completed Reader footnote/endnote compatibility audit that shipped in v2.8.0.
 
 ## Security milestone records
 
@@ -28,8 +33,12 @@ Milestones 1–4 are represented by the completed security roadmap/baseline hist
 - [`v2.5-motion/v2.5-motion-slice-3.md`](./v2.5-motion/v2.5-motion-slice-3.md) — Series and Reader continuity.
 - [`v2.5-motion/v2.5-motion-slice-4.md`](./v2.5-motion/v2.5-motion-slice-4.md) — Keeper and navigation continuity plus v2.5.0 release reconciliation.
 
-Actual release notes remain under [`../releases/`](../releases/) and architecture contracts remain under [`../architecture/`](../architecture/). Only planning and milestone records are archived here.
+Actual release notes remain under [`../releases/`](../releases/) and active architecture contracts remain under [`../architecture/`](../architecture/).
 
-## Compatibility mirrors
+## Archive policy
 
-The former completed planning files under `docs/roadmaps/`, `docs/security/`, and the v2.5 motion planning paths under `docs/releases/` remain unchanged as compatibility mirrors. Existing CI guards and historical links intentionally read those paths. The copies under `docs/archive/` are the canonical planning archive, while [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) is the only active roadmap.
+- `docs/roadmaps/` contains only the single active roadmap and its index.
+- Completed roadmap/audit planning moves here instead of remaining as a current-path compatibility mirror.
+- Historical release notes are not rewritten to describe later work.
+- Old links should be corrected to the archive when current documentation is touched.
+- The current audit/refactor/optimization phase is governed by [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) and [`../architecture/ENGINEERING_AUDIT.md`](../architecture/ENGINEERING_AUDIT.md).

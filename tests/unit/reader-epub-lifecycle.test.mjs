@@ -66,7 +66,8 @@ test('EPUB.js lifecycle compatibility patch releases manager listeners and rendi
       renderTo(){this.rendition=new Rendition(this);return this.rendition}
     }
 
-    const epub={VERSION:'0.3.93',Rendition,Book};
+    // EPUB.js 0.3.93's browser bundle exposes only the coarse "0.3" API version.
+    const epub={VERSION:'0.3',Rendition,Book};
 
     assert.equal(installEpubLifecyclePatch(epub),true);
     assert.equal(installEpubLifecyclePatch(epub),true,'installation should be idempotent');
@@ -92,8 +93,8 @@ test('EPUB.js lifecycle compatibility patch releases manager listeners and rendi
   }
 });
 
-test('EPUB.js lifecycle compatibility patch is pinned to the affected dependency version',()=>{
+test('EPUB.js lifecycle compatibility patch rejects an incompatible runtime API version',()=>{
   class Rendition{requireManager(){return class Manager{}}}
   class Book{renderTo(){return{}}}
-  assert.equal(installEpubLifecyclePatch({VERSION:'0.4.0',Rendition,Book}),false);
+  assert.equal(installEpubLifecyclePatch({VERSION:'0.4',Rendition,Book}),false);
 });

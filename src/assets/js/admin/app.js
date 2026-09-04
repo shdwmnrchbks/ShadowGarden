@@ -16,9 +16,6 @@
       "/assets/js/admin/auth-session.js",
       "/assets/js/admin/library-workflow.js",
       "/assets/js/admin/translation-workflow.js",
-      "/assets/js/admin/bulk-edit-workflow.js",
-      "/assets/js/admin/bulk-edit-fixes.js",
-      "/assets/js/admin/bulk-artwork-workflow.js",
       "/assets/js/admin/maintenance-workflow.js",
       "/assets/js/admin/recovery-readiness-workflow.js",
       "/assets/js/admin/history-workflow.js",
@@ -48,7 +45,7 @@
     await loadScript("/assets/js/admin/motion.js");
     await Promise.all([loadScript("/assets/js/site-flavor.js"),loadScript("/assets/js/ui-direction-triangles.js")]);
 
-    for(const name of ["version","session","library","translations","bulkEdit","bulkArtwork","maintenance","recoveryReadiness","history","trash","abuse","shell","motion"])await keeper.initializeWorkflow(name);
+    for(const name of ["version","session","library","translations","maintenance","recoveryReadiness","history","trash","abuse","shell","motion"])await keeper.initializeWorkflow(name);
 
     keeper.events.addEventListener("library:invalidate",()=>{
       const workflow=keeper.workflows.get("library")?.instance;if(workflow&&keeper.client.isAuthorized())void workflow.refresh();

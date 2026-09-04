@@ -23,7 +23,7 @@ body.site-nav-open{padding-top:72px}
 @keyframes sg-nav-item-in{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:translateX(0)}}
 
 /* Shadow-violet primary theme */
-:root{--bg:#09080d;--bg2:#0d0b12;--panel:#13101a;--panel2:#181420;--line:rgba(196,184,225,.12);--line2:rgba(196,184,225,.22);--text:#f0edf5;--muted:#aaa2b5;--dim:#7b7385;--leaf:#9a86d3;--leaf2:#c3b4ee}
+:root{--panel:#13101a;--panel2:#181420;--line:rgba(196,184,225,.12);--line2:rgba(196,184,225,.22);--text:#f0edf5;--muted:#aaa2b5;--dim:#7b7385;--leaf:#9a86d3;--leaf2:#c3b4ee}
 body:not(.adult-library){background:radial-gradient(circle at 85% 4%,rgba(109,79,158,.11),transparent 30rem),radial-gradient(circle at 8% 44%,rgba(83,58,116,.06),transparent 26rem),linear-gradient(180deg,#09080d,#0d0a12 50%,#08070b)}
 body:not(.adult-library) .site-header{background:rgba(10,8,14,.88)}
 body:not(.adult-library) .brand-mark{background:#130f1b}

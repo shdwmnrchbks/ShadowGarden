@@ -52,7 +52,7 @@ Completed or superseded planning must not remain marked as current. Historical r
 - [`archive/SECURITY_ROADMAP.md`](./archive/SECURITY_ROADMAP.md) — completed Security & Anti-Abuse roadmap.
 - [`archive/V2_8_FOOTNOTE_AUDIT.md`](./archive/V2_8_FOOTNOTE_AUDIT.md) — completed v2.8 Reader note-compatibility audit.
 
-`docs/roadmaps/` intentionally contains only the current roadmap and its index. Finished roadmap/audit planning no longer remains there as compatibility mirrors.
+`docs/roadmaps/CURRENT_ROADMAP.md` is the only active planning document. The old `REFACTOR_ROADMAP.md` and `SECURITY_ROADMAP.md` paths remain as Git symlinks into `docs/archive/` only so permanent historical guards and older links resolve without duplicated roadmap content.
 
 ## Releases
 
@@ -94,4 +94,4 @@ Security Milestones 1–9 remain completed baseline contracts. Their roadmap is 
 
 ## Repository-root policy
 
-The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs under `docs/roadmaps/`; deterministic fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs in `docs/roadmaps/CURRENT_ROADMAP.md`; deterministic fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.

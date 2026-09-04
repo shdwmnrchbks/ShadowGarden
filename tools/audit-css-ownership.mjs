@@ -148,4 +148,10 @@ for (const item of highSpecificity.slice(0, 25)) console.log(`  [${item.ids},${i
 if (highSpecificity.length > 25) console.log(`  ... ${highSpecificity.length - 25} more`);
 
 console.log(`Accessibility/motion media coverage: reduced-motion in ${reducedMotionFiles} files; forced-colors in ${forcedColorsFiles}; increased-contrast in ${increasedContrastFiles}; keyframes: ${keyframeCount}.`);
-console.log('CSS audit is measurement-only: no candidate causes a non-zero exit code.');
+if (candidateUnusedCustomProperties.length > 0) {
+  console.error('CSS custom-property ownership failed: every authored custom-property definition must have a CSS var() or production HTML/JS consumer.');
+  process.exitCode = 1;
+} else {
+  console.log('CSS custom-property ownership passed: every authored definition has a CSS or production-source consumer.');
+}
+console.log('Class-reference, shared-ownership, and specificity findings remain report-only audit signals.');

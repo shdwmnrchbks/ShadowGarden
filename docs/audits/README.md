@@ -2,6 +2,7 @@
 
 > **Status:** Active evidence workspace  
 > **Current audit:** [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md)  
+> **Library/Series Audit C:** [`V2_11_LIBRARY_SERIES_AUDIT.md`](./V2_11_LIBRARY_SERIES_AUDIT.md)  
 > **Current entrypoint inventory:** [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md)  
 > **Current roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)
 
@@ -31,7 +32,8 @@ Preference or aesthetic consistency alone is not enough to justify a rewrite.
 
 ## Active records
 
-- [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md) — findings register, decisions, measurements, implementation candidates, and skip/defer outcomes.
+- [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md) — findings register, decisions, measurements, implementation candidates, and skip/defer outcomes for the v2.11 engineering audit.
+- [`V2_11_LIBRARY_SERIES_AUDIT.md`](./V2_11_LIBRARY_SERIES_AUDIT.md) — Audit C realistic-scale Library/Series measurements, browser-local domain ownership revalidation, before/after state-read evidence, and accepted targeted optimizations.
 - [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md) — Audit A comparison of the frozen v2.0 entrypoint baseline with current post-v2 Reader/Keeper/Functions/tooling ownership.
 
 ## Audit record format

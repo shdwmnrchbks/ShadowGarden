@@ -13,8 +13,8 @@ export function seriesCard(series, index, { readingState, preferences, urls, for
   const cover = seriesCover(series);
   const volumes = arr(series?.volumes).length;
   const aboveFold = index < 6;
-  const finished = readingState.seriesFinished(series);
   const entries = readingState.volumeEntries(series);
+  const finished = entries.length > 0 && entries.every(entry => entry.state === readingState.STATES.FINISHED);
   const active = entries.find(entry => entry.state === readingState.STATES.IN_PROGRESS) || null;
   const activePercent = active ? Math.max(1, Math.min(99, Math.round((Number(active.progress?.percentage) || 0) * 100))) : 0;
   const visualProgress = finished ? 100 : activePercent;

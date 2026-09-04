@@ -1,9 +1,9 @@
 /* Shadow Garden R4.1 — EPUB.js 0.3.93 lifecycle compatibility patch.
    Carries upstream Default/Continuous listener cleanup
-   (futurepress/epub.js#326238c + #5daac43) and closes the long-lived
-   Book.spine hook that otherwise roots every destroyed Rendition.
-   tools/build.mjs pins the exact npm package revision; the bundle itself exposes
-   only the coarse runtime API version below. */
+   (futurepress/epub.js#326238c + #5daac43), closes the long-lived Book.spine
+   rendition hook, and releases Section source DOM after its final live view is
+   removed. tools/build.mjs pins the exact npm package revision; the bundle itself
+   exposes only the coarse runtime API version below. */
 
 const PATCHED_RUNTIME_VERSION="0.3";
 const renditionPatchMarker=Symbol.for("shadow-garden.epubjs.rendition-lifecycle.v2");
@@ -11,6 +11,22 @@ const managerPatchMarker=Symbol.for("shadow-garden.epubjs.manager-lifecycle.v2")
 const bookPatchMarker=Symbol.for("shadow-garden.epubjs.book-rendition-lifecycle.v2");
 const instancePatchMarker=Symbol.for("shadow-garden.epubjs.rendition-instance-lifecycle.v2");
 const own=(value,key)=>Object.prototype.hasOwnProperty.call(value,key);
+
+function managerViews(manager){
+  try{return manager?.views?.all?.()||[]}catch{return[]}
+}
+
+function managerSections(manager){
+  return[...new Set(managerViews(manager).map(view=>view?.section).filter(Boolean))];
+}
+
+function sectionStillViewed(manager,section){
+  return managerViews(manager).some(view=>view?.section===section);
+}
+
+function unloadSection(section){
+  try{section?.unload?.()}catch(error){console.warn("EPUB.js section cache release skipped",error)}
+}
 
 function patchDefaultManagerListeners(prototype){
   prototype.addEventListeners=function(){
@@ -56,6 +72,20 @@ function patchContinuousManagerListeners(prototype){
   };
 }
 
+function patchContinuousErase(prototype){
+  const originalErase=prototype.erase;
+  if(typeof originalErase!=="function")return;
+  prototype.erase=function(view,...args){
+    const section=view?.section||null;
+    const result=originalErase.call(this,view,...args);
+    /* Section.load() caches parsed source DOM on the long-lived Book spine. A trimmed
+       IframeView destroys its rendered Contents but EPUB.js 0.3.93 does not unload that
+       source cache. Release it only after the last live view for the section is gone. */
+    if(section&&!sectionStillViewed(this,section))unloadSection(section);
+    return result;
+  };
+}
+
 function patchManagerClass(Manager){
   const prototype=Manager?.prototype;
   /* ContinuousViewManager inherits from DefaultViewManager. The marker therefore must be
@@ -65,13 +95,21 @@ function patchManagerClass(Manager){
 
   const originalDestroy=prototype.destroy;
   const continuous=own(prototype,"addScrollListeners");
-  if(continuous)patchContinuousManagerListeners(prototype);
-  else patchDefaultManagerListeners(prototype);
+  if(continuous){
+    patchContinuousManagerListeners(prototype);
+    patchContinuousErase(prototype);
+  }else patchDefaultManagerListeners(prototype);
 
   prototype.destroy=function(...args){
+    /* DefaultViewManager.destroy() clears every live view. Capture its source sections first
+       so the shared Book cannot retain parsed chapter DOM after a flow switch. Continuous
+       calls super.destroy(), so the patched Default method owns the section release once. */
+    const sections=continuous?[]:managerSections(this);
     const orientationListener=this.stage?.orientationChangeFunc;
     if(orientationListener)window.removeEventListener("orientationchange",orientationListener);
-    return originalDestroy?.apply(this,args);
+    const result=originalDestroy?.apply(this,args);
+    for(const section of sections)unloadSection(section);
+    return result;
   };
 
   Object.defineProperty(prototype,managerPatchMarker,{value:true,configurable:false,enumerable:false,writable:false});

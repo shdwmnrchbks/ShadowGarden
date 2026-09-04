@@ -7,7 +7,6 @@ import { installReaderInteractionController } from "./reader/interaction-control
 import { urls } from "./domain/index.js";
 import "./reader/image-focus-touch-compat.js";
 
-installEpubLifecyclePatch();
 const interactions=installReaderInteractionController();
 const invalidPackagePreparation=/central directory|is this a zip file|missing container\.xml|missing package document|corrupt|unexpected end|end of data/i;
 
@@ -19,6 +18,7 @@ function visualPreparationFailure(){
 (async()=>{
   let session=null;
   try{
+    if(!installEpubLifecyclePatch())throw new Error("Unsupported EPUB.js runtime for Reader lifecycle compatibility patch");
     session=await createAuthorizedBookSession();
     if(!session)return;
     const preparationFailure=visualPreparationFailure();

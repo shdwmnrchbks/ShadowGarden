@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "npm run build:dist",
-    "build:dist": "node tools/build.mjs && node tools/write-source.mjs",
+    "build:dist": "node tools/check-epub-lifecycle-vendor.mjs && node tools/build.mjs && node tools/write-source.mjs",
     "preview": "node tools/preview.mjs",
     "check": "node tools/check.mjs && node tools/check-dependency-maintenance.mjs && node tools/check-runtime-lockfiles.mjs && node tools/check-documentation-freshness.mjs && node tools/check-release-metadata.mjs && node tools/check-baseline-maintenance.mjs && node tools/check-authored-cache-versions.mjs && node tools/check-retired-milestone-checkers.mjs && node tools/check-retired-r6-facades.mjs && node tools/check-browser-entrypoint-reachability.mjs && node tools/check-functions-entrypoint-reachability.mjs && node tools/performance-sanity.mjs",
     "prebuild": "npm run check",

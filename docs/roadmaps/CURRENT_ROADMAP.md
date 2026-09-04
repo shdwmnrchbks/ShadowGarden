@@ -1,10 +1,11 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A COMPLETE · v2.11B NEXT**  
+> **Status:** ✅ **v2.11A–B COMPLETE · v2.11C NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
 > **First landed v2.11 slice:** `8c5145b490bda77b5db5527f957ad4bcfea0b113`  
+> **Reader Audit-B measured code head:** `4c9e41fda640926c393dd72397058447d0af92bf`  
 > **Updated:** 2026-09-04
 
 Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health cycle**, not a feature expansion roadmap.
@@ -67,7 +68,7 @@ The v2.11 audit begins after:
 
 ## v2.11A — Repository & ownership inventory
 
-**Status:** ✅ Complete on current Audit-A closeout candidate
+**Status:** ✅ Complete
 
 ### Audit goals
 
@@ -97,18 +98,26 @@ Audit A closes with evidence and explicit dispositions, not with speculative mod
 
 ## v2.11B — Reader architecture & long-session reliability
 
-**Status:** ⬜ Planned — next audit after v2.11A lands on exact main
+**Status:** ✅ Complete on measured Reader code head `4c9e41fda640926c393dd72397058447d0af92bf`
 
-- Revalidate Reader app/session, Pages, Continuous, Page Map/progress, Contents/search, bookmarks, image focus, input, resume, and ticket-renewal ownership.
-- Measure time-to-first-readable-page with a representative large EPUB.
-- Exercise long Continuous sessions for listener accumulation, layout churn, memory growth, request churn, and long-task regressions.
-- Exercise repeated Pages ↔ Continuous switching, search/TOC navigation, image focus, orientation changes, background/resume, and ticket renewal.
-- Refactor only if duplicated/fragile ownership or reliability cost is demonstrated.
-- Optimize only if measurements show a meaningful bottleneck.
+### Audit goals and outcomes
+
+- [x] Revalidate Reader app/session, Pages, Continuous, Page Map/progress, Contents/search, bookmarks, image focus, input, resume, and ticket-renewal ownership. **Outcome:** current modular ownership is retained; no broad Reader restructuring is justified.
+- [x] Measure time-to-first-readable-page with a representative large EPUB. **Outcome:** deterministic 6,315,313-byte / 18-chapter fixture reaches first readable in ~1.09–1.13 s on final Chromium audit runs.
+- [x] Exercise long Continuous sessions for listener accumulation, layout churn, memory growth, request churn, and long-task regressions. **Outcome:** nine chapter jumps finish at 5 live views/iframes after a transient peak of 18, with ~+0.68 MiB heap, +44 Nodes, 0 Documents, 0 listeners, one access request, and zero long tasks.
+- [x] Exercise repeated Pages ↔ Continuous switching, search/TOC navigation, image focus, orientation/viewport changes, background/resume, and ticket renewal. **Outcome:** full Reader/browser coverage remains green and the dedicated ownership workload ends at ~+2.31 MiB heap, +702 Nodes, +4 Documents, +14 listeners after lifecycle work drains.
+- [x] Isolate canonical Page Map generation and supersession. **Outcome:** fix protected-source ownership by using `session.sourcePath`; add cancellation/teardown for superseded hidden mapping work; final isolated Page Map reaches 360 pages in ~2.49 s and returns the sandbox count to zero.
+- [x] Trace the dominant flow-switch retention rather than refactoring speculatively. **Outcome:** carry targeted EPUB.js 0.3.93 lifecycle cleanup for Default/Continuous unload listeners, stage orientation cleanup, and rendition-owned Book hooks; guard the dependency revision and unit-test the inheritance/lifecycle contract.
+- [x] Trace remaining Continuous DOM retention after live-buffer trim. **Outcome:** release cached `Section.document/contents/output` after the final live view disappears; retained Documents improve from +13 to 0 and retained Nodes from +3,047 to +44 in the same traversal.
+- [x] Verify the final measured code head with `npm run check`, production build, and all five real-browser projects. **Outcome:** Chromium desktop/mobile, Firefox desktop, WebKit desktop/mobile all pass.
+
+### Audit B decision gate
+
+Audit B found **targeted lifecycle/source defects**, not evidence for architectural consolidation or a performance rewrite. Keep the existing Reader module ownership. Do not defer Page Map generation, add virtualization, replace Continuous buffering, or impose a runner-sensitive heap ceiling: final startup, Page Map, long-session, request, and long-task measurements do not justify those changes.
 
 ## v2.11C — Library, Series & browser-local domain
 
-**Status:** ⬜ Planned
+**Status:** ⬜ Planned — next audit
 
 - Revalidate catalog normalization, filters/sort, reading state, progress, bookmarks, pinned state, preferences, URL state, and volume-action ownership.
 - Measure hydration/search/filter/sort/view/series-navigation behavior with the deterministic ~300-series fixture.
@@ -144,12 +153,13 @@ Audit A closes with evidence and explicit dispositions, not with speculative mod
 
 ## v2.11G — Build, dependencies, tests & tooling
 
-**Status:** ⬜ Planned — R-series executable subset already reconciled during v2.11A
+**Status:** ⬜ Planned — R-series executable subset already reconciled during v2.11A; EPUB.js lifecycle revision guard added during v2.11B
 
 - Revalidate Node/npm/lockfile, build context, deployment stamping, no-bundler decision, preview, and publisher ownership.
 - Treat R0–R10 executable milestone checkers as retired historical policy snapshots; current verification remains owned by modern checks/tests/Baseline Health/E2E.
 - Audit remaining M-series, `check-v2-6.mjs`, and other release-era standalone tools independently; do not infer redundancy from the R-series decision.
 - Retain current deterministic `*.test.mjs` files unless Audit G produces evidence beyond historical naming; the active test runner and Baseline Health currently own them.
+- Treat `tools/check-epub-lifecycle-vendor.mjs` as an accepted Reader safety guard unless dependency review proves the compatibility patch obsolete.
 - Measure check/test/build duration and remove duplicate cost only when confidence is preserved.
 - Keep dependency maintenance review-driven and non-destructive.
 

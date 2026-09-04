@@ -4,13 +4,17 @@
 > **Current roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)  
 > **Current audit records:** [`../audits/README.md`](../audits/README.md)
 
-This directory preserves completed or superseded Shadow Garden roadmaps and milestone records. Archived files are historical/audit records only; they do not define current work.
+This directory preserves completed or superseded Shadow Garden roadmaps, audits, and milestone records. Archived files are historical/audit records only; they do not define current work.
 
 ## Completed roadmaps
 
 - [`REFACTOR_ROADMAP.md`](./REFACTOR_ROADMAP.md) — completed R0–R10 full-codebase refactor ending at the v2.0.0 architecture baseline.
 - [`SECURITY_ROADMAP.md`](./SECURITY_ROADMAP.md) — completed Security & Anti-Abuse Milestones 1–9.
 - [`V2_6_TO_V2_10_ROADMAP.md`](./V2_6_TO_V2_10_ROADMAP.md) — completed Reliability, Reader Experience & Operations roadmap spanning v2.6 through v2.10, including the intentionally deferred/optional v2.7 performance milestone.
+
+## Completed focused audits
+
+- [`V2_8_FOOTNOTE_AUDIT.md`](./V2_8_FOOTNOTE_AUDIT.md) — completed Reader footnote/endnote compatibility audit that led to Reader-owned note popups while preserving ordinary EPUB navigation.
 
 ## Security milestone records
 
@@ -34,7 +38,7 @@ Actual release notes remain under [`../releases/`](../releases/) and architectur
 
 ## Compatibility pointers
 
-Older links may still point at `docs/roadmaps/REFACTOR_ROADMAP.md` or `docs/roadmaps/SECURITY_ROADMAP.md`. Those paths are compatibility pointers only; the canonical completed plans live here in `docs/archive/`.
+Older links may still point at `docs/roadmaps/REFACTOR_ROADMAP.md`, `docs/roadmaps/SECURITY_ROADMAP.md`, or `docs/roadmaps/V2_8_FOOTNOTE_AUDIT.md`. Those paths are compatibility pointers only; the canonical completed records live here in `docs/archive/`.
 
 The former v2.6–v2.10 current roadmap has been archived here and its active path, [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md), now belongs exclusively to the post-v2.10 audit/refactor/optimization roadmap.
 

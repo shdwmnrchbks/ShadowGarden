@@ -2,14 +2,16 @@
 
 This directory records both the **R0 frozen v1.15.14 starting baseline** and the accepted **R10 v2.0.0 architecture baseline**, plus post-baseline contracts that remain authoritative for current v2 work.
 
-Shadow Garden's active product line and latest formal release are **v2.10.0 Maintenance & Supply Chain**. The completed maintenance release builds on the v2.6 real-browser reliability baseline, v2.8 Reader Experience, and v2.9 recovery/productivity contracts without replacing the v2.0 ownership model.
+Shadow Garden's active product line and latest formal release are **v2.10.0 Maintenance & Supply Chain**. The website feature set is intentionally considered sufficient for now. Current engineering work is an **audit-first refactor/optimization phase**: existing architecture is treated as valid until evidence demonstrates duplicated ownership, unnecessary complexity, correctness risk, maintainability cost, or a measurable runtime/build/test bottleneck.
+
+The current audit roadmap is [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md), and evidence/decisions are recorded under [`../audits/`](../audits/). The completed v2.6–v2.10 product roadmap is archived at [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md).
 
 ## Baselines
 
 - [`V1_BASELINE.md`](./V1_BASELINE.md) — original runtime surfaces, dependency direction, Reader invariants, identity formats, and duplicate ownership at the start of R0.
 - [`v1-entrypoints.json`](./v1-entrypoints.json) — historical R0 entrypoint contract updated only for intentional replacements during the refactor.
 - [`V2_BASELINE.md`](./V2_BASELINE.md) — final v2 domain/UI/Reader/Keeper/Functions/design/test/build/security ownership baseline.
-- [`v2-entrypoints.json`](./v2-entrypoints.json) — frozen v2 direct/runtime entrypoint manifest.
+- [`v2-entrypoints.json`](./v2-entrypoints.json) — frozen v2 direct/runtime entrypoint manifest used as an audit comparison point; intentional post-v2 additions must be documented rather than erased to satisfy history.
 - [`PERSISTENCE_CONTRACTS.md`](./PERSISTENCE_CONTRACTS.md) — browser-local localStorage/IndexedDB contracts, cookies, and migration rules retained across the cutover and current releases.
 - [`HTTP_STORAGE_CONTRACTS.md`](./HTTP_STORAGE_CONTRACTS.md) — Pages Functions authorization and private B2 namespaces retained across the cutover.
 
@@ -87,7 +89,7 @@ R10 established v2.0.0 and removed the final known obsolete compatibility/patch 
 - authored `src/` no longer carries local `?v=` release-history queries; build-time stamping is the sole cache-busting owner;
 - `v2-entrypoints.json` and `V2_BASELINE.md` freeze the major-version architecture.
 
-The v2 publisher remains reusable for later v2 releases instead of being a v2.0-only workflow.
+The completed R0–R10 implementation plan is archived at [`../archive/REFACTOR_ROADMAP.md`](../archive/REFACTOR_ROADMAP.md). The current audit must not reopen a full-codebase refactor unless evidence shows that the accepted ownership model has materially degraded.
 
 ## v2.5 Motion & Continuity
 
@@ -121,12 +123,24 @@ v2.9 is complete. Its release record is [`../releases/v2.9.0.md`](../releases/v2
 
 ## v2.10 Maintenance & Supply Chain
 
-v2.10 is complete and is the active deployment/product line plus latest formal release. Its release record is [`../releases/v2.10.0.md`](../releases/v2.10.0.md), with completed scope recorded in [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md).
+v2.10 is complete and remains the active deployment/product line plus latest formal release. Its release record is [`../releases/v2.10.0.md`](../releases/v2.10.0.md), with completed planning archived in [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md).
 
 - [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) plus `tools/check-release-metadata.mjs` pin formal-release and deployment-version ownership and release-cut convergence.
 - `tools/check-dependency-maintenance.mjs`, `tools/dependency-audit-report.mjs`, and `tools/check-runtime-lockfiles.mjs` keep dependency changes reviewable, audit findings policy-driven, and runtime/lockfile drift explicit.
 - `tools/check-documentation-freshness.mjs` guards the canonical current-roadmap/docs/version markers against version drift.
 - [`MAINTENANCE_BASELINE.md`](./MAINTENANCE_BASELINE.md) defines the monthly deterministic/security/recovery/realistic-scale and complete real-browser/accessibility baseline without granting automation mutation authority.
+
+## Post-v2.10 audit posture
+
+The current roadmap is not another pre-approved refactor milestone. It is a decision process.
+
+- [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) defines the subsystem audit sequence and implementation gates.
+- [`../audits/README.md`](../audits/README.md) defines the evidence standard.
+- [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md) is the active findings and measurement register.
+- “No change needed”, “skipped”, and “deferred” are valid outcomes.
+- Any accepted refactor must reduce demonstrated ownership/maintainability/correctness risk.
+- Any accepted optimization must have a reproducible realistic-scale bottleneck and before/after evidence.
+- Architecture contracts in this directory remain authoritative; audit notes do not become alternate design owners.
 
 ## Permanent guardrails
 
@@ -148,6 +162,6 @@ v2.10 is complete and is the active deployment/product line plus latest formal r
 - `tools/check-release-metadata.mjs` — formal package/lockfile/changelog/release-note/publisher/build-context synchronization.
 - `tools/check-baseline-maintenance.mjs` — scheduled maintenance and realistic-scale baseline contract.
 
-Future work starts from [`V2_BASELINE.md`](./V2_BASELINE.md), the current post-baseline contracts above, and [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md). A historical implementation may only be restored when it is an intentional compatibility requirement with explicit ownership and regression coverage; obsolete duplicate owners must not return.
+Future implementation starts from [`V2_BASELINE.md`](./V2_BASELINE.md), the current post-baseline contracts above, and evidence recorded by the post-v2.10 audit. A historical implementation may only be restored when it is an intentional compatibility requirement with explicit ownership and regression coverage; obsolete duplicate owners must not return.
 
 - [`CATALOG_TAXONOMY.md`](./CATALOG_TAXONOMY.md) — canonical Novel Updates genres and catalog taxonomy ownership.

@@ -4,9 +4,9 @@
 
 [`CURRENT_ROADMAP.md`](./CURRENT_ROADMAP.md) is the **single active Shadow Garden roadmap**.
 
-The website feature set is intentionally considered sufficient for now. The active roadmap is a **post-v2.10 audit-first refactor and optimization cycle**: inspect the mature v2 codebase, measure realistic bottlenecks, and only refactor or optimize where evidence demonstrates a real need. A healthy subsystem is explicitly allowed to finish the audit with **no change needed**.
+The active engineering cycle is **v2.11.0 — Engineering Audit, Refactor & Optimization**. The website feature set is intentionally considered sufficient for now, so v2.11 audits the mature codebase first and only creates refactor/optimization slices where evidence demonstrates a concrete need. A healthy subsystem is explicitly allowed to finish with **no change needed**.
 
-The formal product baseline remains **v2.10.0 — Maintenance & Supply Chain** until a later implementation scope justifies another release cut.
+The active deployment line is v2.11.0. The latest formal release remains **v2.10.0 — Maintenance & Supply Chain** until accepted v2.11 implementation is complete and release metadata deliberately converges.
 
 ## Archived planning
 
@@ -21,4 +21,4 @@ Historical roadmap filenames may remain here only as clearly labeled compatibili
 
 ## Audit records
 
-Evidence and decisions for the current audit live under [`../audits/`](../audits/). The roadmap defines what must be inspected; audit records capture measurements, findings, skip/defer decisions, and any justified implementation candidates.
+Evidence and decisions for v2.11 live under [`../audits/`](../audits/). The roadmap defines what must be inspected; audit records capture measurements, findings, skip/defer decisions, and justified implementation candidates.

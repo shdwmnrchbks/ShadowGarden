@@ -1,83 +1,76 @@
 # Shadow Garden Versioning Contract
 
 **Status:** Active contract  
-**Active deployment/product version:** v2.10.0 — Maintenance & Supply Chain  
+**Active deployment/product version:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 **Formal release source version:** v2.10.0  
-**Current engineering phase:** post-v2.10 audit; no new release number is implied by the audit itself
+**Current engineering phase:** v2.11 audit-first cleanup; refactor and optimization remain evidence-gated
 
-Shadow Garden intentionally separates the version shown by a live development deployment from the version eligible for a formal GitHub release, while requiring those version owners to converge at a formal release cut.
+Shadow Garden intentionally separates the version shown by an active development deployment from the version eligible for a formal GitHub release, while requiring those version owners to converge at a formal release cut.
 
 ## Two version owners
 
 `package.json` contains two distinct fields:
 
-- `version` — the latest **formal release** version. This remains synchronized with `package-lock.json` and is the version consumed by `.github/workflows/release-v2.yml`.
-- `deploymentVersion` — the **active deployed product line**. This is the version exposed by generated deployment metadata and shown by the public Library and Garden Keeper.
+- `version` — the latest **formal release** version. It remains synchronized with `package-lock.json`, the newest formal changelog section, and `docs/releases/v${VERSION}.md`. `.github/workflows/release-v2.yml` uses this value for GitHub release publication.
+- `deploymentVersion` — the **active deployed product line**. Build context, generated asset cache stamping, `/data/version.json`, the public Library footer, and Garden Keeper version presentation use this value.
 
-During milestone development the deployment version may intentionally advance ahead of the formal release version. Immediately before the v2.10.0 release cut, development used:
-
-```json
-{
-  "version": "2.9.0",
-  "deploymentVersion": "2.10.0"
-}
-```
-
-At a formal release cut the values converge. v2.10.0 uses:
+The v2.11 audit cycle deliberately uses:
 
 ```json
 {
   "version": "2.10.0",
-  "deploymentVersion": "2.10.0"
+  "deploymentVersion": "2.11.0"
 }
 ```
 
-A later development milestone may intentionally diverge them again only through an explicit product-version change; dependency maintenance and audit documentation must not alter version ownership implicitly.
+This does **not** make v2.11.0 a formal release. It means current development/deployment work belongs to the v2.11 engineering cycle while the last verified GitHub release remains v2.10.0.
 
-## Audit-phase rule
+## v2.11 audit rule
 
-The post-v2.10 architecture/refactor/optimization audit is a planning and evidence cycle, not a release by itself. `version` and `deploymentVersion` remain at `2.10.0` while the audit is only inspecting, measuring, documenting, deleting clearly dead history/code, or making non-runtime documentation corrections.
+v2.11 is an audit-first engineering-health cycle, not a quota for refactoring. Every implementation must come from recorded evidence such as duplicate ownership, dead/compatibility code, correctness risk, maintainability cost, a verification gap, or a reproducible realistic-scale bottleneck.
 
-If the audit produces justified implementation work that materially changes the shipped application, choose the next version only after the implementation scope is known. If all proposed refactors/optimizations are skipped or deferred, there is no requirement to invent a new release number merely to close the audit.
+Valid outcomes include:
+
+- no change needed / skipped;
+- cleanup or deletion;
+- targeted refactor;
+- measured optimization;
+- deferred because benefit does not justify risk or cost.
+
+The first v2.11 shipped cleanup restores the existing R10 build contract: authored Reader imports must not carry hand-maintained local `?v=` cache history. Build-time deployment stamping remains the sole local asset cache-version owner.
 
 ## Deployment metadata
 
 `tools/lib/build-context.mjs` owns deployment identity. It resolves:
 
 1. `releaseVersion` from `package.json#version`;
-2. `version` from `package.json#deploymentVersion`, falling back to `version` when no deployment override exists;
-3. commit, branch, and deterministic build timestamp from the established build-context sources.
+2. deployed `version` from `package.json#deploymentVersion`, falling back to `version` only when no deployment override exists;
+3. commit, branch, and deterministic build timestamp from established build-context sources.
 
-`tools/build.mjs` uses the resolved deployment `version` for generated asset cache-busting. `tools/write-source.mjs` writes the same build context to `dist/data/version.json`.
+`tools/build.mjs` uses the deployed version for generated local asset cache-busting. `tools/write-source.mjs` writes the same build context to `dist/data/version.json`.
 
-Public version consumers therefore read the active deployment version from `/data/version.json`:
-
-- `src/assets/js/library-footer-version.js`
-- `src/assets/js/admin/version.js`
-
-No public surface should hard-code the current product version.
+Public version consumers read `/data/version.json`; authored public/Reader/Keeper source must not hard-code the active product version.
 
 ## Formal release contract
 
-`.github/workflows/release-v2.yml` continues to use `package.json#version` as the formal release source of truth. A formal release still requires:
+A formal v2 release still requires deliberate convergence of the release-owned metadata plus the established network-backed gates:
 
-- matching `package-lock.json` root/workspace version;
-- matching `docs/releases/v${VERSION}.md` release notes;
-- successful Verify for the exact `main` commit;
-- successful Real Browser E2E for the same commit;
-- matching Cloudflare production deployment metadata;
+- `package.json#version` and root/workspace `package-lock.json` version metadata;
+- matching newest changelog release section;
+- matching `docs/releases/v${VERSION}.md`;
+- successful Verify for the exact final `main` commit;
+- successful complete Real Browser E2E for the same commit;
+- matching Cloudflare production version and commit;
 - successful production smoke checks.
 
-Normal `npm run check` includes `check:release`, which deterministically verifies the formal package/lockfile version, newest changelog release, matching release-note heading, v2 publisher ownership, and build-context version ownership before a change reaches those network-backed release gates. Build-context unit coverage derives its expectations from `package.json` rather than hard-coding an old milestone version.
+`deploymentVersion` alone never creates or retargets a GitHub release. The publisher remains idempotent when the formal release tag already exists.
 
-The active `deploymentVersion` does **not** by itself make a milestone release-eligible.
+## v2.10 release baseline
 
-## v2.9.0 release state
+v2.10.0 remains the latest formal release. Its release tag stays pinned to the verified v2.10 release commit even when post-release maintenance and v2.11 development advance `main`.
 
-The v2.9.0 release aligned `package.json#version`, `package-lock.json`, and `deploymentVersion` at `2.9.0`, included `docs/releases/v2.9.0.md` plus the matching changelog entry, and recorded the completed Keeper Productivity & Recovery acceptance criteria. The permanent Verify and Real Browser E2E gates remained authoritative, and the publisher required matching production deployment metadata plus public production smoke before creating GitHub release `v2.9.0`.
+## v2.11 release decision
 
-## v2.10.0 release state
+Do not cut v2.11.0 merely because the audit exists. A formal v2.11.0 release is appropriate only after the accepted audit/refactor/optimization scope is complete, exact-main gates are green, documentation describes the final state, and formal release metadata deliberately converges from 2.10.0 to 2.11.0.
 
-The v2.10.0 release cut converged `package.json#version`, `package.json#deploymentVersion`, and the root/workspace package-lock version metadata at `2.10.0`, with `CHANGELOG.md` and `docs/releases/v2.10.0.md` as the matching formal release record. The cut did not rewrite dependency resolutions, integrity data, or transitive dependency metadata merely to synchronize a version label.
-
-The release was publication-eligible only after the exact final `main` commit passed Verify and the complete Real Browser E2E matrix, Cloudflare production reported the same v2.10.0 version and commit, and the established public production smoke checks succeeded. Post-release dependency maintenance may advance `main` while the formal `v2.10.0` release tag remains pinned to its verified release commit; the publisher must remain idempotent when that release already exists.
+If the audit ultimately finds no further refactor or optimization is needed, that is a successful engineering outcome; only already-shipped accepted v2.11 changes need to be represented in the eventual release decision.

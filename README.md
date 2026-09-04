@@ -1,12 +1,12 @@
-# Shadow Garden v2.10.0
+# Shadow Garden v2.11.0 Development
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The active product line and latest formal release are **v2.10.0 — Maintenance & Supply Chain**. The website feature set is intentionally considered sufficient for now; current work has shifted from feature expansion to an **audit-first maintenance phase**. Shadow Garden will inspect architecture, ownership, dead code, runtime behavior, realistic-scale performance, tests/tooling, security/recovery boundaries, CSS/accessibility, and documentation before deciding whether any refactor or optimization is actually needed. Stable subsystems should be left alone.
+The accepted architecture baseline remains v2.0.0. The active deployment/product line is **v2.11.0 — Engineering Audit, Refactor & Optimization**; the latest formal release remains **v2.10.0 — Maintenance & Supply Chain**. The website feature set is intentionally considered sufficient for now, so current work is an **audit-first engineering-health phase**. Shadow Garden will inspect architecture, ownership, dead/compatibility code, runtime behavior, realistic-scale performance, tests/tooling, security/recovery boundaries, CSS/accessibility, and documentation before deciding whether any further refactor or optimization is actually needed. Stable subsystems should be left alone.
 
-The active audit/refactor/optimization roadmap is [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md), with evidence and decisions recorded under [`docs/audits/`](./docs/audits/). Completed roadmap history is archived under [`docs/archive/`](./docs/archive/).
+The active v2.11 roadmap is [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md), with evidence and decisions recorded under [`docs/audits/`](./docs/audits/). Completed roadmap history is archived under [`docs/archive/`](./docs/archive/).
 
 ## Current feature set
 
@@ -54,8 +54,10 @@ The active audit/refactor/optimization roadmap is [`docs/roadmaps/CURRENT_ROADMA
 - One admin client and explicit Authentication/session, Library/Series, Upload, Maintenance, Catalog History, Trash, Abuse Watch, and version owners.
 - Turnstile + Keeper-token protected `/admin.html` and signed server-side sessions for `/admin-api/*`; the browser client opens only after protected status verifies the session.
 - Manage Library, New Books, Maintenance, Series Editor, translation metadata, Catalog History, Trash, Garden Health, Abuse Watch, and Recovery Readiness workflows.
-- Multi-EPUB upload/preflight, duplicate/similar-volume warnings, safe batch metadata editing with preview, bulk artwork workflows, deterministic one-click fixes, Audio EPUB links, opaque random `cv_...` covers, restore/purge, and deployed version/commit information.
+- Multi-EPUB upload/preflight, duplicate/similar-volume warnings, normal single-series metadata/banner editing, deterministic Maintenance fixes, Audio EPUB links, opaque random `cv_...` covers, restore/purge, and deployed version/commit information.
 - Catalog snapshots/checksums, object-complete recovery anchors, last-recoverable-state protection, and deterministic recovery drills make recovery readiness explicit without performing destructive production recovery in normal CI.
+- Catalog History retains the newest 15 snapshots; older snapshots are pruned by the canonical snapshot flow.
+- Batch Edit and Batch Artwork are intentionally retired and are protected by source/backend tombstones.
 - Busy-state guards prevent duplicate Series, translation, upload, History, Trash, and Abuse mutations while requests are pending.
 - Native dialogs are keyboard-contained and restore focus after dismissal, including after manager rerenders replace the original opener node.
 
@@ -66,7 +68,7 @@ The active audit/refactor/optimization roadmap is [`docs/roadmaps/CURRENT_ROADMA
 - One server catalog owner for Main/Adult persistence, upload mutations, Library/Series edits, banners, backups, Trash, recovery, purge, and Maintenance commits.
 - Signed EPUB authorization and HTTP Range delivery remain together in the Media service, while public cooldown enforcement deliberately stays outside `/media/*`.
 - Signed EPUB tickets normalize only under `/media/shadow-garden/books/`.
-- Existing `/media/*`, `/book-access`, `/human-access`, `/admin-access`, and `/admin-api/*` URLs and security contracts remain unchanged.
+- Existing `/media/*`, `/book-access`, `/human-access`, `/admin-access`, and retained `/admin-api/*` URLs and security contracts remain unchanged.
 
 ### Accessibility and motion
 
@@ -75,6 +77,14 @@ The active audit/refactor/optimization roadmap is [`docs/roadmaps/CURRENT_ROADMA
 - Browser zoom is not disabled by the Reader viewport.
 - Publication-owned EPUB accessibility is tested/documented separately from Shadow Garden-owned application chrome. See [`docs/architecture/ACCESSIBILITY_TESTING.md`](./docs/architecture/ACCESSIBILITY_TESTING.md).
 - v2.5 motion remains progressive enhancement and observer-only: application state, requests, reading state, persistence, and navigation retain their canonical owners.
+
+## v2.11 engineering audit
+
+v2.11 is not a feature roadmap or a pre-approved rewrite. Every material finding is classified as **No change needed**, **Cleanup**, **Targeted refactor**, **Measured optimization**, or **Deferred**.
+
+The first accepted v2.11 cleanup restores one existing build contract: authored Reader imports no longer carry hand-maintained local `?v=` cache-history strings. Build-time deployment stamping is the single cache-version owner, and a permanent repository check now guards that boundary.
+
+See [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) and [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md).
 
 ## Test architecture
 
@@ -87,7 +97,7 @@ Shadow Garden combines deterministic, real-browser, and recurring maintenance-he
 - `tests/dom/` — renderer ownership against narrow DOM doubles.
 - `tests/browser/` — deterministic browser-facing source/interaction contracts and fixtures.
 
-These use Node 22's built-in test runner and remain fast/offline. `npm test` runs the complete deterministic behavioral suite. `npm run check` additionally enforces dependency/runtime, documentation, release-metadata, baseline-maintenance, and realistic-scale contracts.
+These use Node 22's built-in test runner and remain fast/offline. `npm test` runs the complete deterministic behavioral suite. `npm run check` additionally enforces dependency/runtime, documentation, release-metadata, baseline-maintenance, authored cache-version ownership, and realistic-scale contracts.
 
 ### Real Browser E2E
 
@@ -107,12 +117,12 @@ Real-browser coverage includes:
 - canonical first-paint shells;
 - Series → Reader → Series/Library and **Read → Continue → Finished → Read Again** lifecycle;
 - Reader Pages/Continuous startup, persistence, controls, TOC, search, keyboard, wheel/swipe policy, flow switching, image focus, resize, resume/ticket renewal, fullscreen, and EPUB resilience;
-- Garden Keeper authentication, dialogs, Series/translation editing, batch/preflight behavior, upload, Maintenance, History, Trash, recovery readiness, and Abuse Watch;
+- Garden Keeper authentication, dialogs, Series/translation editing, upload/preflight behavior, Maintenance, History, Trash, recovery readiness, and Abuse Watch;
 - accessibility scans, keyboard/focus restoration, zoom/reflow, contrast/forced-colors/reduced-motion, and mobile targets.
 
 WebKit limitations are represented honestly: where Playwright cannot generate a trusted cross-frame gesture, the suite combines live canonical navigation acceptance with source-level ownership contracts rather than treating synthetic events as trusted browser input.
 
-Failure runs retain Playwright traces, screenshots, video, HTML reports, and browser diagnostics. v2.10 also schedules the complete real-browser suite monthly and adds a separate monthly deterministic Baseline Health workflow covering security, recovery, production build, and a 300-series Library sanity tripwire.
+Failure runs retain Playwright traces, screenshots, video, HTML reports, and browser diagnostics. v2.10 added the monthly complete real-browser rerun and the separate deterministic Baseline Health workflow covering security, recovery, production build, and the 300-series Library sanity tripwire; those remain active in v2.11.
 
 See [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITECTURE.md) and [`docs/architecture/MAINTENANCE_BASELINE.md`](./docs/architecture/MAINTENANCE_BASELINE.md).
 
@@ -120,7 +130,7 @@ See [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITEC
 
 Security Milestones **1–9 are complete** and remain permanent contracts: private B2 origin storage, signed EPUB tickets, opaque `bk_...` identifiers, Garden Pass/Turnstile, acquisition throttling, crawler screening, Reader anti-indexing, signed Garden Keeper sessions, server-side cooldowns, HMAC-derived abuse controls, private Abuse Watch telemetry, and opaque cover keys.
 
-Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.10 introduces no server-side Reader account/history and scheduled maintenance checks receive no authority to mutate production security, storage, catalog, or release state.
+Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.11 introduces no server-side Reader account/history and grants no scheduled maintenance process authority to mutate production security, storage, catalog, or release state.
 
 The completed security plan is archived at [`docs/archive/SECURITY_ROADMAP.md`](./docs/archive/SECURITY_ROADMAP.md).
 
@@ -128,7 +138,7 @@ The completed security plan is archived at [`docs/archive/SECURITY_ROADMAP.md`](
 
 The R0–R10 full-codebase refactor is complete. `main` remains deployable, Security Milestones 1–9 and browser-local persistence contracts remain protected by CI, and the v2 source tree has explicit owners instead of accumulated patch layers.
 
-**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.10.0 Maintenance & Supply Chain is the active product line and latest formal release. The current audit is testing whether any part of that architecture now needs simplification or optimization; it does not presume another refactor is required.**
+**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.11.0 is the active audit/refactor/optimization development line and v2.10.0 remains the latest formal release. v2.11 tests whether any part of the accepted architecture now needs simplification or optimization; it does not presume another broad refactor is required.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -141,13 +151,11 @@ The R0–R10 full-codebase refactor is complete. `main` remains deployable, Secu
 - R9 build/deployment ownership: [`docs/architecture/BUILD_DEPLOYMENT.md`](./docs/architecture/BUILD_DEPLOYMENT.md)
 - R10/v2 baseline: [`docs/architecture/V2_BASELINE.md`](./docs/architecture/V2_BASELINE.md)
 - Completed refactor roadmap: [`docs/archive/REFACTOR_ROADMAP.md`](./docs/archive/REFACTOR_ROADMAP.md)
-- Current audit roadmap: [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md)
+- Current v2.11 roadmap: [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md)
 - Current audit evidence: [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md)
 - v2.5 motion contract: [`docs/architecture/MOTION_SYSTEM.md`](./docs/architecture/MOTION_SYSTEM.md)
 - v2.6 accessibility contract: [`docs/architecture/ACCESSIBILITY_TESTING.md`](./docs/architecture/ACCESSIBILITY_TESTING.md)
 - v2.10 maintenance baseline: [`docs/architecture/MAINTENANCE_BASELINE.md`](./docs/architecture/MAINTENANCE_BASELINE.md)
-- v2.8.0 release notes: [`docs/releases/v2.8.0.md`](./docs/releases/v2.8.0.md)
-- v2.9.0 release notes: [`docs/releases/v2.9.0.md`](./docs/releases/v2.9.0.md)
 - v2.10.0 release notes: [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md)
 
 ## Current architecture
@@ -335,7 +343,7 @@ npm run test:e2e
 npm run preview
 ```
 
-Pull requests and `main` run both `.github/workflows/verify.yml` and `.github/workflows/e2e.yml`. Verify executes the complete repository/security/deterministic regression suite and production build; Real Browser E2E runs the five-project Playwright matrix against production output. v2.10 also schedules a monthly deterministic Baseline Health run and a monthly rerun of the complete real-browser matrix.
+Pull requests and `main` run both `.github/workflows/verify.yml` and `.github/workflows/e2e.yml`. Verify executes the complete repository/security/deterministic regression suite and production build; Real Browser E2E runs the five-project Playwright matrix against production output. The monthly deterministic Baseline Health run and complete monthly real-browser rerun remain part of the v2.11 maintenance baseline.
 
 For v2 releases, `.github/workflows/release-v2.yml` publishes only after the exact `main` commit has successful Verify **and** Real Browser E2E results, Cloudflare production reports the matching version + commit, and the Main Library, Adult Library, Series, Reader, and robots smoke checks pass.
 
@@ -348,4 +356,4 @@ npm run b2:upload -- "path/to/book.epub"
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the active post-v2.10 audit/refactor/optimization roadmap, [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md) for findings and measurements, [`docs/archive/README.md`](./docs/archive/README.md) for completed planning history, and [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md) for the latest formal release record.
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for formal release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the active v2.11 audit/refactor/optimization roadmap, [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md) for findings and measurements, [`docs/archive/README.md`](./docs/archive/README.md) for completed planning history, and [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md) for the latest formal release record.

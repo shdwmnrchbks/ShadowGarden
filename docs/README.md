@@ -1,6 +1,6 @@
 # Shadow Garden Documentation
 
-This is the single documentation index for Shadow Garden. Architecture contracts, current project planning, audit evidence, archived milestone history, release records, security history, build conventions, test/accessibility contracts, and design guidance live under `docs/` rather than accumulating at the repository root.
+This is the single documentation index for Shadow Garden. Architecture contracts, current project planning, audit evidence, active operational policies, archived milestone history, release records, security history, build conventions, test/accessibility contracts, and design guidance live under `docs/` rather than accumulating at the repository root.
 
 ## Current project state
 
@@ -46,9 +46,17 @@ The completed v2.6–v2.10 product roadmap, earlier R0–R10 refactor roadmap, S
 
 Audit documents record evidence; architecture contracts remain authoritative for accepted ownership. If an audit justifies a change, the relevant architecture contract must be updated with the implementation rather than leaving the audit as a shadow source of truth.
 
+## Active operational policies
+
+- [`operations/README.md`](./operations/README.md) — operations index.
+- [`operations/DEPENDENCY_MAINTENANCE.md`](./operations/DEPENDENCY_MAINTENANCE.md) — review-only dependency maintenance, runtime/lockfile ownership, and scheduled audit policy.
+- [`operations/CATALOG_RECOVERY.md`](./operations/CATALOG_RECOVERY.md) — catalog snapshot retention, integrity, recovery readiness, and destructive-operation safety.
+
+These remain active after their originating releases. The audit may simplify tooling only if the same operational guarantees remain explicit and verified.
+
 ## Releases
 
-Release notes remain in `docs/releases/`; this list records completed formal releases.
+[`releases/README.md`](./releases/README.md) defines release-record ownership and identifies completed v2.5 planning files that remain only for historical-link compatibility. Formal release notes remain in `docs/releases/`; this list records completed formal releases.
 
 - [`releases/v2.0.0.md`](./releases/v2.0.0.md) — v2 architecture baseline release.
 - [`releases/v2.4.0.md`](./releases/v2.4.0.md) — Interaction & UX Polish release.
@@ -64,6 +72,13 @@ Release notes remain in `docs/releases/`; this list records completed formal rel
 - [`releases/v2.8.0.md`](./releases/v2.8.0.md) — Reader Experience release.
 - [`releases/v2.9.0.md`](./releases/v2.9.0.md) — Keeper Productivity & Recovery release.
 - [`releases/v2.10.0.md`](./releases/v2.10.0.md) — Maintenance & Supply Chain release.
+
+## Security history
+
+- [`security/README.md`](./security/README.md) — historical compatibility index for completed security milestone records.
+- [`archive/SECURITY_ROADMAP.md`](./archive/SECURITY_ROADMAP.md) — canonical completed Security & Anti-Abuse roadmap.
+
+Security milestone records remain useful historical evidence, but the roadmap itself is complete. Current security work is maintenance/audit of accepted invariants, not unfinished milestone implementation.
 
 ## Verification layers
 
@@ -94,4 +109,4 @@ The audit may recommend simplifying duplicate checks or improving measurements, 
 
 ## Repository-root policy
 
-The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs under `docs/roadmaps/`; audit evidence belongs under `docs/audits/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs under `docs/roadmaps/`; audit evidence belongs under `docs/audits/`; active operational policy belongs under `docs/operations/`; deterministic regression fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.

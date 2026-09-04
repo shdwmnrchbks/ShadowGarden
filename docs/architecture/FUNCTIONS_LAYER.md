@@ -5,6 +5,8 @@
 
 R6 turns Cloudflare Pages Function files into **Thin route adapters** over explicit backend services. Public URLs, response contracts, security policy, private Backblaze B2 namespaces, and the accepted Milestones 1–9 security baseline are preserved.
 
+> **Current v2.11 note:** R6's forwarding-only `_lib/b2.js` and `_lib/garden-maintenance.js` compatibility facades are retired after current repository consumer tracing found no remaining dependency. The underlying service ownership described here is unchanged. The historical `check-r6.mjs` executable was also retired with the R-series milestone policy snapshots; current repository/security/service/browser checks own the live contracts.
+
 ## Dependency direction
 
 ```text
@@ -38,7 +40,7 @@ The following endpoints remain externally unchanged while becoming adapters:
 - `/admin-api/library`, `/catalog`, `/maintenance`, `/series-banner`, `/backup` → `services/catalog.js`
 - `/admin-api/abuse` → `services/abuse.js`
 
-`tools/check-r6.mjs` permanently prevents these route files from regaining B2, authentication, ticket, validation, or cache implementations.
+At the R6 milestone, `tools/check-r6.mjs` guarded these route/service boundaries. v2.11 retired that release-era executable after current checks superseded its historical chaining assumptions; the live security and route-thinness contracts remain covered by current repository, security, service, and browser verification.
 
 ## Authentication service
 
@@ -99,7 +101,7 @@ It owns:
 
 The bucket remains private. Direct B2 URLs and credentials are not exposed as public delivery contracts.
 
-`functions/_lib/b2.js` now exists only as a compatibility facade for older internal imports and tests. It contains no second B2/auth implementation.
+R6 temporarily retained `functions/_lib/b2.js` as a forwarding compatibility alias for older internal imports/tests. v2.11 confirmed no current repository consumer remained and retired the facade; current code imports the actual storage/auth/http service owner directly.
 
 ## Catalog service
 
@@ -117,7 +119,7 @@ It owns:
 - cover optimization catalog commits;
 - Garden Maintenance payload orchestration.
 
-`functions/_lib/garden-maintenance.js` is now a compatibility facade over this service rather than a second catalog implementation.
+R6 temporarily retained `functions/_lib/garden-maintenance.js` as a forwarding compatibility alias over catalog/validation services. v2.11 confirmed no current repository consumer remained and retired the facade; Garden Maintenance ownership stays in the current service layer.
 
 ## Validation service
 
@@ -168,9 +170,11 @@ R6 must preserve all accepted security contracts:
 
 ## R6 acceptance
 
+The following records the historical R6 acceptance state; v2.11 preserves the behavior while allowing superseded compatibility/tooling artifacts to retire.
+
 - Every Pages Function route is a thin adapter to `functions/services/`.
 - Authentication, Media, Catalog, Storage, Validation, Abuse, HTTP, and small Admin service owners are explicit.
-- Duplicate B2 and catalog persistence implementations are removed or reduced to compatibility facades.
-- Permanent M5–M9 and R0 checks assert the same behavior at the new owners rather than route-file implementation details.
-- `tools/check-r6.mjs` protects route thinness, service ownership, opaque upload validation, traversal rejection, signed-session ownership, and the Range/M8 boundary.
-- The complete repository check suite and production build must pass before R6 merges.
+- Duplicate B2 and catalog persistence implementations are removed; forwarding compatibility facades were later retired in v2.11 after consumer tracing.
+- At R6, permanent M5–M9 and R0 checks asserted the same behavior at the new owners rather than route-file implementation details; v2.11's current verification stack supersedes the retired R-series executables.
+- At R6, `tools/check-r6.mjs` protected route thinness, service ownership, opaque upload validation, traversal rejection, signed-session ownership, and the Range/M8 boundary; current repository/security/service/browser checks now own those live contracts.
+- The complete repository check suite and production build were required before R6 merged.

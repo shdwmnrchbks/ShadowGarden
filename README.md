@@ -1,10 +1,10 @@
-# Shadow Garden v2.8.0
+# Shadow Garden v2.10.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The active product line is **v2.8.0 — Reader Experience**, currently in progress on top of the completed v2.6 Reliability & Real-Browser Testing baseline and its v2.6.1–v2.6.7 Continuous Reader fixes. v2.8 Slice 1 has landed focused Reader typeface choices with publication-owned Default behavior and explicit Sans / Serif / Sans-Serif options; Slice 2 has landed clearer canonical progress presentation across Pages and Continuous, combining device Page Map position, volume percentage, and chapter context without adding a second progress owner or changing browser-local reading-data contracts. The remaining v2.8 scope is tracked in [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md); this heading identifies the active deployment/product version and does not imply the entire v2.8 milestone is complete.
+The accepted architecture baseline remains v2.0.0. The active product line and latest formal release are **v2.10.0 — Maintenance & Supply Chain**, building on the completed v2.6 Reliability & Real-Browser Testing baseline, v2.8 Reader Experience, and v2.9 Keeper Productivity & Recovery. v2.10 adds controlled dependency/runtime maintenance, documentation and release-metadata freshness guards, and recurring security/recovery/browser/accessibility/realistic-scale health checks without changing the established Reader, Keeper, storage, security, or browser-local reading-data ownership model. Completed scope and future backlog are tracked in [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md).
 
 ## Current feature set
 
@@ -26,6 +26,7 @@ The accepted architecture baseline remains v2.0.0. The active product line is **
 - Canonical device Page Map shared by both reading modes.
 - v2.8 typeface choices are intentionally focused: **Default** preserves the publication's typography, while Sans, Serif, and Sans-Serif map to the supported Reader font families with legacy preferences migrated forward.
 - v2.8 progress presentation keeps the canonical Page Map/progress owner: Pages can show device page, volume percentage, and chapter context together; Continuous mirrors the same canonical progress through its dedicated rail with compact visual text and richer accessible context.
+- Contents filtering, Current-location recovery, bounded whole-book CFI-backed text search, Reader-owned footnote/endnote popups, and hardened resume/error recovery remain covered by the permanent browser matrix.
 - Persistent progress, bookmarks, Finished state, themes, typography, flow, and layout preferences through the shared browser domain layer.
 - Visual Page Cache and fitting for standalone covers, maps, and illustration pages.
 - Pages-only navigation ownership for horizontal swipe turns and desktop wheel page turns; Pointer Events are preferred with Touch Events fallback.
@@ -50,8 +51,9 @@ The accepted architecture baseline remains v2.0.0. The active product line is **
 
 - One admin client and explicit Authentication/session, Library/Series, Upload, Maintenance, Catalog History, Trash, Abuse Watch, and version owners.
 - Turnstile + Keeper-token protected `/admin.html` and signed server-side sessions for `/admin-api/*`; the browser client opens only after protected status verifies the session.
-- Manage Library, New Books, Maintenance, Series Editor, translation metadata, Catalog History, Trash, Garden Health, and Abuse Watch workflows.
-- Multi-EPUB upload/preflight, duplicate policies, metadata/shelf/banner/status editing, Audio EPUB links, opaque random `cv_...` covers, restore/purge, and deployed version/commit information.
+- Manage Library, New Books, Maintenance, Series Editor, translation metadata, Catalog History, Trash, Garden Health, Abuse Watch, and Recovery Readiness workflows.
+- Multi-EPUB upload/preflight, duplicate/similar-volume warnings, safe batch metadata editing with preview, bulk artwork workflows, deterministic one-click fixes, Audio EPUB links, opaque random `cv_...` covers, restore/purge, and deployed version/commit information.
+- Catalog snapshots/checksums, object-complete recovery anchors, last-recoverable-state protection, and deterministic recovery drills make recovery readiness explicit without performing destructive production recovery in normal CI.
 - Busy-state guards prevent duplicate Series, translation, upload, History, Trash, and Abuse mutations while requests are pending.
 - Native dialogs are keyboard-contained and restore focus after dismissal, including after manager rerenders replace the original opener node.
 
@@ -74,7 +76,7 @@ The accepted architecture baseline remains v2.0.0. The active product line is **
 
 ## Test architecture
 
-Shadow Garden now has complementary deterministic and real-browser layers.
+Shadow Garden combines deterministic, real-browser, and recurring maintenance-health layers.
 
 ### Deterministic layers
 
@@ -83,7 +85,7 @@ Shadow Garden now has complementary deterministic and real-browser layers.
 - `tests/dom/` — renderer ownership against narrow DOM doubles.
 - `tests/browser/` — deterministic browser-facing source/interaction contracts and fixtures.
 
-These use Node 22's built-in test runner and remain fast/offline. `npm test` runs the complete deterministic behavioral suite.
+These use Node 22's built-in test runner and remain fast/offline. `npm test` runs the complete deterministic behavioral suite. `npm run check` additionally enforces dependency/runtime, documentation, release-metadata, baseline-maintenance, and realistic-scale contracts.
 
 ### Real Browser E2E
 
@@ -102,21 +104,21 @@ Real-browser coverage includes:
 - Main/Adult isolation, Library search/view/history/navigation, pinned state and suggestion rerolls;
 - canonical first-paint shells;
 - Series → Reader → Series/Library and **Read → Continue → Finished → Read Again** lifecycle;
-- Reader Pages/Continuous startup, persistence, controls, TOC, keyboard, wheel/swipe policy, flow switching, image focus, resize, resume/ticket renewal, fullscreen, and EPUB resilience;
-- Garden Keeper authentication, dialogs, Series/translation editing, upload, Maintenance, History, Trash, and Abuse Watch;
+- Reader Pages/Continuous startup, persistence, controls, TOC, search, keyboard, wheel/swipe policy, flow switching, image focus, resize, resume/ticket renewal, fullscreen, and EPUB resilience;
+- Garden Keeper authentication, dialogs, Series/translation editing, batch/preflight behavior, upload, Maintenance, History, Trash, recovery readiness, and Abuse Watch;
 - accessibility scans, keyboard/focus restoration, zoom/reflow, contrast/forced-colors/reduced-motion, and mobile targets.
 
 WebKit limitations are represented honestly: where Playwright cannot generate a trusted cross-frame gesture, the suite combines live canonical navigation acceptance with source-level ownership contracts rather than treating synthetic events as trusted browser input.
 
-Failure runs retain Playwright traces, screenshots, video, HTML reports, and browser diagnostics.
+Failure runs retain Playwright traces, screenshots, video, HTML reports, and browser diagnostics. v2.10 also schedules the complete real-browser suite monthly and adds a separate monthly deterministic Baseline Health workflow covering security, recovery, production build, and a 300-series Library sanity tripwire.
 
-See [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITECTURE.md).
+See [`docs/architecture/TEST_ARCHITECTURE.md`](./docs/architecture/TEST_ARCHITECTURE.md) and [`docs/architecture/MAINTENANCE_BASELINE.md`](./docs/architecture/MAINTENANCE_BASELINE.md).
 
 ## Security baseline
 
 Security Milestones **1–9 are complete** and remain permanent contracts: private B2 origin storage, signed EPUB tickets, opaque `bk_...` identifiers, Garden Pass/Turnstile, acquisition throttling, crawler screening, Reader anti-indexing, signed Garden Keeper sessions, server-side cooldowns, HMAC-derived abuse controls, private Abuse Watch telemetry, and opaque cover keys.
 
-Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.8 requires no reading-data migration and introduces no server-side Reader account/history.
+Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.10 introduces no server-side Reader account/history and scheduled maintenance checks receive no authority to mutate production security, storage, catalog, or release state.
 
 See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
@@ -124,7 +126,7 @@ See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
 
 The R0–R10 full-codebase refactor is complete. `main` remains deployable, Security Milestones 1–9 and browser-local persistence contracts remain protected by CI, and the v2 source tree has explicit owners instead of accumulated patch layers.
 
-**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.6.7 is the latest completed reliability/hotfix release record, and v2.8.0 Reader Experience is the active in-progress product version.**
+**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.10.0 Maintenance & Supply Chain is the active product line and latest formal release.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -138,15 +140,11 @@ The R0–R10 full-codebase refactor is complete. `main` remains deployable, Secu
 - R10/v2 baseline: [`docs/architecture/V2_BASELINE.md`](./docs/architecture/V2_BASELINE.md)
 - v2.5 motion contract: [`docs/architecture/MOTION_SYSTEM.md`](./docs/architecture/MOTION_SYSTEM.md)
 - v2.6 accessibility contract: [`docs/architecture/ACCESSIBILITY_TESTING.md`](./docs/architecture/ACCESSIBILITY_TESTING.md)
+- v2.10 maintenance baseline: [`docs/architecture/MAINTENANCE_BASELINE.md`](./docs/architecture/MAINTENANCE_BASELINE.md)
 - Current roadmap: [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md)
-- v2.6.0 release notes: [`docs/releases/v2.6.0.md`](./docs/releases/v2.6.0.md)
-- v2.6.1 hotfix notes: [`docs/releases/v2.6.1.md`](./docs/releases/v2.6.1.md)
-- v2.6.2 hotfix notes: [`docs/releases/v2.6.2.md`](./docs/releases/v2.6.2.md)
-- v2.6.3 hotfix notes: [`docs/releases/v2.6.3.md`](./docs/releases/v2.6.3.md)
-- v2.6.4 hotfix notes: [`docs/releases/v2.6.4.md`](./docs/releases/v2.6.4.md)
-- v2.6.5 hotfix notes: [`docs/releases/v2.6.5.md`](./docs/releases/v2.6.5.md)
-- v2.6.6 release notes: [`docs/releases/v2.6.6.md`](./docs/releases/v2.6.6.md)
-- v2.6.7 release notes: [`docs/releases/v2.6.7.md`](./docs/releases/v2.6.7.md)
+- v2.8.0 release notes: [`docs/releases/v2.8.0.md`](./docs/releases/v2.8.0.md)
+- v2.9.0 release notes: [`docs/releases/v2.9.0.md`](./docs/releases/v2.9.0.md)
+- v2.10.0 release notes: [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md)
 
 ## Current architecture
 
@@ -238,6 +236,7 @@ package.json + package-lock.json
     generated dist/
       |
       +--> Verify + Real Browser E2E
+      +--> monthly Baseline Health + browser reruns
       +--> matching Cloudflare deployment + smoke
       └--> verified GitHub v2 release
 ```
@@ -331,7 +330,7 @@ npm run test:e2e
 npm run preview
 ```
 
-Pull requests and `main` run both `.github/workflows/verify.yml` and `.github/workflows/e2e.yml`. Verify executes the complete repository/security/deterministic regression suite and production build; Real Browser E2E runs the five-project Playwright matrix against production output.
+Pull requests and `main` run both `.github/workflows/verify.yml` and `.github/workflows/e2e.yml`. Verify executes the complete repository/security/deterministic regression suite and production build; Real Browser E2E runs the five-project Playwright matrix against production output. v2.10 also schedules a monthly deterministic Baseline Health run and a monthly rerun of the complete real-browser matrix.
 
 For v2 releases, `.github/workflows/release-v2.yml` publishes only after the exact `main` commit has successful Verify **and** Real Browser E2E results, Cloudflare production reports the matching version + commit, and the Main Library, Adult Library, Series, Reader, and robots smoke checks pass.
 
@@ -344,4 +343,4 @@ npm run b2:upload -- "path/to/book.epub"
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the active v2.8 Reader Experience work, and [`docs/releases/v2.6.7.md`](./docs/releases/v2.6.7.md) for the latest completed v2.6 hotfix record.
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the completed current roadmap and cross-release backlog, and [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md) for the latest formal release record.

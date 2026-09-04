@@ -20,9 +20,6 @@
 /assets/js/book-access.js
   Cache-Control: no-store
 
-/assets/js/reading-status.js
-  Cache-Control: no-store
-
 /assets/js/motion.js
   Cache-Control: no-store
 

@@ -13,7 +13,7 @@ import {
 
 export const MAIN_KEY = "shadow-garden/data/catalog.json";
 export const ADULT_KEY = "shadow-garden/data/adult-catalog.json";
-export const TRASH_KEY = "shadow-garden/data/trash.json";
+const TRASH_KEY = "shadow-garden/data/trash.json";
 export const BACKUP_INDEX_KEY = "shadow-garden/backups/catalog-index.json";
 export const BACKUP_PREFIX = "shadow-garden/backups/catalogs/";
 export const BACKUP_LIMIT = 15;
@@ -30,7 +30,7 @@ async function loadJson(aws, key, fallback) {
   catch { throw new Error(`${key} contains invalid JSON`); }
 }
 
-export async function loadCatalog(aws, key) {
+async function loadCatalog(aws, key) {
   return normalizeCatalog(await loadJson(aws, key, { generatedAt: new Date().toISOString(), series: [] }));
 }
 
@@ -70,7 +70,7 @@ export function locateSeries(data, id) {
   return null;
 }
 
-export function managementShape(data) {
+function managementShape(data) {
   const main = arr(data?.main?.series), adult = arr(data?.adult?.series), all = [...main, ...adult];
   return { ok: true, generatedAt: new Date().toISOString(), main, adult, counts: {
     series: all.length, volumes: all.reduce((total, series) => total + arr(series.volumes).length, 0), mainSeries: main.length, adultSeries: adult.length
@@ -121,7 +121,7 @@ export async function saveTrash(aws, trash) {
   return next;
 }
 
-export async function appendTrashItem(aws, item) {
+async function appendTrashItem(aws, item) {
   const trash = await loadTrash(aws);
   const entry = { id: `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`, removedAt: new Date().toISOString(), ...clone(item) };
   trash.items.unshift(entry); await saveTrash(aws, trash); return entry;

@@ -62,6 +62,10 @@ const catalog = (id = 'fixture-series') => ({
 });
 const emptyCatalog = () => ({ generatedAt: '2026-09-03T00:00:00.000Z', series: [] });
 
+test('catalog snapshot retention policy is 15', () => {
+  assert.equal(BACKUP_LIMIT, 15);
+});
+
 test('text objects without backup byte metadata remain readable', async () => {
   const aws = new MemoryAws();
   const key = 'shadow-garden/data/adult-catalog.json';
@@ -136,7 +140,7 @@ test('recovery audit distinguishes legacy, missing, unreadable, and incomplete s
   assert.equal(report.summary.incomplete, 1);
 });
 
-test('snapshot retention keeps the newest 30 and removes pruned payload objects', async () => {
+test('snapshot retention keeps the newest 15 and removes pruned payload objects', async () => {
   const aws = new MemoryAws(), created = [];
   for (let index = 0; index < BACKUP_LIMIT + 1; index += 1) created.push(await snapshotCatalogs(aws, catalog(`series-${index}`), emptyCatalog(), `retention-${index}`));
 

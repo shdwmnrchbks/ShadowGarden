@@ -4,9 +4,9 @@ Shadow Garden treats catalog snapshots as operational recovery material, not as 
 
 ## Retention policy
 
-- Retain the **30 newest catalog snapshots**, newest first. `functions/services/catalog.js` owns this limit through `BACKUP_LIMIT`.
+- Retain the **15 newest catalog snapshots**, newest first. `functions/services/catalog.js` owns this limit through `BACKUP_LIMIT`.
 - Automatic snapshots are created before high-impact catalog mutations. Garden Keeper can also create a manual snapshot.
-- Snapshot creation is ordered defensively: write the new snapshot payload first, then write the backup index containing it, then delete payloads that fell beyond the 30-snapshot limit.
+- Snapshot creation is ordered defensively: write the new snapshot payload first, then write the backup index containing it, then delete payloads that fell beyond the 15-snapshot limit.
 - Failure to delete an old pruned payload is non-fatal because the index has already stopped treating it as retained recovery material. The orphan can be cleaned later; deleting recovery material is never required to complete the live catalog mutation.
 - Retention pruning is different from a Keeper-requested manual deletion. Manual deletion is preflighted against recovery readiness before the canonical catalog backup handler is allowed to remove the indexed snapshot.
 
@@ -33,7 +33,7 @@ Authenticated Garden Keeper tooling can issue `GET /admin-api/recovery` for an o
 - `incomplete` / `incomplete-index` — required snapshot or catalog material is absent or inconsistent.
 - `check-failed` — storage verification itself could not be completed reliably.
 
-The normal audit verifies snapshot material itself. It intentionally does not HEAD every EPUB/cover referenced by every retained snapshot because that could multiply a 30-snapshot audit into hundreds or thousands of private-object reads. Destructive-operation preflight performs the stronger media check only when deciding whether recovery material may be deleted.
+The normal audit verifies snapshot material itself. It intentionally does not HEAD every EPUB/cover referenced by every retained snapshot because that could multiply a 15-snapshot audit into hundreds or thousands of private-object reads. Destructive-operation preflight performs the stronger media check only when deciding whether recovery material may be deleted.
 
 ## Recovery-anchor protection
 

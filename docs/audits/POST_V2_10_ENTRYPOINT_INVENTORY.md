@@ -68,18 +68,29 @@ The frozen manifest records the two direct Keeper entrypoints:
 
 and the original auth/session, Library, translation, Maintenance, History, Trash, Abuse, version, Upload internals, shell, motion, flavor, and direction helpers.
 
-### Intentional post-baseline modules observed at v2.10
+### Intentional post-baseline modules retained after pre-v2.11 maintenance
 
-The current `admin/app.js` composition root explicitly loads later Keeper Productivity & Recovery modules:
+The current `admin/app.js` composition root continues to load later Keeper Productivity & Recovery modules that still have active product ownership:
 
-- `admin/bulk-edit-workflow.js`
-- `admin/bulk-edit-fixes.js`
-- `admin/bulk-artwork-workflow.js`
 - `admin/recovery-readiness-workflow.js`
 - `admin/upload-preflight-report.js`
 - `admin/upload-similar-volume.js`
 
-The composition root still initializes a single workflow registry and explicitly keeps Upload internals from replacing shared API/auth/Library/Maintenance/History/Trash/Abuse owners. File growth therefore does not by itself justify a Keeper refactor. Audit D owns the deeper workflow/duplication review.
+The multi-EPUB upload queue remains owned by `admin-batch.js` / `admin-batch-editor.js`; despite the historical `batch` filename, that upload capability is separate from the retired Batch Edit feature.
+
+### Retired before v2.11
+
+An explicit product decision retired the v2.9 Batch Edit and Batch Artwork surfaces before v2.11. The following current-product entrypoints are therefore intentionally absent rather than candidates for refactoring:
+
+- `admin/bulk-edit-workflow.js`
+- `admin/bulk-edit-fixes.js`
+- `admin/bulk-artwork-workflow.js`
+- `functions/admin-api/artwork.js`
+- `functions/services/artwork.js`
+
+Their dedicated styles and tests were retired with them. The canonical single-series Library editor, series-banner selection, cover optimization maintenance, and multi-EPUB upload flows remain active owners. `tools/check.mjs` tombstones the retired batch paths so they cannot silently return.
+
+The composition root still initializes a single workflow registry and explicitly keeps Upload internals from replacing shared API/auth/Library/Maintenance/History/Trash/Abuse owners. File growth therefore does not by itself justify a Keeper refactor. Audit D owns the deeper workflow/duplication review of the retained surfaces.
 
 ## Pages Functions
 
@@ -131,7 +142,7 @@ Audit A has not identified a known tombstoned path returning. The complete repos
 | Frozen v2 manifest | Keep immutable; it is history, not moving inventory. |
 | Public Library/Series ownership | No refactor from inventory evidence; continue Audit C. |
 | Reader post-v2 modules | No refactor from file count; continue Audit B. |
-| Keeper post-v2 modules | No refactor from file count; continue Audit D. |
+| Keeper post-v2 modules | Batch Edit/Artwork explicitly retired pre-v2.11; audit retained workflows in Audit D. |
 | R6 facades | Investigate consumers before retain/remove decision. |
 | Historical R0–R10 checkers | Investigate in Audit G; do not re-enable wholesale. |
 | Reader hard-coded local `?v=` imports | Refactor/cleanup justified after full authored-source scope is established. |

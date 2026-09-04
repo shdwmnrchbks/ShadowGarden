@@ -25,7 +25,7 @@ This is the working evidence record for the post-v2.10 audit. It intentionally c
 | A-003 | Historical R0–R10 guard ownership | Architecture docs call `check-r0.mjs`…`check-r10.mjs` permanent guardrails, but current `package.json#scripts.check` runs modern repository/dependency/runtime/docs/release/baseline checks and does not invoke R0–R10. `check-r10.mjs` itself still asserts that it must remain in `npm run check`. | Verification documentation, executable policy, and historical guard assumptions have diverged. Blindly re-enabling old regex/source-history checks would also fail against intentionally evolved post-v2 code/docs. | Medium | 🔎 Audit G must classify each historical check as replace, modernize, archive, or intentionally standalone. Do not re-enable wholesale. | Map each historical assertion to current unit/service/browser/E2E/modern check coverage and measure duplicated CI cost before changing the active chain. |
 | A-004 | Authored Reader cache-version ownership | `src/assets/js/reader/app.js` currently imports local modules with hard-coded `?v=` values (`toc.js?v=1.2.3`, `page-map.js?v=1.2.0`, `book-search.js?v=2.8.1`). `BUILD_CONTRACT.md` and `check-r10.mjs` state authored local `?v=` cache history should be absent and build-time stamping should be the sole owner. | Two cache-version owners can drift and make source history/versioning harder to reason about. | Low runtime risk; medium contract/maintainability risk | 🛠 Refactor justified, but defer implementation until the authored-source scan establishes the complete scope. | Remove only confirmed local hard-coded cache-history strings, then run build/check and five-browser Reader coverage; verify generated assets still receive deployment-version stamping. |
 | A-005 | Retired patch/dead-owner tombstones | `r1-legacy-source-exceptions.json` has no grandfathered patch-style files and records the prior duplicate/repair Reader, Keeper, Library, Series, and CSS paths as removed. Current inspected trees do not show those known retired owners returning. | Confirms the old patch-layer problem has not obviously regressed. | Low | ⏭ No change needed at this stage. | Complete path inventory and retain tombstone comparison as audit evidence. |
-| A-006 | Keeper post-v2 ownership growth | Current `admin/app.js` explicitly loads v2.9-era bulk edit, bulk artwork, recovery readiness, similarity warning, and preflight-report modules in named workflow groups. The composition root still initializes one workflow registry and keeps Upload internals isolated from shared API/auth/Library/Maintenance owners. | More modules than the frozen v2 manifest, but current composition still documents ownership instead of creating a parallel admin application. | Low | ⏭ No structural refactor justified by inventory alone. Reassess duplication/cost in Audit D. | Audit workflow dependencies and repeated request/busy/error patterns in Audit D. |
+| A-006 | Keeper post-v2 ownership growth | The v2.9 Batch Edit and Batch Artwork workflows were explicit post-baseline additions, but they were subsequently retired by product decision before v2.11. Their workflow modules, dedicated styles/tests, and batch-only artwork API/service are removed and tombstoned by `tools/check.mjs`. Recovery readiness, upload similarity warning, and upload preflight-report remain intentional current modules. | Removes unneeded Keeper surface area and a batch-only backend without changing canonical single-series editing, banner selection, cover optimization, or multi-EPUB upload ownership. | Low after preserving shared owners | ⏭ Batch surfaces retired; no replacement/refactor. Reassess duplication/cost only in the retained Keeper workflows during Audit D. | Verify removed paths stay absent, `admin/app.js` no longer composes them, repository checks pass, and full Keeper/browser coverage remains green. |
 | A-007 | Reader post-v2 ownership growth | Current Reader directory includes intentional post-baseline modules such as `book-search.js`, `error-presentation.js`, `resume-controller.js`, `interaction-controller.js`, `navigation-state.js`, and `image-focus-touch-compat.js`; `reader/app.js` composes search/resume while retaining the established session/application/controller model. | Frozen v2 manifest is incomplete as a current inventory, but module growth alone is not evidence of duplicate ownership. | Medium because Reader is highest-risk | ⏭ No Reader refactor from inventory alone. Continue with dedicated Audit B. | Audit B must check progress/navigation/input/resume/search ownership and long-session behavior before any structural recommendation. |
 
 ## Audit A — Repository and ownership inventory
@@ -35,6 +35,7 @@ This is the working evidence record for the post-v2.10 audit. It intentionally c
 - The accepted v2 ownership model is still recognizable in the inspected Library/Reader/Keeper/Functions structure.
 - Known R1/R10 patch-style owners have not obviously returned.
 - Post-v2.0 feature work added legitimate modules that should be tracked as **current inventory**, not retroactively inserted into the frozen v2.0 manifest.
+- Batch Edit and Batch Artwork were intentionally retired before v2.11; their removal reduces Keeper surface area without replacing the canonical single-item Library/banner owners or the unrelated multi-EPUB upload queue.
 - Two old Functions facade paths need a consumer/reference audit before they can be declared dead.
 - The historical R0–R10 check suite is no longer aligned with the active `npm run check` chain; this is a real tooling-policy audit item, but not evidence that all historical checks should return.
 - Hard-coded local Reader `?v=` imports are a confirmed build-contract drift and the first justified cleanup candidate.
@@ -61,7 +62,7 @@ Pending Audit B. Inventory confirms the Reader remains modular but has grown bey
 
 ### Garden Keeper
 
-Pending Audit D. Inventory confirms the current composition root explicitly loads v2.9 workflow additions.
+Pending Audit D. The pre-v2.11 maintenance pass intentionally retired Batch Edit and Batch Artwork; Audit D should measure only the retained Keeper workflows and the separate multi-EPUB upload pipeline.
 
 ### Functions / storage / network
 
@@ -75,7 +76,7 @@ Pending Audit G. Audit A identified active-vs-historical guard drift and authore
 
 The frozen `v2-entrypoints.json` should remain a v2.0.0 baseline artifact. It should not be continuously rewritten to match later releases, because doing so would erase the architecture cutover record. Current ownership should instead be demonstrated by current composition roots, architecture contracts, tests, and this audit's inventory evidence.
 
-Keeper currently remains one application composition root (`admin/core.js` + `admin/app.js`) with a named workflow registry. Later modules for bulk edit/artwork and recovery are visible additions, not hidden second owners.
+Keeper remains one application composition root (`admin/core.js` + `admin/app.js`) with a named workflow registry. The retired Batch Edit/Artwork modules are no longer composed or served. Recovery and upload-productivity additions remain visible current owners, while `admin-batch.js` and `admin-batch-editor.js` continue to own the separate multi-EPUB upload queue.
 
 Reader still uses an explicit application orchestrator and controllers, but the dedicated Audit B is required before claiming the expanded search/resume/interaction modules are optimally factored.
 
@@ -85,15 +86,19 @@ Reader still uses an explicit application orchestrator and controllers, but the 
 
 The same rule applies to `functions/_lib/garden-maintenance.js`: facade status is evidence of legacy compatibility, not evidence of current necessity.
 
-Known tombstoned R1/R10 patch paths remain listed in `r1-legacy-source-exceptions.json` and should stay absent.
+Known tombstoned R1/R10 patch paths remain listed in `r1-legacy-source-exceptions.json` and should stay absent. Pre-v2.11 maintenance additionally tombstones the removed Batch Edit/Artwork source/backend paths in the active repository check.
 
 ## Security and recovery notes
 
 No Audit A finding currently justifies changing storage/auth/media/recovery ownership. R6 facade cleanup, if later justified, must be treated as security-sensitive because its exports cross storage/auth/http boundaries.
 
+The Batch Artwork removal deletes only its batch-only admin route/service. Canonical B2 storage ownership, single-series Library updates, series-banner selection, cover optimization maintenance, and upload cover handling remain unchanged.
+
 ## Documentation notes
 
 The documentation handoff PR established the audit-first roadmap and archive structure before source inspection. Audit A then found that the phrase “permanent guardrails” for R0–R10 is stronger than the current executable `npm run check` ownership. Audit G must reconcile that wording and tooling based on overlap evidence rather than historical intent.
+
+The pre-v2.11 Keeper simplification is recorded here because it changes the current inventory after the v2.10 audit baseline; it does not rewrite the frozen v2.0 manifest or historical release notes.
 
 ## Implementation candidates
 
@@ -108,7 +113,7 @@ This should be a minimal source-contract cleanup, not a Reader architecture rewr
 ## Deferred / skipped recommendations
 
 - Do **not** rewrite `v2-entrypoints.json` into a moving current manifest; keep it frozen and create separate current inventory evidence.
-- Do **not** collapse Keeper modules simply because the v2.9 workflow additions increased file count.
+- Do **not** replace the retired Batch Edit/Artwork features; the product decision is removal, while single-item editing/artwork and multi-EPUB upload remain.
 - Do **not** restructure Reader modules from file-count/age alone; Audit B must produce ownership or runtime evidence first.
 - Do **not** delete R6 facades until the consumer/reference audit proves they no longer earn compatibility value.
 - Do **not** re-enable all R0–R10 source-regex checks wholesale; Audit G must determine which assertions remain valuable versus obsolete/duplicated.

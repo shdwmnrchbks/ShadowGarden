@@ -18,6 +18,9 @@ const retiredPaths = [
   "src/assets/js/admin-upload-completion-v1.7.1.js",
   "src/assets/js/admin-v1.7.2.js",
   "src/assets/js/admin-backup-history-v1.7.4.js",
+  "src/assets/js/admin/bulk-edit-workflow.js",
+  "src/assets/js/admin/bulk-edit-fixes.js",
+  "src/assets/js/admin/bulk-artwork-workflow.js",
   "src/assets/css/reader-stability.css",
   "src/assets/css/v1-polish.css",
   "src/assets/css/site-v1.5.css",
@@ -26,7 +29,12 @@ const retiredPaths = [
   "src/assets/css/admin-v1.7.css",
   "src/assets/css/admin-v1.7.1.css",
   "src/assets/css/admin-v1.7.2.css",
-  "src/assets/css/admin-backup-history-v1.7.4.css"
+  "src/assets/css/admin-backup-history-v1.7.4.css",
+  "src/assets/css/admin-bulk-edit.css",
+  "src/assets/css/admin-bulk-edit-fixes.css",
+  "src/assets/css/admin-bulk-artwork.css",
+  "functions/admin-api/artwork.js",
+  "functions/services/artwork.js"
 ];
 
 const ignoredAssetPrefixes = [

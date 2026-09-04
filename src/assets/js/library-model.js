@@ -87,9 +87,11 @@ export function filterAndSort(items, state, { pinnedIds = new Set(), seriesFinis
     if ([...state.tags].some(tag => !seriesTags.has(tag))) return false;
     if (state.year && String(series?.year || "") !== state.year) return false;
     if (!volumeCountMatches(arr(series?.volumes).length, state.volumeRange)) return false;
-    const finished = Boolean(seriesFinished(series));
-    if (state.readingStatus === "finished" && !finished) return false;
-    if (state.readingStatus === "unfinished" && finished) return false;
+    if (state.readingStatus) {
+      const finished = Boolean(seriesFinished(series));
+      if (state.readingStatus === "finished" && !finished) return false;
+      if (state.readingStatus === "unfinished" && finished) return false;
+    }
     if (state.pinnedOnly && !pinnedIds.has(series?.id)) return false;
     return true;
   });

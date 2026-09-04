@@ -2,7 +2,7 @@
 
 This directory records both the **R0 frozen v1.15.14 starting baseline** and the accepted **R10 v2.0.0 architecture baseline**, plus post-baseline contracts that remain authoritative for current v2 work.
 
-Shadow Garden's active product line is **v2.10.0 Maintenance & Supply Chain**. The latest formal release is **v2.9.0 Keeper Productivity & Recovery**. Current maintenance work builds on the completed v2.6 real-browser reliability baseline, v2.8 Reader Experience, and v2.9 recovery/productivity contracts without replacing the v2.0 ownership model.
+Shadow Garden's active product line and latest formal release are **v2.10.0 Maintenance & Supply Chain**. The completed maintenance release builds on the v2.6 real-browser reliability baseline, v2.8 Reader Experience, and v2.9 recovery/productivity contracts without replacing the v2.0 ownership model.
 
 ## Baselines
 
@@ -72,7 +72,7 @@ Shadow Garden's active product line is **v2.10.0 Maintenance & Supply Chain**. T
 ## R9 build and deployment layer
 
 - [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) — locked dependency/install contract, direct-dependency audit, deterministic build metadata, CI pins, dependency-free preview and explicit no-bundler decision introduced in v1.24.0.
-- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) — separates the active deployed product version from the latest formal release version, so v2.10 development can identify as v2.10.0 while the formal release source remains v2.9.0 until an explicit release cut.
+- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) — separates the active deployed product version from the formal release version during development and requires convergence at a formal release cut; v2.10.0 now converges both owners.
 - `package-lock.json` is committed at lockfile version 3; CI uses the reviewed Node 22.23.2 patch and npm 10.9.8 policy.
 - `tools/lib/build-context.mjs` owns deployment version/commit/branch/build-time context and exposes the formal release version separately.
 - The reusable v2 publisher continues to key formal releases from `package.json#version` and requires the exact main Real Browser E2E result before production smoke/release publication.
@@ -114,16 +114,16 @@ v2.8 is complete. Its release record is [`../releases/v2.8.0.md`](../releases/v2
 
 ## v2.9 Keeper Productivity & Recovery
 
-v2.9 is the latest formal release. Its release record is [`../releases/v2.9.0.md`](../releases/v2.9.0.md).
+v2.9 is complete. Its release record is [`../releases/v2.9.0.md`](../releases/v2.9.0.md).
 
 - High-impact Keeper batch operations preserve canonical validation/catalog/storage owners and provide previews and recovery history where appropriate.
 - Recovery readiness, object-complete recovery anchors, catalog integrity classification, and deterministic recovery drills make recoverability an explicit tested contract.
 
 ## v2.10 Maintenance & Supply Chain
 
-v2.10 is the active deployment/product line. Canonical scope lives in [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md).
+v2.10 is complete and is the active deployment/product line plus latest formal release. Its release record is [`../releases/v2.10.0.md`](../releases/v2.10.0.md), with completed scope recorded in [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md).
 
-- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) plus `tools/check-release-metadata.mjs` pin formal-release and deployment-version ownership.
+- [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) plus `tools/check-release-metadata.mjs` pin formal-release and deployment-version ownership and release-cut convergence.
 - `tools/check-dependency-maintenance.mjs`, `tools/dependency-audit-report.mjs`, and `tools/check-runtime-lockfiles.mjs` keep dependency changes reviewable, audit findings policy-driven, and runtime/lockfile drift explicit.
 - `tools/check-documentation-freshness.mjs` guards the canonical current-roadmap/docs/version markers against version drift.
 - [`MAINTENANCE_BASELINE.md`](./MAINTENANCE_BASELINE.md) defines the monthly deterministic/security/recovery/realistic-scale and complete real-browser/accessibility baseline without granting automation mutation authority.

@@ -1,6 +1,6 @@
 # Shadow Garden Documentation
 
-This is the single documentation index for Shadow Garden. Architecture contracts, current planning, archived milestone history, release records, security history, build conventions, test/accessibility contracts, and design guidance live under `docs/`.
+This is the single documentation index for Shadow Garden. Architecture contracts, current planning, operational runbooks, archived milestone history, release records, security history, build conventions, test/accessibility contracts, and design guidance live under `docs/`.
 
 ## 🚧 Current engineering state
 
@@ -12,7 +12,7 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health phase**, not a feature expansion. Refactor and optimization slices are conditional: when the audit shows an area is healthy, the corresponding implementation work is skipped/deferred rather than manufactured to satisfy the roadmap.
 
-Completed or superseded planning must not remain marked as current. Historical roadmaps and completed audit records are canonically indexed under [`archive/README.md`](./archive/README.md).
+Completed or superseded planning must not remain marked as current. Historical roadmaps, audits, and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
 ## Architecture contracts
 
@@ -42,6 +42,15 @@ Completed or superseded planning must not remain marked as current. Historical r
 - [`architecture/v2-entrypoints.json`](./architecture/v2-entrypoints.json) — accepted v2 direct/runtime entrypoint manifest.
 - [`architecture/r1-legacy-source-exceptions.json`](./architecture/r1-legacy-source-exceptions.json) — retired-source tombstone manifest.
 
+## Operations
+
+These remain active operational contracts during the v2.11 engineering audit:
+
+- [`operations/CATALOG_RECOVERY.md`](./operations/CATALOG_RECOVERY.md) — private catalog snapshot retention, integrity verification, recovery anchors, destructive-operation preflight, restore, and recovery-readiness policy.
+- [`operations/DEPENDENCY_MAINTENANCE.md`](./operations/DEPENDENCY_MAINTENANCE.md) — weekly Dependabot review policy, Node/npm and lockfile ownership, scheduled audit reporting, high-impact dependency review, and its relationship to the v2.11 audit.
+
+The audit may recommend changes to an operational owner only when evidence meets the same refactor/optimization thresholds as application code. Existing recovery and dependency policies remain authoritative until explicitly replaced and verified.
+
 ## Current planning and archive
 
 - [`roadmaps/README.md`](./roadmaps/README.md) — active roadmap index.
@@ -51,8 +60,11 @@ Completed or superseded planning must not remain marked as current. Historical r
 - [`archive/REFACTOR_ROADMAP.md`](./archive/REFACTOR_ROADMAP.md) — completed R0–R10 refactor roadmap.
 - [`archive/SECURITY_ROADMAP.md`](./archive/SECURITY_ROADMAP.md) — completed Security & Anti-Abuse roadmap.
 - [`archive/V2_8_FOOTNOTE_AUDIT.md`](./archive/V2_8_FOOTNOTE_AUDIT.md) — completed v2.8 Reader note-compatibility audit.
+- [`archive/security/`](./archive/security/) — canonical Security Milestone 5–9 records.
 
-`docs/roadmaps/CURRENT_ROADMAP.md` is the only active planning document. The old `REFACTOR_ROADMAP.md` and `SECURITY_ROADMAP.md` paths remain as Git symlinks into `docs/archive/` only so permanent historical guards and older links resolve without duplicated roadmap content.
+`docs/roadmaps/CURRENT_ROADMAP.md` is the only active planning document. The old `REFACTOR_ROADMAP.md` and `SECURITY_ROADMAP.md` roadmap paths remain as Git symlinks into `docs/archive/` only so permanent historical guards and older links resolve without duplicated content.
+
+Likewise, `docs/security/MILESTONE_5_CLOUDFLARE.md` through `MILESTONE_9_FINAL_AUDIT.md` remain as Git symlink compatibility paths to the canonical files under `docs/archive/security/`. The completed security milestone records are historical evidence, not active planning.
 
 ## Releases
 
@@ -80,13 +92,14 @@ The permanent baseline combines deterministic checks, real browsers, and recurri
 - `.github/workflows/verify.yml` — repository checks and production build;
 - `.github/workflows/e2e.yml` — permanent five-project real-browser matrix plus monthly/manual baseline reruns;
 - `.github/workflows/baseline-health.yml` — monthly/manual deterministic security, recovery, performance, test, and build health baseline;
+- `.github/workflows/dependency-audit.yml` — weekly/manual policy-driven production dependency audit reporting;
 - `.github/workflows/release-v2.yml` — exact-main Verify + real-browser success, matching Cloudflare version/commit, production smoke, then formal GitHub v2 release publication.
 
 v2.11 audit work does not weaken these gates. New measurements should reuse existing deterministic/Playwright fixtures where practical and must not require production secrets for the core audit.
 
 ## Security history
 
-Security Milestones 1–9 remain completed baseline contracts. Their roadmap is archived at [`archive/SECURITY_ROADMAP.md`](./archive/SECURITY_ROADMAP.md); milestone detail remains under [`security/`](./security/) and [`archive/security/`](./archive/security/).
+Security Milestones 1–9 remain completed baseline contracts. Their roadmap is archived at [`archive/SECURITY_ROADMAP.md`](./archive/SECURITY_ROADMAP.md), and the Milestone 5–9 records are canonical under [`archive/security/`](./archive/security/). Compatibility symlinks under `docs/security/` exist only for permanent checks and historical links.
 
 ## Product/design guidance
 
@@ -94,4 +107,4 @@ Security Milestones 1–9 remain completed baseline contracts. Their roadmap is 
 
 ## Repository-root policy
 
-The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs in `docs/roadmaps/CURRENT_ROADMAP.md`; deterministic fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.
+The complete root policy is documented in [`architecture/BUILD_CONTRACT.md`](./architecture/BUILD_CONTRACT.md). Root is limited to normal project entry/configuration files and top-level source/document/test/tool directories. Historical planning is canonically archived under `docs/archive/`; active planning belongs in `docs/roadmaps/CURRENT_ROADMAP.md`; active operational runbooks belong in `docs/operations/`; deterministic fixtures and tests belong under `tests/`; generated output belongs in ignored build directories. `package-lock.json` remains an intentional committed root file under the dependency/build contract.

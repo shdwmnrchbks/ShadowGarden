@@ -278,7 +278,7 @@
     $("#pinnedNav")?.addEventListener("click",()=>{state.pinnedOnly=!state.pinnedOnly;apply({historyMode:"push"})});
     document.querySelector(".view-switch")?.addEventListener("click",event=>{const button=event.target.closest("button[data-view]");if(!button)return;state.view=button.dataset.view;domain.preferences.setLibraryView(scope,state.view);apply({historyMode:"replace"})});
     $("#loadMore")?.addEventListener("click",appendBatch);
-    $("#recentViewAll")?.addEventListener("click",()=>{clearFilters({historyMode:null});state.sort="recent";apply({historyMode:"push"});$("#catalogSection")?.scrollIntoView({behavior:"smooth",block:"start"})});
+    $("#recentViewAll")?.addEventListener("click",()=>{clearFilters({historyMode:"push"});$("#catalogSection")?.scrollIntoView({behavior:"smooth",block:"start"})});
     window.addEventListener("popstate",()=>{readUrl();model.validateFilterState(state,state.items);apply()});
     window.addEventListener(readingStatus.EVENT,refreshReadingUi);
     window.addEventListener("pageshow",refreshReadingUi);

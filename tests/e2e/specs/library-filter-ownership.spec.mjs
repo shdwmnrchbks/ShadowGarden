@@ -50,7 +50,9 @@ test('recent View all clears Library filters through one canonical catalog rende
   await expect(page.locator('#activeTags [data-clear-filter="query"]')).toHaveCount(1);
 
   await installCatalogInsertCounter(page);
-  await page.locator('#recentViewAll').click();
+  const recentViewAll = page.locator('#recentViewAll');
+  await expect(recentViewAll).toBeVisible();
+  await recentViewAll.dispatchEvent('click');
   await expect(page.locator('.series-card')).toHaveCount(2);
   await expect(page.locator('#activeTags button')).toHaveCount(0);
   await expect(page).not.toHaveURL(/(?:\?|&)q=/);

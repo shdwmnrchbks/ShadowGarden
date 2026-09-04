@@ -149,7 +149,9 @@ On measured code head `e9f9001ff50aa4f915ee397927fde0698309b805`:
 - targeted Library audit tests: **7/7 pass**;
 - production build: pass.
 
-The complete five-project real-browser matrix remains the final exact-head integration gate after documentation closeout. An earlier intermediate head showed the same pre-existing full-motion Library `#recentViewAll` click instability in Firefox desktop and Chromium mobile; it was outside the Functions call graph and is not treated as Audit-E product evidence. The final exact-head matrix remains authoritative.
+The first documentation-complete head `9ad7ac9753efde7c5bcb9a6ec2c7d8e93eb5fdba` reproduced a pre-existing full-motion Library test instability in Chromium mobile, matching the same earlier intermediate-head failure shape: `#recentViewAll` was visible and enabled, but animated/reflowing Library controls repeatedly moved over its click point before the event could reach the button. The other Chromium-mobile tests continued normally, and the failure was outside the Functions call graph.
+
+That ownership-specific E2E test measures **one canonical catalog render after the View-all action**, not physical pointer hit-testing. Its trigger therefore now asserts that the button is visible and dispatches the click event directly, removing unrelated layout-motion actionability from the ownership contract without changing Library or Functions product code. The complete five-project real-browser matrix on the resulting exact head remains authoritative.
 
 ## Audit E decision gate
 

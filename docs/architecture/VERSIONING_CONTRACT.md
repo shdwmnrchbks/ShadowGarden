@@ -2,7 +2,8 @@
 
 **Status:** Active contract  
 **Active deployment/product version:** v2.10.0 — Maintenance & Supply Chain  
-**Formal release source version:** v2.10.0
+**Formal release source version:** v2.10.0  
+**Current engineering phase:** post-v2.10 audit; no new release number is implied by the audit itself
 
 Shadow Garden intentionally separates the version shown by a live development deployment from the version eligible for a formal GitHub release, while requiring those version owners to converge at a formal release cut.
 
@@ -31,7 +32,13 @@ At a formal release cut the values converge. v2.10.0 uses:
 }
 ```
 
-A later development milestone may intentionally diverge them again only through an explicit product-version change; dependency maintenance must not alter version ownership implicitly.
+A later development milestone may intentionally diverge them again only through an explicit product-version change; dependency maintenance and audit documentation must not alter version ownership implicitly.
+
+## Audit-phase rule
+
+The post-v2.10 architecture/refactor/optimization audit is a planning and evidence cycle, not a release by itself. `version` and `deploymentVersion` remain at `2.10.0` while the audit is only inspecting, measuring, documenting, deleting clearly dead history/code, or making non-runtime documentation corrections.
+
+If the audit produces justified implementation work that materially changes the shipped application, choose the next version only after the implementation scope is known. If all proposed refactors/optimizations are skipped or deferred, there is no requirement to invent a new release number merely to close the audit.
 
 ## Deployment metadata
 
@@ -71,6 +78,6 @@ The v2.9.0 release aligned `package.json#version`, `package-lock.json`, and `dep
 
 ## v2.10.0 release state
 
-The v2.10.0 release cut converges `package.json#version`, `package.json#deploymentVersion`, and the root/workspace package-lock version metadata at `2.10.0`, with `CHANGELOG.md` and `docs/releases/v2.10.0.md` as the matching formal release record. The cut does not rewrite dependency resolutions, integrity data, or transitive dependency metadata merely to synchronize a version label.
+The v2.10.0 release cut converged `package.json#version`, `package.json#deploymentVersion`, and the root/workspace package-lock version metadata at `2.10.0`, with `CHANGELOG.md` and `docs/releases/v2.10.0.md` as the matching formal release record. The cut did not rewrite dependency resolutions, integrity data, or transitive dependency metadata merely to synchronize a version label.
 
-The release remains publication-eligible only when the exact final `main` commit passes Verify and the complete Real Browser E2E matrix, Cloudflare production reports the same v2.10.0 version and commit, and the established public production smoke checks succeed. Scheduled v2.10 maintenance automation does not bypass or publish through this contract.
+The release was publication-eligible only after the exact final `main` commit passed Verify and the complete Real Browser E2E matrix, Cloudflare production reported the same v2.10.0 version and commit, and the established public production smoke checks succeeded. Post-release dependency maintenance may advance `main` while the formal `v2.10.0` release tag remains pinned to its verified release commit; the publisher must remain idempotent when that release already exists.

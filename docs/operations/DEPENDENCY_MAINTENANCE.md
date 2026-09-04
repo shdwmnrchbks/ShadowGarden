@@ -1,13 +1,13 @@
 # Shadow Garden Dependency Maintenance
 
-**Status:** Active v2.10 operations policy  
+**Status:** Active operations policy established in v2.10 and retained through v2.11  
 **Cadence:** Weekly, Monday morning (Asia/Manila)
 
-Shadow Garden uses Dependabot only to surface reviewable update pull requests. It does not auto-merge dependency or GitHub Actions changes.
+Shadow Garden uses Dependabot only to surface reviewable update pull requests. It does not auto-merge dependency or GitHub Actions changes. v2.11's engineering audit may reassess dependency ownership or maintenance cost, but no dependency is removed, replaced, or upgraded solely because the audit phase exists.
 
 ## Automated scope
 
-The npm updater is deliberately allow-listed to the five direct production dependencies in `package.json`:
+The npm updater is deliberately allow-listed to the five direct production/tooling dependencies in `package.json`:
 
 - `@aws-sdk/client-s3`
 - `aws4fetch`
@@ -29,15 +29,17 @@ No dependency PR is eligible for automatic merge. Every update remains an ordina
 
 Updates touching EPUB.js, AWS/B2 request or storage behavior (`@aws-sdk/client-s3`, `aws4fetch`), authentication/security boundaries, or GitHub Actions execution are treated as high-impact even when the version bump is small. They are never merged on version number or automated test status alone; review must confirm the affected owner and expected behavior.
 
+The current ownership boundary is important during v2.11 audit work: production Cloudflare B2 access is owned by `aws4fetch` in `functions/services/storage.js`, while `@aws-sdk/client-s3` is used only by local operator B2 setup/upload utilities with explicit static credentials. Any proposal to consolidate or change that split must be justified by the engineering audit rather than assumed from package names.
+
 ## Pull-request volume
 
 Both npm and GitHub Actions streams are capped at five open Dependabot pull requests and run weekly. npm checks begin at 08:00 and GitHub Actions checks at 08:20 Asia/Manila so update streams stay visible without creating continuous churn.
 
 ## Runtime and lockfile policy
 
-Shadow Garden supports the Node 22 LTS family through `engines.node = "22.x"` in both the root and E2E manifests. Reproducible CI uses the reviewed patch line in `.nvmrc` and every `actions/setup-node` workflow; the current v2.10 pin is Node `22.23.2`. Both manifests also declare `packageManager: "npm@10.9.8"`, matching the npm release bundled with that reviewed Node patch.
+Shadow Garden supports the Node 22 LTS family through `engines.node = "22.x"` in both the root and E2E manifests. Reproducible CI uses the reviewed patch line in `.nvmrc` and every `actions/setup-node` workflow; the current reviewed pin is Node `22.23.2`. Both manifests also declare `packageManager: "npm@10.9.8"`, matching the npm release bundled with that reviewed Node patch.
 
-The exact CI patch pin is intentionally narrower than the supported engine family. Local/runtime consumers may use a compatible Node 22 patch, while repository gates run one known toolchain. Node 22 patch updates are reviewed maintenance changes and must pass the normal Verify plus five-browser matrix. A future Node major migration is an explicit maintenance slice, not a silent workflow edit.
+The exact CI patch pin is intentionally narrower than the supported engine family. Local/runtime consumers may use a compatible Node 22 patch, while repository gates run one known toolchain. Node 22 patch updates are reviewed maintenance changes and must pass the normal Verify plus five-browser matrix. A future Node major migration is an explicit engineering/maintenance decision, not a silent workflow edit.
 
 Both committed npm lockfiles use lockfile format 3. `tools/check-runtime-lockfiles.mjs` verifies manifest/root-lock name, version, engine, and direct-dependency metadata; requires all registry-backed package entries to resolve from `https://registry.npmjs.org/` with SHA-512 integrity; and ensures Verify, E2E, and dependency-audit workflows use the reviewed Node patch pin.
 
@@ -59,6 +61,15 @@ Findings are classified by repository policy:
 
 The reporter writes a human-readable GitHub job summary and can be run against previously captured JSON with `npm run audit:report`. It never modifies package metadata or the lockfile.
 
+## Relationship to the v2.11 engineering audit
+
+Dependency maintenance and the v2.11 engineering audit solve different problems:
+
+- dependency maintenance answers whether the locked third-party tree is current, reproducible, reviewable, and carrying known advisory findings;
+- the engineering audit answers whether Shadow Garden's own dependency ownership, module structure, test seams, or realistic-scale performance justify a structural change.
+
+A dependency being old or having alternatives is not enough to justify replacement. A dependency replacement/refactor must meet the same evidence threshold as other v2.11 architectural changes and must preserve the full security/Reader/build/browser contract.
+
 ## What this automation does not do
 
 - It does not auto-merge.
@@ -67,5 +78,6 @@ The reporter writes a human-readable GitHub job summary and can be run against p
 - It does not treat `npm audit` severity alone as proof of a production exploit.
 - It never runs `npm audit fix` automatically.
 - It does not rewrite lockfile integrity or transitive metadata by hand.
+- It does not pre-authorize dependency replacement during the v2.11 audit.
 
 `tools/check-dependency-maintenance.mjs` enforces the dependency allow-list, cadence, scheduled audit contract, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests. `tools/check-runtime-lockfiles.mjs` separately enforces the reviewed Node/npm toolchain and committed lockfile invariants.

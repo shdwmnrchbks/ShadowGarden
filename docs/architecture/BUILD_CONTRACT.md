@@ -2,9 +2,10 @@
 
 **Refactor milestones:** R1 repository/tooling hygiene; finalized by R9 build/deployment cleanup  
 **Baseline application:** v1.15.14  
-**Current build contract:** v1.24.0
+**Accepted v2 build baseline:** v2.0.0  
+**Current operational line:** v2.10.0
 
-This document defines which files are authored, which are generated, how local assets are versioned, and what tooling is intentionally pinned during the refactor. R1 established the boundary; R9 finalizes dependency locking, deterministic build metadata, CI installation, and preview ownership. See [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) for the R9 architecture and audit detail, and [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) for the active-deployment versus formal-release version split used during v2.8 development.
+This document defines which files are authored, which are generated, how local assets are versioned, and what tooling is intentionally pinned. R1 established the boundary; R9 finalized dependency locking, deterministic build metadata, CI installation, and preview ownership; v2.10 added explicit runtime/lockfile, documentation, release-metadata, and recurring maintenance guards. See [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md) for build/deployment architecture, [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) for active-deployment versus formal-release ownership, and [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md) for the current audit-first review of whether any further simplification is justified.
 
 ## Authored vs generated
 
@@ -12,10 +13,10 @@ Authored and committed:
 
 - `src/` — static Library, Series, Reader, and Garden Keeper source.
 - `functions/` — Cloudflare Pages Functions and shared server helpers.
-- `tests/` — deterministic R8 unit, service/integration, DOM, browser-smoke fixtures and test helpers.
-- `tools/` — build, upload, validation, test runner, preview server, build context, and refactor guardrails.
+- `tests/` — deterministic unit, service/integration, DOM, browser-contract, E2E fixtures, and test helpers.
+- `tools/` — build, upload, validation, test runner, preview server, build context, audit/maintenance tooling, and architecture guardrails.
 - `library/` — local EPUB/build input and non-secret library configuration/placeholder files.
-- `docs/` — architecture, roadmap, security history, and style guidance.
+- `docs/` — architecture contracts, audit evidence, operations policy, active roadmap, release records, archived planning/security history, and style guidance.
 - root project/config files such as `package.json`, `package-lock.json`, `.gitignore`, `.nvmrc`, README, and CHANGELOG.
 
 Generated and never committed:
@@ -32,27 +33,24 @@ Generated and never committed:
 
 ## Node and CI
 
-Shadow Garden standardizes the development/verification Node major on **Node 22**:
+Shadow Garden supports the **Node 22 LTS family** while repository verification uses one reviewed patch/toolchain:
 
-- `.nvmrc` contains `22` for compatible local version managers.
+- `.nvmrc` contains the reviewed CI patch, currently `22.23.2`.
 - `package.json#engines.node` is `22.x`.
-- GitHub Actions explicitly installs Node 22 for project commands.
+- `package.json#packageManager` is `npm@10.9.8`.
+- GitHub Actions explicitly install the reviewed Node `22.23.2` patch for project commands.
 - CI action revisions remain pinned to immutable commit SHAs rather than floating tags.
-- R9 upgrades checkout/setup-node to current supported action generations while preserving the project Node 22 runtime.
+- Node patch/npm changes are reviewed maintenance work and must pass the normal repository and five-browser gates.
 
-R8 uses the same Node boundary for tests: `tools/run-tests.mjs` uses the built-in Node test runner, so the test architecture does not introduce a second runtime or a test-only framework dependency.
+The deterministic test architecture uses the same Node boundary: `tools/run-tests.mjs` uses the built-in Node test runner, so the repository does not introduce a second runtime or a test-only framework dependency for unit/service/DOM/browser-contract layers.
 
-Formatting/linting remains intentionally separate from architecture changes; a repository-wide formatter must not be smuggled into a functional refactor slice.
+Formatting/linting remains intentionally separate from architecture changes; a repository-wide formatter must not be smuggled into a functional refactor slice. The post-v2.10 audit may recommend tooling changes only when they reduce demonstrated fragility or duplicated cost.
 
 ## Finalized dependency policy
 
-R9 resolves the lockfile deferral from R1.
+R9 resolved the lockfile deferral from R1; v2.10 made the maintenance contract explicit.
 
-`package-lock.json` is committed at lockfile version 3 and records the exact transitive dependency tree. Its root/workspace version stays synchronized with the formal `package.json#version`; the active `deploymentVersion` is deliberately not a dependency-lock version. CI installs with:
-
-```bash
-npm ci --no-audit --no-fund --progress=false
-```
+`package-lock.json` is committed at lockfile version 3 and records the exact transitive dependency tree. Its root/workspace version stays synchronized with the formal `package.json#version`; the active `deploymentVersion` is deliberately not a dependency-lock version. CI installs with `npm ci` against the committed lockfile.
 
 The direct dependency audit retained all five declared packages because each has an explicit runtime/tool owner:
 
@@ -62,13 +60,15 @@ The direct dependency audit retained all five declared packages because each has
 - `fast-xml-parser` — EPUB metadata parsing in build/upload tooling.
 - `jszip` — EPUB parsing plus the browser vendor asset.
 
-Dependency changes require an explicit PR, synchronized manifest/lockfile, and the complete regression/build gate. R9 intentionally does not add a bundler because no measured application problem requires one; the decision and rationale live in [`BUILD_DEPLOYMENT.md`](./BUILD_DEPLOYMENT.md).
+Dependency changes require an explicit PR, synchronized manifest/lockfile, and the complete regression/build gate. High-impact EPUB.js, AWS/B2, authentication/security, runtime-pin, and workflow changes require owner-specific review. The active policy is documented in [`../operations/DEPENDENCY_MAINTENANCE.md`](../operations/DEPENDENCY_MAINTENANCE.md).
+
+R9 intentionally does not add a bundler because no measured application problem requires one. The post-v2.10 audit retains the same rule: a future bundler decision requires a reproduced build/runtime problem and a measured benefit that outweighs migration and ownership cost.
 
 ## Asset cache-busting
 
 `tools/lib/build-context.mjs#version` is the single deploy-time cache-busting version for local JavaScript and CSS assets. It resolves from `package.json#deploymentVersion` when present, otherwise falling back to the formal `package.json#version`.
 
-R10 removes historical local `?v=...` query strings from authored v2 source. `tools/build.mjs` remains the sole cache-busting owner: after copying `src/` to `dist/`, the shared asset-versioning helper stamps local `/assets/*.js` and `/assets/*.css` references to:
+R10 removed historical local `?v=...` query strings from authored v2 source. `tools/build.mjs` remains the sole cache-busting owner: after copying `src/` to `dist/`, the shared asset-versioning helper stamps local `/assets/*.js` and `/assets/*.css` references to:
 
 ```text
 ?v=<active deployment version>
@@ -76,7 +76,7 @@ R10 removes historical local `?v=...` query strings from authored v2 source. `to
 
 This applies to direct HTML references and runtime-loaded/imported local JS/CSS references in copied text assets. It does not alter remote URLs, EPUB/media URLs, images, catalog URLs, or source files.
 
-R9 deliberately retains this native/static strategy instead of adding hashed bundles. A future bundler decision requires a measured benefit and an intentional replacement of this owner.
+The repository retains this native/static strategy instead of hashed bundles until measurements demonstrate a reason to replace it.
 
 ## Deterministic build metadata
 
@@ -92,7 +92,7 @@ Both `tools/build.mjs` and `tools/write-source.mjs` consume this context. Local 
 
 The old `npx serve dist` workflow is retired. Preview no longer downloads or executes an undeclared CLI at invocation time.
 
-## Repository root policy
+## Repository root and documentation policy
 
 The repository root is intentionally limited to normal project entry/configuration files and top-level source directories:
 
@@ -113,10 +113,21 @@ tests/
 tools/
 ```
 
-Project planning/history belongs under `docs/`; deterministic test source belongs under `tests/`; generated output belongs under ignored directories; temporary scratch files do not belong in the repository.
+Documentation ownership inside `docs/` is explicit:
+
+- `docs/architecture/` — accepted current architecture contracts;
+- `docs/roadmaps/` — one active roadmap plus compatibility pointers only;
+- `docs/audits/` — evidence, measurements, findings, and audit decisions;
+- `docs/operations/` — active maintenance/recovery policy;
+- `docs/releases/` — formal release records and clearly labeled historical compatibility files;
+- `docs/archive/` — completed/superseded planning and milestone history;
+- `docs/security/` — completed security milestone compatibility records;
+- `docs/style/` — product voice/design guidance.
+
+Deterministic test source belongs under `tests/`; generated output belongs under ignored directories; temporary scratch files do not belong in the repository.
 
 ## Dead-file rule
 
-A source file that is not a documented entrypoint, runtime import, tool input, test fixture/helper, or intentionally retained migration artifact should be removed rather than left as an ambiguous alternate implementation.
+A source file that is not a documented entrypoint, runtime import, tool input, test fixture/helper, operational record, or intentionally retained compatibility/history artifact should be removed rather than left as an ambiguous alternate implementation.
 
-R1 removed `src/assets/js/library-continue-meta.js` after its runtime ownership had already moved elsewhere. R10 owns the final removal of legacy compatibility entrypoints that are still intentionally retained and documented; R9 does not mix that cutover into build/deployment cleanup.
+R1 removed `src/assets/js/library-continue-meta.js` after its runtime ownership had already moved elsewhere. R10 removed the final known obsolete compatibility entrypoints and patch layers. The current audit explicitly rechecks for dead/unreachable code and stale compatibility paths, but deletion still requires evidence that the file is no longer an intentional owner or compatibility record.

@@ -1,9 +1,12 @@
 # Shadow Garden Dependency Maintenance
 
-**Status:** Active v2.10 operations policy  
-**Cadence:** Weekly, Monday morning (Asia/Manila)
+**Status:** Active operations policy (post-v2.10)  
+**Cadence:** Weekly, Monday morning (Asia/Manila)  
+**Current audit context:** [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md)
 
-Shadow Garden uses Dependabot only to surface reviewable update pull requests. It does not auto-merge dependency or GitHub Actions changes.
+Shadow Garden uses Dependabot only to surface reviewable update pull requests. It does not auto-merge dependency or GitHub Actions changes. The policy remains active after the v2.10 release; dependency maintenance is operational work, not a reopened v2.10 roadmap slice.
+
+The first post-release dependency cycle validated this policy in practice: the `fast-xml-parser` patch was rebased, reviewed, merged, and revalidated on exact `main`; the AWS S3 client update received heightened B2/credential-path review plus the same Verify and five-browser gates before merge.
 
 ## Automated scope
 
@@ -69,3 +72,5 @@ The reporter writes a human-readable GitHub job summary and can be run against p
 - It does not rewrite lockfile integrity or transitive metadata by hand.
 
 `tools/check-dependency-maintenance.mjs` enforces the dependency allow-list, cadence, scheduled audit contract, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests. `tools/check-runtime-lockfiles.mjs` separately enforces the reviewed Node/npm toolchain and committed lockfile invariants.
+
+The post-v2.10 audit may recommend reducing duplicated maintenance checks or improving observability, but it does not grant broader automation authority. Any change to this policy must preserve explicit human review for high-impact dependencies and the same release-quality verification floor.

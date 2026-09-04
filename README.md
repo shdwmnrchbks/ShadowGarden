@@ -4,7 +4,9 @@ Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudfl
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The active product line and latest formal release are **v2.10.0 — Maintenance & Supply Chain**, building on the completed v2.6 Reliability & Real-Browser Testing baseline, v2.8 Reader Experience, and v2.9 Keeper Productivity & Recovery. v2.10 adds controlled dependency/runtime maintenance, documentation and release-metadata freshness guards, and recurring security/recovery/browser/accessibility/realistic-scale health checks without changing the established Reader, Keeper, storage, security, or browser-local reading-data ownership model. Completed scope and future backlog are tracked in [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md).
+The accepted architecture baseline remains v2.0.0. The active product line and latest formal release are **v2.10.0 — Maintenance & Supply Chain**. The website feature set is intentionally considered sufficient for now; current work has shifted from feature expansion to an **audit-first maintenance phase**. Shadow Garden will inspect architecture, ownership, dead code, runtime behavior, realistic-scale performance, tests/tooling, security/recovery boundaries, CSS/accessibility, and documentation before deciding whether any refactor or optimization is actually needed. Stable subsystems should be left alone.
+
+The active audit/refactor/optimization roadmap is [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md), with evidence and decisions recorded under [`docs/audits/`](./docs/audits/). Completed roadmap history is archived under [`docs/archive/`](./docs/archive/).
 
 ## Current feature set
 
@@ -120,13 +122,13 @@ Security Milestones **1–9 are complete** and remain permanent contracts: priva
 
 Browser-local progress, bookmarks, Finished state, pinned state, Reader settings, Library preferences, and Adult acknowledgement remain local to the browser/profile. v2.10 introduces no server-side Reader account/history and scheduled maintenance checks receive no authority to mutate production security, storage, catalog, or release state.
 
-See [`docs/roadmaps/SECURITY_ROADMAP.md`](./docs/roadmaps/SECURITY_ROADMAP.md).
+The completed security plan is archived at [`docs/archive/SECURITY_ROADMAP.md`](./docs/archive/SECURITY_ROADMAP.md).
 
 ## v2 architecture baseline
 
 The R0–R10 full-codebase refactor is complete. `main` remains deployable, Security Milestones 1–9 and browser-local persistence contracts remain protected by CI, and the v2 source tree has explicit owners instead of accumulated patch layers.
 
-**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.10.0 Maintenance & Supply Chain is the active product line and latest formal release.**
+**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.10.0 Maintenance & Supply Chain is the active product line and latest formal release. The current audit is testing whether any part of that architecture now needs simplification or optimization; it does not presume another refactor is required.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -138,10 +140,12 @@ The R0–R10 full-codebase refactor is complete. `main` remains deployable, Secu
 - Reconciled mobile navigation: [`docs/architecture/MOBILE_NAVIGATION.md`](./docs/architecture/MOBILE_NAVIGATION.md)
 - R9 build/deployment ownership: [`docs/architecture/BUILD_DEPLOYMENT.md`](./docs/architecture/BUILD_DEPLOYMENT.md)
 - R10/v2 baseline: [`docs/architecture/V2_BASELINE.md`](./docs/architecture/V2_BASELINE.md)
+- Completed refactor roadmap: [`docs/archive/REFACTOR_ROADMAP.md`](./docs/archive/REFACTOR_ROADMAP.md)
+- Current audit roadmap: [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md)
+- Current audit evidence: [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md)
 - v2.5 motion contract: [`docs/architecture/MOTION_SYSTEM.md`](./docs/architecture/MOTION_SYSTEM.md)
 - v2.6 accessibility contract: [`docs/architecture/ACCESSIBILITY_TESTING.md`](./docs/architecture/ACCESSIBILITY_TESTING.md)
 - v2.10 maintenance baseline: [`docs/architecture/MAINTENANCE_BASELINE.md`](./docs/architecture/MAINTENANCE_BASELINE.md)
-- Current roadmap: [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md)
 - v2.8.0 release notes: [`docs/releases/v2.8.0.md`](./docs/releases/v2.8.0.md)
 - v2.9.0 release notes: [`docs/releases/v2.9.0.md`](./docs/releases/v2.9.0.md)
 - v2.10.0 release notes: [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md)
@@ -251,6 +255,7 @@ package.json + package-lock.json
 ├─ package-lock.json
 ├─ docs/
 │  ├─ architecture/
+│  ├─ audits/
 │  ├─ releases/
 │  ├─ roadmaps/
 │  ├─ archive/
@@ -343,4 +348,4 @@ npm run b2:upload -- "path/to/book.epub"
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the completed current roadmap and cross-release backlog, and [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md) for the latest formal release record.
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the active post-v2.10 audit/refactor/optimization roadmap, [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md) for findings and measurements, [`docs/archive/README.md`](./docs/archive/README.md) for completed planning history, and [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md) for the latest formal release record.

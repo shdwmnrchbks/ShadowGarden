@@ -1,5 +1,15 @@
 # Shadow Garden Changelog
 
+## 2.10.0 — Maintenance & Supply Chain
+- Added controlled dependency maintenance for the five direct npm dependencies and reviewed GitHub Actions pins, keeping EPUB.js, AWS/B2, authentication/security-sensitive, runtime, and workflow changes under explicit human review and the full release gates.
+- Added deterministic dependency/audit reporting with an explicit actionable-versus-inherited/non-actionable policy instead of auto-remediation.
+- Standardized the maintenance runtime on Node 22.23.2 and npm 10.9.8, with committed root/E2E lockfiles installed through `npm ci` and checked for runtime/lockfile integrity.
+- Added documentation freshness and release-metadata guards that synchronize the active roadmap/deployment version, formal package version, lockfile metadata, changelog, release notes, build metadata, and publisher ownership.
+- Added a monthly/manual Baseline Health workflow covering repository/security/recovery/deterministic checks, production build, and a deterministic 300-series Library performance sanity tripwire.
+- Extended the permanent Real Browser E2E workflow with monthly/manual baseline reruns across Chromium, Firefox, WebKit, Chromium Mobile, and WebKit Mobile, retaining accessibility and failure-artifact coverage.
+- Kept scheduled maintenance verification read-only with respect to production state: no automatic dependency fixes, catalog/storage mutation, destructive production recovery, or automatic release publication.
+- Kept the completed v2.10 maintenance baseline behind the same exact-main Verify, five-browser, deployment-match, and production-smoke release contract used by prior v2 releases.
+
 ## 2.9.0 — Keeper Productivity & Recovery
 - Added safe multi-series metadata editing for taxonomy, series status, translation status, and translation credits with explicit Keep/Add/Replace/Clear semantics, per-series diff preview, canonical validation, and a safety backup before writes.
 - Hardened New Books review with exact-duplicate protection, non-blocking similar-volume warnings, concise import/preflight reporting, and deterministic one-click fixes only where changes are reversible and unambiguous.
@@ -262,37 +272,6 @@
 ## 1.3.0 — Visual Page Cache
 - Added a first-run EPUB spine scanner that identifies genuinely standalone cover/illustration XHTML and SVG pages before the live reader lays them out.
 - Store prepared visual-page assets locally in a dedicated IndexedDB cache keyed by book URL, so later opens can reuse the prepared pages without rescanning the EPUB.
-- Convert JPEG/PNG/AVIF and compatible SVG visual pages to local WebP copies when the browser encoder supports it; preserve existing WebP/GIF assets or SVG fallbacks when conversion is unnecessary or unavailable.
-- Extract the underlying raster directly from common SVG-wrapped cover pages instead of asking EPUB.js to continuously size the original `100vh`/percentage-based SVG wrapper.
-- Replace detected visual spine documents with a deterministic synthetic one-viewport image page before EPUB.js performs its first layout measurement in both Pages and Continuous modes.
-- Keep detection intentionally conservative: normal chapters, title pages with meaningful text, and small decorative section-break artwork remain normal EPUB XHTML.
-- Keep the canonical Page Map rule that a standalone visual spine item represents one device page while removing the unstable original visual XHTML from the live Continuous manager.
-- Show `Preparing visual pages…` during uncached first-run preprocessing and fall back to the original EPUB page if preparation of a particular book cannot be completed.
-- Right-align the Continuous seekbar page counter and let large `current/total` values grow leftward, preventing page counts in the thousands from clipping off the right side of the screen.
-
-## 1.2.2 — Runtime Navigation & Adult Control Rewrite
-- Replaced EPUB.js Continuous recursive `check()` / `fill()` loading with a bounded iterative spine loader that stops after a finite number of inserts and aborts repeated no-growth media boundaries instead of letting the scroll queue lock indefinitely.
-- Rebound EPUB.js's already-created debounced `_scrolled` callback to the bounded controller so normal wheel/touch scrolling cannot keep calling the superseded recursive handler.
-- Made seekbar dragging preview-only and deduplicate the second identical Continuous `display()` inside the same committed seek transaction, while leaving the canonical Pages ↔ Continuous location reassertion intact.
-- Added direct wheel/touch boundary recovery for full-page covers and standalone illustrations so the neighboring spine item can load even when the current visual page exactly fills the scroll extent.
-- Made the end-of-volume page depend on the real final linear spine item instead of progress-text thresholds; Paginated shows it when advancing beyond the actual last page, while Continuous appends it physically after the final rendered spine view.
-- Removed the obsolete v1.2.1 standalone end-page script so completion has one authoritative controller.
-- Replaced the Add New Book and Manage Series Adult Library checkbox DOM nodes after legacy admin scripts initialize, removing the conflicting listeners that rebuilt/collapsed their dialogs.
-- Keep Add New Book scope changes in the active batch model without redrawing the queue during the checkbox event, while direct Add-to-Series continues to hide the redundant toggle and inherit its series shelf.
-- Rebuilt Series Editor geometry as explicit header / scrolling-content / footer grid rows and stabilized the visually-hidden checkbox focus box so changing Main ↔ 18+ cannot collapse the editor body.
-
-## 1.2.1 — Reader & Adult Toggle Stability
-- Changed reader seekbar scrubbing to preview only while dragging and navigate once on release, preventing overlapping Continuous `display()` cycles.
-- Coalesce duplicate/overlapping EPUB.js display requests and top-level Continuous fill work, while preserving EPUB.js recursive fill behavior.
-- Add wheel/touch boundary recovery so Continuous can append/prepend the next view even when a standalone image exactly fills the viewport and no scroll event fires.
-- Replaced the automatic percentage-triggered Volume Complete dialog with an end-of-volume page: Pages mode reaches it only by advancing past the final canonical page; Continuous receives it as a normal block after the final book content.
-- Prevent the Add New Book Adult toggle from rebuilding the entire batch queue during the checkbox change; scope is saved safely without blanking the modal.
-- Hide the redundant Adult toggle when adding directly to an existing series and keep a clear inherited Main/18+ information banner.
-- Lock the Series Editor shell to a stable flex height and preserve scroll position when changing Adult Library scope, preventing the editor body from collapsing.
-
-## 1.2.0 — Canonical Device Page Map
-- Added a layout-specific canonical Page Map generated from real paginated rendering for the current device viewport, font, font size, line height, text-width setting, spread mode, and EPUB publication/spine signature.
-- Cache completed Page Maps in browser IndexedDB so a previously measured book/layout can restore page tracking immediately on later opens.
 - Generate pagination in an isolated hidden EPUB.js sandbox so background page measurement cannot take over or destabilize the live Paginated/Continuous rendition.
 - Prioritize the current spine item plus its previous/next neighbors first, then continue the rest of the book without blocking reading; CFI/percentage tracking remains the fallback until the full map is ready.
 - Treat standalone text-free cover/illustration XHTML as exactly one canonical page, while normal chapter images and small in-text ornaments remain part of their surrounding text pagination.

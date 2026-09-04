@@ -1,12 +1,12 @@
 /* Shadow Garden R4.1 — Reader application orchestrator. */
 import { createReaderStorage } from "./storage.js";
 import { createThemeController } from "./theme.js";
-import { createTocController } from "./toc.js?v=1.2.3";
-import { createPageMapController } from "./page-map.js?v=1.2.0";
+import { createTocController } from "./toc.js";
+import { createPageMapController } from "./page-map.js";
 import { createSettingsController } from "./settings.js";
 import { createProgressController } from "./progress-controller.js";
 import { createBookmarksController } from "./bookmarks-controller.js";
-import { createBookSearchController } from "./book-search.js?v=2.8.1";
+import { createBookSearchController } from "./book-search.js";
 import { createPageNavigationInput } from "./page-navigation-input.js";
 import { createImageFocusController } from "./image-focus.js";
 import { createCompletionController } from "./completion.js";

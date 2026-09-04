@@ -51,7 +51,9 @@ export async function getTextObjectWithIntegrity(aws, key) {
   const text = await response.text(), actualBytes = utf8Bytes(text).byteLength;
   const expectedSha256 = String(response.headers.get(BACKUP_SHA256_HEADER) || "").trim().toLowerCase();
   const expectedBytesRaw = String(response.headers.get(BACKUP_BYTES_HEADER) || "").trim();
-  const parsedExpectedBytes = Number(expectedBytesRaw), expectedBytes = Number.isSafeInteger(parsedExpectedBytes) && parsedExpectedBytes >= 0 ? parsedExpectedBytes : null;
+  const hasExpectedBytes = /^\d+$/.test(expectedBytesRaw);
+  const parsedExpectedBytes = hasExpectedBytes ? Number(expectedBytesRaw) : NaN;
+  const expectedBytes = hasExpectedBytes && Number.isSafeInteger(parsedExpectedBytes) ? parsedExpectedBytes : null;
   const hasChecksum = /^[a-f0-9]{64}$/.test(expectedSha256), actualSha256 = hasChecksum ? await sha256Text(text) : "";
   return { text, integrity: {
     present: true, hasChecksum, expectedSha256: hasChecksum ? expectedSha256 : "", actualSha256,

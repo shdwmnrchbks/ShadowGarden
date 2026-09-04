@@ -138,6 +138,39 @@ function loadScript(document, src) {
   });
 }
 
+function abortError() {
+  const error = new Error("Canonical Page Map generation superseded");
+  error.name = "AbortError";
+  return error;
+}
+
+function abortable(promise, signal) {
+  if (!signal) return Promise.resolve(promise);
+  if (signal.aborted) return Promise.reject(abortError());
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      signal.removeEventListener("abort", onAbort);
+      reject(abortError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve(promise).then(
+      value => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      error => { signal.removeEventListener("abort", onAbort); reject(error); }
+    );
+  });
+}
+
+function destroySandbox(sandbox) {
+  if (!sandbox || sandbox.destroyed) return;
+  sandbox.destroyed = true;
+  try { sandbox.rendition?.destroy?.(); } catch {}
+  try { sandbox.book?.destroy?.(); } catch {}
+  try { sandbox.frame?.remove?.(); } catch {}
+  sandbox.rendition = null;
+  sandbox.book = null;
+  sandbox.frame = null;
+}
+
 async function waitForMedia(view, frame) {
   const document = view?.contents?.document;
   if (!document) return;
@@ -160,8 +193,10 @@ async function waitForMedia(view, frame) {
   await framePaint(frame);
 }
 
-async function createSandbox({ bookUrl, metrics, paginatedTheme }) {
+async function createSandbox({ bookUrl, metrics, paginatedTheme, signal, onCreate }) {
   const frame = document.createElement("iframe");
+  const sandbox = { frame, book: null, rendition: null, destroyed: false };
+  onCreate?.(sandbox);
   frame.tabIndex = -1;
   frame.setAttribute("aria-hidden", "true");
   frame.dataset.sgPageMapSandbox = "1";
@@ -178,35 +213,44 @@ async function createSandbox({ bookUrl, metrics, paginatedTheme }) {
   });
   document.body.appendChild(frame);
 
-  const documentRef = frame.contentDocument;
-  documentRef.open();
-  documentRef.write("<!doctype html><html><head><meta charset=\"utf-8\"><style>html,body,#sgPageMapHost{margin:0;width:100%;height:100%;overflow:hidden}</style></head><body><div id=\"sgPageMapHost\"></div></body></html>");
-  documentRef.close();
-
-  await loadScript(documentRef, "/assets/vendor/jszip.min.js");
-  await loadScript(documentRef, "/assets/vendor/epub.min.js");
-  const epub = frame.contentWindow?.ePub;
-  if (typeof epub !== "function") throw new Error("EPUB.js page-map sandbox did not initialize");
-
-  const absoluteBookUrl = new URL(bookUrl, location.href).href;
-  const book = epub(absoluteBookUrl);
-  await book.ready;
-  const host = documentRef.getElementById("sgPageMapHost");
-  const rendition = book.renderTo(host, {
-    width: metrics.width,
-    height: metrics.height,
-    manager: "default",
-    flow: "paginated",
-    spread: metrics.spread === "single" ? "none" : "auto",
-    minSpreadWidth: 900
-  });
-  try { rendition.themes.default(paginatedTheme); } catch {}
   try {
-    if (metrics.spread === "single") rendition.spread("none");
-    else rendition.spread("auto", 900);
-  } catch {}
+    if (signal?.aborted) throw abortError();
+    const documentRef = frame.contentDocument;
+    documentRef.open();
+    documentRef.write("<!doctype html><html><head><meta charset=\"utf-8\"><style>html,body,#sgPageMapHost{margin:0;width:100%;height:100%;overflow:hidden}</style></head><body><div id=\"sgPageMapHost\"></div></body></html>");
+    documentRef.close();
 
-  return { frame, book, rendition };
+    await abortable(loadScript(documentRef, "/assets/vendor/jszip.min.js"), signal);
+    await abortable(loadScript(documentRef, "/assets/vendor/epub.min.js"), signal);
+    const epub = frame.contentWindow?.ePub;
+    if (typeof epub !== "function") throw new Error("EPUB.js page-map sandbox did not initialize");
+
+    const absoluteBookUrl = new URL(bookUrl, location.href).href;
+    const book = epub(absoluteBookUrl);
+    sandbox.book = book;
+    await abortable(book.ready, signal);
+    if (signal?.aborted) throw abortError();
+    const host = documentRef.getElementById("sgPageMapHost");
+    const rendition = book.renderTo(host, {
+      width: metrics.width,
+      height: metrics.height,
+      manager: "default",
+      flow: "paginated",
+      spread: metrics.spread === "single" ? "none" : "auto",
+      minSpreadWidth: 900
+    });
+    sandbox.rendition = rendition;
+    try { rendition.themes.default(paginatedTheme); } catch {}
+    try {
+      if (metrics.spread === "single") rendition.spread("none");
+      else rendition.spread("auto", 900);
+    } catch {}
+
+    return sandbox;
+  } catch (error) {
+    destroySandbox(sandbox);
+    throw error;
+  }
 }
 
 function sandboxView(rendition, section) {
@@ -218,11 +262,11 @@ function sandboxView(rendition, section) {
   try { return views?.first?.() || views?.all?.()?.[0] || null; } catch { return null; }
 }
 
-async function mapSection({ rendition, frame, section }) {
-  await rendition.display(section.href);
+async function mapSection({ rendition, frame, section, signal }) {
+  await abortable(rendition.display(section.href), signal);
   const view = sandboxView(rendition, section);
   if (!view) throw new Error(`Could not render ${section.href}`);
-  await waitForMedia(view, frame);
+  await abortable(waitForMedia(view, frame), signal);
 
   const manager = rendition.manager;
   const layout = manager?.layout;
@@ -319,6 +363,7 @@ export function createPageMapController({
   let pagesBySection = new Map();
   let generationSerial = 0;
   let generationPromise = null;
+  let activeGeneration = null;
 
   function settingsSnapshot() {
     const settings = getSettings?.() || {};
@@ -374,37 +419,55 @@ export function createPageMapController({
     return fingerprintData().fingerprint;
   }
 
+  function generationIsCurrent(record) {
+    return Boolean(record && !record.controller.signal.aborted && record.serial === generationSerial);
+  }
+
+  function cancelGeneration() {
+    const record = activeGeneration;
+    if (!record) return;
+    activeGeneration = null;
+    try { record.controller.abort(); } catch {}
+    destroySandbox(record.sandbox);
+    generationPromise = null;
+  }
+
   async function generate(spec, anchorCfi, serial) {
-    let sandbox = null;
+    const record = { serial, controller: new AbortController(), sandbox: null };
+    activeGeneration = record;
     const sectionMap = new Map();
     try {
-      sandbox = await createSandbox({
+      const sandbox = await createSandbox({
         bookUrl,
         metrics: spec.metrics,
-        paginatedTheme: getPaginatedTheme?.() || {}
+        paginatedTheme: getPaginatedTheme?.() || {},
+        signal: record.controller.signal,
+        onCreate: value => { record.sandbox = value; }
       });
-      if (serial !== generationSerial) return null;
+      if (!generationIsCurrent(record)) return null;
 
       const sandboxItems = sandbox.book.spine.spineItems || [];
       const order = prioritizedIndices(book, anchorCfi);
       for (const index of order) {
-        if (serial !== generationSerial) return null;
+        if (!generationIsCurrent(record)) return null;
         const section = sandboxItems.find(item => Number(item.index) === index);
         if (!section?.href) continue;
         let pages;
         try {
-          pages = await mapSection({ rendition: sandbox.rendition, frame: sandbox.frame, section });
+          pages = await mapSection({ rendition: sandbox.rendition, frame: sandbox.frame, section, signal: record.controller.signal });
         } catch (error) {
+          if (error?.name === "AbortError" || !generationIsCurrent(record)) return null;
           console.warn(`Canonical page fallback for ${section.href}`, error);
           pages = fallbackSectionPage(section);
         }
+        if (!generationIsCurrent(record)) return null;
         sectionMap.set(index, pages);
         partialSections.set(index, pages);
         onUpdate?.({ type: "section", sectionIndex: index, pages, completedSections: sectionMap.size, totalSections: order.length });
-        await sleep(0);
+        await abortable(sleep(0), record.controller.signal);
       }
 
-      if (serial !== generationSerial) return null;
+      if (!generationIsCurrent(record)) return null;
       const pages = finalizeSections(sectionMap);
       const map = {
         key: `${bookUrl}::${spec.fingerprint}`,
@@ -421,13 +484,14 @@ export function createPageMapController({
       cachePut(map).catch(() => {});
       return map;
     } catch (error) {
-      if (serial === generationSerial) onUpdate?.({ type: "error", error });
-      console.warn("Canonical page map generation failed", error);
+      if (error?.name !== "AbortError" && generationIsCurrent(record)) {
+        onUpdate?.({ type: "error", error });
+        console.warn("Canonical page map generation failed", error);
+      }
       return null;
     } finally {
-      try { sandbox?.rendition?.destroy?.(); } catch {}
-      try { sandbox?.book?.destroy?.(); } catch {}
-      try { sandbox?.frame?.remove?.(); } catch {}
+      destroySandbox(record.sandbox);
+      if (activeGeneration === record) activeGeneration = null;
       if (serial === generationSerial) generationPromise = null;
     }
   }
@@ -437,6 +501,7 @@ export function createPageMapController({
     if (!force && activeMap?.fingerprint === spec.fingerprint) return { map: activeMap, cached: true };
     if (!force && generationPromise && activeFingerprint === spec.fingerprint) return { map: activeMap, generating: true };
 
+    cancelGeneration();
     generationSerial += 1;
     const serial = generationSerial;
     activeFingerprint = spec.fingerprint;

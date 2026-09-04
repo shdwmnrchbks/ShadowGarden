@@ -4,11 +4,11 @@ This is the single documentation index for Shadow Garden. Architecture contracts
 
 ## Current project state
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**. Product feature expansion is paused; the active cycle is an evidence-first audit of the mature v2 codebase, with refactor and optimization work performed only where the audit demonstrates a concrete need.
-- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — active findings/measurements/decisions record. “No change needed” and “deferred” are valid audit outcomes.
-- **Active deployment/product line:** v2.10.0 — Maintenance & Supply Chain.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**. v2.11 is an evidence-first engineering audit/refactor/optimization cycle; refactor and optimization work are performed only where the audit demonstrates a concrete need.
+- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — active v2.11 findings/measurements/decisions record against the post-v2.10 baseline. “No change needed” and “deferred” are valid audit outcomes.
+- **Active deployment/product line:** v2.11.0 — Engineering Audit, Refactor & Optimization.
 - **Latest formal release:** v2.10.0 — Maintenance & Supply Chain.
-- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — active version ownership. The audit itself does not require a new release number; a later release is chosen only if justified implementation work materially changes the shipped application.
+- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — active version ownership. Deployment development may advance ahead of the formal release; a formal v2.11.0 release is cut only after accepted audit-driven implementation is complete and release metadata deliberately converges.
 
 The completed v2.6–v2.10 product roadmap, earlier R0–R10 refactor roadmap, Security & Anti-Abuse roadmap, and completed milestone plans are canonically archived under [`archive/README.md`](./archive/README.md). Completed plans must not remain marked as current work.
 
@@ -42,7 +42,8 @@ The completed v2.6–v2.10 product roadmap, earlier R0–R10 refactor roadmap, S
 ## Audit records
 
 - [`audits/README.md`](./audits/README.md) — audit evidence standard and decision vocabulary.
-- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — active post-v2.10 findings register, measurements, implementation candidates, and skip/defer decisions.
+- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — active v2.11 findings register, measurements, implementation candidates, and skip/defer decisions.
+- [`audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](./audits/POST_V2_10_ENTRYPOINT_INVENTORY.md) — current ownership/entrypoint inventory compared with the frozen v2.0 manifest.
 
 Audit documents record evidence; architecture contracts remain authoritative for accepted ownership. If an audit justifies a change, the relevant architecture contract must be updated with the implementation rather than leaving the audit as a shadow source of truth.
 
@@ -85,7 +86,7 @@ Security milestone records remain useful historical evidence, but the roadmap it
 The permanent release baseline combines deterministic checks with real browsers and recurring maintenance baselines:
 
 - `npm test` — unit, service, DOM, and deterministic browser-contract layers;
-- `npm run check` — architecture/security, dependency/runtime policy, documentation/release freshness, realistic-scale sanity, and deterministic repository guards;
+- `npm run check` — architecture/security, dependency/runtime policy, documentation/release freshness, authored cache-version ownership, realistic-scale sanity, and deterministic repository guards;
 - `npm run build` — repeats the full check through `prebuild` before generating production output;
 - `npm run test:e2e` — Playwright against generated production output across Chromium/Firefox/WebKit desktop and Chromium/WebKit mobile;
 - `.github/workflows/verify.yml` — complete repository checks and production build;

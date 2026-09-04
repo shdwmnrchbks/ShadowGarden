@@ -24,46 +24,61 @@ function hookList(){
   };
 }
 
-test('EPUB.js lifecycle compatibility patch releases manager listeners and rendition-owned spine hooks',()=>{
+test('EPUB.js lifecycle compatibility patch releases Default and Continuous manager ownership',()=>{
   const previousWindow=globalThis.window;
   const fakeWindow=eventTarget();
   globalThis.window=fakeWindow;
 
   try{
     const scroller=eventTarget();
-    const orientationListener=()=>{};
-    fakeWindow.addEventListener('orientationchange',orientationListener);
 
     class Manager{
       constructor(){
-        this.settings={fullsize:false};
+        this.settings={fullsize:false,snap:false};
         this.container=scroller;
-        this.stage={orientationChangeFunc:orientationListener};
+        this.stage={orientationChangeFunc:()=>{}};
+        fakeWindow.addEventListener('orientationchange',this.stage.orientationChangeFunc);
         this.destroyed=false;
       }
       onScroll(){}
-      addEventListeners(){throw new Error('unpatched addEventListeners called')}
-      removeEventListeners(){throw new Error('unpatched removeEventListeners called')}
+      addEventListeners(){throw new Error('unpatched Default addEventListeners called')}
+      removeEventListeners(){throw new Error('unpatched Default removeEventListeners called')}
       destroy(){this.removeEventListeners();this.destroyed=true}
     }
 
+    class ContinuousManager extends Manager{
+      constructor(){
+        super();
+        this.isPaginated=false;
+        this.scrollSetupCount=0;
+      }
+      addScrollListeners(){
+        this.scrollSetupCount+=1;
+        this._onScroll=this.onScroll.bind(this);
+        this.container.addEventListener('scroll',this._onScroll);
+        this._scrolled=()=>{};
+      }
+      addEventListeners(){throw new Error('unpatched Continuous addEventListeners called')}
+      removeEventListeners(){throw new Error('unpatched Continuous removeEventListeners called')}
+    }
+
     class Rendition{
-      constructor(book){
+      constructor(book,options={}){
         this.book=book;
         this.book.spine.hooks.content.register(this.injectIdentifier.bind(this));
-        const ManagerClass=this.requireManager('default');
+        const ManagerClass=this.requireManager(options.manager||'default');
         this.manager=new ManagerClass();
         this.manager.addEventListeners();
         this.destroyed=false;
       }
       injectIdentifier(){}
-      requireManager(){return Manager}
+      requireManager(manager){return manager==='continuous'?ContinuousManager:Manager}
       destroy(){this.manager.destroy();this.book=undefined;this.destroyed=true}
     }
 
     class Book{
       constructor(){this.spine={hooks:{content:hookList()}}}
-      renderTo(){this.rendition=new Rendition(this);return this.rendition}
+      renderTo(_viewer,options={}){this.rendition=new Rendition(this,options);return this.rendition}
     }
 
     // EPUB.js 0.3.93's browser bundle exposes only the coarse "0.3" API version.
@@ -73,17 +88,36 @@ test('EPUB.js lifecycle compatibility patch releases manager listeners and rendi
     assert.equal(installEpubLifecyclePatch(epub),true,'installation should be idempotent');
 
     const book=new Book();
-    const rendition=book.renderTo('viewer');
+    const defaultRendition=book.renderTo('viewer',{manager:'default'});
 
-    assert.equal(book.spine.hooks.content.list().length,1,'Rendition constructor hook should be visible while live');
+    assert.equal(book.spine.hooks.content.list().length,1,'Default rendition hook should be visible while live');
     assert.equal(fakeWindow.count('unload'),1);
     assert.equal(fakeWindow.count('orientationchange'),1);
     assert.equal(scroller.count('scroll'),1);
 
-    rendition.destroy();
+    defaultRendition.destroy();
 
-    assert.equal(rendition.destroyed,true);
-    assert.equal(book.spine.hooks.content.list().length,0,'destroy should release the hook that roots the old Rendition');
+    assert.equal(defaultRendition.destroyed,true);
+    assert.equal(book.spine.hooks.content.list().length,0,'Default destroy should release its book hook');
+    assert.equal(fakeWindow.count('unload'),0);
+    assert.equal(fakeWindow.count('orientationchange'),0);
+    assert.equal(scroller.count('scroll'),0);
+
+    // Default is deliberately exercised first. Continuous inherits from Default, so this
+    // catches the inherited patch-marker bug that previously suppressed its own leak fix.
+    const continuousRendition=book.renderTo('viewer',{manager:'continuous'});
+
+    assert.equal(book.spine.hooks.content.list().length,1,'Continuous rendition hook should be visible while live');
+    assert.equal(continuousRendition.manager.scrollSetupCount,1,'Continuous native scroll setup must be preserved');
+    assert.equal(typeof continuousRendition.manager._scrolled,'function','Continuous debounce path must remain installed');
+    assert.equal(fakeWindow.count('unload'),1);
+    assert.equal(fakeWindow.count('orientationchange'),1);
+    assert.equal(scroller.count('scroll'),1);
+
+    continuousRendition.destroy();
+
+    assert.equal(continuousRendition.destroyed,true);
+    assert.equal(book.spine.hooks.content.list().length,0,'Continuous destroy should release its book hook');
     assert.equal(fakeWindow.count('unload'),0);
     assert.equal(fakeWindow.count('orientationchange'),0);
     assert.equal(scroller.count('scroll'),0);

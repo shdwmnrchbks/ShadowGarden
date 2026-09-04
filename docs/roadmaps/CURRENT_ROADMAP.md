@@ -3,9 +3,9 @@
 > **Status:** 🚧 **CURRENT WORK IN PROGRESS**  
 > **Starting baseline:** v2.6.x — Reliability & Reader hardening  
 > **Active release:** v2.10.0 — Maintenance & Supply Chain  
-> **Updated:** 2026-09-03
+> **Updated:** 2026-09-04
 
-Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, the v2.8 Reader Experience milestone, and the v2.9 Keeper Productivity & Recovery milestone. The next substantial product milestone is Maintenance & Supply Chain. Performance work remains intentionally limited to realistic personal-library scale and should not displace active operational work unless measurements expose a real bottleneck.
+Shadow Garden has completed its major architecture refactor, security hardening, UX polish, motion/continuity milestone, the v2.6 real-browser reliability milestone, targeted v2.6.x Reader fixes, the v2.8 Reader Experience milestone, and the v2.9 Keeper Productivity & Recovery milestone. The v2.10 Maintenance & Supply Chain implementation scope is now complete; the active line remains current until an explicit formal release cut or a successor roadmap takes ownership. Performance work remains intentionally limited to realistic personal-library scale and should not displace operational work unless measurements expose a real bottleneck.
 
 Completed roadmaps and milestone records are archived under [`../archive/README.md`](../archive/README.md). This file is the single active project roadmap. Completed releases inside this roadmap remain recorded here so the handoff into the next active release is explicit.
 
@@ -36,7 +36,7 @@ Completed roadmaps and milestone records are archived under [`../archive/README.
 | **v2.7.0 — Performance Sanity** | ⏸ Deferred / optional | Keep a lightweight guard for realistic ~300-series libraries and large EPUBs; optimize only if measurements justify it |
 | **v2.8.0 — Reader Experience** | ✅ Done | Improve long-session reading ergonomics, navigation, focused typography choices, search behavior, and EPUB resilience |
 | **v2.9.0 — Keeper Productivity & Recovery** | ✅ Done | Make library administration faster and prove recovery from catalog/storage failures |
-| **v2.10.0 — Maintenance & Supply Chain** | 🟨 In progress | Add controlled dependency maintenance, audit visibility, documentation freshness, and long-term operational checks |
+| **v2.10.0 — Maintenance & Supply Chain** | 🟨 Release cut pending | Controlled dependency maintenance, audit visibility, documentation/version guards, and periodic operational baselines are implemented |
 
 ---
 
@@ -246,24 +246,27 @@ This milestone is deliberately bounded. It may be completed as a small standalon
 
 # v2.10.0 — Maintenance & Supply Chain
 
-**Status:** 🟨 In progress  
+**Status:** 🟨 Implementation complete; formal release cut pending  
+**Implementation completed:** 2026-09-04  
 **Goal:** keep the mature application healthy without turning maintenance automation into a source of unreviewed changes.
 
 ## Scope
 
-- [ ] Add controlled dependency update automation for the five direct dependencies and GitHub Actions pins.
-- [ ] Do not auto-merge EPUB.js, AWS/B2, authentication, or security-sensitive dependency changes without the complete verification matrix.
-- [ ] Add dependency/audit reporting with an explicit policy for actionable vs non-actionable findings.
-- [ ] Review Node/npm version policy and lockfile integrity on a regular cadence.
-- [ ] Add a documentation freshness guard for current version/current roadmap links where practical.
-- [ ] Keep release notes, package version, lockfile version metadata, and production version metadata synchronized.
-- [ ] Periodically rerun the security, recovery, browser, accessibility, and realistic-scale performance matrices against the current baseline.
+- [x] Add controlled dependency update automation for the five direct dependencies and GitHub Actions pins.
+- [x] Do not auto-merge EPUB.js, AWS/B2, authentication, or security-sensitive dependency changes without the complete verification matrix.
+- [x] Add dependency/audit reporting with an explicit policy for actionable vs non-actionable findings.
+- [x] Review Node/npm version policy and lockfile integrity on a regular cadence.
+- [x] Add a documentation freshness guard for current version/current roadmap links where practical.
+- [x] Keep release notes, package version, lockfile version metadata, and production version metadata synchronized.
+- [x] Periodically rerun the security, recovery, browser, accessibility, and realistic-scale performance matrices against the current baseline.
 
 ## v2.10.0 acceptance
 
-- [ ] Dependency changes are reproducible, reviewable, and covered by the same release gates as product changes.
-- [ ] Current documentation no longer presents an archived roadmap as active work.
-- [ ] Operational/security checks remain visible without adding fake client-side protection or unnecessary infrastructure.
+- [x] Dependency changes are reproducible, reviewable, and covered by the same release gates as product changes.
+- [x] Current documentation no longer presents an archived roadmap as active work.
+- [x] Operational/security checks remain visible without adding fake client-side protection or unnecessary infrastructure.
+
+Implementation is complete across the controlled dependency-maintenance, policy-driven audit reporting, reviewed Node/npm and lockfile-integrity, documentation freshness, release-metadata synchronization, and periodic baseline slices. `package.json#version` remains v2.9.0 while `deploymentVersion` remains v2.10.0 until an explicit formal release cut aligns package/lockfile/release-note metadata and passes the permanent exact-main production publisher gates.
 
 ---
 

@@ -1,9 +1,11 @@
 # Shadow Garden Maintenance Baseline
 
-**Status:** Active v2.10 maintenance contract  
-**Scope:** scheduled health checks for the current production baseline without introducing automatic product changes or destructive production recovery.
+**Status:** Active maintenance contract established in v2.10 and retained through v2.11  
+**Scope:** scheduled health checks for the current production/development baseline without introducing automatic product changes or destructive production recovery.
 
-Shadow Garden v2.10 treats recurring verification as operational evidence, not as an authority to mutate dependencies, catalogs, storage, authentication, or release state. The scheduled baseline reuses the same deterministic owners and real-browser suites already used by normal development and release gates.
+Shadow Garden v2.10 established recurring verification as operational evidence, not as an authority to mutate dependencies, catalogs, storage, authentication, or release state. v2.11 retains that model while the repository enters an audit-first engineering phase. The scheduled baseline reuses the same deterministic owners and real-browser suites already used by normal development and release gates.
+
+The v2.11 engineering audit may use these baselines as evidence, but it must not reinterpret a broad tripwire as proof that optimization is required. See [`ENGINEERING_AUDIT.md`](./ENGINEERING_AUDIT.md).
 
 ## Monthly deterministic baseline
 
@@ -11,7 +13,7 @@ Shadow Garden v2.10 treats recurring verification as operational evidence, not a
 
 - `npm run check` for repository, dependency-maintenance, runtime/lockfile, documentation, release-metadata, baseline-maintenance, and realistic-scale contracts;
 - `npm run check:security` for deterministic security invariants;
-- `npm test` for every unit, service, DOM, and browser-contract layer, including the catalog recovery drill/readiness/anchor/purge coverage;
+- `npm test` for every unit, service, DOM, and browser-contract layer, including catalog recovery drill/readiness/anchor/purge coverage;
 - `npm run performance:sanity` for the expected-scale Library tripwire;
 - `npm run build` to prove the verified baseline still produces the deployment artifact.
 
@@ -31,9 +33,11 @@ Because the workflow runs the complete Playwright suite rather than a filtered m
 
 ## Realistic-scale performance sanity
 
-`tools/performance-sanity.mjs` creates a deterministic **300-series synthetic catalog**, matching the upper end of the roadmap's expected 250–300-series range without committing real library metadata. It exercises the real `library-model` filtering, sorting, search, and contextual-filter computations.
+`tools/performance-sanity.mjs` creates a deterministic **300-series synthetic catalog**, matching the upper end of Shadow Garden's expected personal-library range without committing real library metadata. It exercises the real `library-model` filtering, sorting, search, and contextual-filter computations.
 
 The check uses a deliberately broad **5-second severe-regression ceiling**. This is a CI tripwire for obvious pathological regressions, not a microbenchmark, latency SLO, or justification for virtualization/framework work. Normal CI also executes the sanity check so the fixture and runner cannot silently rot between monthly baselines.
+
+For v2.11, this tripwire is only one input to the performance audit. A targeted optimization requires reproducible realistic-scale evidence and a before/after comparison under the audit contract; passing or failing this broad ceiling alone does not prescribe an architectural solution.
 
 ## Safety boundaries
 

@@ -5,6 +5,7 @@ import path from "node:path";
 const ROOT = process.cwd();
 const SRC = path.join(ROOT, "src");
 const JS_ROOT = path.join(SRC, "assets", "js");
+const retiredBrowserScripts = ["src/assets/js/reading-status.js"];
 const failures = [];
 
 function rel(file) {
@@ -45,6 +46,10 @@ function collectScriptRefs(source, fromFile) {
   for (const match of source.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)) add(match[1]);
   for (const match of source.matchAll(/["'`](\/assets\/js\/[A-Za-z0-9_./-]+\.js(?:\?[^"'`\s)]*)?)["'`]/g)) add(match[1]);
   return [...targets];
+}
+
+for (const retired of retiredBrowserScripts) {
+  if (fssync.existsSync(path.join(ROOT, retired))) failures.push(`retired browser compatibility script returned: ${retired}`);
 }
 
 const allScripts = await walk(JS_ROOT, file => file.endsWith(".js"));

@@ -134,12 +134,16 @@ export function seriesFinished(series) {
 
 export function volumeEntries(series) {
   const volumes = Array.isArray(series?.volumes) ? series.volumes : [];
-  return volumes.map((volume, index) => ({
-    volume,
-    index,
-    state: volumeState(series?.id, volume, index),
-    progress: volumeProgress(series?.id, volume, index)
-  }));
+  return volumes.map((volume, index) => {
+    const finished = isVolumeFinished(series?.id, volume, index);
+    const progress = volumeProgress(series?.id, volume, index);
+    return {
+      volume,
+      index,
+      state: finished ? STATES.FINISHED : progressAtBeginning(progress) ? STATES.UNREAD : STATES.IN_PROGRESS,
+      progress
+    };
+  });
 }
 
 export function preferredSeriesEntry(series) {

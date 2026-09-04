@@ -2,12 +2,12 @@
 
 This is the single documentation index for Shadow Garden. Architecture contracts, current project planning, archived milestone history, release records, security history, build conventions, test/accessibility contracts, and design guidance live under `docs/` rather than accumulating at the repository root.
 
-## 🚧 Current work in progress
+## ✅ Current release state
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single active roadmap**. v2.8.0 Reader Experience and v2.9.0 Keeper Productivity & Recovery are complete; **v2.7.0 Performance Sanity remains deferred/optional**, and the active development milestone is **v2.10.0 Maintenance & Supply Chain**.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**. v2.8.0 Reader Experience, v2.9.0 Keeper Productivity & Recovery, and v2.10.0 Maintenance & Supply Chain are complete; **v2.7.0 Performance Sanity remains deferred/optional** until realistic measurements justify deeper work.
 - **Active deployment/product line:** v2.10.0 — Maintenance & Supply Chain.
-- **Latest formal release:** v2.9.0 — Keeper Productivity & Recovery.
-- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — **active version ownership**. The development deployment may advance ahead of the latest formal release while the release publisher continues to use the formal package version.
+- **Latest formal release:** v2.10.0 — Maintenance & Supply Chain.
+- [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — **active version ownership**. Development deployments may advance ahead of the latest formal release, but a formal release cut must converge the package, lockfile, deployment, changelog, and release-note version owners.
 
 Completed or superseded plans must not remain marked as current. Historical roadmaps and milestone records are canonically indexed under [`archive/README.md`](./archive/README.md).
 
@@ -39,7 +39,7 @@ Completed or superseded plans must not remain marked as current. Historical road
 
 ## Releases
 
-Release notes remain in `docs/releases/`; this list records completed formal releases. v2.10 maintenance work is tracked by the current roadmap until the next formal release cut.
+Release notes remain in `docs/releases/`; this list records completed formal releases.
 
 - [`releases/v2.0.0.md`](./releases/v2.0.0.md) — v2 architecture baseline release.
 - [`releases/v2.4.0.md`](./releases/v2.4.0.md) — Interaction & UX Polish release.
@@ -54,17 +54,19 @@ Release notes remain in `docs/releases/`; this list records completed formal rel
 - [`releases/v2.6.7.md`](./releases/v2.6.7.md) — Continuous media width independence: artwork is no longer shaped by the text-width setting, and full-page image plates are immune to the prose column (desktop clipping fixes).
 - [`releases/v2.8.0.md`](./releases/v2.8.0.md) — Reader Experience release.
 - [`releases/v2.9.0.md`](./releases/v2.9.0.md) — Keeper Productivity & Recovery release.
+- [`releases/v2.10.0.md`](./releases/v2.10.0.md) — Maintenance & Supply Chain release.
 
 ## Verification layers
 
-The permanent release baseline now combines deterministic checks with real browsers:
+The permanent release baseline now combines deterministic checks with real browsers and recurring maintenance baselines:
 
 - `npm test` — unit, service, DOM, and deterministic browser-contract layers;
-- `npm run check` — architecture/security, dependency/runtime policy, documentation freshness, and deterministic repository guards;
+- `npm run check` — architecture/security, dependency/runtime policy, documentation/release freshness, realistic-scale sanity, and deterministic repository guards;
 - `npm run build` — repeats the full check through `prebuild` before generating production output;
 - `npm run test:e2e` — Playwright against generated production output across Chromium/Firefox/WebKit desktop and Chromium/WebKit mobile;
 - `.github/workflows/verify.yml` — complete repository checks and production build;
-- `.github/workflows/e2e.yml` — bounded real-browser matrix and retained failure artifacts;
+- `.github/workflows/e2e.yml` — permanent five-project real-browser matrix, monthly/manual baseline reruns, and retained failure artifacts;
+- `.github/workflows/baseline-health.yml` — monthly/manual deterministic security, recovery, performance, and build health baseline;
 - `.github/workflows/release-v2.yml` — exact-main Verify + real-browser success, matching Cloudflare version/commit, production smoke, then GitHub v2 release publication from the formal release version.
 
 ## Archived roadmaps and milestones

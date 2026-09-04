@@ -110,13 +110,28 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
     async () => {
       await expect(page.locator('#resultCount')).toContainText('15 series');
       await expect(page.locator('.series-card')).toHaveCount(15);
+      await expect(page.locator('#activeTags [data-clear-filter="author"]')).toHaveCount(1);
     }
   );
 
-  const clearFiltersMs = await timed(
-    () => page.locator('#clearFilters').click(),
+  await page.evaluate(() => {
+    window.__sgV211CCatalogInsertCalls = 0;
+    const original = Element.prototype.insertAdjacentHTML;
+    window.__sgV211CRestoreInsertAdjacentHTML = () => { Element.prototype.insertAdjacentHTML = original; };
+    Element.prototype.insertAdjacentHTML = function(position, html) {
+      if (this.id === 'catalogGrid') window.__sgV211CCatalogInsertCalls += 1;
+      return original.call(this, position, html);
+    };
+  });
+  const clearAuthorPillMs = await timed(
+    () => page.locator('#activeTags [data-clear-filter="author"]').click(),
     () => waitForLibrary(page)
   );
+  const activePillCatalogInsertCalls = await page.evaluate(() => {
+    const count = window.__sgV211CCatalogInsertCalls || 0;
+    window.__sgV211CRestoreInsertAdjacentHTML?.();
+    return count;
+  });
 
   const sortMs = await timed(
     () => page.locator('#sortSelect').selectOption('title'),
@@ -164,7 +179,8 @@ test('v2.11C audit: 300-series Library and Series interaction runtime is measura
       series: catalog.series.length,
       volumes: catalog.series.reduce((sum, series) => sum + series.volumes.length, 0)
     },
-    timingsMs: { hydrateMs, searchMs, clearSearchMs, authorFilterMs, clearFiltersMs, sortMs, compactMs, loadMoreMs, seriesMs },
+    timingsMs: { hydrateMs, searchMs, clearSearchMs, authorFilterMs, clearAuthorPillMs, sortMs, compactMs, loadMoreMs, seriesMs },
+    ownership: { activePillCatalogInsertCalls },
     requests: { catalogRequests },
     hydrated,
     afterInteractions,

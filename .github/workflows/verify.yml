@@ -29,6 +29,8 @@ jobs:
         run: npm ci --no-audit --no-fund --progress=false
       - name: Check repository
         run: npm run check
+      - name: Measure CSS ownership
+        run: npm run audit:css
       - name: Run Functions security contracts
         run: npm run check:security
       - name: Run Functions service regressions

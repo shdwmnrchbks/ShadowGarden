@@ -37,6 +37,7 @@
     "check:function-entrypoints": "node tools/check-functions-entrypoint-reachability.mjs",
     "performance:sanity": "node tools/performance-sanity.mjs",
     "audit:report": "node tools/dependency-audit-report.mjs --input npm-audit.json",
+    "audit:css": "node tools/audit-css-ownership.mjs",
     "check:v2.6": "node tools/check-v2-6.mjs",
     "b2:setup": "node tools/b2-setup.mjs",
     "b2:upload": "node tools/b2-upload.mjs"

@@ -284,7 +284,7 @@
 ## 1.3.0 — Visual Page Cache
 - Added a first-run EPUB spine scanner that identifies genuinely standalone cover/illustration XHTML and SVG pages before the live reader lays them out.
 - Store prepared visual-page assets locally in a dedicated IndexedDB cache keyed by book URL, so later opens can reuse the prepared pages without rescanning the EPUB.
-- Generate local WebP copies of JPEG/PNG/AVIF and compatible SVG visual pages when supported, while preserving existing WebP/GIF assets or SVG fallbacks when conversion is unnecessary or unavailable.
+- Convert JPEG/PNG/AVIF and compatible SVG visual pages to local WebP copies when the browser encoder supports it; preserve existing WebP/GIF assets or SVG fallbacks when conversion is unnecessary or unavailable.
 - Extract the underlying raster directly from common SVG-wrapped cover pages instead of asking EPUB.js to continuously size the original `100vh`/percentage-based SVG wrapper.
 - Replace detected visual spine documents with a deterministic synthetic one-viewport image page before EPUB.js performs its first layout measurement in both Pages and Continuous modes.
 - Keep detection intentionally conservative: normal chapters, title pages with meaningful text, and small decorative section-break artwork remain normal EPUB XHTML.

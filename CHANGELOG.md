@@ -1,5 +1,17 @@
 # Shadow Garden Changelog
 
+## 2.11.0 — Engineering Audit, Refactor & Optimization
+- Completed the evidence-first v2.11A–H engineering audit without turning the cycle into a feature expansion or broad rewrite; stable ownership boundaries were retained wherever measurements did not justify change.
+- Retired demonstrated dead and compatibility ownership, including the disconnected reading-state facade, obsolete R-series/release-era executable policy snapshots, and forwarding-only R6 facades, with permanent reachability and absence guards.
+- Fixed Reader protected-source, Page Map supersession, EPUB.js lifecycle, and Continuous section-cache retention defects; repeated flow switching now drains near baseline and sustained Continuous traversal releases trimmed documents/listeners without introducing a new Reader architecture.
+- Reduced realistic-scale Library browser-local state reads by 88.3% during hydration and 96.3% across the measured interaction workload, while keeping the existing catalog/domain/controller split and avoiding speculative virtualization or persistence changes.
+- Removed duplicate Garden Keeper Maintenance and upload-preflight reads by reusing canonical in-memory snapshots, preserving recovery-sensitive ordering, the single AdminClient, and existing workflow ownership.
+- Restored method-level least privilege for Pages Functions storage access so GET/HEAD paths use read credentials while mutations require write credentials; made nine implementation-only service exports private and promoted the complete security/service regression layer into normal Verify.
+- Audited all 36 authored stylesheets, removed only proven stale selectors/tokens, converged static cleanup to zero literal unreferenced class candidates and zero unused custom properties, and retained the established accessibility/motion/cascade architecture.
+- Retired seven stale release-era tooling executables, migrated useful security behavior into active service tests, activated the current site-voice guard, and removed duplicated Verify/Baseline work while keeping Node 22, npm 10.9.8, committed lockfiles, the no-bundler build, review-driven dependencies, and the existing release publisher.
+- Reconciled authoritative current documentation after Audits A–G and expanded freshness checks so current roadmap, architecture, operations, release, package-manager, and retired-tool ownership cannot silently drift from the implementation.
+- Assembled Audits C–H onto the already-merged A/B `main` history and independently reverified the resulting mainline state with Verify, Cloudflare Pages, Chromium desktop/mobile, Firefox desktop, and WebKit desktop/mobile before the formal v2.11.0 release cut.
+
 ## 2.10.0 — Maintenance & Supply Chain
 - Added controlled dependency maintenance for the five direct npm dependencies and reviewed GitHub Actions pins, keeping EPUB.js, AWS/B2, authentication/security-sensitive, runtime, and workflow changes under explicit human review and the full release gates.
 - Added deterministic dependency/audit reporting with an explicit actionable-versus-inherited/non-actionable policy instead of auto-remediation.
@@ -272,7 +284,7 @@
 ## 1.3.0 — Visual Page Cache
 - Added a first-run EPUB spine scanner that identifies genuinely standalone cover/illustration XHTML and SVG pages before the live reader lays them out.
 - Store prepared visual-page assets locally in a dedicated IndexedDB cache keyed by book URL, so later opens can reuse the prepared pages without rescanning the EPUB.
-- Convert JPEG/PNG/AVIF and compatible SVG visual pages to local WebP copies when the browser encoder supports it; preserve existing WebP/GIF assets or SVG fallbacks when conversion is unnecessary or unavailable.
+- Generate local WebP copies of JPEG/PNG/AVIF and compatible SVG visual pages when supported, while preserving existing WebP/GIF assets or SVG fallbacks when conversion is unnecessary or unavailable.
 - Extract the underlying raster directly from common SVG-wrapped cover pages instead of asking EPUB.js to continuously size the original `100vh`/percentage-based SVG wrapper.
 - Replace detected visual spine documents with a deterministic synthetic one-viewport image page before EPUB.js performs its first layout measurement in both Pages and Continuous modes.
 - Keep detection intentionally conservative: normal chapters, title pages with meaningful text, and small decorative section-break artwork remain normal EPUB XHTML.

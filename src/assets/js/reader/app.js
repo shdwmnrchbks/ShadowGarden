@@ -78,7 +78,10 @@ export async function startReader(session){
         /* Explicit href navigation owns semantic chapter chrome while EPUB.js settles its
            Continuous buffer. Late relocations from the old side of the target are ignored
            until location reporting reaches the requested spine section. */
-        if(intent&&state.continuousNavigation===intent){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}
+        if(intent&&state.continuousNavigation===intent){
+          state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested);
+          state.continuousNavigation=null;
+        }
       }catch(error){if(state.continuousNavigation===intent)state.continuousNavigation=null;throw error}
     }else{state.continuousNavigation=null;await state.rendition.display(target)}
   }
@@ -153,8 +156,10 @@ export async function startReader(session){
     const chapter=tocController.chapterForLocation(location);
     if(intent?.rendition===rendition){
       const reachedChapter=Boolean(intent.chapter&&chapter===intent.chapter);
-      const reachedIndex=Number.isFinite(spineIndex)&&Number.isFinite(intent.targetIndex)&&(!Number.isFinite(intent.fromIndex)||intent.targetIndex>=intent.fromIndex?spineIndex>=intent.targetIndex:spineIndex<=intent.targetIndex);
-      if(reachedChapter||reachedIndex)state.continuousNavigation=null;
+      /* WebKit can expose the target spine index before its semantic chapter href catches up.
+         Only the requested chapter completes the intent; navigate() clears any remaining
+         ownership after the explicit display/reportLocation sequence settles. */
+      if(reachedChapter)state.continuousNavigation=null;
     }
     state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;
     progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);
@@ -249,6 +254,7 @@ export async function startReader(session){
     const pageMapResult=await state.pageMap.ensure({anchorCfi:saved?.cfi||""});
     let initialTarget=saved?.cfi||undefined;
     if(!initialTarget&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{initialTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"})||initialTarget}catch{}}
+    progressController.setPosition(saved);settingsController.setFlow(settingsController.get().flow);resetReaderInput();
     progressController.startLocationGeneration();await openRendition(initialTarget);
     if(!saved?.cfi&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{const canonicalTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"});if(canonicalTarget)await state.rendition.display(canonicalTarget)}catch{}}
     resumeController.remember();resumeController.bind();

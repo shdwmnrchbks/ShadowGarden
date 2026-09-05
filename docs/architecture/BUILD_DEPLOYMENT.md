@@ -1,240 +1,114 @@
 # Shadow Garden Build & Deployment Layer
 
-**Milestone:** R9 baseline, extended through v2.8  
-**Baseline release:** v1.24.0  
-**Active deployment/product version:** v2.8.0 — Reader Experience (in progress)  
-**Latest formal release:** v2.6.7  
-**Status:** Active contract
+**Status:** Active contract after v2.11G  
+**Active deployment/product version:** v2.11.0 — Engineering Audit, Refactor & Optimization  
+**Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
+**Runtime/package manager:** Node 22.x · npm 10.9.8
 
-R9 finalized Shadow Garden's dependency, build, preview, CI, and deployment-metadata ownership without changing the public/Reader/Keeper architecture established by R0–R8. Later v2 work retains that build model. v2.6 strengthened the release gate by requiring the exact `main` commit to pass both deterministic Verify and Real Browser E2E before production smoke and GitHub release publication. v2.8 additionally distinguishes the active deployed product version from the latest completed formal release so slice development can identify itself accurately without prematurely creating a GitHub release.
+Audit G revalidated the existing native build/deployment model and found obsolete executable policy plus duplicate CI cost—not a need for a new build system.
 
-See [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) for the authoritative version split.
+See [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) for deployment/formal release semantics and [`../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md`](../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md) for measurements.
 
 ## Build model
 
-Shadow Garden remains an intentionally small **native static/module application**. The production build is:
-
 ```text
-committed src/ + committed tooling + locked npm dependencies + build context
-                                ↓
-                         tools/build.mjs
-                                ↓
-                              dist/
-                                ↓
-                      tools/write-source.mjs
+committed src/ + tools/ + locked dependencies + build context
+                              |
+                              v
+                    tools/build.mjs
+                              |
+                              v
+                            dist/
+                              |
+                              v
+                  tools/write-source.mjs
 ```
 
-`dist/` remains generated and ignored. No production module may require a hand-edited file under `dist/`.
+`dist/` is generated/ignored. EPUB.js and JSZip are copied from the locked dependency tree into browser vendor assets. No application module depends on hand-edited output.
 
 ## Deliberate no-bundler decision
 
-Shadow Garden does **not** add Vite, Rollup, webpack, esbuild, Parcel, or another application bundler without measured need.
+Public UI and Reader already use explicit native modules/runtime composition; Pages Functions deploy as modules; centralized build-time asset stamping solves local cache versioning; and Audit G found no measured build/runtime bottleneck that justifies another transformation layer. A bundler/framework remains evidence-gated, not roadmap debt.
 
-Reasons:
+## Dependency and lockfile ownership
 
-- public UI and Reader already use explicit native module/runtime ownership;
-- Pages Functions deploy as Cloudflare Function modules rather than a client bundle;
-- EPUB.js and JSZip are intentionally copied as vendor browser assets by the build;
-- centralized asset-version stamping solves the current cache-invalidation requirement;
-- no measured startup/module-count/deployment-size problem requires another transformation layer;
-- additional build transformation would enlarge the Reader/Functions regression surface without demonstrated benefit.
+Root production/tooling dependencies have explicit owners: local B2 tools, Functions storage signing, Reader EPUB.js, EPUB XML parsing, and ZIP parsing/vendor runtime. The isolated E2E workspace owns pinned Playwright separately.
 
-R10 and subsequent v2 work have not produced evidence that changes this decision. Future performance work may revisit it only with measurements and equivalent regression coverage.
-
-## Dependency audit
-
-The five direct production/tooling dependencies remain because each has a current owner:
-
-- `@aws-sdk/client-s3` — local Backblaze B2 setup/upload tooling (`tools/b2-setup.mjs`, `tools/b2-upload.mjs`).
-- `aws4fetch` — Cloudflare Pages private-B2 S3 signing in `functions/services/storage.js`.
-- `epubjs` — canonical Reader vendor runtime copied to `dist/assets/vendor/epub.min.js`.
-- `fast-xml-parser` — EPUB package/container parsing in build and B2 upload tooling.
-- `jszip` — EPUB archive parsing in build/upload tooling and browser vendor runtime copied to `dist/assets/vendor/jszip.min.js`.
-
-The isolated `tests/e2e/` workspace has its own pinned Playwright dependency/lockfile. It does not become a production runtime dependency.
-
-## Lockfile and install contract
-
-`package-lock.json` is committed at npm lockfile version 3 and must match `package.json#version`, package name, engine, and direct dependency declarations. The lockfile belongs to the **formal release/dependency graph**, not the active deployment label.
-
-Current intentional state while v2.8 is in progress:
-
-```text
-package.json#version            2.6.7   latest formal release
-package-lock.json root version  2.6.7   synchronized formal release/dependency graph
-package.json#deploymentVersion  2.8.0   active deployed product line
-```
-
-Never hand-edit transitive dependency versions, integrity hashes, or generated lockfile dependency metadata to change the displayed site version. When the formal v2.8.0 release is cut, regenerate the lockfile with npm after changing `package.json#version` to `2.8.0`.
-
-Normal CI installs use:
-
-```bash
-npm ci --no-audit --no-fund --progress=false
-```
-
-The project runtime remains **Node 22**:
-
-- `.nvmrc` → `22`
-- `package.json#engines.node` → `22.x`
-- CI `setup-node` → Node 22
-
-Real-browser CI separately runs `npm ci --prefix tests/e2e` against the E2E lockfile.
-
-## CI action ownership
-
-Verify and E2E workflows remain pinned to immutable action SHAs. Their source must remain reviewable and reproducible; workflow dependency updates are ordinary code changes and require the normal gates.
-
-The current workflows are:
-
-- `.github/workflows/verify.yml` — deterministic repository/security/behavioral checks plus production build;
-- `.github/workflows/e2e.yml` — production build plus Chromium/Firefox/WebKit desktop and Chromium/WebKit mobile Playwright matrix;
-- `.github/workflows/release-v2.yml` — verified formal v2 release publication.
-
-Normal verification workflows are read-only. The release workflow has only the additional permissions needed to inspect workflow results and create the GitHub release.
+Root and E2E lockfiles remain committed. `tools/check-runtime-lockfiles.mjs` validates the runtime/package-manager/lockfile policy. Dependency updates are reviewed, lockfile-synchronized changes; scheduled production audit reporting is non-mutating.
 
 ## Deterministic build context
 
-`tools/lib/build-context.mjs` is the single owner for deployment version/commit/branch/timestamp context.
+`tools/lib/build-context.mjs` is the single owner for:
 
-It resolves:
+- active deployed `version` from `deploymentVersion` with formal-version fallback;
+- formal `releaseVersion`;
+- commit and branch from Cloudflare/GitHub metadata with Git fallback;
+- deterministic build timestamp from `SOURCE_DATE_EPOCH` or commit metadata before wall-clock fallback.
 
-1. `releaseVersion` from `package.json#version`;
-2. active deployment `version` from `package.json#deploymentVersion`, falling back to `package.json#version` when no deployment override exists;
-3. commit from Cloudflare/GitHub environment metadata, then local Git;
-4. branch from Cloudflare/GitHub environment metadata, then local Git;
-5. build timestamp from `SOURCE_DATE_EPOCH` when explicitly supplied;
-6. otherwise the selected Git commit timestamp;
-7. only when neither environment nor Git metadata can provide a timestamp, the current clock is a final fallback.
+`tools/build.mjs` and `tools/write-source.mjs` consume the same context. `dist/data/version.json` therefore exposes active version, formal release version, commit/short commit, branch, and build time from one owner.
 
-The same context is consumed by `tools/build.mjs` and `tools/write-source.mjs`.
+## Build commands and single-check ownership
 
-Consequences:
+`npm run build` remains self-validating through `prebuild -> npm run check`. This is intentional for local use, Cloudflare, E2E setup, and other callers that have not already proved repository contracts.
 
-- asset cache-busting uses the active deployment version;
-- locally generated catalog `generatedAt` uses the resolved build timestamp instead of an independent wall-clock call;
-- `dist/data/version.json` exposes both active deployment `version` and formal `releaseVersion`, plus commit/branch/timestamp identity;
-- rebuilding the same commit with the same dependency tree produces stable metadata instead of inventing a new build timestamp.
+`npm run build:dist` is the **post-check production-build primitive**. Workflows that already ran the authoritative repository check use `npm run build:dist` so they do not pay for an identical second check.
 
-## Asset ownership
+Audit G measured the green candidate at roughly 4.43 s for the single repository check and 0.34 s for the post-check build, removing roughly four seconds of duplicate deterministic work from normal Verify without dropping a gate.
 
-`tools/lib/asset-versioning.mjs` remains the one cache-busting owner for copied local JS/CSS references. It rewrites copied `/assets/*.js` and `/assets/*.css` references in `dist/` to the active deployment version supplied by build context.
+## Current CI ownership
 
-The build copies locked vendor browser assets:
+### Verify Shadow Garden
 
-- `node_modules/epubjs/dist/epub.min.js` → `dist/assets/vendor/epub.min.js`
-- `node_modules/jszip/dist/jszip.min.js` → `dist/assets/vendor/jszip.min.js`
+`.github/workflows/verify.yml` owns per-change deterministic acceptance:
 
-Authored source does not carry manual release query bumps.
+- one `npm run check` repository/policy/performance gate;
+- CSS ownership measurement;
+- dedicated Functions security contracts;
+- complete service regressions (47 tests at Audit G closeout);
+- targeted Reader lifecycle and Library audit regressions;
+- `npm run build:dist` after the check has already passed.
 
-## Source and deployment metadata
+### Real Browser E2E
 
-`tools/write-source.mjs` owns:
+`.github/workflows/e2e.yml` builds production output and runs Chromium desktop/mobile, Firefox desktop, and WebKit desktop/mobile. Failure artifacts remain retained. The real-browser workflow also serves as the scheduled browser/accessibility baseline.
 
-- `dist/data/source.json` — local versus private-B2 catalog source and catalog URLs.
-- `dist/data/version.json` — Shadow Garden name, active deployment version, formal release version, commit, short commit, branch, and deterministic build timestamp.
+### Baseline Health
 
-Private B2 configuration remains source/runtime configuration; no B2 credential enters generated static output.
+`.github/workflows/baseline-health.yml` is monthly/manual and intentionally reuses current owners:
 
-The public Library footer and Garden Keeper version component both fetch `/data/version.json` with `cache: no-store` and display its active `version`. Public surfaces must not hard-code a current version string.
+- `npm run check` (which already includes realistic-scale performance sanity);
+- `npm run check:security`;
+- full `npm test` deterministic layers;
+- `npm run build:dist` after the repository check.
+
+There is no second standalone performance invocation and no repeated prebuild repository check.
+
+### Dependency Audit
+
+`.github/workflows/dependency-audit.yml` verifies runtime/lockfiles, installs production dependencies read-only, collects `npm audit --omit=dev --json`, and classifies findings with the retained report tool. It never runs an automatic audit fix.
 
 ## Local preview
 
-`tools/preview.mjs` is the dependency-free production preview server. It:
+`tools/preview.mjs` is the dependency-free production preview owner. It serves generated `dist/`, supports GET/HEAD, applies explicit MIME/no-store behavior, rejects paths outside `dist/`, and is used directly by Playwright's web server.
 
-- uses Node 22 built-ins only;
-- serves generated `dist/`;
-- supports GET/HEAD;
-- applies explicit common MIME types and `Cache-Control: no-store`;
-- rejects paths outside `dist/`;
-- defaults to `127.0.0.1:4173`, with `HOST`/`PORT` overrides.
+## EPUB.js lifecycle vendor guard
 
-The Playwright workspace uses this production preview path rather than a second application server.
+Audit B accepted a narrow compatibility patch around EPUB.js 0.3.93 manager/rendition lifecycle behavior. `tools/check-epub-lifecycle-vendor.mjs` remains a build-time safety guard unless a reviewed dependency update proves the patch obsolete and replaces its regression coverage.
 
-## Cloudflare Pages contract
+## Cloudflare Pages and formal release publisher
 
-Cloudflare Pages continues to build Shadow Garden with:
+Cloudflare builds the native `dist/` output and deployment metadata. The private B2/media/security architecture is unchanged by the build system.
 
-```bash
-npm ci
-npm run build
-```
+`.github/workflows/release-v2.yml` is the one formal v2 publisher. For the exact `main` commit it requires:
 
-Build output remains:
+1. successful Verify;
+2. successful matching Real Browser E2E;
+3. matching Cloudflare production version + commit;
+4. successful Main/Adult/Series/Reader/robots smoke;
+5. matching formal release notes before GitHub tag/release creation.
 
-```text
-dist/
-```
+`package.json#version` remains the formal release source. `deploymentVersion` identifies the active deployed line but never independently creates a release.
 
-The private Backblaze B2 catalog/media architecture, `/media` proxy, Pages Functions, security contracts, and browser-local Reader state are unchanged by the v2.8 version-label split.
+## Audit G decision
 
-## Formal v2 release contract
-
-`.github/workflows/release-v2.yml` remains reusable across the `2.x.y` formal release line. **`package.json#version` is the formal release source of truth.** A matching `docs/releases/v${VERSION}.md` file is required before a new release can be published.
-
-`package.json#deploymentVersion` is deliberately not used to decide release eligibility. It identifies the active deployed product line only.
-
-A formal release is eligible only for the exact `main` commit that satisfied the gates. The sequence remains:
-
-```text
-formal release version + matching release notes
-   |
-main commit
-   |
-   +--> Verify Shadow Garden: success
-   |
-   +--> Real Browser E2E: success for the same SHA
-   |      Chromium / Firefox / WebKit desktop
-   |      Chromium Mobile / WebKit Mobile
-   |
-   +--> Cloudflare production reports same formal/deployment version + commit
-   |
-   +--> production smoke
-   |      /          Main Library marker
-   |      /nsfw.html Adult Library marker
-   |      /series.html
-   |      /reader.html
-   |      /robots.txt media disallow
-   |
-   +--> GitHub tag/release v${VERSION}
-```
-
-During v2.8 slice development, the publisher continues to see formal `package.json#version` 2.6.7. Because the verified v2.6.7 GitHub release already exists, ordinary v2.8 deployment commits do not create a new release. At final v2.8 cutover, `package.json#version`, generated lockfile root/workspace version, `deploymentVersion`, and `docs/releases/v2.8.0.md` converge on 2.8.0 before the release gate runs.
-
-The publisher checks whether the matching GitHub release already exists, confirms the exact SHA's Real Browser E2E push run before proceeding, waits for matching Cloudflare production deployment metadata, and fails closed if browser or production verification does not match.
-
-The GitHub release is created only after public production smoke succeeds. Re-running the publisher for an already-existing release leaves the verified release unchanged.
-
-## Historical v2.6 release synchronization contract
-
-For v2.6.0 the following records were required to agree before release:
-
-- `package.json` → `2.6.0`;
-- root and workspace entry in `package-lock.json` → `2.6.0`;
-- `docs/releases/v2.6.0.md` exists;
-- `CHANGELOG.md` records v2.6.0 (and the previously omitted v2.5.0 history);
-- root/documentation indexes identify the release correctly;
-- `docs/roadmaps/CURRENT_ROADMAP.md` records v2.6 complete;
-- `tools/check-v2-6.mjs` enforces the completed v2.6 baseline through the v2.6.7 hotfix line.
-
-The latest completed release metadata remains v2.6.7 while active deployment metadata is v2.8.0.
-
-## Permanent R9 guard and current guardrails
-
-The Permanent R9 guard in `tools/check-r9.mjs` continues to protect:
-
-- committed synchronized lockfile and Node 22 engine;
-- read-only `npm ci` CI with immutable action pins;
-- dependency ownership and the no-bundler boundary;
-- centralized deterministic build context usage;
-- dependency-free preview ownership;
-- generated `dist/` boundary.
-
-`tools/check-v2-6.mjs` continues to protect the completed v2.6/v2.6.7 reliability baseline, including:
-
-- formal root package/lock version synchronization;
-- Playwright workspace/project/artifact contracts;
-- v2.6 release notes/changelog/docs/roadmap history;
-- exact-main Real Browser E2E verification inside the v2 publisher.
-
-The active deployment/release version split is documented in [`VERSIONING_CONTRACT.md`](./VERSIONING_CONTRACT.md) and regression-covered by `tests/unit/build-context-version.test.mjs`.
+Retain Node 22/npm 10.9.8, two committed lockfiles, the native no-bundler build, deterministic build metadata, static preview, review-driven dependency policy, current deterministic tests, EPUB.js lifecycle guard, Cloudflare deployment, and the existing publisher. The accepted optimization is removal of duplicate verification execution—not a replacement build architecture.

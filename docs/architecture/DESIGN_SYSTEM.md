@@ -1,128 +1,64 @@
 # Shadow Garden CSS & Design-System Layer
 
-**Milestone:** R7  
-**Release:** v1.22.0  
-**Status:** Complete; final legacy entrypoints removed by R10/v2.0.0
+**Status:** Active semantic ownership contract; v2.11F complete  
+**Audit F result:** 36 authored stylesheets / 2,254 selectors / 0 literal unreferenced class candidates / 0 unused custom properties
 
-R7 replaced historical CSS patch/version ownership with semantic styling responsibilities while preserving Main, Adult, Reader, and Garden Keeper visual behavior. R10 completes that design-system cutover by removing the final Keeper compatibility aliases.
+Shadow Garden keeps CSS ownership semantic and surface-aware. Public/Garden Keeper foundation and Reader chrome/theme palettes are intentionally distinct where their responsibilities differ. Audit F removed only selectors/tokens with concrete dead-owner evidence and found no justification for a broad cascade rewrite.
 
 ## Design rules
 
-1. **Tokens stay surface-scoped where palettes intentionally differ.** `site.css` owns the public/Garden Keeper foundation variables. `reader.css` owns Reader chrome/theme variables because Reader palettes and EPUB surfaces are intentionally independent.
-2. **Primitives remain reusable and behavior-neutral.** `nav.css`, `ui-symbols.css`, `reading-status.css`, and `volume-actions.css` remain shared component/primitives rather than being copied into page-specific sheets.
-3. **Layout files describe geometry, not release history.** Library compact geometry lives in `library-layout.css`; Garden Keeper workspace geometry lives in `admin-layout.css`.
-4. **Feature sheets own feature presentation.** Reader Page Map, Continuous rail, image focus, accessibility, end page, themes, Keeper Upload/preflight/maintenance, Adult variants, and Series-specific presentation remain separate owners.
-5. **No permanent `-current`, `-polish`, `-fix`, `-patch`, or version-number CSS owners.** The R1/R10 guards enforce this.
-6. **Accessibility variants are first-class CSS contracts.** Reduced motion, increased contrast, forced colors, focus-visible styling, Adult variants, and Reader theme variants may not disappear during consolidation.
-7. **Deterministic presentation is first-paint ownership.** If a stylesheet, label, gate, or loading surface is known before application data arrives, it belongs to the initial document rather than a deferred runtime repair.
+1. Public/Garden Keeper foundation tokens remain owned by `site.css`; Reader chrome/theme variables remain Reader-scoped.
+2. Shared primitives such as navigation, reading-status, volume-actions, and symbols remain behavior-neutral reusable owners.
+3. Layout files own geometry rather than release history.
+4. Feature sheets own feature presentation rather than post-render repair layers.
+5. New permanent version/fix/polish/patch stylesheet owners are not accepted without a real current responsibility.
+6. Reduced motion, increased contrast, forced colors, visible focus, Adult variants, and Reader theme variants are first-class contracts.
+7. Deterministic first-paint presentation belongs in the initial document/cascade rather than deferred JavaScript style repair.
 
-## Public Library + Series ownership
+## Public Library / Series
 
-The public foundation remains `site.css`; its initial `:root` block is the public/Keeper token owner and its base rules establish the shared Library/Series structure.
+Core semantic owners:
 
-Semantic layers:
-
-- `nav.css` — navigation shell and responsive navigation.
-- `adult.css` — Adult gate/archive palette and Adult-specific components.
-- `library-features.css` — Recently Added, advanced filters, tag chips, load-more/sentinel behavior, and their responsive layout.
-- `public-components.css` — skip link/focus treatment, shared archive/header components, pinned navigation/card presentation, mobile filter collapse, Adult chrome parity, and public accessibility media queries.
-- `public-artwork.css` — Library/Series artwork, compact badges, Continue cover, Series primary actions, and navigable Series tags.
-- `library-layout.css` — final compact-card column and badge-rail geometry.
-- `series-extra.css` — Series-only layout/presentation that remains independent from shared public components.
+- `site.css` — public/Keeper foundation;
+- `nav.css` — responsive navigation shell;
+- `adult.css` — Adult gate/archive variants;
+- `library-features.css` — shelves/filters/tags/load-more;
+- `public-components.css` — shared public components/accessibility;
+- `public-artwork.css` — artwork/actions/badges/tags;
+- `library-layout.css` — compact Library geometry;
+- `series-extra.css` — Series-specific layout/presentation;
 - `reading-status.css`, `volume-actions.css`, `ui-symbols.css` — shared primitives.
 
-### Public cascade contract
+The mobile navigation portal/header/scroll-lock contract remains documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) and verified by deterministic + real-browser coverage.
 
-Main Library:
+## Reader
 
-```text
-site → nav → library-features → public-components → public-artwork
-     → library-layout → reading-status → volume-actions → ui-symbols
-```
+Reader presentation remains intentionally scoped through semantic owners including:
 
-Adult Library inserts `adult.css` after `nav.css`. Series replaces Library feature/layout sheets with `adult.css` + `series-extra.css`, then uses `public-components` and `public-artwork` in the same order.
+- `reader.css` foundation/chrome;
+- Continuous rail, Page Map, completion, end-page, image-focus, accessibility, interface-theme, and presentation sheets;
+- shared reading-status/volume-action/symbol primitives where behavior is genuinely shared.
 
-### Reconciled responsive navigation contract
+Reader CSS must not become a second owner for Reader progress, gestures, Page Map, persistence, rendition lifecycle, or EPUB layout logic.
 
-Real-device fixes in v1.23.1–v1.23.5 established the body-level drawer portal. v2.6 real-browser testing kept that portal while reconciling header layering under document scroll lock:
+## Garden Keeper
 
-- `nav.js` portals the responsive drawer to `document.body` so fixed geometry is not constrained by the filtered/sticky header in mobile Chromium.
-- `nav.css` owns the fixed drawer/backdrop geometry and complete drawer link/button presentation because portaled controls cannot depend on `.site-header nav ...` ancestry.
-- The baseline site header remains sticky during ordinary page use; open state promotes it to a viewport-fixed layer above the drawer so it cannot be painted behind the body-level overlay.
-- A matching 72px/62px body spacer preserves the header's normal-flow height while it is temporarily fixed, so the open/close transition does not move underlying content.
-- `scrollbar-gutter: stable` remains responsible for stable scrollbar allocation; no scroll-position scripting is used.
-- `<html>` and `<body>` share the open-state scroll lock; the backdrop is non-pannable while the drawer remains vertically pannable/scrollable.
-- Real-browser coverage verifies actual top-layer paint ownership with `elementFromPoint()`, not only header geometry.
-- Main and Adult variants remain selector-scoped under the same `nav.css` owner.
+Keeper uses `site.css` foundation plus semantic Admin sheets for shell/forms/cards, preflight, upload batch/workflow, Maintenance, Series Editor, workspace/dialog layout, components, deployed version, presentation, motion, and shared symbols.
 
-The complete contract is documented in [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) and guarded by R8's `tests/browser/mobile-nav-viewport.test.mjs` plus the v2.6 Library E2E suite.
+`admin.html` owns deterministic first-paint stylesheet composition. Runtime workflow composition must not recreate a second deferred stylesheet owner.
 
-## Reader ownership
+## Audit F specificity/cascade decision
 
-- `reader.css` — Reader token/chrome foundation and core layout, including the Library-parity token pin that keeps the shared Read Again dialog on the public dialog palette across every Reader interface theme.
-- `reader-continuous-rail.css` — Continuous seek rail.
-- `reader-page-map.css` — Page Map UI.
-- `reader-completion.css` — settings toggle plus volume-completion presentation.
-- `reader-end-page.css` — explicit end-page layout.
-- `reading-status.css` — shared Finished/read-state primitive.
-- `volume-actions.css` — shared Read Again confirmation dialog primitive; the Reader consumes the same primitive as the public Library/Series surfaces so the dialog is identical at both entry points.
-- `reader-image-focus.css` — isolated image-focus overlay.
-- `reader-a11y.css` — Reader accessibility adaptations.
-- `reader-interface-themes.css` — Reader interface theme palettes.
-- `reader-presentation.css` — Paper surface, loading motion, and flow-specific visibility.
-- `ui-symbols.css` — shared symbol normalization.
+The final static audit reported 181 class tokens styled in multiple files, 137 specificity-watch selectors, and 428 `!important` declarations. Review showed the pressure is concentrated in deliberate late-loaded workflow/theme/layout compatibility layers, including Admin components, Reader themes, Library layout, and public artwork.
 
-R7/R10 change no Reader gesture, Page Map, Visual Page Cache, flow, progress, bookmark, or EPUB layout ownership.
+Those aggregate counts are **review signals**, not cleanup quotas. Sampling did not demonstrate a systemic cascade defect, and live accessibility/browser gates remained green. Broad specificity normalization would create more regression risk than measured benefit.
 
-## Garden Keeper ownership
+## Accessibility and motion authority
 
-The Keeper consumes public foundation tokens from `site.css` plus explicit feature owners:
+Behavioral acceptance remains owned by the existing real-browser suite: keyboard/focus restoration, reduced motion, forced colors, increased contrast, zoom/reflow, browser zoom, and labelled mobile Reader targets. Publication-owned EPUB content retains the separate accessibility boundary.
 
-- `motion.css` — shared motion timing and navigation primitives.
-- `admin.css` — base Keeper shell/forms/cards.
-- `admin-preflight.css` — EPUB preflight feature.
-- `admin-batch.css` — upload batch feature.
-- `admin-maintenance.css` — Maintenance feature.
-- `admin-series-editor.css` — Series Editor dialog/accessibility/toast behavior.
-- `admin-layout.css` — Manage Library/workspace/dialog geometry.
-- `admin-components.css` — Upload state, preflight collapse, upload-series cards, and Catalog History component presentation.
-- `admin-version.css` — deployed-version component.
-- `admin-presentation.css` — Series banner chooser/preview.
-- `admin-motion.css` — Keeper-specific motion presentation and reduced-motion fallback.
-- `ui-symbols.css` — shared symbol normalization.
+## Current CSS verification ownership
 
-`admin.html` directly owns this complete semantic cascade. That is intentional first-paint behavior: Keeper must not render its base shell and then append component, version, presentation, or motion styles after deferred JavaScript starts. R10 deleted the selector-free compatibility aliases `admin-series-editor-polish.css` and `admin-overhaul.css`; there is no historical cascade pathname between the HTML and the semantic owner.
+`npm run audit:css` is the current static ownership measurement. It reports heuristic shared/specificity candidates, rejects hard unused authored custom properties, and is run by normal Verify. Real-browser accessibility/motion/presentation tests remain the behavioral authority.
 
-`admin/app.js` is therefore a runtime **script/workflow** composition root only. It loads the shared motion runtime, Keeper workflows, Upload modules, shell/motion controllers, flavor, and symbol behavior, but it must not create `<link>` elements or otherwise repair deterministic presentation after paint. Build-time asset stamping remains the sole local cache-busting owner.
-
-## Retired CSS owners
-
-The following source files are deleted and recorded in the R1 dead-file manifest:
-
-- `site-current.css`
-- `site-v1.9.4.css`
-- `library-scale.css`
-- `library-compact-alignment.css`
-- `reader-polish.css`
-- `reader-v1.10.1.css`
-- `admin-current.css`
-- `admin-v1.9.4.css`
-- `admin-series-editor-polish.css`
-- `admin-overhaul.css`
-
-## Accessibility and variant contracts
-
-The final design system preserves:
-
-- `prefers-reduced-motion` behavior on public UI, Reader loading/completion, and Keeper motion.
-- public `prefers-contrast: more` and `forced-colors: active` rules.
-- keyboard `:focus-visible` treatment.
-- Main vs Adult archive palettes and Adult Series state.
-- Reader Garden/Night/Black/Paper interface variants and `adult-reader` chrome.
-- native Continuous touch behavior and isolated Reader image-focus zoom from R4.1.
-
-## Permanent R7/R10 guard
-
-`tools/check-r7.mjs` verifies semantic stylesheet order, ownership markers, deleted historical CSS, direct Keeper semantic first-paint ownership, runtime script-only composition, accessibility/variant markers, cache headers, documentation state, and release floor. `tools/check-r10.mjs` additionally forbids any known legacy CSS alias or patch-style source from returning.
-
-Future CSS changes must preserve these ownership contracts and cannot reintroduce release-history styling layers or deferred deterministic style repair.
+Current repository absence/reachability checks keep retired source owners from returning. Historical R7/R10 records remain history; current CSS policy does not depend on deleted milestone executables.

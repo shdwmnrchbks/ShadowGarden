@@ -1,12 +1,12 @@
-# Shadow Garden v2.11.0 Development
+# Shadow Garden v2.11.0
 
 Shadow Garden is a self-hosted EPUB library and browser Reader built for Cloudflare Pages. EPUBs, covers, catalogs, security state, and maintenance data live in a **private Backblaze B2 bucket** and are delivered or managed through same-origin Cloudflare Pages Functions. Private administration is handled by the **Garden Keeper** console.
 
 Production: `https://shadowgarden-bon.pages.dev/`
 
-The accepted architecture baseline remains v2.0.0. The active deployment/product line is **v2.11.0 — Engineering Audit, Refactor & Optimization**; the latest formal release remains **v2.10.0 — Maintenance & Supply Chain**. The website feature set is intentionally considered sufficient for now, so current work is an **audit-first engineering-health phase**. Shadow Garden will inspect architecture, ownership, dead/compatibility code, runtime behavior, realistic-scale performance, tests/tooling, security/recovery boundaries, CSS/accessibility, and documentation before deciding whether any further refactor or optimization is actually needed. Stable subsystems should be left alone.
+The accepted architecture baseline remains v2.0.0. The active deployment/product line and formal release source are **v2.11.0 — Engineering Audit, Refactor & Optimization**. The v2.11 cycle completed an evidence-first audit across architecture, ownership, dead/compatibility code, runtime behavior, realistic-scale performance, tests/tooling, security/recovery boundaries, CSS/accessibility, and documentation. It accepted bounded cleanup, reliability, least-privilege, and measured performance improvements while retaining stable subsystems where evidence did not justify a broad rewrite.
 
-The active v2.11 roadmap is [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md), with evidence and decisions recorded under [`docs/audits/`](./docs/audits/). Completed roadmap history is archived under [`docs/archive/`](./docs/archive/).
+The v2.11 audit record is [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) with detailed evidence under [`docs/audits/`](./docs/audits/) and formal release notes at [`docs/releases/v2.11.0.md`](./docs/releases/v2.11.0.md). Completed roadmap history is archived under [`docs/archive/`](./docs/archive/).
 
 ## Current feature set
 
@@ -80,11 +80,11 @@ The active v2.11 roadmap is [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps
 
 ## v2.11 engineering audit
 
-v2.11 is not a feature roadmap or a pre-approved rewrite. Every material finding is classified as **No change needed**, **Cleanup**, **Targeted refactor**, **Measured optimization**, or **Deferred**.
+v2.11 was not a feature roadmap or a pre-approved rewrite. Every material finding was classified as **No change needed**, **Cleanup**, **Targeted refactor**, **Measured optimization**, or **Deferred**.
 
-The first accepted v2.11 cleanup restores one existing build contract: authored Reader imports no longer carry hand-maintained local `?v=` cache-history strings. Build-time deployment stamping is the single cache-version owner, and a permanent repository check now guards that boundary.
+The completed audit retired demonstrated dead/obsolete owners, fixed bounded Reader lifecycle and Page Map defects, reduced repeated Library state work, removed duplicate Keeper reads, restored least-privilege Functions storage credentials, removed proven stale CSS, retired obsolete tooling/duplicate CI work, and reconciled current documentation. Stable architecture was retained where measurements did not justify change.
 
-See [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) and [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md).
+See [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md), [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md), and [`docs/releases/v2.11.0.md`](./docs/releases/v2.11.0.md).
 
 ## Test architecture
 
@@ -138,7 +138,7 @@ The completed security plan is archived at [`docs/archive/SECURITY_ROADMAP.md`](
 
 The R0–R10 full-codebase refactor is complete. `main` remains deployable, Security Milestones 1–9 and browser-local persistence contracts remain protected by CI, and the v2 source tree has explicit owners instead of accumulated patch layers.
 
-**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.11.0 is the active audit/refactor/optimization development line and v2.10.0 remains the latest formal release. v2.11 tests whether any part of the accepted architecture now needs simplification or optimization; it does not presume another broad refactor is required.**
+**R0–R10 are complete. Shadow Garden v2.0.0 remains the accepted architecture baseline; v2.11.0 is the active deployment and formal release line. The v2.11 audit retained the accepted architecture where evidence did not justify restructuring and made only bounded cleanup, reliability, least-privilege, measured performance, tooling, and documentation changes.**
 
 - R2 domain/state contract: [`docs/architecture/DOMAIN_LAYER.md`](./docs/architecture/DOMAIN_LAYER.md)
 - R3 Library/Series ownership: [`docs/architecture/PUBLIC_UI_LAYER.md`](./docs/architecture/PUBLIC_UI_LAYER.md)
@@ -156,7 +156,7 @@ The R0–R10 full-codebase refactor is complete. `main` remains deployable, Secu
 - v2.5 motion contract: [`docs/architecture/MOTION_SYSTEM.md`](./docs/architecture/MOTION_SYSTEM.md)
 - v2.6 accessibility contract: [`docs/architecture/ACCESSIBILITY_TESTING.md`](./docs/architecture/ACCESSIBILITY_TESTING.md)
 - v2.10 maintenance baseline: [`docs/architecture/MAINTENANCE_BASELINE.md`](./docs/architecture/MAINTENANCE_BASELINE.md)
-- v2.10.0 release notes: [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md)
+- v2.11.0 release notes: [`docs/releases/v2.11.0.md`](./docs/releases/v2.11.0.md)
 
 ## Current architecture
 
@@ -356,4 +356,4 @@ npm run b2:upload -- "path/to/book.epub"
 
 ## Documentation
 
-Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for formal release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the active v2.11 audit/refactor/optimization roadmap, [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md) for findings and measurements, [`docs/archive/README.md`](./docs/archive/README.md) for completed planning history, and [`docs/releases/v2.10.0.md`](./docs/releases/v2.10.0.md) for the latest formal release record.
+Start with [`docs/README.md`](./docs/README.md). See [`CHANGELOG.md`](./CHANGELOG.md) for formal release history, [`docs/roadmaps/CURRENT_ROADMAP.md`](./docs/roadmaps/CURRENT_ROADMAP.md) for the completed v2.11 audit/refactor/optimization roadmap, [`docs/audits/POST_V2_10_AUDIT.md`](./docs/audits/POST_V2_10_AUDIT.md) for findings and measurements, [`docs/archive/README.md`](./docs/archive/README.md) for completed planning history, and [`docs/releases/v2.11.0.md`](./docs/releases/v2.11.0.md) for the latest formal release record.

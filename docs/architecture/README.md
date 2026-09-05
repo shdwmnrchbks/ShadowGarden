@@ -2,9 +2,9 @@
 
 This directory contains the frozen v1 starting baseline, the accepted v2.0/R10 baseline, and the **current authoritative ownership contracts** for later v2 work.
 
-The active deployment/product line is **v2.11.0 — Engineering Audit, Refactor & Optimization**. The latest formal release is **v2.10.0 — Maintenance & Supply Chain**. Audits A–H are complete; stacked-branch assembly/final-main release convergence is next.
+The active deployment/product line and formal release source are **v2.11.0 — Engineering Audit, Refactor & Optimization**. Audits A–H are complete, their stack is assembled and exact-main verified, and the formal v2.11.0 release candidate is converged behind the existing publisher gates.
 
-The single current roadmap is [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md). Current findings are in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md). Historical planning belongs under [`../archive/`](../archive/).
+The single current roadmap is [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md). Current findings are in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md). Formal release notes are [`../releases/v2.11.0.md`](../releases/v2.11.0.md). Historical planning belongs under [`../archive/`](../archive/).
 
 ## Baselines and repository contracts
 
@@ -54,4 +54,4 @@ Audit F converged static cleanup to 0 literal unreferenced class candidates and 
 
 Audit H reconciled current roadmap/findings/index/build/test/CSS/maintenance/dependency documentation with accepted A–G ownership and expanded `check-documentation-freshness.mjs` to protect current status/architecture/operations surfaces, including root README and final Audit G closeout evidence. Release/archive/security milestone/history records remain outside the current-state scan by design.
 
-The next step is assembly of the accepted stacked audit changes onto the intended final `main` state, followed by exact-main verification and deliberate formal v2.11.0 release convergence.
+Audits C–H were assembled onto the already-merged A/B history through PR #231. The resulting exact-main commit `cdbc57384a01e8c83dc13ff5fc1df6753fe93f97` independently passed Verify, Cloudflare Pages, Chromium desktop/mobile, Firefox desktop, and WebKit desktop/mobile before formal release metadata was converged. The exact release commit must still pass the reusable publisher's main-push verification, matching production version/commit, and smoke gates before GitHub release publication.

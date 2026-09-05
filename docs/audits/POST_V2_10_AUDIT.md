@@ -1,9 +1,10 @@
 # v2.11 Engineering Audit — Findings & Decisions
 
-> **Status:** ✅ v2.11A–H complete · release convergence next  
-> **Formal baseline release:** v2.10.0  
+> **Status:** ✅ v2.11A–H complete · stack assembled/exact-main verified · formal release candidate converged  
+> **Previous formal baseline:** v2.10.0  
+> **Formal release candidate:** v2.11.0  
 > **Active deployment line:** v2.11.0  
-> **Execution baseline:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
+> **Assembled exact-main baseline:** `cdbc57384a01e8c83dc13ff5fc1df6753fe93f97`  
 > **Audit G exact-green head:** `974fb1d8212ed4afc713da0ed340e22a58f1adff`  
 > **Roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)
 
@@ -78,10 +79,12 @@ Do not:
 
 ## Audit H closeout
 
-Current architecture/operations documentation now describes the owners that actually run after Audits A–G. Root status, roadmap, docs/architecture/audit indexes, build/test/maintenance/CSS/dependency contracts, and final G evidence are protected by the expanded documentation freshness guard. Historical records are intentionally outside that current-state scan.
+Current architecture/operations documentation describes the owners that actually run after Audits A–G. Root status, roadmap, docs/architecture/audit indexes, build/test/maintenance/CSS/dependency contracts, and final G evidence are protected by the expanded documentation freshness guard. Historical records are intentionally outside that current-state scan.
 
-No H change modifies runtime product behavior, dependency graph, lockfiles, security/storage boundaries, persistence, or formal release metadata.
+No H change modified runtime product behavior, dependency graph, lockfiles, security/storage boundaries, persistence, or formal release metadata.
 
 ## Release boundary
 
-v2.11 audit completion and v2.11 formal release are separate events. Formal release metadata remains v2.10.0 until the accepted A–H stack is assembled on the intended final main state, exact-main gates are green, release record/changelog/lockfile deliberately converge, Cloudflare reports the final commit, and production smoke passes.
+Audits C–H were assembled onto the already-merged A/B history through PR #231. The resulting exact-main commit `cdbc57384a01e8c83dc13ff5fc1df6753fe93f97` independently passed Verify, Cloudflare Pages, Chromium desktop/mobile, Firefox desktop, and WebKit desktop/mobile before formal release metadata was changed.
+
+The formal v2.11.0 release candidate now converges `package.json#version`, root lockfile version metadata, the changelog, current release-status documentation, and `docs/releases/v2.11.0.md`. This metadata convergence is not itself publication: after the release candidate lands on `main`, the existing publisher must re-prove the exact release commit through Verify and complete Real Browser E2E, observe matching Cloudflare production version + commit, and pass production smoke before it creates the GitHub `v2.11.0` release.

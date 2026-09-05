@@ -1,6 +1,6 @@
 # Shadow Garden Audits
 
-> **Status:** ✅ v2.11A–H complete · release convergence next  
+> **Status:** ✅ v2.11A–H complete · stack assembled/exact-main verified · formal release candidate converged  
 > **Current consolidated register:** [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md)  
 > **Current roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)
 
@@ -23,4 +23,4 @@ Audit B remains recorded in the consolidated findings file because its Reader ru
 
 Useful evidence includes duplicated ownership, dead/unreachable/compatibility code, repeated structural defects, measurable latency/memory/DOM/network/build/test cost, brittle verification/tooling, security/recovery reasoning risk, and documentation/implementation divergence. Preference or aesthetic consistency alone is not refactor evidence.
 
-Completed audits remain evidence; accepted architecture documents are the current ownership source of truth after reconciliation.
+Completed audits remain evidence; accepted architecture documents are the current ownership source of truth after reconciliation. Formal v2.11.0 publication remains owned by the exact-main release publisher rather than by the audit records themselves.

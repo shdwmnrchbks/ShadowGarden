@@ -2,7 +2,7 @@
 
 **Status:** Active contract after v2.11G  
 **Active deployment/product version:** v2.11.0 — Engineering Audit, Refactor & Optimization  
-**Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
+**Latest formal release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 **Runtime/package manager:** Node 22.x · npm 10.9.8
 
 Audit G revalidated the existing native build/deployment model and found obsolete executable policy plus duplicate CI cost—not a need for a new build system.

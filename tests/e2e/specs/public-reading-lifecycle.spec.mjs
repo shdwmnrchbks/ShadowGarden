@@ -93,7 +93,9 @@ async function showPaginatedEndPage(page) {
   /* From that anchor, advance one settled Reader turn at a time until completion owns the UI.
      There is deliberately no rendered-page cap: each turn must either reveal completion or
      persist a different canonical location, so the test is bounded by semantic progress rather
-     than desktop/mobile pagination density. */
+     than desktop/mobile pagination density. A percentage seek may hold Reader navigation while
+     EPUB location generation refines the target for up to 10 seconds, so each semantic turn gets
+     the same 15-second settlement budget used by the surrounding resume contract. */
   const bookId = new URL(page.url()).searchParams.get('book') || READER_BOOK_ID;
   const endPage = page.locator('#volumeEndPage');
   const next = page.locator('#nextBottom');
@@ -104,7 +106,7 @@ async function showPaginatedEndPage(page) {
       if (await endPage.isVisible()) return true;
       const afterKey = canonicalProgressKey(await progressFor(page, bookId));
       return Boolean(afterKey && afterKey !== beforeKey);
-    }, { timeout: 3_000 }).toBe(true);
+    }, { timeout: 15_000 }).toBe(true);
   }
 }
 

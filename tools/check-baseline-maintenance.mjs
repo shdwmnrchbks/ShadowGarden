@@ -12,6 +12,9 @@ export function checkBaselineMaintenance({ packageJson = {}, baselineWorkflow = 
   if (packageJson.scripts?.["performance:sanity"] !== "node tools/performance-sanity.mjs") {
     failures.push("package.json must expose performance:sanity through tools/performance-sanity.mjs");
   }
+  if (!String(packageJson.scripts?.check || "").includes("node tools/performance-sanity.mjs")) {
+    failures.push("npm run check must own the realistic-scale performance sanity");
+  }
   if (packageJson.scripts?.["check:baseline"] !== "node tools/check-baseline-maintenance.mjs") {
     failures.push("package.json must expose check:baseline through tools/check-baseline-maintenance.mjs");
   }
@@ -22,11 +25,10 @@ export function checkBaselineMaintenance({ packageJson = {}, baselineWorkflow = 
   for (const [pattern, message] of [
     [/node-version:\s*22\.23\.2\b/, "Baseline Health must use the reviewed Node 22.23.2 patch"],
     [/npm ci --no-audit --no-fund --progress=false/, "Baseline Health must install the committed root lockfile with npm ci"],
-    [/npm run check\b/, "Baseline Health must run repository contract checks"],
+    [/npm run check\b/, "Baseline Health must run repository contracts including realistic-scale performance sanity"],
     [/npm run check:security\b/, "Baseline Health must rerun security contract checks"],
     [/npm test\b/, "Baseline Health must rerun all deterministic test layers, including recovery tests"],
-    [/npm run performance:sanity\b/, "Baseline Health must rerun the realistic-scale performance sanity"],
-    [/npm run build\b/, "Baseline Health must rebuild production output"]
+    [/npm run build:dist\b/, "Baseline Health must rebuild production output after repository checks without rerunning prebuild"]
   ]) requireMatch(baselineWorkflow, pattern, message, failures);
 
   requireMatch(e2eWorkflow, /workflow_dispatch:\s*(?:\n|$)/, "Real Browser E2E must support manual baseline reruns", failures);

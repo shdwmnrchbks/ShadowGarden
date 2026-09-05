@@ -2,8 +2,8 @@
 
 **Status:** Active contract  
 **Active deployment/product version:** v2.11.0 — Engineering Audit, Refactor & Optimization  
-**Formal release source version:** v2.10.0  
-**Current engineering phase:** v2.11 audits A–H complete; stacked-branch assembly and final-main release convergence next
+**Formal release source version:** v2.11.0  
+**Current engineering phase:** v2.11 audits A–H assembled and exact-main verified; formal v2.11.0 release candidate converged
 
 Shadow Garden intentionally separates the version shown by an active development deployment from the version eligible for a formal GitHub release, while requiring those version owners to converge at a formal release cut.
 
@@ -11,25 +11,25 @@ Shadow Garden intentionally separates the version shown by an active development
 
 `package.json` contains two distinct fields:
 
-- `version` — the latest **formal release** version. It remains synchronized with `package-lock.json`, the newest formal changelog section, and `docs/releases/v${VERSION}.md`. `.github/workflows/release-v2.yml` uses this value for GitHub release publication.
+- `version` — the **formal release source** version. It remains synchronized with `package-lock.json`, the newest formal changelog section, and `docs/releases/v${VERSION}.md`. `.github/workflows/release-v2.yml` uses this value for GitHub release publication.
 - `deploymentVersion` — the **active deployed product line**. Build context, generated asset cache stamping, `/data/version.json`, the public Library footer, and Garden Keeper version presentation use this value.
 
-Current audit-complete development state:
+At the v2.11.0 formal release cut the owners converge:
 
 ```json
 {
-  "version": "2.10.0",
+  "version": "2.11.0",
   "deploymentVersion": "2.11.0"
 }
 ```
 
-This does **not** make v2.11.0 a formal release. It means the accepted audit work belongs to the v2.11 development/deployment line while the last verified GitHub release remains v2.10.0.
+Metadata convergence makes the exact `main` commit eligible for the verified v2 publisher; it does not by itself prove that the GitHub release has been published. Publication remains gated by exact-main Verify, the matching five-project Real Browser E2E run, matching Cloudflare production version/commit metadata, and production smoke.
 
 ## Evidence-gated v2.11 result
 
 v2.11 was an audit-first engineering-health cycle, not a quota for refactoring. Audits A–H found a bounded set of dead/compatibility ownership, Reader lifecycle defects, repeated Library state work, duplicate Keeper requests, one Functions least-privilege defect, stale CSS, obsolete tooling/duplicate CI work, and current-document drift. Stable architecture was retained where measurements did not justify change.
 
-Accepted outcomes include cleanup, targeted refactor, measured optimization, and explicit no-change decisions. The consolidated record is [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md).
+Accepted outcomes include cleanup, targeted refactor, measured optimization, and explicit no-change decisions. The consolidated record is [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), and formal release notes are [`../releases/v2.11.0.md`](../releases/v2.11.0.md).
 
 ## Deployment metadata
 
@@ -57,8 +57,10 @@ A formal v2 release requires deliberate convergence of release-owned metadata pl
 
 ## v2.10 release baseline
 
-v2.10.0 remains the latest formal release. Its release tag stays pinned to the verified v2.10 release commit even while post-release maintenance and v2.11 development advance `main`.
+v2.10.0 is the immediately preceding formal release. Its release tag remains pinned to the verified v2.10 release commit and its release record stays historical evidence.
 
 ## v2.11 release convergence
 
-Audit completion does not authorize an immediate release. First assemble the accepted A–H stack onto the intended final `main` state and re-run the exact-main gates. Then deliberately converge `package.json#version`, lockfile version metadata, changelog, and `docs/releases/v2.11.0.md`; confirm Cloudflare reports the matching v2.11.0 version/commit and production smoke passes. Only then may the existing publisher create the formal v2.11.0 release.
+Audits A–H were assembled onto `main` through PR #231 and the resulting mainline commit `cdbc57384a01e8c83dc13ff5fc1df6753fe93f97` independently passed Verify, Cloudflare Pages, Chromium desktop/mobile, Firefox desktop, and WebKit desktop/mobile before the release cut.
+
+The release candidate now deliberately converges `package.json#version`, root lockfile version metadata, the changelog, and `docs/releases/v2.11.0.md`. After this candidate lands on `main`, the existing publisher must re-prove the exact release commit through Verify, matching main-push Real Browser E2E, matching Cloudflare v2.11.0 version/commit metadata, and production smoke before it creates the GitHub `v2.11.0` release.

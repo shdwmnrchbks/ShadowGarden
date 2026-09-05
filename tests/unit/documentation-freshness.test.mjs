@@ -28,7 +28,7 @@ function fixture(overrides = {}) {
     maintenanceBaseline: "Baseline runs repository checks and then npm run build:dist.",
     designSystem: "Current CSS ownership measurement runs through npm run audit:css.",
     dependencyMaintenance: "Current reviewed package manager: npm@10.9.8.",
-    postAudit: "v2.11G complete. v2.11H complete.",
+    postAudit: "[Audit G](./V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md)\n[Audit H](./V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md)",
     buildToolingAudit: "**Status:** ✅ Complete\n**Exact-green head:** `974fb1d8212ed4afc713da0ed340e22a58f1adff`",
     ...overrides
   };
@@ -102,6 +102,12 @@ test("documentation freshness rejects duplicate Baseline performance invocation"
     maintenanceBaseline: "- `npm run performance:sanity`\n- `npm run build:dist`"
   }));
   assert.ok(failures.some(message => message.includes("duplicate standalone performance:sanity")));
+});
+
+test("documentation freshness requires consolidated Audit G and H evidence links", () => {
+  const failures = checkDocumentationFreshness(fixture({ postAudit: "Audit A–H complete." }));
+  assert.ok(failures.some(message => message.includes("Audit G evidence link")));
+  assert.ok(failures.some(message => message.includes("Audit H evidence link")));
 });
 
 test("documentation freshness requires Audit G final closeout evidence", () => {

@@ -133,8 +133,8 @@ export function checkDocumentationFreshness({
     failures.push("MAINTENANCE_BASELINE still documents a duplicate standalone performance:sanity workflow step");
   }
   requireText(designSystem, "audit:css", "DESIGN_SYSTEM current CSS audit owner", failures);
-  requireText(postAudit, "v2.11G", "POST_V2_10_AUDIT Audit G disposition", failures);
-  requireText(postAudit, "v2.11H", "POST_V2_10_AUDIT Audit H disposition", failures);
+  requireText(postAudit, "V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md", "POST_V2_10_AUDIT Audit G evidence link", failures);
+  requireText(postAudit, "V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md", "POST_V2_10_AUDIT Audit H evidence link", failures);
   requireText(buildToolingAudit, "**Status:** ✅ Complete", "Audit G final status", failures);
   requireText(buildToolingAudit, "974fb1d8212ed4afc713da0ed340e22a58f1adff", "Audit G exact-green head", failures);
 

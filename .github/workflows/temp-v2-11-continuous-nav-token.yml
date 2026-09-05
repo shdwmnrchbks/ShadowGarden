@@ -119,8 +119,8 @@ jobs:
         shell: bash
         run: |
           git rm .github/workflows/temp-v2-11-continuous-nav-token.yml
-          git diff --check
-          actual="$(git diff --name-only | sort)"
+          git diff --check HEAD
+          actual="$(git diff HEAD --name-only | sort)"
           expected="$(printf '%s\n' .github/workflows/temp-v2-11-continuous-nav-token.yml src/assets/js/reader/app.js | sort)"
           test "$actual" = "$expected"
           git config user.name 'shadowgarden-release-bot'

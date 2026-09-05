@@ -25,8 +25,7 @@ html.sg-adult-acknowledged .adult-gate{
 }
 
 .adult-library .filter-head strong,
-.adult-library .filter-group label,
-.adult-library .filter-label{
+.adult-library .filter-group label{
   color:var(--adult-muted);
 }
 

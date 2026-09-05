@@ -25,109 +25,92 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          from textwrap import dedent
+          import re
 
           path = Path('src/assets/js/reader/app.js')
           source = path.read_text()
 
-          def replace_exact(before, after):
-              global source
-              if before not in source:
-                  raise RuntimeError('Expected patch anchor missing')
-              source = source.replace(before, after, 1)
+          old_state = '  const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};'
+          new_state = '  const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",currentSpineIndex:null,continuousNavigation:null,renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};'
+          if old_state not in source:
+              raise RuntimeError('State anchor missing')
+          source = source.replace(old_state, new_state, 1)
 
-          replace_exact(
-              '  const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};',
-              '  const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",currentSpineIndex:null,continuousNavigation:null,renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};'
+          nav = (
+              '  function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}\n'
+              '  function targetSpineIndex(target){\n'
+              '    const text=String(target||"");if(!text||text.startsWith("epubcfi("))return null;\n'
+              '    for(const value of [text,text.split("#")[0]]){try{const index=Number(state.book?.spine?.get?.(value)?.index);if(Number.isFinite(index))return index}catch{}}\n'
+              '    return null;\n'
+              '  }\n'
+              '  function locationSpineIndex(location){\n'
+              '    for(const value of [location?.start?.index,location?.end?.index]){const index=Number(value);if(Number.isFinite(index)&&index>=0)return index}\n'
+              '    return targetSpineIndex(location?.start?.href||location?.end?.href||"");\n'
+              '  }\n'
+              '  function relocationIsBeforeExplicitTarget(location,intent){\n'
+              '    const index=locationSpineIndex(location);if(!Number.isFinite(index)||!Number.isFinite(intent?.targetIndex)||!Number.isFinite(intent?.fromIndex))return false;\n'
+              '    if(intent.targetIndex>intent.fromIndex)return index<intent.targetIndex;\n'
+              '    if(intent.targetIndex<intent.fromIndex)return index>intent.targetIndex;\n'
+              '    return false;\n'
+              '  }\n\n'
+              '  async function navigate(target){\n'
+              '    if(!target)return;\n'
+              '    await resumeController?.wait?.();\n'
+              '    if(!state.rendition)return;\n'
+              '    resetReaderInput();\n'
+              '    if(settingsController.get().flow==="scrolled-doc"){\n'
+              '      const requested={start:{href:String(target)}};\n'
+              '      const chapter=tocController?.chapterForLocation?.(requested)||"";\n'
+              '      const targetIndex=targetSpineIndex(target);\n'
+              '      const intent=chapter&&Number.isFinite(targetIndex)?{rendition:state.rendition,requested,chapter,targetIndex,fromIndex:state.currentSpineIndex}:null;\n'
+              '      state.continuousNavigation=intent;\n'
+              '      try{\n'
+              '        await continuousController.display(target);\n'
+              '        /* Explicit href navigation owns semantic chapter chrome while EPUB.js settles its\n'
+              '           Continuous buffer. Late relocations from the old side of the target are ignored\n'
+              '           until location reporting reaches the requested spine section. */\n'
+              '        if(intent&&state.continuousNavigation===intent){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}\n'
+              '      }catch(error){if(state.continuousNavigation===intent)state.continuousNavigation=null;throw error}\n'
+              '    }else{state.continuousNavigation=null;await state.rendition.display(target)}\n'
+              '  }\n\n'
+              '  const bookSearchController'
           )
-
-          replace_exact(
-              dedent('''\
-                function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}
-
-                async function navigate(target){
-                  if(!target)return;
-                  await resumeController?.wait?.();
-                  if(!state.rendition)return;
-                  resetReaderInput();
-                  if(settingsController.get().flow==="scrolled-doc"){
-                    await continuousController.display(target);
-                    /* EPUB.js can leave Continuous location reporting on the preceding buffered section in
-                       WebKit even after an explicit href is visibly displayed. Once the display and final
-                       reportLocation settle, the requested TOC href owns chapter chrome until the next real
-                       relocation. CFI/search targets still rely on canonical relocated events. */
-                    const requested={start:{href:String(target)}};
-                    const chapter=tocController?.chapterForLocation?.(requested)||"";
-                    if(chapter){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}
-                  }else await state.rendition.display(target);
-                }
-              '''),
-              dedent('''\
-                function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}
-                function targetSpineIndex(target){
-                  const text=String(target||"");if(!text||text.startsWith("epubcfi("))return null;
-                  for(const value of [text,text.split("#")[0]]){try{const index=Number(state.book?.spine?.get?.(value)?.index);if(Number.isFinite(index))return index}catch{}}
-                  return null;
-                }
-                function locationSpineIndex(location){
-                  for(const value of [location?.start?.index,location?.end?.index]){const index=Number(value);if(Number.isFinite(index)&&index>=0)return index}
-                  return targetSpineIndex(location?.start?.href||location?.end?.href||"");
-                }
-                function relocationIsBeforeExplicitTarget(location,intent){
-                  const index=locationSpineIndex(location);if(!Number.isFinite(index)||!Number.isFinite(intent?.targetIndex)||!Number.isFinite(intent?.fromIndex))return false;
-                  if(intent.targetIndex>intent.fromIndex)return index<intent.targetIndex;
-                  if(intent.targetIndex<intent.fromIndex)return index>intent.targetIndex;
-                  return false;
-                }
-
-                async function navigate(target){
-                  if(!target)return;
-                  await resumeController?.wait?.();
-                  if(!state.rendition)return;
-                  resetReaderInput();
-                  if(settingsController.get().flow==="scrolled-doc"){
-                    const requested={start:{href:String(target)}};
-                    const chapter=tocController?.chapterForLocation?.(requested)||"";
-                    const targetIndex=targetSpineIndex(target);
-                    const intent=chapter&&Number.isFinite(targetIndex)?{rendition:state.rendition,requested,chapter,targetIndex,fromIndex:state.currentSpineIndex}:null;
-                    state.continuousNavigation=intent;
-                    try{
-                      await continuousController.display(target);
-                      /* Explicit href navigation owns semantic chapter chrome while EPUB.js settles its
-                         Continuous buffer. Late relocations from the old side of the target are ignored
-                         until location reporting reaches the requested spine section. */
-                      if(intent&&state.continuousNavigation===intent){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}
-                    }catch(error){if(state.continuousNavigation===intent)state.continuousNavigation=null;throw error}
-                  }else{state.continuousNavigation=null;await state.rendition.display(target)}
-                }
-              ''')
+          source, nav_count = re.subn(
+              r'  function resetReaderInput\(\).*?\n\n  const bookSearchController',
+              lambda _: nav,
+              source,
+              count=1,
+              flags=re.S,
           )
+          if nav_count != 1:
+              raise RuntimeError(f'Navigate boundary replacement count: {nav_count}')
 
-          replace_exact(
-              dedent('''\
-                function onRelocated(rendition,location){
-                  if(rendition!==state.rendition)return;
-                  state.currentChapter=tocController.chapterForLocation(location);if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;
-                  progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);
-                }
-              '''),
-              dedent('''\
-                function onRelocated(rendition,location){
-                  if(rendition!==state.rendition)return;
-                  const intent=state.continuousNavigation;
-                  if(intent?.rendition===rendition&&relocationIsBeforeExplicitTarget(location,intent)){themeController.refresh(rendition);return}
-                  const spineIndex=locationSpineIndex(location);if(Number.isFinite(spineIndex))state.currentSpineIndex=spineIndex;
-                  const chapter=tocController.chapterForLocation(location);
-                  if(intent?.rendition===rendition){
-                    const reachedChapter=Boolean(intent.chapter&&chapter===intent.chapter);
-                    const reachedIndex=Number.isFinite(spineIndex)&&Number.isFinite(intent.targetIndex)&&(!Number.isFinite(intent.fromIndex)||intent.targetIndex>=intent.fromIndex?spineIndex>=intent.targetIndex:spineIndex<=intent.targetIndex);
-                    if(reachedChapter||reachedIndex)state.continuousNavigation=null;
-                  }
-                  state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;
-                  progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);
-                }
-              ''')
+          relocated = (
+              '  function onRelocated(rendition,location){\n'
+              '    if(rendition!==state.rendition)return;\n'
+              '    const intent=state.continuousNavigation;\n'
+              '    if(intent?.rendition===rendition&&relocationIsBeforeExplicitTarget(location,intent)){themeController.refresh(rendition);return}\n'
+              '    const spineIndex=locationSpineIndex(location);if(Number.isFinite(spineIndex))state.currentSpineIndex=spineIndex;\n'
+              '    const chapter=tocController.chapterForLocation(location);\n'
+              '    if(intent?.rendition===rendition){\n'
+              '      const reachedChapter=Boolean(intent.chapter&&chapter===intent.chapter);\n'
+              '      const reachedIndex=Number.isFinite(spineIndex)&&Number.isFinite(intent.targetIndex)&&(!Number.isFinite(intent.fromIndex)||intent.targetIndex>=intent.fromIndex?spineIndex>=intent.targetIndex:spineIndex<=intent.targetIndex);\n'
+              '      if(reachedChapter||reachedIndex)state.continuousNavigation=null;\n'
+              '    }\n'
+              '    state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;\n'
+              '    progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);\n'
+              '  }\n'
+              '  function wireRendition'
           )
+          source, relocated_count = re.subn(
+              r'  function onRelocated\(rendition,location\)\{.*?\n  \}\n  function wireRendition',
+              lambda _: relocated,
+              source,
+              count=1,
+              flags=re.S,
+          )
+          if relocated_count != 1:
+              raise RuntimeError(f'Relocated boundary replacement count: {relocated_count}')
 
           path.write_text(source)
           PY

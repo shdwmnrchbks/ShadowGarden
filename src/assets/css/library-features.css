@@ -26,7 +26,6 @@
 .active-filter-tags .active-filter-pill-label{display:block;min-width:0;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit;font-size:inherit}.active-filter-tags .active-filter-remove{flex:0 0 auto;color:var(--dim);font-size:.74rem;line-height:1}
 .filter-sub-label{margin-top:3px;color:var(--dim);font-size:.61rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
 .catalog-sentinel{min-height:54px;padding:18px 0 2px;display:flex;justify-content:center;align-items:center}.catalog-sentinel.hidden{display:none!important}.catalog-sentinel button{min-height:36px;padding:0 14px;border:1px solid var(--line);border-radius:9px;color:var(--muted);background:rgba(255,255,255,.02);cursor:pointer;font-size:.72rem}.catalog-sentinel button:hover{color:var(--leaf2);border-color:var(--line2)}
-.filters-active-note{color:var(--leaf);font-size:.65rem}
 .adult-library .recent-volume-cover{border-color:var(--adult-border);background:linear-gradient(145deg,#21121a,#10090d)}
 .adult-library .recent-volume:hover,.adult-library .recent-volume:focus-visible{background:rgba(190,119,139,.022)}
 .adult-library .recent-volume:hover .recent-volume-cover,.adult-library .recent-volume:focus-visible .recent-volume-cover{border-color:var(--adult-border-strong)}
@@ -37,7 +36,6 @@
 .adult-library .active-filter-tags button span{color:#92717c}
 .adult-library .active-filter-tags .active-filter-pill-label{color:var(--adult-accent-strong)}
 .adult-library .catalog-sentinel button{color:#9b7984;border-color:var(--adult-border);background:#120a0e}.adult-library .catalog-sentinel button:hover{color:var(--adult-accent-strong);border-color:var(--adult-border-strong)}
-.adult-library .filters-active-note{color:var(--adult-accent)}
 .adult-library .filter-toggle{border-left-color:var(--adult-border);color:#92717c}.adult-library .filter-toggle:hover,.adult-library .filter-toggle:focus-visible{color:var(--adult-accent-strong)}
 @media(max-width:1250px){.recent-volumes{grid-template-columns:repeat(6,minmax(0,1fr))}.recent-volume:nth-child(n+7){display:none}}
 @media(max-width:980px){.recent-volumes{grid-template-columns:repeat(4,minmax(0,1fr))}.recent-volume:nth-child(n+5){display:none}.filters{grid-template-columns:repeat(3,minmax(0,1fr))}.search-stack,.filter-tags{grid-column:1/-1}.filters.filters-collapsed{display:block}}

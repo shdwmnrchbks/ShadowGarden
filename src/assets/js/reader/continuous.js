@@ -37,7 +37,7 @@ export function createContinuousController({getRendition,getBook,beforeNavigate}
            request an authoritative location report so Reader chapter/progress chrome cannot
            remain on the immediately preceding section while the requested content is visible. */
         await nextPaint();
-        if(rendition===getRendition?.())rendition.reportLocation?.();
+        if(rendition===getRendition?.())await rendition.reportLocation?.();
       }
     }
     return true;

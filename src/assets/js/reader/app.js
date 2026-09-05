@@ -52,8 +52,16 @@ export async function startReader(session){
     await resumeController?.wait?.();
     if(!state.rendition)return;
     resetReaderInput();
-    if(settingsController.get().flow==="scrolled-doc")await continuousController.display(target);
-    else await state.rendition.display(target);
+    if(settingsController.get().flow==="scrolled-doc"){
+      await continuousController.display(target);
+      /* EPUB.js can leave Continuous location reporting on the preceding buffered section in
+         WebKit even after an explicit href is visibly displayed. Once the display and final
+         reportLocation settle, the requested TOC href owns chapter chrome until the next real
+         relocation. CFI/search targets still rely on canonical relocated events. */
+      const requested={start:{href:String(target)}};
+      const chapter=tocController?.chapterForLocation?.(requested)||"";
+      if(chapter){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}
+    }else await state.rendition.display(target);
   }
 
   const bookSearchController=createBookSearchController({getBook:()=>state.book});

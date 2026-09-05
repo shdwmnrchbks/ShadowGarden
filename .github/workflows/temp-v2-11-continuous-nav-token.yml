@@ -1,0 +1,66 @@
+name: Temporary v2.11 Continuous navigation ownership patch
+
+on:
+  push:
+    branches:
+      - fix/v2.11-webkit-continuous-chapter-sync
+    paths:
+      - .github/workflows/temp-v2-11-continuous-nav-token.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/v2.11-webkit-continuous-chapter-sync
+          fetch-depth: 0
+
+      - name: Apply direction-aware navigation ownership
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'src/assets/js/reader/app.js';
+          let source = fs.readFileSync(path, 'utf8');
+
+          function replaceExact(before, after) {
+            if (!source.includes(before)) throw new Error('Expected patch anchor missing');
+            source = source.replace(before, after);
+          }
+
+          replaceExact(
+            '  const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};',
+            '  const state={book:null,rendition:null,navigation:null,pageMap:null,currentChapter:"",currentSpineIndex:null,continuousNavigation:null,renditionSerial:0,switchingFlow:false,queuedFlow:null,renderedFlow:null,toastTimer:0,resizeTimer:0,relayoutTimer:0,pageMapRefreshTimer:0};'
+          );
+
+          replaceExact(
+`  function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}\n\n  async function navigate(target){\n    if(!target)return;\n    await resumeController?.wait?.();\n    if(!state.rendition)return;\n    resetReaderInput();\n    if(settingsController.get().flow==="scrolled-doc"){\n      await continuousController.display(target);\n      /* EPUB.js can leave Continuous location reporting on the preceding buffered section in\n         WebKit even after an explicit href is visibly displayed. Once the display and final\n         reportLocation settle, the requested TOC href owns chapter chrome until the next real\n         relocation. CFI/search targets still rely on canonical relocated events. */\n      const requested={start:{href:String(target)}};\n      const chapter=tocController?.chapterForLocation?.(requested)||"";\n      if(chapter){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}\n    }else await state.rendition.display(target);\n  }`,
+`  function resetReaderInput(){pageInputController?.reset();imageFocusController?.closeImageFocus({restoreFocus:false})}\n  function targetSpineIndex(target){\n    const text=String(target||"");if(!text||text.startsWith("epubcfi("))return null;\n    for(const value of [text,text.split("#")[0]]){try{const index=Number(state.book?.spine?.get?.(value)?.index);if(Number.isFinite(index))return index}catch{}}\n    return null;\n  }\n  function locationSpineIndex(location){\n    for(const value of [location?.start?.index,location?.end?.index]){const index=Number(value);if(Number.isFinite(index)&&index>=0)return index}\n    return targetSpineIndex(location?.start?.href||location?.end?.href||"");\n  }\n  function relocationIsBeforeExplicitTarget(location,intent){\n    const index=locationSpineIndex(location);if(!Number.isFinite(index)||!Number.isFinite(intent?.targetIndex)||!Number.isFinite(intent?.fromIndex))return false;\n    if(intent.targetIndex>intent.fromIndex)return index<intent.targetIndex;\n    if(intent.targetIndex<intent.fromIndex)return index>intent.targetIndex;\n    return false;\n  }\n\n  async function navigate(target){\n    if(!target)return;\n    await resumeController?.wait?.();\n    if(!state.rendition)return;\n    resetReaderInput();\n    if(settingsController.get().flow==="scrolled-doc"){\n      const requested={start:{href:String(target)}};\n      const chapter=tocController?.chapterForLocation?.(requested)||"";\n      const targetIndex=targetSpineIndex(target);\n      const intent=chapter&&Number.isFinite(targetIndex)?{rendition:state.rendition,requested,chapter,targetIndex,fromIndex:state.currentSpineIndex}:null;\n      state.continuousNavigation=intent;\n      try{\n        await continuousController.display(target);\n        /* Explicit href navigation owns semantic chapter chrome while EPUB.js settles its\n           Continuous buffer. Late relocations from the old side of the target are ignored\n           until location reporting reaches the requested spine section. */\n        if(intent&&state.continuousNavigation===intent){state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=chapter;tocController?.setActiveForLocation?.(requested)}\n      }catch(error){if(state.continuousNavigation===intent)state.continuousNavigation=null;throw error}\n    }else{state.continuousNavigation=null;await state.rendition.display(target)}\n  }`
+          );
+
+          replaceExact(
+`  function onRelocated(rendition,location){\n    if(rendition!==state.rendition)return;\n    state.currentChapter=tocController.chapterForLocation(location);if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;\n    progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);\n  }`,
+`  function onRelocated(rendition,location){\n    if(rendition!==state.rendition)return;\n    const intent=state.continuousNavigation;\n    if(intent?.rendition===rendition&&relocationIsBeforeExplicitTarget(location,intent)){themeController.refresh(rendition);return}\n    const spineIndex=locationSpineIndex(location);if(Number.isFinite(spineIndex))state.currentSpineIndex=spineIndex;\n    const chapter=tocController.chapterForLocation(location);\n    if(intent?.rendition===rendition){\n      const reachedChapter=Boolean(intent.chapter&&chapter===intent.chapter);\n      const reachedIndex=Number.isFinite(spineIndex)&&Number.isFinite(intent.targetIndex)&&(!Number.isFinite(intent.fromIndex)||intent.targetIndex>=intent.fromIndex?spineIndex>=intent.targetIndex:spineIndex<=intent.targetIndex);\n      if(reachedChapter||reachedIndex)state.continuousNavigation=null;\n    }\n    state.currentChapter=chapter;if(elements.chapterTitle)elements.chapterTitle.textContent=state.currentChapter;\n    progressController.save(location);resumeController?.remember();tocController.setActiveForLocation(location);bookmarksController.syncButton();themeController.refresh(rendition);\n  }`
+          );
+
+          fs.writeFileSync(path, source);
+          NODE
+
+      - name: Guard final branch diff and commit
+        shell: bash
+        run: |
+          git rm .github/workflows/temp-v2-11-continuous-nav-token.yml
+          git diff --check
+          actual="$(git diff --name-only | sort)"
+          expected="$(printf '%s\n' .github/workflows/temp-v2-11-continuous-nav-token.yml src/assets/js/reader/app.js | sort)"
+          test "$actual" = "$expected"
+          git config user.name 'shadowgarden-release-bot'
+          git config user.email 'shadowgarden-release-bot@users.noreply.github.com'
+          git add src/assets/js/reader/app.js .github/workflows/temp-v2-11-continuous-nav-token.yml
+          git commit -m 'fix(v2.11): guard explicit Continuous navigation ownership'
+          git push origin HEAD:fix/v2.11-webkit-continuous-chapter-sync

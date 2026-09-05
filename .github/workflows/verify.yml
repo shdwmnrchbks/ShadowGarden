@@ -40,4 +40,4 @@ jobs:
       - name: Run Library audit unit tests
         run: node --test tests/unit/data-source-catalog-sharing.test.mjs tests/unit/library-contextual-filters.test.mjs tests/unit/library-reading-performance.test.mjs
       - name: Build production output
-        run: npm run build
+        run: npm run build:dist

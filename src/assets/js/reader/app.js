@@ -254,7 +254,6 @@ export async function startReader(session){
     const pageMapResult=await state.pageMap.ensure({anchorCfi:saved?.cfi||""});
     let initialTarget=saved?.cfi||undefined;
     if(!initialTarget&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{initialTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"})||initialTarget}catch{}}
-    progressController.setPosition(saved);settingsController.setFlow(settingsController.get().flow);resetReaderInput();
     progressController.startLocationGeneration();await openRendition(initialTarget);
     if(!saved?.cfi&&pageMapResult?.map&&saved?.pageMapFingerprint===state.pageMap.fingerprint()&&Number(saved?.page)>0){try{const canonicalTarget=await state.pageMap.targetForPosition(saved,{includeFraction:settingsController.get().flow==="scrolled-doc"});if(canonicalTarget)await state.rendition.display(canonicalTarget)}catch{}}
     resumeController.remember();resumeController.bind();

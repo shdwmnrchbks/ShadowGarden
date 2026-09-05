@@ -14,3 +14,7 @@ tests/e2e/test-results/
 .dev.vars
 .dev.vars.*
 .wrangler/
+
+# Local deployment/storage configuration
+library/b2.json
+library/series-overrides.json

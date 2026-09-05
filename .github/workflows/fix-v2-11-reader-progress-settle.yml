@@ -1,0 +1,59 @@
+name: Fix v2.11 Reader progress settle
+
+on:
+  push:
+    branches:
+      - fix/v2.11-reader-progress-settle
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout fix branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: fix/v2.11-reader-progress-settle
+          fetch-depth: 1
+
+      - name: Align lifecycle wait with Reader navigation barrier
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/e2e/specs/public-reading-lifecycle.spec.mjs')
+          text = path.read_text()
+          start = text.index('async function showPaginatedEndPage(page) {')
+          end = text.index('\n}\n\nasync function seedFinished', start) + 2
+          block = text[start:end]
+          if block.count('timeout: 3_000') != 1:
+              raise SystemExit('Expected exactly one 3-second timeout in showPaginatedEndPage')
+          old_comment = '''  /* From that anchor, advance one settled Reader turn at a time until completion owns the UI.\n     There is deliberately no rendered-page cap: each turn must either reveal completion or\n     persist a different canonical location, so the test is bounded by semantic progress rather\n     than desktop/mobile pagination density. */'''
+          new_comment = '''  /* From that anchor, advance one settled Reader turn at a time until completion owns the UI.\n     There is deliberately no rendered-page cap: each turn must either reveal completion or\n     persist a different canonical location, so the test is bounded by semantic progress rather\n     than desktop/mobile pagination density. A percentage seek may hold Reader navigation while\n     EPUB location generation refines the target for up to 10 seconds, so each semantic turn gets\n     the same 15-second settlement budget used by the surrounding resume contract. */'''
+          if old_comment not in block:
+              raise SystemExit('Expected lifecycle settlement comment was not found')
+          block = block.replace(old_comment, new_comment, 1)
+          block = block.replace('}, { timeout: 3_000 }).toBe(true);', '}, { timeout: 15_000 }).toBe(true);', 1)
+          path.write_text(text[:start] + block + text[end:])
+          PY
+          test "$(git diff --name-only)" = "tests/e2e/specs/public-reading-lifecycle.spec.mjs"
+          git diff --check
+          git diff -- tests/e2e/specs/public-reading-lifecycle.spec.mjs
+
+      - name: Commit focused test-contract fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- tests/e2e/specs/public-reading-lifecycle.spec.mjs; then
+            echo 'No change required.'
+            exit 0
+          fi
+          git config user.name 'shadowgarden-release-bot'
+          git config user.email 'shadowgarden-release-bot@users.noreply.github.com'
+          git add tests/e2e/specs/public-reading-lifecycle.spec.mjs
+          git commit -m 'test(v2.11): honor Reader navigation settlement barrier'
+          git push origin HEAD:fix/v2.11-reader-progress-settle

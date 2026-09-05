@@ -4,10 +4,10 @@ This is the canonical documentation index for current architecture, active plann
 
 ## Current project state
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**; Audits A–H are complete and release convergence is next.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**; Audits A–H are complete and the v2.11.0 formal release cut is converged.
 - [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — the consolidated v2.11 findings/decision register.
 - **Active deployment/product line:** v2.11.0 — Engineering Audit, Refactor & Optimization.
-- **Latest formal release:** v2.10.0 — Maintenance & Supply Chain.
+- **Latest formal release:** v2.11.0 — Engineering Audit, Refactor & Optimization.
 - [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — deployment version versus formal release ownership and final convergence rules.
 
 Completed planning and historical milestone material belongs under [`archive/`](./archive/). Formal release notes under [`releases/`](./releases/) and historical security milestone records remain historical evidence; current freshness enforcement does not rewrite them to remove old version/tool references.
@@ -60,7 +60,7 @@ Completed planning and historical milestone material belongs under [`archive/`](
 
 ## Releases and history
 
-[`releases/README.md`](./releases/README.md) owns formal release-record indexing; the latest formal release is [`releases/v2.10.0.md`](./releases/v2.10.0.md). [`archive/README.md`](./archive/README.md) owns completed roadmaps and milestone history, including the R0–R10 refactor and v2.6–v2.10 product planning.
+[`releases/README.md`](./releases/README.md) owns formal release-record indexing; the latest formal release is [`releases/v2.11.0.md`](./releases/v2.11.0.md). [`archive/README.md`](./archive/README.md) owns completed roadmaps and milestone history, including the R0–R10 refactor and v2.6–v2.10 product planning.
 
 ## Repository documentation policy
 

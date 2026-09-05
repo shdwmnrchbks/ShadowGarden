@@ -2,8 +2,8 @@
 import { AwsClient } from "aws4fetch";
 
 export const B2_BUCKET = "shadow-garden-books-01";
-export const B2_ENDPOINT = "https://s3.us-east-005.backblazeb2.com";
-export const B2_REGION = "us-east-005";
+const B2_ENDPOINT = "https://s3.us-east-005.backblazeb2.com";
+const B2_REGION = "us-east-005";
 export const ROOT_PREFIX = "shadow-garden/";
 export const BACKUP_SHA256_HEADER = "x-amz-meta-shadow-garden-sha256";
 export const BACKUP_BYTES_HEADER = "x-amz-meta-shadow-garden-bytes";
@@ -32,14 +32,29 @@ export function readClient(env) {
   return client(env.B2_READ_KEY_ID, env.B2_READ_APPLICATION_KEY);
 }
 
-export function writeClient(env) {
+function writeOnlyClient(env) {
   if (!env.B2_WRITE_KEY_ID || !env.B2_WRITE_APPLICATION_KEY) throw new Error("B2 write credentials are not configured.");
   return client(env.B2_WRITE_KEY_ID, env.B2_WRITE_APPLICATION_KEY);
 }
 
+export function writeClient(env) {
+  let reader = null, writer = null;
+  return {
+    fetch(url, init = {}) {
+      const method = String(init?.method || "GET").toUpperCase();
+      if (method === "GET" || method === "HEAD") {
+        reader ||= readClient(env);
+        return reader.fetch(url, init);
+      }
+      writer ||= writeOnlyClient(env);
+      return writer.fetch(url, init);
+    }
+  };
+}
+
 function utf8Bytes(value) { return new TextEncoder().encode(String(value ?? "")); }
 
-export async function sha256Text(value) {
+async function sha256Text(value) {
   const digest = await crypto.subtle.digest("SHA-256", utf8Bytes(value));
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }

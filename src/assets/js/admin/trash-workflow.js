@@ -20,19 +20,20 @@
       }).join("");
     }
     async function load(){if(loading)return;loading=true;try{render(await client.request("/admin-api/maintenance",{method:"GET"}))}catch(error){list.innerHTML=`<div class="maintenance-empty maintenance-bad">${safe(error.message)}</div>`}finally{loading=false}}
+    function announceChange(data){keeper.events.dispatchEvent(new CustomEvent("trash:changed",{detail:{data}}))}
     async function restore(id){
       if(!id||purgeAllRunning||restoring.has(id)||purging.has(id))return;const item=trash.find(entry=>entry.id===id);if(!item)return;if(!confirm(`Restore “${item.title}” to the ${item.scope==="adult"?"18+":"Main"} library?`))return;
       restoring.add(id);const button=actionButton("data-restore-trash",id);if(button){button.disabled=true;button.textContent="Restoring…"}const purgeButton=actionButton("data-purge-trash",id);if(purgeButton)purgeButton.disabled=true;
-      try{const result=await action("restore-trash",{id});restoring.delete(id);render(result);keeper.state.management=null;keeper.events.dispatchEvent(new Event("trash:changed"));keeper.events.dispatchEvent(new Event("library:invalidate"));keeper.ui.toast(`Restored “${item.title}”.`)}catch(error){alert(error.message)}finally{restoring.delete(id);const next=actionButton("data-restore-trash",id);if(next){next.disabled=false;next.textContent="Restore"}const nextPurge=actionButton("data-purge-trash",id);if(nextPurge)nextPurge.disabled=false}
+      try{const result=await action("restore-trash",{id});restoring.delete(id);render(result);keeper.state.management=null;announceChange(result);keeper.events.dispatchEvent(new Event("library:invalidate"));keeper.ui.toast(`Restored “${item.title}”.`)}catch(error){alert(error.message)}finally{restoring.delete(id);const next=actionButton("data-restore-trash",id);if(next){next.disabled=false;next.textContent="Restore"}const nextPurge=actionButton("data-purge-trash",id);if(nextPurge)nextPurge.disabled=false}
     }
     async function purge(ids){
       const all=!ids?.length,count=all?trash.length:ids.length;if(!count||purgeAllRunning||(!all&&ids.some(id=>purging.has(id)||restoring.has(id))))return;
       if(!confirm(`Permanently purge ${all?"all Trash":count===1?"this Trash item":`${count} Trash items`}?\n\nAny EPUB and cover objects used only by the selected Trash entries will be deleted from B2. This cannot be undone.`))return;
       if(all)purgeAllRunning=true;else ids.forEach(id=>purging.add(id));render({trash});
-      try{const result=await action("purge-trash",{ids:ids||[]});purgeAllRunning=false;ids?.forEach(id=>purging.delete(id));render(result);keeper.events.dispatchEvent(new Event("trash:changed"));keeper.ui.toast(all?"Trash purged.":"Trash item purged.")}catch(error){alert(error.message)}finally{purgeAllRunning=false;ids?.forEach(id=>purging.delete(id));render({trash})}
+      try{const result=await action("purge-trash",{ids:ids||[]});purgeAllRunning=false;ids?.forEach(id=>purging.delete(id));render(result);announceChange(result);keeper.ui.toast(all?"Trash purged.":"Trash item purged.")}catch(error){alert(error.message)}finally{purgeAllRunning=false;ids?.forEach(id=>purging.delete(id));render({trash})}
     }
     list.addEventListener("click",event=>{const restoreButton=event.target.closest("[data-restore-trash]"),purgeButton=event.target.closest("[data-purge-trash]");if(restoreButton)void restore(restoreButton.dataset.restoreTrash);if(purgeButton)void purge([purgeButton.dataset.purgeTrash])});$("#purgeAllTrash")?.addEventListener("click",()=>void purge([]));
-    keeper.events.addEventListener("maintenance:opened",()=>void load());keeper.events.addEventListener("trash:changed",()=>void load());keeper.events.addEventListener("session:locked",()=>{trash=[];restoring.clear();purging.clear();purgeAllRunning=false;list.innerHTML=""});
+    keeper.events.addEventListener("maintenance:data",event=>render(event.detail?.data));keeper.events.addEventListener("trash:changed",event=>{if(event.detail?.data)render(event.detail.data);else void load()});keeper.events.addEventListener("session:locked",()=>{trash=[];restoring.clear();purging.clear();purgeAllRunning=false;list.innerHTML=""});
     return{load};
   });
 })();

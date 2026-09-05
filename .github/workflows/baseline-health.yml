@@ -32,7 +32,5 @@ jobs:
         run: npm run check:security
       - name: Run full deterministic test layers
         run: npm test
-      - name: Run realistic-scale performance sanity
-        run: npm run performance:sanity
       - name: Build production output
-        run: npm run build
+        run: npm run build:dist

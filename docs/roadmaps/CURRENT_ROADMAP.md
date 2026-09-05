@@ -1,200 +1,135 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A–B COMPLETE · v2.11C NEXT**  
+> **Status:** ✅ **v2.11A–H COMPLETE · RELEASE CONVERGENCE NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
-> **Baseline commit:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
-> **First landed v2.11 slice:** `8c5145b490bda77b5db5527f957ad4bcfea0b113`  
-> **Reader Audit-B measured code head:** `4c9e41fda640926c393dd72397058447d0af92bf`  
-> **Updated:** 2026-09-04
+> **Execution baseline:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
+> **Audit G exact-green head:** `974fb1d8212ed4afc713da0ed340e22a58f1adff`  
+> **Updated:** 2026-09-05
 
-Shadow Garden has enough product features for the current operating horizon. v2.11 is therefore an **audit-first engineering-health cycle**, not a feature expansion roadmap.
-
-The audit asks whether the mature v2 codebase has demonstrated structural, reliability, maintainability, verification, or realistic-scale performance problems. Refactor and optimization work are conditional. If evidence shows an area is already healthy, its implementation step is **skipped / no change needed**.
-
-Completed v2.6–v2.10 product planning is archived under [`../archive/V2_6_TO_V2_10_ROADMAP.md`](../archive/V2_6_TO_V2_10_ROADMAP.md). Current findings and measurements live in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md), with current ownership inventory in [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
-
-## Governing rule
-
-**Audit before architecture change.** A refactor or optimization must have concrete evidence: duplicated ownership, dead/compatibility code, fragile coupling, repeated defects, measurable runtime/build/test cost, excessive resource use, maintainability risk, or a real verification gap.
+Shadow Garden has enough product features for the current operating horizon. v2.11 is an **audit-first engineering-health cycle**, not a feature expansion roadmap and not a pre-approved rewrite. Refactor or optimization was accepted only where evidence demonstrated a correctness, ownership, maintainability, verification, or realistic-scale performance problem.
 
 A clean audit is a successful result.
 
-## Status legend
+## Governing constraints
 
-- ⬜ Planned
-- 🟨 In progress
-- ✅ Complete
-- 🛠 Refactor/cleanup justified
-- ⚡ Optimization justified
-- ⏸ Deferred
-- ⏭ Skipped / no change needed
-
-## Non-negotiable constraints
-
-1. No feature expansion during v2.11 unless required to correct a demonstrated defect.
-2. Preserve one owner per responsibility across domain state, rendering, persistence, Reader, Keeper, Functions, storage, auth, catalog, build, and tests.
-3. Preserve private B2, signed media tickets, opaque identities, Turnstile/Garden Pass, signed Keeper sessions, abuse controls, protected Range delivery, and recovery invariants.
-4. Reader progress, bookmarks, Finished state, preferences, and history remain browser-local.
-5. Reader stability is the highest-risk product contract.
-6. Measure realistic personal-library usage before optimizing; roughly 250–300 series and representative large EPUBs are the normal upper-bound audit fixtures.
-7. No framework/bundler rewrite, speculative virtualization, server-side Reader history, or 1,000+ series engineering without evidence.
-8. Prefer deletion and simplification over new abstraction when both solve the same demonstrated problem.
-9. Keep implementation slices small, reversible, deployable, and independently verifiable.
-10. `npm run check`, deterministic tests, production build, complete five-project real-browser E2E, deployment metadata, and production smoke remain authoritative gates.
-
----
-
-# v2.10.0 — Formal release baseline
-
-**Status:** ✅ Released  
-**Release record:** [`../releases/v2.10.0.md`](../releases/v2.10.0.md)
-
-v2.10.0 remains the latest formal release and fixed comparison baseline. Post-release hotfix/maintenance commits are part of the execution baseline for v2.11 but do not rewrite the v2.10 release tag.
-
-The v2.11 audit begins after:
-
-- the B2 integrity regression hotfix;
-- catalog-history retention reduction from 30 to 15;
-- complete retirement of Batch Edit and Batch Artwork;
-- preservation of normal single-series editing, banner selection, cover maintenance, upload handling, and the multi-EPUB upload queue.
+- preserve private Backblaze B2, signed media, opaque identities, Garden Pass/Turnstile, signed Keeper sessions, abuse controls, Range delivery, and recovery invariants;
+- keep Reader progress, bookmarks, Finished state, preferences, and history browser-local;
+- preserve one owner per responsibility;
+- use realistic personal-library fixtures around 250–300 series and representative large EPUBs before optimizing;
+- do not add a framework/bundler, speculative virtualization, server-side Reader history, or broad architecture change without measured evidence;
+- prefer deletion/simplification over new abstraction when both solve the demonstrated problem;
+- keep `npm run check`, deterministic tests, production build, complete five-project real-browser E2E, deployment metadata, and production smoke authoritative.
 
 ---
 
 # v2.11.0 — Engineering Audit, Refactor & Optimization
 
-**Status:** 🟨 Active development line  
+**Status:** ✅ Audit phase complete · formal release convergence not yet performed  
 **Formal release:** not cut; `package.json#version` remains 2.10.0 until release convergence
 
 ## v2.11A — Repository & ownership inventory
 
 **Status:** ✅ Complete
 
-### Audit goals
+- production browser graph: **25 HTML script roots → all 85 authored browser scripts** after retiring the disconnected reading-state compatibility facade;
+- Functions graph: **15 route roots → all 38 Functions sources**;
+- retired obsolete R-series executable policy snapshots and forwarding-only R6 compatibility facades behind permanent absence guards;
+- restored build-time local asset stamping as the only authored cache-version owner;
+- retained deterministic tests because the active runner discovers them.
 
-- [x] Establish the post-maintenance execution baseline at `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`.
-- [x] Confirm retired Batch Edit/Artwork owners remain removed and tombstoned.
-- [x] Confirm the frozen v2.0 entrypoint manifest remains historical evidence rather than a moving inventory.
-- [x] Identify authored Reader local `?v=` cache-history imports as build-contract drift.
-- [x] Start the v2.11 deployment line at 2.11.0 while keeping formal release ownership at 2.10.0.
-- [x] Remove the three confirmed Reader cache-history imports and add a permanent authored-source cache-version guard.
-- [x] Verify the cache-version guard on exact PR head and exact main with Verify plus the complete five-project real-browser matrix; confirm exact-main Cloudflare deployment succeeds.
-- [x] Reconcile R0–R10 executable milestone checker ownership: classify the self-invalid historical snapshots for retirement and add an active absence guard while preserving modern verification owners.
-- [x] Finish current consumer tracing of the R6 compatibility facades (`functions/_lib/b2.js`, `functions/_lib/garden-maintenance.js`): both were forwarding-only aliases with no current repository consumer after R6 checker retirement; retire them behind an active absence/import guard and reverify exact main.
-- [x] Finish current public/Reader/Keeper/Functions production entrypoint and composition tracing. Browser reachability follows HTML roots, ESM/dynamic imports, and Keeper absolute script-loader edges; Functions reachability follows Pages Function routes through service/helper imports.
-- [x] Identify and dispose of whole-file unreachable source at the inventory level. The first browser graph found one dead R2 `reading-status.js` compatibility facade plus its stale `_headers` rule; both are retired while canonical `domain/reading-state.js` and the live stylesheet remain.
-- [x] Classify remaining Audit-A candidates. Current deterministic tests are retained because the active runner discovers them; release-era standalone tooling is deferred to G; CSS/docs and deeper surface-specific export/behavior questions are assigned to B–H.
-
-### Audit A closeout evidence
-
-- Browser graph: **25 production HTML script roots → all 85 remaining authored browser scripts**.
-- Functions graph: **15 Pages Function route roots → all 38 Functions source files**.
-- Current deterministic test files remain live inputs to `npm test`; filename age alone is not stale-fixture evidence.
-- No inventory-level evidence justifies broader Reader, Library, Keeper, Functions, CSS, or tooling restructuring.
-
-### Decision gate
-
-Audit A closes with evidence and explicit dispositions, not with speculative module cleanup. The permanent reachability checks become part of normal `npm run check`; deeper behavior/performance/export questions remain with Audits B–H.
+Evidence: [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md) and [`../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](../audits/POST_V2_10_ENTRYPOINT_INVENTORY.md).
 
 ## v2.11B — Reader architecture & long-session reliability
 
-**Status:** ✅ Complete on measured Reader code head `4c9e41fda640926c393dd72397058447d0af92bf`
+**Status:** ✅ Complete
 
-### Audit goals and outcomes
+- fixed protected Page Map source ownership and superseded hidden-map cancellation/teardown;
+- carried narrow EPUB.js 0.3.93 lifecycle cleanup and release of trimmed section caches;
+- final repeated-flow drain: ~**+2.31 MiB heap / +702 Nodes / +4 Documents / +14 listeners**;
+- sustained Continuous traversal: **0 retained Documents / +44 Nodes / 0 listeners / ~+0.68 MiB**, transient 18 views trimmed back to 5;
+- first readable ~1.09–1.13 s; isolated 360-page map ~2.49 s; no long-task evidence justified architectural replacement.
 
-- [x] Revalidate Reader app/session, Pages, Continuous, Page Map/progress, Contents/search, bookmarks, image focus, input, resume, and ticket-renewal ownership. **Outcome:** current modular ownership is retained; no broad Reader restructuring is justified.
-- [x] Measure time-to-first-readable-page with a representative large EPUB. **Outcome:** deterministic 6,315,313-byte / 18-chapter fixture reaches first readable in ~1.09–1.13 s on final Chromium audit runs.
-- [x] Exercise long Continuous sessions for listener accumulation, layout churn, memory growth, request churn, and long-task regressions. **Outcome:** nine chapter jumps finish at 5 live views/iframes after a transient peak of 18, with ~+0.68 MiB heap, +44 Nodes, 0 Documents, 0 listeners, one access request, and zero long tasks.
-- [x] Exercise repeated Pages ↔ Continuous switching, search/TOC navigation, image focus, orientation/viewport changes, background/resume, and ticket renewal. **Outcome:** full Reader/browser coverage remains green and the dedicated ownership workload ends at ~+2.31 MiB heap, +702 Nodes, +4 Documents, +14 listeners after lifecycle work drains.
-- [x] Isolate canonical Page Map generation and supersession. **Outcome:** fix protected-source ownership by using `session.sourcePath`; add cancellation/teardown for superseded hidden mapping work; final isolated Page Map reaches 360 pages in ~2.49 s and returns the sandbox count to zero.
-- [x] Trace the dominant flow-switch retention rather than refactoring speculatively. **Outcome:** carry targeted EPUB.js 0.3.93 lifecycle cleanup for Default/Continuous unload listeners, stage orientation cleanup, and rendition-owned Book hooks; guard the dependency revision and unit-test the inheritance/lifecycle contract.
-- [x] Trace remaining Continuous DOM retention after live-buffer trim. **Outcome:** release cached `Section.document/contents/output` after the final live view disappears; retained Documents improve from +13 to 0 and retained Nodes from +3,047 to +44 in the same traversal.
-- [x] Verify the final measured code head with `npm run check`, production build, and all five real-browser projects. **Outcome:** Chromium desktop/mobile, Firefox desktop, WebKit desktop/mobile all pass.
-
-### Audit B decision gate
-
-Audit B found **targeted lifecycle/source defects**, not evidence for architectural consolidation or a performance rewrite. Keep the existing Reader module ownership. Do not defer Page Map generation, add virtualization, replace Continuous buffering, or impose a runner-sensitive heap ceiling: final startup, Page Map, long-session, request, and long-task measurements do not justify those changes.
+Evidence: [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md).
 
 ## v2.11C — Library, Series & browser-local domain
 
-**Status:** ⬜ Planned — next audit
+**Status:** ✅ Complete
 
-- Revalidate catalog normalization, filters/sort, reading state, progress, bookmarks, pinned state, preferences, URL state, and volume-action ownership.
-- Measure hydration/search/filter/sort/view/series-navigation behavior with the deterministic ~300-series fixture.
-- Inspect unnecessary full rerenders, repeated sorting/filtering, DOM churn, and history/serialization work.
-- Do not add virtualization unless realistic measurements prove it is needed.
+- retained catalog/domain/controller ownership; no virtualization/new persistence architecture;
+- hydration localStorage reads **121,905 → 14,211 (−88.3%)** and measured interaction reads **314,387 → 11,645 (−96.3%)**;
+- removed duplicate render/request ownership while keeping later ordinary catalog loads fresh.
+
+Evidence: [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md).
 
 ## v2.11D — Garden Keeper & operational workflows
 
-**Status:** ⬜ Planned
+**Status:** ✅ Complete
 
-- Audit only retained workflows: auth/session, Library/Series, Upload, Maintenance, History, Trash, Abuse Watch, Recovery Readiness, and multi-EPUB upload.
-- Confirm removed Batch Edit/Artwork code does not leave orphaned UI/network/state assumptions.
-- Inspect repeated catalog reads/writes, object checks, sequential network work, busy/error handling, and preview/recovery paths.
-- Optimize only measured expensive operations while preserving deterministic ordering and recovery safety.
+- retained existing workflow split and single AdminClient;
+- reduced Maintenance/History/Trash startup from three identical Maintenance GETs to one canonical snapshot owner;
+- reused already-materialized Library state for normal Upload duplicate preflight, removing the extra startup GET while preserving one safe fallback request.
+
+Evidence: [`../audits/V2_11_KEEPER_AUDIT.md`](../audits/V2_11_KEEPER_AUDIT.md).
 
 ## v2.11E — Pages Functions, security & storage
 
-**Status:** ⬜ Planned — inventory-level facade/reachability subsets already reconciled during v2.11A
+**Status:** ✅ Complete
 
-- Revalidate thin routes over auth, media, catalog, storage, validation, abuse, HTTP, and admin services.
-- Treat retired R6 forwarding facades and whole-file reachability as completed Audit-A ownership cleanup; independently audit unused exports/routes and behavior without weakening security boundaries.
-- Re-run signed media, Keeper session, abuse, catalog-redaction, B2, and recovery invariants.
-- Treat storage/auth/media simplification as security-sensitive.
+- GET/HEAD use read credentials; mutations require write credentials and never fall back;
+- made nine unconsumed implementation-only service symbols private;
+- retained three deliberate validation-policy seams with direct regression coverage;
+- normal Verify owns complete security + service regressions; final retained service-export graph has **91 consumed exports**.
+
+Evidence: [`../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md).
 
 ## v2.11F — CSS, motion & accessibility
 
-**Status:** ⬜ Planned
+**Status:** ✅ Complete
 
-- Identify genuinely unused selectors/tokens, conflicting component ownership, specificity escalation, and obsolete compatibility classes.
-- Revalidate public/Keeper versus Reader-scoped ownership.
-- Re-run keyboard/focus, reduced motion, forced colors, increased contrast, zoom/reflow, and mobile target checks.
-- Avoid broad CSS rewrites without demonstrated ownership or maintenance problems.
+- **36 authored stylesheets / 2,254 selectors / 0 literal unreferenced class candidates / 0 unused custom properties**;
+- remaining specificity/`!important` pressure is concentrated in intentional late-loaded workflow/theme/layout layers;
+- retained keyboard/focus, reduced-motion, forced-colors, increased-contrast, zoom/reflow, and labelled mobile-target behavioral gates;
+- no broad stylesheet consolidation was justified.
+
+Evidence: [`../audits/V2_11_CSS_MOTION_ACCESSIBILITY_AUDIT.md`](../audits/V2_11_CSS_MOTION_ACCESSIBILITY_AUDIT.md).
 
 ## v2.11G — Build, dependencies, tests & tooling
 
-**Status:** ⬜ Planned — R-series executable subset already reconciled during v2.11A; EPUB.js lifecycle revision guard added during v2.11B
+**Status:** ✅ Complete on exact-green head `974fb1d8212ed4afc713da0ed340e22a58f1adff`
 
-- Revalidate Node/npm/lockfile, build context, deployment stamping, no-bundler decision, preview, and publisher ownership.
-- Treat R0–R10 executable milestone checkers as retired historical policy snapshots; current verification remains owned by modern checks/tests/Baseline Health/E2E.
-- Audit remaining M-series, `check-v2-6.mjs`, and other release-era standalone tools independently; do not infer redundancy from the R-series decision.
-- Retain current deterministic `*.test.mjs` files unless Audit G produces evidence beyond historical naming; the active test runner and Baseline Health currently own them.
-- Treat `tools/check-epub-lifecycle-vendor.mjs` as an accepted Reader safety guard unless dependency review proves the compatibility patch obsolete.
-- Measure check/test/build duration and remove duplicate cost only when confidence is preserved.
-- Keep dependency maintenance review-driven and non-destructive.
+- retired seven stale release-era standalone policy executables behind `check-retired-release-tools.mjs`;
+- migrated useful M5–M8 behavior into active service regressions; service gate **47/47**;
+- activated current site-voice/destructive-warning guard;
+- removed duplicate Verify/Baseline execution by using `build:dist` only after the authoritative check passed;
+- retained Node 22/npm 10.9.8, two lockfiles, no-bundler build, review-driven dependencies, static preview, EPUB lifecycle guard, B2 local tools, and existing publisher.
+
+Measured Verify result: ~4.43 s repository check + ~0.34 s post-check build, removing roughly four seconds of duplicate deterministic work without dropping a gate.
+
+Evidence: [`../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md`](../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md).
 
 ## v2.11H — Documentation & repository hygiene
 
-**Status:** ⬜ Planned
+**Status:** ✅ Complete
 
-- Keep one current roadmap and canonical archive ownership.
-- Remove stale statements about retired features or completed releases being active work.
-- Preserve formal release records except factual corrections.
-- Reconcile architecture contracts with final accepted ownership after implementation slices.
+- reconciled authoritative current roadmap/findings/index/build/test/CSS/maintenance/dependency documents to accepted A–G ownership;
+- kept release/archive/security milestone history historical rather than rewriting it as current state;
+- expanded documentation freshness ownership to root/current architecture/current operations plus final Audit G closeout evidence;
+- made package-manager freshness follow `package.json#packageManager` dynamically;
+- fixed the stale Audit G “gate pending” evidence label after its exact head had already gone green;
+- made no product/runtime/dependency/lockfile/security/storage/formal-version change.
+
+Evidence: [`../audits/V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md`](../audits/V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md).
 
 ---
 
-# Findings → implementation gate
+## Release convergence next
 
-Every material finding must record:
+Audit completion does not itself publish v2.11.0. The stacked audit branches must now be assembled/reverified on the intended final `main` state. A formal v2.11.0 release is cut only after:
 
-| Finding | Evidence | Impact | Risk | Decision | Verification |
-| --- | --- | --- | --- | --- | --- |
-| ID/area | reproducible evidence | correctness / maintainability / latency / memory / build/test cost | Low / Medium / High | Skip / Cleanup / Refactor / Optimize / Defer | test or measurement proving completion |
-
-Only **Cleanup/Refactor justified** or **Optimization justified** findings become implementation slices.
-
-## Completion criteria
-
-v2.11 is complete when:
-
-- [ ] Audits A–H have explicit evidence-backed outcomes.
-- [ ] Dead/obsolete material is removed or explicitly retained with a reason.
-- [ ] Every structural recommendation is implemented, skipped, or deferred based on evidence.
-- [ ] Every optimization has a reproducible before/after measurement or is skipped/deferred.
-- [ ] Reader, Keeper, Functions, Library/Series, security, recovery, accessibility, build, and test contracts remain green.
-- [ ] Final exact-main Verify and complete five-browser E2E pass.
-- [ ] Cloudflare production reports the final deployment version/commit and production smoke succeeds for a formal release cut.
-- [ ] Documentation and audit records match the final code state.
-
-A v2.11 formal release is cut only after accepted implementation scope is complete and release-owned metadata deliberately converges from 2.10.0 to 2.11.0.
+- accepted A–H implementation is present together on the final commit;
+- final exact-main Verify and complete five-browser E2E are green;
+- formal `package.json#version`, lockfile root/workspace version, changelog, and `docs/releases/v2.11.0.md` deliberately converge;
+- Cloudflare production reports the matching version + commit;
+- production smoke succeeds;
+- current documentation reflects the final assembled code state.

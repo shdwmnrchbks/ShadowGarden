@@ -1,49 +1,26 @@
 # Shadow Garden Audits
 
-> **Status:** Active evidence workspace  
-> **Current audit:** [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md)  
-> **Current entrypoint inventory:** [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md)  
+> **Status:** ✅ v2.11A–H complete · release convergence next  
+> **Current consolidated register:** [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md)  
 > **Current roadmap:** [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md)
 
-This directory holds evidence-based architecture, maintainability, performance, security, test/tooling, and repository audits.
+Audit evidence precedes architecture change. Each material finding ends in one explicit disposition: **No change needed**, **Cleanup**, **Targeted refactor**, **Measured optimization**, **Deferred**, or **Skipped**.
 
-Audits are not permission to refactor by default. Each finding must end with one explicit decision:
+## Records
 
-- **No change needed** — current structure is healthy and should remain.
-- **Refactor justified** — evidence shows duplicated/fragile ownership, maintainability risk, or correctness risk.
-- **Optimization justified** — a realistic reproducible bottleneck exists.
-- **Deferred** — benefit is real but does not justify current cost/risk.
-- **Skipped** — the proposed change is unnecessary after inspection.
+- [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md) — consolidated A–H findings/decisions plus detailed A/B measurements.
+- [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md) — Audit A production browser/Functions ownership inventory.
+- [`V2_11_LIBRARY_SERIES_AUDIT.md`](./V2_11_LIBRARY_SERIES_AUDIT.md) — Audit C, realistic-scale Library/Series/domain behavior.
+- [`V2_11_KEEPER_AUDIT.md`](./V2_11_KEEPER_AUDIT.md) — Audit D, Keeper runtime/request ownership.
+- [`V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](./V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md) — Audit E, Functions/security/storage ownership.
+- [`V2_11_CSS_MOTION_ACCESSIBILITY_AUDIT.md`](./V2_11_CSS_MOTION_ACCESSIBILITY_AUDIT.md) — Audit F, CSS ownership/motion/accessibility.
+- [`V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md`](./V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md) — Audit G, build/dependency/test/tooling closeout.
+- [`V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md`](./V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md) — Audit H, current documentation/repository hygiene closeout.
+
+Audit B remains recorded in the consolidated findings file because its Reader runtime evidence was developed there before later audits adopted dedicated per-subsystem records.
 
 ## Evidence standard
 
-Useful evidence includes:
+Useful evidence includes duplicated ownership, dead/unreachable/compatibility code, repeated structural defects, measurable latency/memory/DOM/network/build/test cost, brittle verification/tooling, security/recovery reasoning risk, and documentation/implementation divergence. Preference or aesthetic consistency alone is not refactor evidence.
 
-- repeated ownership or duplicated business rules;
-- dead/unreachable code or obsolete compatibility paths;
-- recurrent bug history tied to structural complexity;
-- measurable latency, memory, DOM, network, build, or test cost;
-- brittle tests or tooling that create maintenance risk;
-- security/recovery boundaries that are difficult to reason about safely;
-- documentation/implementation divergence.
-
-Preference or aesthetic consistency alone is not enough to justify a rewrite.
-
-## Active records
-
-- [`POST_V2_10_AUDIT.md`](./POST_V2_10_AUDIT.md) — findings register, decisions, measurements, implementation candidates, and skip/defer outcomes.
-- [`POST_V2_10_ENTRYPOINT_INVENTORY.md`](./POST_V2_10_ENTRYPOINT_INVENTORY.md) — Audit A comparison of the frozen v2.0 entrypoint baseline with current post-v2 Reader/Keeper/Functions/tooling ownership.
-
-## Audit record format
-
-Each active audit should record:
-
-1. baseline commit/version;
-2. subsystem or path inspected;
-3. evidence/measurement;
-4. impact and risk;
-5. decision;
-6. proposed smallest safe change when applicable;
-7. regression test or measurement that will prove completion.
-
-Completed audits remain here as historical evidence even when every implementation recommendation is skipped or deferred.
+Completed audits remain evidence; accepted architecture documents are the current ownership source of truth after reconciliation.

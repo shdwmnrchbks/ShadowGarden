@@ -1,76 +1,77 @@
 # Shadow Garden Dependency Maintenance
 
-**Status:** Active operations policy (post-v2.10)  
+**Status:** Active operations policy during v2.11  
 **Cadence:** Weekly, Monday morning (Asia/Manila)  
-**Current audit context:** [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md)
+**Current reviewed runtime/toolchain:** Node 22.23.2 · npm@10.9.8  
+**Current audit record:** [`../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md`](../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md)
 
-Shadow Garden uses Dependabot only to surface reviewable update pull requests. It does not auto-merge dependency or GitHub Actions changes. The policy remains active after the v2.10 release; dependency maintenance is operational work, not a reopened v2.10 roadmap slice.
-
-The first post-release dependency cycle validated this policy in practice: the `fast-xml-parser` patch was rebased, reviewed, merged, and revalidated on exact `main`; the AWS S3 client update received heightened B2/credential-path review plus the same Verify and five-browser gates before merge.
+Shadow Garden uses Dependabot to surface reviewable update pull requests. It does not auto-merge dependency or GitHub Actions changes. Audit G revalidated this policy and found no evidence for automatic dependency fixes, a package-manager change, lockfile consolidation, or a second dependency-update path.
 
 ## Automated scope
 
-The npm updater is deliberately allow-listed to the five direct production dependencies in `package.json`:
+The npm updater is deliberately allow-listed to the five direct production/tooling dependencies in `package.json`:
 
-- `@aws-sdk/client-s3`
-- `aws4fetch`
-- `epubjs`
-- `fast-xml-parser`
-- `jszip`
+- `@aws-sdk/client-s3` — local B2 setup/upload tooling;
+- `aws4fetch` — Pages Functions private-B2 signing;
+- `epubjs` — Reader runtime/vendor asset;
+- `fast-xml-parser` — EPUB package parsing in build/upload tooling;
+- `jszip` — EPUB archive parsing plus browser vendor asset.
 
-Transitive packages move only when a reviewed direct-dependency update requires the lockfile to change. Adding another direct dependency requires an intentional update to both `package.json` and the maintenance allow-list/check.
+Transitive packages move only when a reviewed direct-dependency update requires the lockfile to change. Adding another direct dependency requires an intentional manifest/lockfile/policy update.
 
-GitHub Actions updates are handled as a separate Dependabot stream. Repository workflows must keep third-party actions pinned to full commit SHAs; human-readable version comments may be updated alongside the SHA.
+GitHub Actions updates are a separate Dependabot stream. Repository workflows keep third-party actions pinned to full commit SHAs; human-readable version comments may move with the pin.
 
 ## Review and merge policy
 
-No dependency PR is eligible for automatic merge. Every update remains an ordinary reviewed pull request and must pass the repository's normal release-quality gates before merge:
+No dependency PR is eligible for automatic merge. Every update is an ordinary reviewed pull request and must pass the normal release-quality gates before merge:
 
-1. Verify Shadow Garden must pass.
-2. Real Browser E2E must pass on Chromium desktop/mobile, Firefox desktop, and WebKit desktop/mobile.
-3. The dependency diff and lockfile must be reviewed for unexpected packages, integrity changes, scripts, or ownership changes.
+1. Verify Shadow Garden;
+2. Real Browser E2E on Chromium desktop/mobile, Firefox desktop, WebKit desktop/mobile;
+3. human review of the dependency and lockfile diff for unexpected packages, integrity changes, scripts, or ownership changes.
 
-Updates touching EPUB.js, AWS/B2 request or storage behavior (`@aws-sdk/client-s3`, `aws4fetch`), authentication/security boundaries, or GitHub Actions execution are treated as high-impact even when the version bump is small. They are never merged on version number or automated test status alone; review must confirm the affected owner and expected behavior.
+EPUB.js, AWS/B2 (`@aws-sdk/client-s3`, `aws4fetch`), authentication/security, runtime-pin, package-manager, and GitHub Actions changes are high-impact even when the semantic version bump is small. Review must confirm the affected owner and expected behavior rather than treating version number or green automation as sufficient evidence.
 
 ## Pull-request volume
 
-Both npm and GitHub Actions streams are capped at five open Dependabot pull requests and run weekly. npm checks begin at 08:00 and GitHub Actions checks at 08:20 Asia/Manila so update streams stay visible without creating continuous churn.
+Both npm and GitHub Actions streams are capped at five open Dependabot pull requests and run weekly. npm checks begin at 08:00 and GitHub Actions checks at 08:20 Asia/Manila.
 
 ## Runtime and lockfile policy
 
-Shadow Garden supports the Node 22 LTS family through `engines.node = "22.x"` in both the root and E2E manifests. Reproducible CI uses the reviewed patch line in `.nvmrc` and every `actions/setup-node` workflow; the current v2.10 pin is Node `22.23.2`. Both manifests also declare `packageManager: "npm@10.9.8"`, matching the npm release bundled with that reviewed Node patch.
+Shadow Garden supports Node 22 through `engines.node = "22.x"` while repository verification uses the reviewed Node 22.23.2 patch. Root `package.json#packageManager` remains `npm@10.9.8`; the E2E workspace follows the same runtime family while owning its independent Playwright lockfile.
 
-The exact CI patch pin is intentionally narrower than the supported engine family. Local/runtime consumers may use a compatible Node 22 patch, while repository gates run one known toolchain. Node 22 patch updates are reviewed maintenance changes and must pass the normal Verify plus five-browser matrix. A future Node major migration is an explicit maintenance slice, not a silent workflow edit.
+Both committed npm lockfiles use lockfile format 3. `tools/check-runtime-lockfiles.mjs` validates manifest/root-lock identity, version, engine, direct dependency metadata, registry origin/integrity, and reviewed workflow runtime pins.
 
-Both committed npm lockfiles use lockfile format 3. `tools/check-runtime-lockfiles.mjs` verifies manifest/root-lock name, version, engine, and direct-dependency metadata; requires all registry-backed package entries to resolve from `https://registry.npmjs.org/` with SHA-512 integrity; and ensures Verify, E2E, and dependency-audit workflows use the reviewed Node patch pin.
-
-Do not hand-edit `resolved`, `integrity`, or transitive dependency fields. The weekly dependency-audit workflow runs `npm ci` against the root production lockfile and separately against `tests/e2e/package-lock.json` with E2E install scripts disabled. Those registry-backed installs complement the deterministic source check by exercising the committed package URLs/checksums on a regular cadence.
+Do not hand-edit `resolved`, `integrity`, or transitive dependency fields. Runtime/npm/lockfile changes are reviewed maintenance changes and must pass the normal verification floor.
 
 ## Dependency audit reporting
 
-`.github/workflows/dependency-audit.yml` runs every Monday at 09:00 Asia/Manila and can also be started manually. It installs the lockfile-defined production tree without install-time audit noise, verifies the runtime/lockfile policy plus the E2E lockfile install, collects `npm audit --omit=dev --json`, and passes that JSON through `tools/dependency-audit-report.mjs`.
+`.github/workflows/dependency-audit.yml` runs every Monday at 09:00 Asia/Manila and can also be dispatched manually. It:
 
-The audit workflow is intentionally separate from normal pull-request/push Verify. Registry availability is external and must not make deterministic product verification flaky. A scheduled audit that cannot obtain or parse a supported npm audit report fails visibly as an **observability failure**; it is not treated as a clean security result.
+- installs the lockfile-defined production tree without install-time audit noise;
+- verifies runtime/lockfile policy;
+- independently verifies the E2E lockfile install with install scripts disabled;
+- collects `npm audit --omit=dev --json`;
+- classifies the result through `tools/dependency-audit-report.mjs`.
+
+The audit workflow is separate from normal pull-request/push Verify because registry availability is external. Failure to obtain or parse a supported npm audit report is an **observability failure**, not a clean security result.
 
 Findings are classified by repository policy:
 
-- **Action required:** any high or critical finding in the production dependency tree. The scheduled audit job fails so the finding stays visible. “Action required” means promptly triage runtime relevance and establish a safe remediation or mitigation; it does not authorize an automatic dependency change.
-- **Review required:** a moderate finding on a direct dependency, or a moderate transitive finding for which npm reports a fix. The scheduled job remains successful but the finding stays visible in the report for human review.
-- **Monitor only:** lower-severity findings and moderate transitive findings with no npm-reported fix. Reassess them on the next weekly cycle or when the dependency graph changes.
+- **Action required:** any high/critical production-tree finding. The scheduled job fails visibly; human review establishes runtime relevance and a safe remediation/mitigation.
+- **Review required:** a moderate direct-dependency finding, or a moderate transitive finding with an npm-reported fix. The report stays visible for review.
+- **Monitor only:** lower-severity findings and moderate transitive findings without an npm-reported fix.
 
-`npm audit` metadata is useful triage evidence but does not prove Shadow Garden can reach or exploit the vulnerable path. Review the advisory against actual runtime ownership, affected code paths, deployment exposure, and the proposed lockfile diff. High-impact EPUB.js, AWS/B2, authentication/security, and workflow changes still require their owner-specific review and the complete verification matrix even if an audit report suggests a simple version bump.
+`npm audit` metadata is triage evidence, not proof that Shadow Garden can reach or exploit the vulnerable path. Review the advisory against actual runtime ownership, deployment exposure, and the proposed dependency/lockfile diff. The reporter never modifies package metadata or the lockfile.
 
-The reporter writes a human-readable GitHub job summary and can be run against previously captured JSON with `npm run audit:report`. It never modifies package metadata or the lockfile.
+## What automation does not do
 
-## What this automation does not do
+- no dependency or Actions auto-merge;
+- no independent arbitrary transitive updates;
+- no weakening/skipping of the five-browser matrix;
+- no `npm audit fix` automation;
+- no manual rewrite of lockfile integrity/transitive metadata;
+- no dependency change authorized solely by advisory severity.
 
-- It does not auto-merge.
-- It does not update arbitrary transitive dependencies independently.
-- It does not weaken or skip the five-browser matrix for dependency/configuration changes.
-- It does not treat `npm audit` severity alone as proof of a production exploit.
-- It never runs `npm audit fix` automatically.
-- It does not rewrite lockfile integrity or transitive metadata by hand.
+`tools/check-dependency-maintenance.mjs` enforces allow-list/cadence/audit/workflow-pin/no-auto-merge policy. `tools/check-runtime-lockfiles.mjs` separately enforces the reviewed Node/npm/two-lockfile contract.
 
-`tools/check-dependency-maintenance.mjs` enforces the dependency allow-list, cadence, scheduled audit contract, workflow SHA pins, absence of repository auto-merge hooks, and continued E2E coverage for dependency/workflow pull requests. `tools/check-runtime-lockfiles.mjs` separately enforces the reviewed Node/npm toolchain and committed lockfile invariants.
-
-The post-v2.10 audit may recommend reducing duplicated maintenance checks or improving observability, but it does not grant broader automation authority. Any change to this policy must preserve explicit human review for high-impact dependencies and the same release-quality verification floor.
+Audit G removed duplicate **verification execution**, not dependency-review authority: workflows that already passed `npm run check` use `npm run build:dist`, and Baseline Health no longer repeats the exact performance command already owned by the repository check. Any future maintenance-policy change must preserve explicit human review for high-impact dependencies and the same release-quality verification floor.

@@ -274,17 +274,11 @@
     $("#tagSelect")?.addEventListener("change",event=>{const tag=event.target.value;if(tag)state.tags.add(tag);event.target.value="";apply({historyMode:"push"})});
     $("#genreChips")?.addEventListener("click",event=>{const button=event.target.closest("button[data-tag]");if(!button)return;const tag=button.dataset.tag;if(state.tags.has(tag))state.tags.delete(tag);else state.tags.add(tag);apply({historyMode:"push"})});
     document.querySelector(".filters")?.addEventListener("click",event=>{const button=event.target.closest("button[data-reading-status]");if(!button)return;const value=button.dataset.readingStatus;state.readingStatus=state.readingStatus===value?"":value;apply({historyMode:"push"})});
-    $("#activeTags")?.addEventListener("click",event=>{
-      const tagButton=event.target.closest("button[data-remove-tag]");
-      if(tagButton){state.tags.delete(tagButton.dataset.removeTag);apply({historyMode:"push"});return}
-      const filterButton=event.target.closest("button[data-clear-filter]");
-      if(filterButton&&clearNamedFilter(filterButton.dataset.clearFilter))apply({historyMode:"push"});
-    });
     $("#clearFilters")?.addEventListener("click",()=>clearFilters());
     $("#pinnedNav")?.addEventListener("click",()=>{state.pinnedOnly=!state.pinnedOnly;apply({historyMode:"push"})});
     document.querySelector(".view-switch")?.addEventListener("click",event=>{const button=event.target.closest("button[data-view]");if(!button)return;state.view=button.dataset.view;domain.preferences.setLibraryView(scope,state.view);apply({historyMode:"replace"})});
     $("#loadMore")?.addEventListener("click",appendBatch);
-    $("#recentViewAll")?.addEventListener("click",()=>{clearFilters({historyMode:null});state.sort="recent";apply({historyMode:"push"});$("#catalogSection")?.scrollIntoView({behavior:"smooth",block:"start"})});
+    $("#recentViewAll")?.addEventListener("click",()=>{clearFilters({historyMode:"push"});$("#catalogSection")?.scrollIntoView({behavior:"smooth",block:"start"})});
     window.addEventListener("popstate",()=>{readUrl();model.validateFilterState(state,state.items);apply()});
     window.addEventListener(readingStatus.EVENT,refreshReadingUi);
     window.addEventListener("pageshow",refreshReadingUi);
@@ -307,7 +301,6 @@
     state.catalog=await window.ShadowGardenData.loadCatalog(scope==="nsfw");
     state.items=arr(state.catalog.series);
     $("#headerVolumes").textContent=state.items.reduce((count,series)=>count+arr(series.volumes).length,0);
-    collectFilters();
     model.validateFilterState(state,state.items);
     renderContinue();
     renderRecentlyAdded();

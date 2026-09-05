@@ -48,7 +48,7 @@ Owns browser catalog normalization and lookup:
 - Main/Adult series-ID classification;
 - one-time compatibility migration of legacy progress/bookmark identities.
 
-`data-source.js` remains the network/source adapter and delegates catalog meaning to this module.
+`data-source.js` remains the network/source adapter and delegates catalog meaning to this module. It may coalesce concurrent public catalog requests and retain the latest successful normalized catalog for bounded startup coordination. A cache-tolerant sibling owner such as pinned navigation can explicitly hand that successful startup snapshot to one subsequent page-controller load; normal later loads remain fresh and still fetch through the canonical source adapter.
 
 ### `domain/progress.js`
 
@@ -85,7 +85,7 @@ Rules:
 
 Finished persistence remains compatible with `sg-finished-books` and `sg-finished:<alias>`.
 
-The service also owns series-level operations such as finished count, whole-series Finished state, preferred Series CTA volume, and latest resumable/readable volume selection.
+The service also owns series-level operations such as finished count, whole-series Finished state, preferred Series CTA volume, latest resumable/readable volume selection, and Library banner candidate selection. Audit C keeps that ownership in the domain layer but materializes per-volume state once per decision path so callers do not repeatedly rescan the same browser-local state.
 
 ### `domain/preferences.js`
 
@@ -119,20 +119,31 @@ Stable namespace entrypoint used by current browser consumers:
 import { catalog, readingState, preferences, urls } from "/assets/js/domain/index.js";
 ```
 
-## Compatibility facades retained after R2
+## Compatibility boundaries retained after R2
 
-R2 intentionally does not perform the R3/R4/R5 UI decomposition.
+R2 intentionally did not perform every later UI decomposition. Current compatibility ownership is narrower than the original R2 state:
 
-- `reading-status.js` remains the legacy `window.ShadowGardenReadingStatus` facade, backed entirely by `domain/reading-state.js`.
-- `data-source.js` retains its synchronous `normalizeStatus()` compatibility export for older Garden Keeper code, while catalog normalization itself is domain-owned.
-- `book-access.js` still contains security-side legacy identity/migration compatibility. It is an acquisition/security boundary and will be reconsidered during R4/R6, not mixed into R2.
-- Existing `*-polish` files remain grandfathered R1 debt until their owning milestones remove them. Where they touch persistent public state during R2, they now consume the canonical services rather than scanning localStorage directly.
+- the retired top-level `reading-status.js` facade is gone; current browser code uses canonical `domain/reading-state.js` ownership directly;
+- `data-source.js` retains its synchronous `normalizeStatus()` compatibility export for older Garden Keeper code, while catalog normalization itself is domain-owned;
+- `book-access.js` still contains security-side legacy identity/migration compatibility and remains an acquisition/security boundary;
+- remaining grandfathered presentation compatibility should consume canonical domain services rather than independently scanning browser-local persistence.
+
+## Library / Series handoff
+
+Library and Series controllers are consumers of this domain layer rather than alternate persistence owners.
+
+- `library-model.js` owns filtering/sorting/contextual option computation and requests whole-series Finished state only when an active reading-status filter requires it.
+- `library-renderers.js` derives presentation from materialized reading-state entries instead of starting a second persistence scan.
+- `library.js` owns URL/control/render orchestration and one canonical catalog render per user action.
+- Series rendering keeps its own public page/controller composition while relying on the same catalog, reading-state, progress, bookmark, preference, URL, and volume-action domain owners.
+
+The v2.11C realistic 300-series audit found no evidence that these surfaces need virtualization, controller consolidation, or a new persistence/cache architecture.
 
 ## Reader handoff
 
 `reader/storage.js` is now an adapter over `domain/progress.js` and `domain/bookmarks.js`. It receives the private EPUB source identity used by EPUB.js plus the public ID established by Reader bootstrap and treats them as aliases for one logical book.
 
-Reader bootstrap still owns protected ticket/source setup and the temporary URLSearchParams handoff required by the current EPUB.js integration. That transport workaround belongs to R4. It no longer owns a parallel progress/bookmark synchronization timer.
+Reader bootstrap still owns protected ticket/source setup and the temporary URLSearchParams handoff required by the current EPUB.js integration. That transport workaround belongs to the Reader integration boundary. It no longer owns a parallel progress/bookmark synchronization timer.
 
 ## Security boundary
 

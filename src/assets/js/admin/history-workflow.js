@@ -35,7 +35,7 @@
       try{await client.request("/admin-api/backup",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"delete",id})});removing.delete(id);await load();keeper.events.dispatchEvent(new Event("history:changed"))}catch(error){alert(error.message)}finally{removing.delete(id);const next=actionButton("data-delete-backup",id);if(next){next.disabled=false;next.removeAttribute("aria-busy")}const nextRestore=actionButton("data-restore-backup",id);if(nextRestore)nextRestore.disabled=false}
     }
     $("#createCatalogBackup")?.addEventListener("click",()=>void create());list.addEventListener("click",event=>{const restoreButton=event.target.closest("[data-restore-backup]"),deleteButton=event.target.closest("[data-delete-backup]");if(restoreButton)void restore(restoreButton.dataset.restoreBackup);if(deleteButton)void remove(deleteButton.dataset.deleteBackup)});
-    keeper.events.addEventListener("maintenance:opened",()=>void load());keeper.events.addEventListener("session:locked",()=>{backups=[];restoring.clear();removing.clear();creating=false;list.innerHTML=""});
+    keeper.events.addEventListener("maintenance:data",event=>render(event.detail?.data));keeper.events.addEventListener("session:locked",()=>{backups=[];restoring.clear();removing.clear();creating=false;list.innerHTML=""});
     return{load};
   });
 })();

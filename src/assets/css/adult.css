@@ -3,9 +3,6 @@ html.sg-adult-acknowledged .adult-gate{
 }
 
 .adult-library{
-  --adult-bg:#0e080b;
-  --adult-surface:#160d12;
-  --adult-surface-2:#1b1016;
   --adult-border:rgba(214,137,160,.18);
   --adult-border-strong:rgba(225,151,173,.32);
   --adult-text:#eed9e0;
@@ -28,8 +25,7 @@ html.sg-adult-acknowledged .adult-gate{
 }
 
 .adult-library .filter-head strong,
-.adult-library .filter-group label,
-.adult-library .filter-label{
+.adult-library .filter-group label{
   color:var(--adult-muted);
 }
 

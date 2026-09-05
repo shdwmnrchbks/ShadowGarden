@@ -89,7 +89,7 @@ export async function handleBookAccess(context) {
   }
 }
 
-export function getObjectKey(value) {
+function getObjectKey(value) {
   const parts = Array.isArray(value) ? value : [value];
   const clean = parts.filter(Boolean).map(String);
   if (!clean.length || clean.some(part => part === "." || part === ".." || part.includes("\\"))) return "";
@@ -114,7 +114,7 @@ function cachePolicy(key) {
   return "private, no-store";
 }
 
-export function applyMediaSecurityHeaders(headers, key) {
+function applyMediaSecurityHeaders(headers, key) {
   headers.set("X-Content-Type-Options", "nosniff");
   if (!protectedMedia(key)) return headers;
   headers.set("Cross-Origin-Resource-Policy", "same-origin");

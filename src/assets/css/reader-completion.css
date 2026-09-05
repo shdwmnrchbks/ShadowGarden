@@ -7,19 +7,14 @@
 .settings-panel .reader-toggle-setting input[type=checkbox]{width:38px;height:21px;accent-color:#9a86d3;cursor:pointer}
 body.adult-reader .settings-panel .reader-toggle-setting input[type=checkbox]{accent-color:#b7798b}
 
-.volume-complete{width:min(520px,calc(100% - 28px));padding:0;border:1px solid rgba(196,184,225,.18);border-radius:22px;background:#100c16;color:var(--text);box-shadow:0 30px 110px rgba(0,0,0,.62)}
-.volume-complete::backdrop{background:rgba(3,2,6,.76);backdrop-filter:blur(7px)}
 .volume-complete-card{position:relative;padding:34px 28px 28px;text-align:center}
-.volume-complete-close{position:absolute;top:12px;right:12px;width:36px;height:36px;border:1px solid var(--line);border-radius:50%;background:transparent;color:var(--muted);font-size:1.25rem;cursor:pointer}
 .volume-complete-mark{width:58px;height:58px;margin:0 auto 17px;display:grid;place-items:center;border-radius:50%;border:1px solid rgba(195,180,238,.18);background:rgba(154,134,211,.08);color:var(--leaf);font-size:1.35rem}
 .volume-complete-kicker{margin:0;color:#91869e;font-size:.64rem;letter-spacing:.18em;font-weight:700}
-.volume-complete h2{margin:9px auto 8px;max-width:410px;font:600 clamp(1.5rem,5vw,2.25rem)/1.1 Georgia,serif;color:#f0edf5}
 .volume-complete-detail{max-width:420px;margin:0 auto;color:#9e96a8;font-size:.78rem;line-height:1.65}
 .volume-complete-actions{display:grid;gap:9px;margin-top:24px}
 .volume-complete-actions a{min-height:46px;display:flex;align-items:center;justify-content:center;padding:11px 16px;border-radius:12px;text-decoration:none;font-weight:650;font-size:.78rem}
 .volume-complete-next{border:1px solid rgba(195,180,238,.30);background:linear-gradient(135deg,#7661aa,#9a86d3);color:#f7f3ff}
 .volume-complete-return{border:1px solid var(--line);background:rgba(154,134,211,.04);color:#c3b4ee}
-body.adult-reader .volume-complete{border-color:rgba(209,163,176,.18);background:#120b0e}
 body.adult-reader .volume-complete-mark{border-color:rgba(214,160,173,.2);background:rgba(183,121,139,.08)}
 body.adult-reader .volume-complete-next{border-color:rgba(214,160,173,.3);background:linear-gradient(135deg,#855264,#b7798b)}
 body.adult-reader .volume-complete-return{background:rgba(183,121,139,.05);color:#d6a0ad}

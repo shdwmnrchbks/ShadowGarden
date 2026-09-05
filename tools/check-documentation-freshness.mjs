@@ -38,6 +38,7 @@ function rejectRetiredExecutableClaims(documents, failures) {
 
 export function checkDocumentationFreshness({
   packageJson = {},
+  rootReadme = "",
   currentRoadmap = "",
   docsIndex = "",
   versioningContract = "",
@@ -47,15 +48,22 @@ export function checkDocumentationFreshness({
   testArchitecture = "",
   maintenanceBaseline = "",
   designSystem = "",
-  postAudit = ""
+  dependencyMaintenance = "",
+  postAudit = "",
+  buildToolingAudit = ""
 } = {}) {
   const failures = [];
   const formalVersion = String(packageJson.version || "").trim();
   const deploymentVersion = String(packageJson.deploymentVersion || formalVersion).trim();
+  const packageManager = String(packageJson.packageManager || "").trim();
 
   if (!formalVersion) failures.push("package.json#version is missing");
   if (!deploymentVersion) failures.push("package.json#deploymentVersion is missing");
-  if (!formalVersion || !deploymentVersion) return failures;
+  if (!packageManager) failures.push("package.json#packageManager is missing");
+  if (!formalVersion || !deploymentVersion || !packageManager) return failures;
+
+  requireText(rootReadme, `v${deploymentVersion}`, "root README active deployment version", failures);
+  requireText(rootReadme, `v${formalVersion}`, "root README formal release version", failures);
 
   const roadmapActive = versionFrom(
     currentRoadmap,
@@ -116,7 +124,8 @@ export function checkDocumentationFreshness({
   );
   expectVersion(buildFormal, formalVersion, "BUILD_DEPLOYMENT formal release", failures);
 
-  requireText(buildContract, "npm@10.9.8", "BUILD_CONTRACT package-manager policy", failures);
+  requireText(buildContract, packageManager, "BUILD_CONTRACT package-manager policy", failures);
+  requireText(dependencyMaintenance, packageManager, "dependency-maintenance package-manager policy", failures);
   requireText(buildDeployment, "npm run build:dist", "BUILD_DEPLOYMENT post-check build primitive", failures);
   requireText(testArchitecture, "npm run build:dist", "TEST_ARCHITECTURE post-check build primitive", failures);
   requireText(maintenanceBaseline, "npm run build:dist", "MAINTENANCE_BASELINE post-check build primitive", failures);
@@ -125,14 +134,19 @@ export function checkDocumentationFreshness({
   }
   requireText(designSystem, "audit:css", "DESIGN_SYSTEM current CSS audit owner", failures);
   requireText(postAudit, "v2.11G", "POST_V2_10_AUDIT Audit G disposition", failures);
+  requireText(postAudit, "v2.11H", "POST_V2_10_AUDIT Audit H disposition", failures);
+  requireText(buildToolingAudit, "**Status:** ✅ Complete", "Audit G final status", failures);
+  requireText(buildToolingAudit, "974fb1d8212ed4afc713da0ed340e22a58f1adff", "Audit G exact-green head", failures);
 
   rejectRetiredExecutableClaims({
+    "root README": rootReadme,
     "architecture index": architectureIndex,
     "build contract": buildContract,
     "build/deployment contract": buildDeployment,
     "test architecture": testArchitecture,
     "maintenance baseline": maintenanceBaseline,
-    "design system": designSystem
+    "design system": designSystem,
+    "dependency maintenance": dependencyMaintenance
   }, failures);
 
   return failures;
@@ -140,6 +154,7 @@ export function checkDocumentationFreshness({
 
 export async function runDocumentationFreshnessCheck(root = process.cwd()) {
   const files = {
+    rootReadme: ["README.md"],
     currentRoadmap: ["docs", "roadmaps", "CURRENT_ROADMAP.md"],
     docsIndex: ["docs", "README.md"],
     versioningContract: ["docs", "architecture", "VERSIONING_CONTRACT.md"],
@@ -149,19 +164,21 @@ export async function runDocumentationFreshnessCheck(root = process.cwd()) {
     testArchitecture: ["docs", "architecture", "TEST_ARCHITECTURE.md"],
     maintenanceBaseline: ["docs", "architecture", "MAINTENANCE_BASELINE.md"],
     designSystem: ["docs", "architecture", "DESIGN_SYSTEM.md"],
-    postAudit: ["docs", "audits", "POST_V2_10_AUDIT.md"]
+    dependencyMaintenance: ["docs", "operations", "DEPENDENCY_MAINTENANCE.md"],
+    postAudit: ["docs", "audits", "POST_V2_10_AUDIT.md"],
+    buildToolingAudit: ["docs", "audits", "V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md"]
   };
   const packageSource = await fs.readFile(path.join(root, "package.json"), "utf8");
   const entries = await Promise.all(Object.entries(files).map(async ([key, parts]) => [key, await fs.readFile(path.join(root, ...parts), "utf8")]));
-  const failures = checkDocumentationFreshness({ packageJson: JSON.parse(packageSource), ...Object.fromEntries(entries) });
+  const packageJson = JSON.parse(packageSource);
+  const failures = checkDocumentationFreshness({ packageJson, ...Object.fromEntries(entries) });
   if (failures.length) {
     console.error(`Documentation freshness check failed with ${failures.length} problem${failures.length === 1 ? "" : "s"}:`);
     failures.forEach(message => console.error(`- ${message}`));
     process.exitCode = 1;
     return failures;
   }
-  const packageJson = JSON.parse(packageSource);
-  console.log(`Documentation freshness check passed: deployment v${packageJson.deploymentVersion || packageJson.version}, formal release v${packageJson.version}; current architecture docs match retired-tool ownership.`);
+  console.log(`Documentation freshness check passed: deployment v${packageJson.deploymentVersion || packageJson.version}, formal release v${packageJson.version}; current status/architecture/operations docs match retired-tool ownership.`);
   return [];
 }
 

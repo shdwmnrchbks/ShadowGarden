@@ -1,13 +1,13 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A–G COMPLETE · v2.11H IN PROGRESS**  
+> **Status:** ✅ **v2.11A–H COMPLETE · RELEASE CONVERGENCE NEXT**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
 > **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
 > **Execution baseline:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
 > **Audit G exact-green head:** `974fb1d8212ed4afc713da0ed340e22a58f1adff`  
 > **Updated:** 2026-09-05
 
-Shadow Garden has enough product features for the current operating horizon. v2.11 is an **audit-first engineering-health cycle**, not a feature expansion roadmap and not a pre-approved rewrite. Refactor or optimization is accepted only when evidence demonstrates a correctness, ownership, maintainability, verification, or realistic-scale performance problem.
+Shadow Garden has enough product features for the current operating horizon. v2.11 is an **audit-first engineering-health cycle**, not a feature expansion roadmap and not a pre-approved rewrite. Refactor or optimization was accepted only where evidence demonstrated a correctness, ownership, maintainability, verification, or realistic-scale performance problem.
 
 A clean audit is a successful result.
 
@@ -25,7 +25,7 @@ A clean audit is a successful result.
 
 # v2.11.0 — Engineering Audit, Refactor & Optimization
 
-**Status:** 🟨 Active development line  
+**Status:** ✅ Audit phase complete · formal release convergence not yet performed  
 **Formal release:** not cut; `package.json#version` remains 2.10.0 until release convergence
 
 ## v2.11A — Repository & ownership inventory
@@ -45,7 +45,7 @@ Evidence: [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md) and [
 **Status:** ✅ Complete
 
 - fixed protected Page Map source ownership and superseded hidden-map cancellation/teardown;
-- carried the narrow EPUB.js 0.3.93 lifecycle compatibility cleanup and release of trimmed section caches;
+- carried narrow EPUB.js 0.3.93 lifecycle cleanup and release of trimmed section caches;
 - final repeated-flow drain: ~**+2.31 MiB heap / +702 Nodes / +4 Documents / +14 listeners**;
 - sustained Continuous traversal: **0 retained Documents / +44 Nodes / 0 listeners / ~+0.68 MiB**, transient 18 views trimmed back to 5;
 - first readable ~1.09–1.13 s; isolated 360-page map ~2.49 s; no long-task evidence justified architectural replacement.
@@ -56,8 +56,8 @@ Evidence: [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md).
 
 **Status:** ✅ Complete
 
-- retained the catalog/domain/controller ownership split and skipped virtualization/new persistence architecture;
-- reduced hydration localStorage reads **121,905 → 14,211 (−88.3%)** and measured interaction reads **314,387 → 11,645 (−96.3%)**;
+- retained catalog/domain/controller ownership; no virtualization/new persistence architecture;
+- hydration localStorage reads **121,905 → 14,211 (−88.3%)** and measured interaction reads **314,387 → 11,645 (−96.3%)**;
 - removed duplicate render/request ownership while keeping later ordinary catalog loads fresh.
 
 Evidence: [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SERIES_AUDIT.md).
@@ -66,7 +66,7 @@ Evidence: [`../audits/V2_11_LIBRARY_SERIES_AUDIT.md`](../audits/V2_11_LIBRARY_SE
 
 **Status:** ✅ Complete
 
-- retained the existing workflow split and single AdminClient;
+- retained existing workflow split and single AdminClient;
 - reduced Maintenance/History/Trash startup from three identical Maintenance GETs to one canonical snapshot owner;
 - reused already-materialized Library state for normal Upload duplicate preflight, removing the extra startup GET while preserving one safe fallback request.
 
@@ -76,10 +76,10 @@ Evidence: [`../audits/V2_11_KEEPER_AUDIT.md`](../audits/V2_11_KEEPER_AUDIT.md).
 
 **Status:** ✅ Complete
 
-- restored least-privilege B2 credential routing: GET/HEAD use read credentials; mutations require write credentials and never fall back;
+- GET/HEAD use read credentials; mutations require write credentials and never fall back;
 - made nine unconsumed implementation-only service symbols private;
-- retained three deliberate validation-policy seams with direct security regression coverage;
-- normal Verify now owns complete security + service regressions; final retained service-export graph has **91 consumed exports**.
+- retained three deliberate validation-policy seams with direct regression coverage;
+- normal Verify owns complete security + service regressions; final retained service-export graph has **91 consumed exports**.
 
 Evidence: [`../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md).
 
@@ -87,8 +87,8 @@ Evidence: [`../audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](../audits/V2_1
 
 **Status:** ✅ Complete
 
-- final static ownership result: **36 authored stylesheets / 2,254 selectors / 0 literal unreferenced class candidates / 0 unused custom properties**;
-- remaining specificity and `!important` pressure is concentrated in intentional late-loaded workflow/theme/layout layers rather than evidence for a broad cascade rewrite;
+- **36 authored stylesheets / 2,254 selectors / 0 literal unreferenced class candidates / 0 unused custom properties**;
+- remaining specificity/`!important` pressure is concentrated in intentional late-loaded workflow/theme/layout layers;
 - retained keyboard/focus, reduced-motion, forced-colors, increased-contrast, zoom/reflow, and labelled mobile-target behavioral gates;
 - no broad stylesheet consolidation was justified.
 
@@ -99,11 +99,10 @@ Evidence: [`../audits/V2_11_CSS_MOTION_ACCESSIBILITY_AUDIT.md`](../audits/V2_11_
 **Status:** ✅ Complete on exact-green head `974fb1d8212ed4afc713da0ed340e22a58f1adff`
 
 - retired seven stale release-era standalone policy executables behind `check-retired-release-tools.mjs`;
-- migrated useful M5–M8 behavior into active service regressions; normal service gate is **47/47**;
-- activated the current site-voice/destructive-warning guard in normal repository checks;
-- removed duplicate Verify/Baseline check execution by using `build:dist` only after the authoritative check already passed;
-- removed the duplicate Baseline performance invocation because `npm run check` already owns that tripwire;
-- retained Node 22/npm 10.9.8, the two committed lockfiles, no-bundler build, dependency review policy, static preview, EPUB.js lifecycle guard, B2 local tools, and the existing publisher.
+- migrated useful M5–M8 behavior into active service regressions; service gate **47/47**;
+- activated current site-voice/destructive-warning guard;
+- removed duplicate Verify/Baseline execution by using `build:dist` only after the authoritative check passed;
+- retained Node 22/npm 10.9.8, two lockfiles, no-bundler build, review-driven dependencies, static preview, EPUB lifecycle guard, B2 local tools, and existing publisher.
 
 Measured Verify result: ~4.43 s repository check + ~0.34 s post-check build, removing roughly four seconds of duplicate deterministic work without dropping a gate.
 
@@ -111,27 +110,26 @@ Evidence: [`../audits/V2_11_BUILD_DEPENDENCIES_TOOLING_AUDIT.md`](../audits/V2_1
 
 ## v2.11H — Documentation & repository hygiene
 
-**Status:** 🟨 In progress
+**Status:** ✅ Complete
 
-Goals:
-
-- reconcile authoritative current architecture/docs with accepted A–G outcomes;
-- keep one current roadmap and one current findings register, with detailed subsystem evidence linked rather than duplicated indefinitely;
-- remove stale current claims about retired tools, superseded version state, or pre-G CI ownership while preserving historical release/archive records;
-- expand documentation freshness enforcement to the current architecture source-of-truth set;
-- finish with exact-head Verify, Cloudflare preview, and all five real-browser projects green.
+- reconciled authoritative current roadmap/findings/index/build/test/CSS/maintenance/dependency documents to accepted A–G ownership;
+- kept release/archive/security milestone history historical rather than rewriting it as current state;
+- expanded documentation freshness ownership to root/current architecture/current operations plus final Audit G closeout evidence;
+- made package-manager freshness follow `package.json#packageManager` dynamically;
+- fixed the stale Audit G “gate pending” evidence label after its exact head had already gone green;
+- made no product/runtime/dependency/lockfile/security/storage/formal-version change.
 
 Evidence: [`../audits/V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md`](../audits/V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md).
 
 ---
 
-## Release convergence after Audit H
+## Release convergence next
 
-Audit completion does not itself publish v2.11.0. After H closes, the stacked audit branches must be assembled/reverified on the intended final `main` state. A formal v2.11.0 release is cut only after:
+Audit completion does not itself publish v2.11.0. The stacked audit branches must now be assembled/reverified on the intended final `main` state. A formal v2.11.0 release is cut only after:
 
 - accepted A–H implementation is present together on the final commit;
 - final exact-main Verify and complete five-browser E2E are green;
 - formal `package.json#version`, lockfile root/workspace version, changelog, and `docs/releases/v2.11.0.md` deliberately converge;
 - Cloudflare production reports the matching version + commit;
 - production smoke succeeds;
-- documentation reflects the final code state.
+- current documentation reflects the final assembled code state.

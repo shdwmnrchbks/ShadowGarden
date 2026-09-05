@@ -2,7 +2,7 @@
 
 This directory contains the frozen v1 starting baseline, the accepted v2.0/R10 baseline, and the **current authoritative ownership contracts** for later v2 work.
 
-The active deployment/product line is **v2.11.0 — Engineering Audit, Refactor & Optimization**. The latest formal release is **v2.10.0 — Maintenance & Supply Chain**. Audits A–G are complete; Audit H is reconciling current documentation to those accepted results.
+The active deployment/product line is **v2.11.0 — Engineering Audit, Refactor & Optimization**. The latest formal release is **v2.10.0 — Maintenance & Supply Chain**. Audits A–H are complete; stacked-branch assembly/final-main release convergence is next.
 
 The single current roadmap is [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CURRENT_ROADMAP.md). Current findings are in [`../audits/POST_V2_10_AUDIT.md`](../audits/POST_V2_10_AUDIT.md). Historical planning belongs under [`../archive/`](../archive/).
 
@@ -24,7 +24,7 @@ The single current roadmap is [`../roadmaps/CURRENT_ROADMAP.md`](../roadmaps/CUR
 - [`KEEPER_LAYER.md`](./KEEPER_LAYER.md) — Garden Keeper composition, single AdminClient, retained operational workflows.
 - [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) — semantic CSS ownership and Audit F accessibility/motion/cascade decision.
 
-Audit C retained the current Library/Series/domain split after removing repeated state-read/render ownership. Audit B retained Reader modular ownership after targeted lifecycle cleanup. Audit D retained Keeper workflow boundaries after two bounded request-ownership fixes.
+Audits B–D retained the current Reader, Library/Series/domain, and Keeper responsibility splits after targeted lifecycle/state-read/request-owner fixes rather than broad restructuring.
 
 ## Functions, storage, security, recovery
 
@@ -33,7 +33,7 @@ Audit C retained the current Library/Series/domain split after removing repeated
 - [`PERSISTENCE_CONTRACTS.md`](./PERSISTENCE_CONTRACTS.md) — browser-local and cookie persistence contracts.
 - [`MAINTENANCE_BASELINE.md`](./MAINTENANCE_BASELINE.md) — recurring health verification.
 
-Audit A retired the unused forwarding compatibility facades after proving no current consumers. Audit E retained the route/service/helper architecture, restored method-level least-privilege B2 credentials, made unowned implementation exports private, and moved the complete security/service regression layer into normal Verify.
+Audit A retired unused forwarding compatibility facades after proving no consumers. Audit E retained route/service/helper architecture, restored method-level least-privilege B2 credentials, made unowned implementation exports private, and moved the complete security/service regression layer into normal Verify.
 
 ## Verification, accessibility, motion
 
@@ -42,14 +42,16 @@ Audit A retired the unused forwarding compatibility facades after proving no cur
 - [`MOBILE_NAVIGATION.md`](./MOBILE_NAVIGATION.md) — responsive navigation geometry/focus/scroll-lock contract.
 - [`MOTION_SYSTEM.md`](./MOTION_SYSTEM.md) — progressive enhancement only; motion never becomes state/request/persistence ownership.
 
-Current repository policy is enforced by modern purpose-specific guards/tests. Obsolete R-series and release-era standalone policy executables are intentionally absent behind `tools/check-retired-milestone-checkers.mjs` and `tools/check-retired-release-tools.mjs`; historical architecture/release records remain preserved instead of being executable policy.
+Current repository policy is enforced by modern purpose-specific guards/tests. Obsolete R-series and release-era standalone policy executables are intentionally absent behind `tools/check-retired-milestone-checkers.mjs` and `tools/check-retired-release-tools.mjs`; historical architecture/release records remain evidence rather than executable policy.
 
-Audit G retained every current deterministic `*.test.mjs` input, Node 22/npm 10.9.8, the two committed lockfiles, the no-bundler build, static preview, review-driven dependency maintenance, the EPUB.js lifecycle revision guard, and the existing release publisher. It removed duplicate CI execution rather than weakening gates.
+Audit G retained current deterministic tests, Node 22/npm 10.9.8, two committed lockfiles, no-bundler build, static preview, review-driven dependency maintenance, EPUB.js lifecycle revision guard, and the existing release publisher. It removed duplicate execution rather than weakening gates.
 
-## CSS and design result
+## CSS/design result
 
-Audit F converged static cleanup to 0 literal unreferenced class candidates and 0 unused custom properties across 36 authored stylesheets / 2,254 selectors. Remaining specificity/`!important` pressure is concentrated in deliberate late-loaded workflow/theme/layout layers. The existing semantic surface split and behavioral accessibility/motion gates remain authoritative; no broad CSS rewrite was justified.
+Audit F converged static cleanup to 0 literal unreferenced class candidates and 0 unused custom properties across 36 authored stylesheets / 2,254 selectors. Remaining specificity/`!important` pressure is concentrated in deliberate late-loaded workflow/theme/layout layers. Existing semantic surface split and behavioral accessibility/motion gates remain authoritative; no broad CSS rewrite was justified.
 
-## Current audit posture
+## Documentation/repository result
 
-Audit H updates only current source-of-truth documentation and freshness enforcement. Release notes, archived roadmaps, milestone/security records, and Git history are allowed to retain historical version/tool references because they describe historical states rather than current ownership.
+Audit H reconciled current roadmap/findings/index/build/test/CSS/maintenance/dependency documentation with accepted A–G ownership and expanded `check-documentation-freshness.mjs` to protect current status/architecture/operations surfaces, including root README and final Audit G closeout evidence. Release/archive/security milestone/history records remain outside the current-state scan by design.
+
+The next step is assembly of the accepted stacked audit changes onto the intended final `main` state, followed by exact-main verification and deliberate formal v2.11.0 release convergence.

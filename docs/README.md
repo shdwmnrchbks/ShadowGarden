@@ -4,8 +4,8 @@ This is the canonical documentation index for current architecture, active plann
 
 ## Current project state
 
-- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**.
-- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — the current consolidated v2.11 findings/decision register.
+- [`roadmaps/CURRENT_ROADMAP.md`](./roadmaps/CURRENT_ROADMAP.md) — **the single current roadmap**; Audits A–H are complete and release convergence is next.
+- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — the consolidated v2.11 findings/decision register.
 - **Active deployment/product line:** v2.11.0 — Engineering Audit, Refactor & Optimization.
 - **Latest formal release:** v2.10.0 — Maintenance & Supply Chain.
 - [`architecture/VERSIONING_CONTRACT.md`](./architecture/VERSIONING_CONTRACT.md) — deployment version versus formal release ownership and final convergence rules.
@@ -32,8 +32,8 @@ Completed planning and historical milestone material belongs under [`archive/`](
 
 ## v2.11 audit evidence
 
-- [`audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](./audits/POST_V2_10_ENTRYPOINT_INVENTORY.md) — Audit A current production entrypoint inventory.
-- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — Audits A/B plus consolidated A–H decisions.
+- [`audits/POST_V2_10_ENTRYPOINT_INVENTORY.md`](./audits/POST_V2_10_ENTRYPOINT_INVENTORY.md) — Audit A production entrypoint inventory.
+- [`audits/POST_V2_10_AUDIT.md`](./audits/POST_V2_10_AUDIT.md) — consolidated A–H decisions plus detailed A/B evidence.
 - [`audits/V2_11_LIBRARY_SERIES_AUDIT.md`](./audits/V2_11_LIBRARY_SERIES_AUDIT.md) — Audit C.
 - [`audits/V2_11_KEEPER_AUDIT.md`](./audits/V2_11_KEEPER_AUDIT.md) — Audit D.
 - [`audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md`](./audits/V2_11_FUNCTIONS_SECURITY_STORAGE_AUDIT.md) — Audit E.
@@ -52,7 +52,7 @@ Completed planning and historical milestone material belongs under [`archive/`](
 - `npm run check:security` — signed media, opaque identity, human-session, protected-route and related security contracts.
 - `npm test` — all deterministic unit/service/DOM/browser-contract tests.
 - `npm run build` — self-validating local/Cloudflare/E2E production build (`prebuild` runs the repository check).
-- `.github/workflows/verify.yml` — runs the repository/security/service/targeted regression gates once, then uses `npm run build:dist` to avoid repeating the already-passed check.
+- `.github/workflows/verify.yml` — repository/security/service/targeted regressions once, then `npm run build:dist` to avoid repeating the passed repository check.
 - `.github/workflows/e2e.yml` — Chromium desktop/mobile, Firefox desktop, WebKit desktop/mobile against production `dist/`.
 - `.github/workflows/baseline-health.yml` — monthly/manual check + security + full deterministic suite + post-check `build:dist`.
 - `.github/workflows/dependency-audit.yml` — scheduled/manual non-mutating production dependency audit report.
@@ -64,4 +64,4 @@ Completed planning and historical milestone material belongs under [`archive/`](
 
 ## Repository documentation policy
 
-Current architecture contracts describe current ownership. Audit records describe evidence and decisions. Release/archive/security records may describe historical implementation exactly as it existed at the time. A current contract must not advertise a deleted historical executable or superseded release/version state as a live owner merely because the historical record remains preserved elsewhere.
+Current architecture/operations contracts describe current ownership. Audit records describe evidence/decisions. Release/archive/security records may describe historical implementation exactly as it existed at the time. A current contract must not advertise a deleted historical executable or superseded release/version state as a live owner merely because the historical record remains preserved elsewhere.

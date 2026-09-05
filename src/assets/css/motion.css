@@ -18,8 +18,6 @@
   transition-timing-function:var(--sg-ease-standard);
 }
 .sg-motion-control:active{transform:scale(.98)}
-.sg-motion-fade{transition:opacity var(--sg-motion-ui) var(--sg-ease-standard),transform var(--sg-motion-ui) var(--sg-ease-standard)}
-.sg-motion-panel{transition:opacity var(--sg-motion-ui) var(--sg-ease-standard),transform var(--sg-motion-layout) var(--sg-ease-enter)}
 
 @keyframes sg-motion-fade-in{from{opacity:0}to{opacity:1}}
 @keyframes sg-motion-fade-out{from{opacity:1}to{opacity:0}}
@@ -52,7 +50,7 @@
     --sg-motion-page:.01ms;
   }
   html{scroll-behavior:auto!important}
-  .sg-motion-control,.sg-motion-fade,.sg-motion-panel{transition-duration:.01ms!important}
+  .sg-motion-control{transition-duration:.01ms!important}
   .sg-motion-control:active{transform:none!important}
   ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation-duration:.01ms!important;animation-iteration-count:1!important}
 }

@@ -1,13 +1,13 @@
 # Shadow Garden Current Roadmap — v2.11 Engineering Audit, Refactor & Optimization
 
-> **Status:** ✅ **v2.11A–H COMPLETE · RELEASE CONVERGENCE NEXT**  
+> **Status:** ✅ **v2.11A–H COMPLETE · FORMAL RELEASE CANDIDATE CONVERGED**  
 > **Active release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
-> **Latest formal release:** v2.10.0 — Maintenance & Supply Chain  
-> **Execution baseline:** `c9403732983cb5fe96fb0914288dfc7e9ee2e83b`  
+> **Latest formal release:** v2.11.0 — Engineering Audit, Refactor & Optimization  
+> **Assembled exact-main baseline:** `cdbc57384a01e8c83dc13ff5fc1df6753fe93f97`  
 > **Audit G exact-green head:** `974fb1d8212ed4afc713da0ed340e22a58f1adff`  
 > **Updated:** 2026-09-05
 
-Shadow Garden has enough product features for the current operating horizon. v2.11 is an **audit-first engineering-health cycle**, not a feature expansion roadmap and not a pre-approved rewrite. Refactor or optimization was accepted only where evidence demonstrated a correctness, ownership, maintainability, verification, or realistic-scale performance problem.
+Shadow Garden has enough product features for the current operating horizon. v2.11 was an **audit-first engineering-health cycle**, not a feature expansion roadmap and not a pre-approved rewrite. Refactor or optimization was accepted only where evidence demonstrated a correctness, ownership, maintainability, verification, or realistic-scale performance problem.
 
 A clean audit is a successful result.
 
@@ -25,8 +25,8 @@ A clean audit is a successful result.
 
 # v2.11.0 — Engineering Audit, Refactor & Optimization
 
-**Status:** ✅ Audit phase complete · formal release convergence not yet performed  
-**Formal release:** not cut; `package.json#version` remains 2.10.0 until release convergence
+**Status:** ✅ Audit phase complete · stack assembled/reverified on `main` · formal release metadata converged  
+**Formal release source:** `package.json#version` and `deploymentVersion` are both 2.11.0; publication remains gated by the exact release commit
 
 ## v2.11A — Repository & ownership inventory
 
@@ -123,13 +123,16 @@ Evidence: [`../audits/V2_11_DOCUMENTATION_REPOSITORY_HYGIENE_AUDIT.md`](../audit
 
 ---
 
-## Release convergence next
+## Release convergence
 
-Audit completion does not itself publish v2.11.0. The stacked audit branches must now be assembled/reverified on the intended final `main` state. A formal v2.11.0 release is cut only after:
+Audits C–H were assembled onto the already-merged A/B history through PR #231. The resulting `main` commit `cdbc57384a01e8c83dc13ff5fc1df6753fe93f97` independently passed:
 
-- accepted A–H implementation is present together on the final commit;
-- final exact-main Verify and complete five-browser E2E are green;
-- formal `package.json#version`, lockfile root/workspace version, changelog, and `docs/releases/v2.11.0.md` deliberately converge;
-- Cloudflare production reports the matching version + commit;
-- production smoke succeeds;
-- current documentation reflects the final assembled code state.
+- Verify / repository + security + service + targeted Reader/Library regressions + production build;
+- Cloudflare Pages deployment;
+- Chromium desktop;
+- Chromium mobile;
+- Firefox desktop;
+- WebKit desktop;
+- WebKit mobile.
+
+The formal v2.11.0 release candidate now converges `package.json#version`, root lockfile version metadata, the changelog, current release-status documentation, and [`../releases/v2.11.0.md`](../releases/v2.11.0.md). After the candidate lands on `main`, the existing publisher must re-run the exact release commit through Verify and complete Real Browser E2E, observe matching Cloudflare production version + commit, and pass production smoke before creating the GitHub `v2.11.0` release.

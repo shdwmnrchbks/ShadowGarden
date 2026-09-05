@@ -1,6 +1,11 @@
 name: Temporary v2.11 WebKit Continuous sync patch
 
 on:
+  push:
+    branches:
+      - fix/v2.11-webkit-continuous-chapter-sync
+    paths:
+      - .github/workflows/temp-v2-11-webkit-continuous-sync.yml
   workflow_dispatch:
 
 permissions:

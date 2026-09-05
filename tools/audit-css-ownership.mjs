@@ -45,6 +45,7 @@ for (const [surface, file] of Object.entries(surfaces)) {
 const classOwners = new Map();
 const idOwners = new Map();
 const selectors = [];
+const importantByFile = new Map();
 let importantCount = 0;
 let reducedMotionFiles = 0;
 let forcedColorsFiles = 0;
@@ -67,7 +68,9 @@ function classLikeCount(selector) {
 
 for (const file of cssFiles) {
   const text = cssTexts.get(file);
-  importantCount += (text.match(/!important\b/g) || []).length;
+  const fileImportantCount = (text.match(/!important\b/g) || []).length;
+  importantCount += fileImportantCount;
+  importantByFile.set(rel(file), fileImportantCount);
   if (/prefers-reduced-motion\s*:\s*reduce/.test(text)) reducedMotionFiles += 1;
   if (/forced-colors\s*:\s*active/.test(text)) forcedColorsFiles += 1;
   if (/prefers-contrast\s*:\s*(?:more|custom)/.test(text)) increasedContrastFiles += 1;
@@ -114,6 +117,15 @@ const highSpecificity = selectors
   .filter((entry) => entry.ids > 0 || entry.classLike >= 4)
   .sort((a, b) => b.ids - a.ids || b.classLike - a.classLike || a.file.localeCompare(b.file) || a.selector.localeCompare(b.selector));
 
+const highSpecificityByFile = new Map();
+for (const entry of highSpecificity) highSpecificityByFile.set(entry.file, (highSpecificityByFile.get(entry.file) || 0) + 1);
+
+const topImportantOwners = [...importantByFile.entries()]
+  .filter(([, count]) => count > 0)
+  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+const topSpecificityOwners = [...highSpecificityByFile.entries()]
+  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
 const sheetSurfaces = new Map();
 for (const [surface, sheets] of Object.entries(composition)) {
   for (const sheet of sheets) {
@@ -146,6 +158,11 @@ if (sharedClassOwners.length > 25) console.log(`  ... ${sharedClassOwners.length
 console.log(`Specificity watch: ${highSpecificity.length} selectors contain an ID or 4+ class/attribute/pseudo components; !important declarations: ${importantCount}.`);
 for (const item of highSpecificity.slice(0, 25)) console.log(`  [${item.ids},${item.classLike}] ${item.file}: ${item.selector}`);
 if (highSpecificity.length > 25) console.log(`  ... ${highSpecificity.length - 25} more`);
+
+console.log('Top specificity-watch owners:');
+for (const [file, count] of topSpecificityOwners.slice(0, 12)) console.log(`  ${file}: ${count}`);
+console.log('Top !important owners:');
+for (const [file, count] of topImportantOwners.slice(0, 12)) console.log(`  ${file}: ${count}`);
 
 console.log(`Accessibility/motion media coverage: reduced-motion in ${reducedMotionFiles} files; forced-colors in ${forcedColorsFiles}; increased-contrast in ${increasedContrastFiles}; keyframes: ${keyframeCount}.`);
 if (candidateUnusedCustomProperties.length > 0) {
